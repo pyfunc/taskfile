@@ -1,0 +1,8 @@
+development:
+  command: 'echo "Running development deployment..."'
+
+staging:
+  command: 'echo "Running staging deployment..."'
+
+production:
+  command: 'echo "Running production deployment..."'
