@@ -1,0 +1,152 @@
+version: "1"
+name: softreck-apps
+description: >
+  Multi-app deployment for Softreck projects.
+  Podman Quadlet + Traefik on 512MB VPS.
+
+default_env: local
+
+variables:
+  REGISTRY: ghcr.io/softreck
+  TAG: latest
+  PROXY_NETWORK: proxy
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+
+  prod:
+    ssh_host: vps.softreck.dev
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+
+# ─── Tasks ──────────────────────────────────────────
+
+tasks:
+
+  # ─── Per-app build/push ───────────────────────
+  build:
+    desc: Build single app (--var APP=wronai)
+    cmds:
+      - docker build -t ${REGISTRY}/${APP}:${TAG} ./apps/${APP}
+
+  push:
+    desc: Build and push single app
+    deps: [build]
+    cmds:
+      - docker push ${REGISTRY}/${APP}:${TAG}
+
+  # ─── Local development ────────────────────────
+  dev:
+    desc: Start all apps locally with Traefik
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+      - echo "✅ Apps running — check Traefik dashboard at http://localhost:8080"
+
+  dev-stop:
+    desc: Stop local environment
+    env: [local]
+    cmds:
+      - docker compose down
+
+  dev-logs:
+    desc: Follow local logs
+    env: [local]
+    cmds:
+      - docker compose logs -f
+
+  # ─── Production deploy ────────────────────────
+  deploy-app:
+    desc: Deploy single app to prod (--var APP=wronai)
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${REGISTRY}/${APP}:${TAG}"
+      - "@remote systemctl --user restart ${APP}"
+      - echo "✅ Deployed ${APP}:${TAG}"
+
+  deploy-all:
+    desc: Deploy all apps to prod
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${REGISTRY}/wronai:${TAG}"
+      - "@remote podman pull ${REGISTRY}/prototypowanie:${TAG}"
+      - "@remote podman pull ${REGISTRY}/portigen:${TAG}"
+      - "@remote systemctl --user restart wronai"
+      - "@remote systemctl --user restart prototypowanie"
+      - "@remote systemctl --user restart portigen"
+      - "@remote podman image prune -f"
+      - echo "✅ All apps deployed"
+
+  # ─── Traefik ──────────────────────────────────
+  traefik-deploy:
+    desc: Deploy/update Traefik on server
+    env: [prod]
+    cmds:
+      - scp deploy/traefik.container deploy@${SSH_HOST}:~/.config/containers/systemd/
+      - "@remote systemctl --user daemon-reload"
+      - "@remote systemctl --user restart traefik"
+
+  # ─── Server operations ────────────────────────
+  status:
+    desc: Check all services on server
+    env: [prod]
+    cmds:
+      - "@remote podman ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+      - "@remote free -h"
+
+  logs:
+    desc: View app logs on server (--var APP=wronai)
+    env: [prod]
+    cmds:
+      - "@remote journalctl --user -u ${APP} -f --no-pager -n 50"
+
+  cleanup:
+    desc: Clean unused images on server
+    env: [prod]
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote podman volume prune -f"
+      - echo "🧹 Cleaned"
+
+  ram:
+    desc: Check RAM usage on server
+    env: [prod]
+    cmds:
+      - "@remote free -h"
+      - "@remote podman stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}'"
+
+  # ─── Initial setup ───────────────────────────
+  setup-server:
+    desc: First-time server setup
+    env: [prod]
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+      - "@remote podman network create ${PROXY_NETWORK} 2>/dev/null || true"
+      - "@remote loginctl enable-linger $(whoami)"
+      - echo "✅ Server ready"
+
+  upload-quadlets:
+    desc: Upload all Quadlet files to server
+    env: [prod]
+    cmds:
+      - scp deploy/*.container deploy/*.network deploy@${SSH_HOST}:~/.config/containers/systemd/
+      - "@remote systemctl --user daemon-reload"
+      - echo "✅ Quadlet files synced"
+
+  # ─── Release ──────────────────────────────────
+  release:
+    desc: Full release — build all, push, deploy
+    cmds:
+      - echo "🚀 Releasing all apps with tag ${TAG}"
+      - docker build -t ${REGISTRY}/wronai:${TAG} ./apps/wronai
+      - docker build -t ${REGISTRY}/prototypowanie:${TAG} ./apps/prototypowanie
+      - docker build -t ${REGISTRY}/portigen:${TAG} ./apps/portigen
+      - docker push ${REGISTRY}/wronai:${TAG}
+      - docker push ${REGISTRY}/prototypowanie:${TAG}
+      - docker push ${REGISTRY}/portigen:${TAG}
+      - echo "📦 All images pushed"

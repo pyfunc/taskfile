@@ -1,0 +1,106 @@
+"""Taskfile YAML parser — loads and validates Taskfile.yml."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import yaml
+
+from taskfile.models import TaskfileConfig
+
+TASKFILE_NAMES = [
+    "Taskfile.yml",
+    "Taskfile.yaml",
+    "taskfile.yml",
+    "taskfile.yaml",
+    ".taskfile.yml",
+    ".taskfile.yaml",
+]
+
+
+class TaskfileNotFoundError(Exception):
+    """Raised when no Taskfile is found in the search path."""
+
+
+class TaskfileParseError(Exception):
+    """Raised when Taskfile cannot be parsed."""
+
+
+def find_taskfile(start_dir: str | Path | None = None) -> Path:
+    """Find Taskfile.yml by walking up the directory tree.
+
+    Searches from start_dir (default: cwd) upward to filesystem root,
+    similar to how git finds .git directory.
+    """
+    current = Path(start_dir or os.getcwd()).resolve()
+
+    while True:
+        for name in TASKFILE_NAMES:
+            candidate = current / name
+            if candidate.is_file():
+                return candidate
+
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+
+    raise TaskfileNotFoundError(
+        f"No Taskfile found. Searched for: {', '.join(TASKFILE_NAMES)}\n"
+        f"Run 'taskfile init' to create one."
+    )
+
+
+def load_taskfile(path: str | Path | None = None) -> TaskfileConfig:
+    """Load and parse a Taskfile.
+
+    Args:
+        path: Explicit path to Taskfile. If None, searches automatically.
+
+    Returns:
+        Parsed TaskfileConfig.
+    """
+    if path is None:
+        filepath = find_taskfile()
+    else:
+        filepath = Path(path)
+        if not filepath.is_file():
+            raise TaskfileNotFoundError(f"Taskfile not found: {filepath}")
+
+    try:
+        with open(filepath) as f:
+            raw = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise TaskfileParseError(f"Invalid YAML in {filepath}: {e}") from e
+
+    if not isinstance(raw, dict):
+        raise TaskfileParseError(f"Taskfile must be a YAML mapping, got {type(raw).__name__}")
+
+    config = TaskfileConfig.from_dict(raw)
+    return config
+
+
+def validate_taskfile(config: TaskfileConfig) -> list[str]:
+    """Validate a TaskfileConfig and return list of warnings."""
+    warnings = []
+
+    if not config.tasks:
+        warnings.append("No tasks defined")
+
+    for task_name, task in config.tasks.items():
+        if not task.commands:
+            warnings.append(f"Task '{task_name}' has no commands")
+
+        for dep in task.deps:
+            if dep not in config.tasks:
+                warnings.append(f"Task '{task_name}' depends on unknown task '{dep}'")
+
+        if task.env_filter:
+            for env in task.env_filter:
+                if env not in config.environments:
+                    warnings.append(
+                        f"Task '{task_name}' references unknown environment '{env}'"
+                    )
+
+    return warnings

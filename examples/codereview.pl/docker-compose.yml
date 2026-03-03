@@ -1,0 +1,142 @@
+# docker-compose.yml — SINGLE SOURCE OF TRUTH
+#
+# This file works for ALL environments:
+#   Local:  docker compose --env-file .env.local up -d
+#   Prod:   taskfile quadlet generate --env-file .env.prod
+#
+# All differences between environments are in .env files.
+# Traefik labels use variables so the same labels work everywhere.
+
+services:
+
+  # ─── Traefik reverse proxy ──────────────────────
+  traefik:
+    image: traefik:v3.2-alpine
+    restart: always
+    command:
+      - --api.dashboard=${TRAEFIK_DASHBOARD:-false}
+      - --providers.docker=${DOCKER_PROVIDER:-true}
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:-admin@codereview.pl}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${TRAEFIK_DASHBOARD_PORT:-8080}:8080"
+    volumes:
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - proxy
+    deploy:
+      resources:
+        limits:
+          memory: ${TRAEFIK_MEMORY:-48m}
+
+  # ─── Main app (e.g. Node.js / Python web app) ──
+  app:
+    image: ${REGISTRY:-ghcr.io/softreck}/codereview-app:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DATABASE_URL: postgres://codereview:${DB_PASSWORD:-devpass}@db:5432/codereview
+      DOMAIN: ${DOMAIN:-codereview.localhost}
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.app.rule: "Host(`${DOMAIN:-codereview.localhost}`)"
+      traefik.http.routers.app.entrypoints: "${ENTRYPOINT:-web}"
+      traefik.http.routers.app.tls: "${TLS_ENABLED:-false}"
+      traefik.http.routers.app.tls.certresolver: "${CERT_RESOLVER:-}"
+      traefik.http.services.app.loadbalancer.server.port: "3000"
+    volumes:
+      - app-data:/app/data
+      - ${UPLOADS_PATH:-./uploads}:/app/uploads
+    networks:
+      - proxy
+      - backend
+    depends_on:
+      - db
+    deploy:
+      resources:
+        limits:
+          memory: ${APP_MEMORY:-128m}
+          cpus: "${APP_CPUS:-0.5}"
+
+  # ─── API service ────────────────────────────────
+  api:
+    image: ${REGISTRY:-ghcr.io/softreck}/codereview-api:${TAG:-latest}
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      DATABASE_URL: postgres://codereview:${DB_PASSWORD:-devpass}@db:5432/codereview
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.api.rule: "Host(`api.${DOMAIN:-codereview.localhost}`)"
+      traefik.http.routers.api.entrypoints: "${ENTRYPOINT:-web}"
+      traefik.http.routers.api.tls: "${TLS_ENABLED:-false}"
+      traefik.http.routers.api.tls.certresolver: "${CERT_RESOLVER:-}"
+      traefik.http.services.api.loadbalancer.server.port: "4000"
+    networks:
+      - proxy
+      - backend
+    depends_on:
+      - db
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEMORY:-96m}
+          cpus: "${API_CPUS:-0.3}"
+
+  # ─── Database ───────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: codereview
+      POSTGRES_USER: codereview
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devpass}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY:-96m}
+
+  # ─── Redis (cache/sessions) ─────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --maxmemory ${REDIS_MAXMEM:-32mb} --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MEMORY:-48m}
+
+networks:
+  proxy:
+    name: proxy
+  backend:
+    name: codereview-backend
+
+volumes:
+  letsencrypt:
+  app-data:
+  db-data:
+  redis-data:

@@ -1,0 +1,40 @@
+# Auto-generated from Taskfile.yml — do not edit manually
+# Regenerate with: taskfile ci generate
+
+kind: pipeline
+type: docker
+name: codereview.pl
+trigger:
+  branch:
+  - main
+steps:
+- name: test
+  image: python:3.12-slim
+  commands:
+  - pip install taskfile
+  - taskfile --env local run build --var TAG=${DRONE_COMMIT_SHA:0:8}
+- name: build
+  image: docker
+  commands:
+  - pip install taskfile
+  - taskfile --env local run push --var TAG=${DRONE_COMMIT_SHA:0:8}
+  volumes:
+  - name: docker
+    path: /var/run/docker.sock
+- name: generate
+  image: python:3.12-slim
+  commands:
+  - pip install taskfile
+  - taskfile --env local run generate --var TAG=${DRONE_COMMIT_SHA:0:8}
+- name: deploy
+  image: python:3.12-slim
+  commands:
+  - pip install taskfile
+  - taskfile --env prod run deploy-quick --var TAG=${DRONE_COMMIT_SHA:0:8}
+  when:
+    event:
+    - promote
+volumes:
+- name: docker
+  host:
+    path: /var/run/docker.sock

@@ -1,0 +1,66 @@
+# .github/workflows/deploy.yml — calls taskfile, no CI/CD lock-in
+#
+# The entire pipeline logic lives in Taskfile.yml.
+# This file just triggers it.
+
+name: Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options: [staging, prod]
+      tag:
+        description: 'Image tag'
+        required: false
+        default: 'latest'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install taskfile
+      - run: taskfile run test --env local
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install taskfile
+      - run: taskfile run push --var TAG=${{ github.sha }}
+
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install taskfile
+      - run: taskfile run deploy-remote --env staging --var TAG=${{ github.sha }}
+
+  deploy-prod:
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest  # or: [self-hosted, deploy] for local runner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install taskfile
+      - run: taskfile run deploy-remote --env prod --var TAG=${{ inputs.tag || github.sha }}

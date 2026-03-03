@@ -1,0 +1,48 @@
+# .gitlab-ci.yml — codereview.pl
+#
+# All logic in Taskfile.yml — this file just triggers it.
+# Same commands work on your laptop.
+
+stages:
+  - test
+  - build
+  - deploy
+
+default:
+  before_script:
+    - pip install taskfile --break-system-packages -q
+
+# ─── Test ──────────────────────────────────────────
+test:
+  stage: test
+  script:
+    - taskfile --env local run dev
+    - taskfile --env local run test
+
+# ─── Build & Push ─────────────────────────────────
+build:
+  stage: build
+  script:
+    - taskfile run push --var TAG=$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+    - tags
+
+# ─── Deploy to prod ───────────────────────────────
+# Two options: via taskfile `run` or via taskfile `deploy`
+
+deploy-prod:
+  stage: deploy
+  script:
+    # Option A: Meta-command (generate + upload + restart)
+    - taskfile --env prod deploy --var TAG=$CI_COMMIT_SHORT_SHA
+
+    # Option B: Run tasks from Taskfile.yml directly
+    # - taskfile --env prod run deploy --var TAG=$CI_COMMIT_SHORT_SHA
+  when: manual
+  only:
+    - main
+    - tags
+  environment:
+    name: production
+    url: https://codereview.pl

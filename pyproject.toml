@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskfile"
+version = "0.3.1"
+description = "Universal Taskfile runner with multi-environment deploy support. CI/CD agnostic — run locally or from any pipeline."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [
+    {name = "Softreck", email = "info@softreck.dev"},
+    "Tom Sapletta <tom@sapletta.com>",
+]
+keywords = ["taskfile", "deploy", "ci-cd", "devops", "automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "click>=8.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+taskfile = "taskfile.cli:main"
+tf = "taskfile.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/softreck/taskfile"
+Repository = "https://github.com/softreck/taskfile"
+Issues = "https://github.com/softreck/taskfile/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

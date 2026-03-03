@@ -1,0 +1,48 @@
+# .gitlab-ci.yml — calls taskfile, no CI/CD lock-in
+#
+# The entire pipeline logic lives in Taskfile.yml.
+# This file just triggers it.
+
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.setup: &setup
+  before_script:
+    - pip install taskfile --break-system-packages 2>/dev/null || pip install -e .
+    - taskfile validate
+
+test:
+  stage: test
+  <<: *setup
+  script:
+    - taskfile run test --env local
+
+build:
+  stage: build
+  <<: *setup
+  script:
+    - taskfile run push --var TAG=$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+
+deploy-staging:
+  stage: deploy
+  <<: *setup
+  script:
+    - taskfile run deploy-remote --env staging --var TAG=$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+
+deploy-prod:
+  stage: deploy
+  <<: *setup
+  script:
+    - taskfile run deploy-remote --env prod --var TAG=$CI_COMMIT_SHORT_SHA
+  when: manual
+  only:
+    - main

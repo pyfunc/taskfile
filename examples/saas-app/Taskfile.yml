@@ -1,0 +1,89 @@
+version: "1"
+name: saas-app
+description: SaaS app with staging + prod deploy
+
+variables:
+  REGISTRY: ghcr.io/myorg
+  TAG: latest
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    env_file: .env.local
+
+  staging:
+    ssh_host: staging.myapp.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.staging
+
+  prod:
+    ssh_host: prod.myapp.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod
+
+pipeline:
+  branches: [main]
+  secrets: [SSH_PRIVATE_KEY, REGISTRY_TOKEN]
+  stages:
+    - name: test
+      tasks: [lint, test]
+    - name: build
+      tasks: [build, push]
+      docker_in_docker: true
+    - name: deploy-staging
+      tasks: [deploy]
+      env: staging
+    - name: deploy-prod
+      tasks: [deploy]
+      env: prod
+      when: manual
+
+tasks:
+  lint:
+    desc: Lint code
+    cmds:
+      - ruff check .
+
+  test:
+    desc: Run tests
+    cmds:
+      - pytest -v
+
+  build:
+    desc: Build images
+    deps: [test]
+    cmds:
+      - docker compose build
+
+  push:
+    desc: Push to registry
+    cmds:
+      - docker compose push
+
+  deploy:
+    desc: Deploy to target environment
+    env: [staging, prod]
+    cmds:
+      - "@remote podman pull ${REGISTRY}/saas-app:${TAG}"
+      - "@remote systemctl --user restart saas-app"
+      - "@remote podman image prune -f"
+
+  dev:
+    desc: Start local dev
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local up -d --build
+
+  status:
+    desc: Check remote status
+    env: [staging, prod]
+    cmds:
+      - "@remote podman ps"
+      - "@remote free -h"

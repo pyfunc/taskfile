@@ -1,0 +1,41 @@
+# Auto-generated from Taskfile.yml — do not edit manually
+# Regenerate with: taskfile ci generate
+
+name: codereview.pl
+'on':
+  push:
+    branches:
+    - main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: pip install --break-system-packages taskfile || pip install taskfile
+    - name: 'Run: test'
+      run: taskfile --env local run build --var TAG=${{ github.sha }}
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: pip install --break-system-packages taskfile || pip install taskfile
+    - name: 'Run: build'
+      run: taskfile --env local run push --var TAG=${{ github.sha }}
+    needs: test
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: pip install --break-system-packages taskfile || pip install taskfile
+    - name: 'Run: generate'
+      run: taskfile --env local run generate --var TAG=${{ github.sha }}
+    needs: build
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: pip install --break-system-packages taskfile || pip install taskfile
+    - name: 'Run: deploy'
+      run: taskfile --env prod run deploy-quick --var TAG=${{ github.sha }}
+    needs: generate
+    if: 'false  # manual trigger not supported in Gitea'

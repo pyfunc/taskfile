@@ -1,3 +1,56 @@
+## [0.3.1] - 2026-03-03
+
+### Summary
+
+fix(examples): CLI interface improvements
+
+### Core
+
+- update src/taskfile/__init__.py
+- update src/taskfile/cigen.py
+- update src/taskfile/cirunner.py
+- update src/taskfile/cli.py
+- update src/taskfile/compose.py
+- update src/taskfile/models.py
+- update src/taskfile/parser.py
+- update src/taskfile/quadlet.py
+- update src/taskfile/runner.py
+- update src/taskfile/scaffold.py
+
+### Docs
+
+- docs: update README
+- docs: update TODO.md
+- docs: update README
+
+### Test
+
+- update tests/__init__.py
+- update tests/test_taskfile.py
+
+### Build
+
+- update pyproject.toml
+
+### Config
+
+- config: update goal.yaml
+
+### Other
+
+- update .gitignore
+- update .idea/misc.xml
+- update LICENSE
+- update TICKET
+- config: update .gitea-actions-deploy.yml
+- config: update .github-actions-deploy.yml
+- config: update .gitlab-ci.yml
+- config: update Taskfile.softreck.yml
+- config: update .drone.yml
+- update examples/codereview.pl/.env.local
+- ... and 12 more
+
+
 ## [1.0.1] - 2026-03-02
 
 ### Summary

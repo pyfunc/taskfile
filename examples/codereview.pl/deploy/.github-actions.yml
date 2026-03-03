@@ -1,0 +1,35 @@
+# .github/workflows/deploy.yml — codereview.pl
+#
+# Same commands as your laptop. All logic in Taskfile.yml.
+
+name: Deploy codereview.pl
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (default: git sha)'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install taskfile
+      - run: taskfile run push --var TAG=${{ inputs.tag || github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest  # or [self-hosted, deploy] for local runner
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install taskfile
+
+      # Option A: Meta-command
+      - run: taskfile --env prod deploy --var TAG=${{ inputs.tag || github.sha }}
+
+      # Option B: Run task
+      # - run: taskfile --env prod run deploy --var TAG=${{ inputs.tag || github.sha }}

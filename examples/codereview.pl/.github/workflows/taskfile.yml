@@ -1,0 +1,67 @@
+# Auto-generated from Taskfile.yml — do not edit manually
+# Regenerate with: taskfile ci generate
+
+name: codereview.pl
+'on':
+  push:
+    branches:
+    - main
+  workflow_dispatch: {}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - run: pip install taskfile
+    - name: 'Run: test'
+      run: taskfile --env local run build --var TAG=${{ github.sha }}
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - run: pip install taskfile
+    - name: Login to Container Registry
+      run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ghcr.io -u ${{ github.actor
+        }} --password-stdin
+    - name: 'Run: build'
+      run: taskfile --env local run push --var TAG=${{ github.sha }}
+    needs: test
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - run: pip install taskfile
+    - name: 'Run: generate'
+      run: taskfile --env local run generate --var TAG=${{ github.sha }}
+    - uses: actions/upload-artifact@v4
+      with:
+        name: generate-artifacts
+        path: deploy/quadlet/
+    needs: build
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - run: pip install taskfile
+    - name: Setup SSH key
+      run: 'mkdir -p ~/.ssh
+
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+
+        chmod 600 ~/.ssh/id_ed25519'
+    - name: 'Run: deploy'
+      run: taskfile --env prod run deploy-quick --var TAG=${{ github.sha }}
+    needs: generate
+    if: github.event_name == 'workflow_dispatch'

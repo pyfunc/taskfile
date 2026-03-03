@@ -1,0 +1,255 @@
+version: "1"
+name: codereview.pl
+description: >
+  codereview.pl deployment — 3 stages.
+  Single docker-compose.yml as source of truth.
+  Local: Docker + Traefik | Prod: Podman Quadlet + Traefik
+
+default_env: local
+
+variables:
+  APP_NAME: codereview
+  REGISTRY: ghcr.io/softreck
+  TAG: latest
+  COMPOSE_FILE: docker-compose.yml
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    compose_file: docker-compose.yml
+    env_file: .env.local
+
+  prod:
+    ssh_host: vps.codereview.pl
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    compose_file: docker-compose.yml
+    env_file: .env.prod
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+
+# ═══════════════════════════════════════════════════
+#  Pipeline — defines CI/CD stages
+#  Generate configs: taskfile ci generate --all
+#  Run locally:      taskfile ci run
+# ═══════════════════════════════════════════════════
+
+pipeline:
+  python_version: "3.12"
+  runner_image: ubuntu-latest
+  branches: [main]
+  install_cmd: "pip install taskfile"
+  secrets:
+    - SSH_PRIVATE_KEY
+    - REGISTRY_TOKEN
+
+  stages:
+    - name: test
+      tasks: [build]
+      # Build validates Dockerfile syntax + dependencies
+
+    - name: build
+      tasks: [push]
+      docker_in_docker: true
+
+    - name: generate
+      tasks: [generate]
+      artifacts:
+        - deploy/quadlet/
+
+    - name: deploy
+      tasks: [deploy-quick]
+      env: prod
+      when: manual
+
+# ═══════════════════════════════════════════════════
+#  Tasks
+# ═══════════════════════════════════════════════════
+
+tasks:
+
+  # ─── Build ────────────────────────────────────────
+  build:
+    desc: Build all images
+    cmds:
+      - docker compose --env-file .env.local build
+
+  build-app:
+    desc: Build single service (--var SVC=app)
+    cmds:
+      - docker compose --env-file .env.local build ${SVC}
+
+  push:
+    desc: Build and push all images to registry
+    deps: [build]
+    cmds:
+      - docker compose --env-file .env.local push app api
+      - echo "📦 Pushed ${REGISTRY}/codereview-app:${TAG}"
+      - echo "📦 Pushed ${REGISTRY}/codereview-api:${TAG}"
+
+  # ─── Local development ───────────────────────────
+  dev:
+    desc: Start full local environment
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local up -d --build
+      - echo ""
+      - "echo '✅ codereview.pl running locally:'"
+      - "echo '   App:       http://codereview.localhost'"
+      - "echo '   API:       http://api.codereview.localhost'"
+      - "echo '   Traefik:   http://localhost:8080'"
+
+  dev-down:
+    desc: Stop local environment
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local down
+
+  dev-logs:
+    desc: Follow local logs (--var SVC=app for single service)
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local logs -f ${SVC:-}
+
+  dev-restart:
+    desc: Restart a service locally (--var SVC=app)
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local restart ${SVC:-}
+
+  dev-ps:
+    desc: Show running local services
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local ps
+
+  # ─── Quadlet generation ──────────────────────────
+  #
+  # This is the KEY feature: generate Quadlet from the
+  # same docker-compose.yml using .env.prod variables.
+  # No separate Quadlet config to maintain!
+  #
+  generate:
+    desc: Generate Quadlet files from docker-compose.yml + .env.prod
+    cmds:
+      - taskfile quadlet generate --compose ${COMPOSE_FILE} --env-file .env.prod -o deploy/quadlet
+      - echo ""
+      - echo "📁 Quadlet files in deploy/quadlet/"
+      - ls -la deploy/quadlet/
+
+  # ─── Production deploy ───────────────────────────
+  deploy:
+    desc: "Full deploy: generate Quadlet → upload → pull → restart"
+    env: [prod]
+    deps: [push, generate]
+    cmds:
+      - echo "🚀 Deploying codereview.pl to production..."
+      # Upload Quadlet files
+      - scp deploy/quadlet/*.container deploy/quadlet/*.network deploy/quadlet/*.volume ${SSH_USER:-deploy}@${SSH_HOST}:~/.config/containers/systemd/
+      # Reload systemd
+      - "@remote systemctl --user daemon-reload"
+      # Pull new images
+      - "@remote podman pull ${REGISTRY}/codereview-app:${TAG}"
+      - "@remote podman pull ${REGISTRY}/codereview-api:${TAG}"
+      # Restart services
+      - "@remote systemctl --user restart app"
+      - "@remote systemctl --user restart api"
+      # Cleanup
+      - "@remote podman image prune -f"
+      - echo ""
+      - echo "✅ codereview.pl deployed to production"
+
+  deploy-quick:
+    desc: Quick deploy — pull + restart only (no Quadlet regeneration)
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${REGISTRY}/codereview-app:${TAG}"
+      - "@remote podman pull ${REGISTRY}/codereview-api:${TAG}"
+      - "@remote systemctl --user restart app"
+      - "@remote systemctl --user restart api"
+      - "@remote podman image prune -f"
+      - echo "✅ Quick deploy done"
+
+  deploy-service:
+    desc: Deploy single service (--var SVC=app)
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${REGISTRY}/codereview-${SVC}:${TAG}"
+      - "@remote systemctl --user restart ${SVC}"
+      - echo "✅ Deployed ${SVC}"
+
+  upload-quadlets:
+    desc: Upload Quadlet files without restarting
+    env: [prod]
+    cmds:
+      - scp deploy/quadlet/*.container deploy/quadlet/*.network deploy/quadlet/*.volume ${SSH_USER:-deploy}@${SSH_HOST}:~/.config/containers/systemd/
+      - "@remote systemctl --user daemon-reload"
+      - echo "✅ Quadlet files synced"
+
+  # ─── Production operations ───────────────────────
+  status:
+    desc: Show production service status
+    env: [prod]
+    cmds:
+      - "@remote podman ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'"
+
+  logs:
+    desc: View production logs (--var SVC=app)
+    env: [prod]
+    cmds:
+      - "@remote journalctl --user -u ${SVC:-app} -f --no-pager -n 100"
+
+  restart:
+    desc: Restart production service (--var SVC=app)
+    env: [prod]
+    cmds:
+      - "@remote systemctl --user restart ${SVC:-app}"
+
+  stop:
+    desc: Stop production service (--var SVC=app)
+    env: [prod]
+    cmds:
+      - "@remote systemctl --user stop ${SVC:-app}"
+
+  ram:
+    desc: Check RAM usage on production server
+    env: [prod]
+    cmds:
+      - "@remote free -h"
+      - "@remote podman stats --no-stream --format 'table {{.Name}}\\t{{.MemUsage}}\\t{{.MemPerc}}'"
+
+  cleanup:
+    desc: Clean unused images/volumes on production
+    env: [prod]
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote podman volume prune -f"
+      - echo "🧹 Cleaned"
+
+  # ─── Initial server setup ────────────────────────
+  setup-server:
+    desc: First-time production server setup
+    env: [prod]
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+      - "@remote podman network create proxy 2>/dev/null || true"
+      - "@remote podman network create codereview-backend 2>/dev/null || true"
+      - "@remote loginctl enable-linger $(whoami)"
+      - "@remote mkdir -p /opt/codereview/uploads"
+      - echo "✅ Server ready for Podman Quadlet"
+
+  # ─── Release ─────────────────────────────────────
+  release:
+    desc: Tagged release — build, push, deploy with version tag
+    cmds:
+      - echo "🚀 Releasing codereview.pl ${TAG}"
+      - git tag -a ${TAG} -m "Release ${TAG}"
+      - git push origin ${TAG}
+      - docker compose --env-file .env.local build
+      - docker compose --env-file .env.local push app api
+      - echo "📦 Released ${TAG} — deploy with:"
+      - echo "   taskfile --env prod run deploy-quick --var TAG=${TAG}"

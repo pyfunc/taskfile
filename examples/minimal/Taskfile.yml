@@ -1,0 +1,26 @@
+version: "1"
+name: my-app
+description: Minimal Taskfile example
+
+variables:
+  APP: my-app
+  TAG: latest
+
+tasks:
+  test:
+    desc: Run tests
+    stage: test
+    cmds:
+      - pytest -v
+
+  build:
+    desc: Build Docker image
+    stage: build
+    deps: [test]
+    cmds:
+      - docker build -t my-app:latest .
+
+  run:
+    desc: Run locally
+    cmds:
+      - docker run --rm -p 3000:3000 my-app:latest

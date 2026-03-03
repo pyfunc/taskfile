@@ -1,0 +1,42 @@
+// Auto-generated from Taskfile.yml — do not edit manually
+// Regenerate with: taskfile ci generate --target jenkins
+pipeline {
+    agent { docker { image 'python:3.12-slim' } }
+
+    environment {
+        TAG = "${GIT_COMMIT.take(8)}"
+    }
+
+    stages {
+        stage('test') {
+            steps {
+                sh 'pip install taskfile'
+                sh 'taskfile --env local run build --var TAG=${TAG}'
+            }
+        }
+        stage('build') {
+            steps {
+                sh 'pip install taskfile'
+                sh 'taskfile --env local run push --var TAG=${TAG}'
+            }
+        }
+        stage('generate') {
+            steps {
+                sh 'pip install taskfile'
+                sh 'taskfile --env local run generate --var TAG=${TAG}'
+            }
+        }
+        stage('deploy') {
+            steps {
+                sh 'pip install taskfile'
+                sh 'taskfile --env prod run deploy-quick --var TAG=${TAG}'
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}

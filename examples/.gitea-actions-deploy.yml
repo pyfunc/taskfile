@@ -1,0 +1,17 @@
+# .gitea/workflows/deploy.yml — calls taskfile
+#
+# Works with Gitea Act Runner (self-hosted or cloud).
+
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install taskfile
+      - run: taskfile run push --var TAG=${{ github.sha }}
+      - run: taskfile run deploy-remote --env prod --var TAG=${{ github.sha }}
