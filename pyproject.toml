@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taskfile"
-version = "0.3.3"
+version = "0.3.4"
 description = "Universal Taskfile runner with multi-environment deploy support. CI/CD agnostic — run locally or from any pipeline."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.9"
 authors = [
-    "Tom Sapletta <tom@sapletta.com>",
+    {name = "Tom Sapletta", email = "tom@sapletta.com"},
 ]
 keywords = ["taskfile", "deploy", "ci-cd", "devops", "automation"]
 classifiers = [
@@ -38,9 +38,9 @@ taskfile = "taskfile.cli:main"
 tf = "taskfile.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/softreck/taskfile"
-Repository = "https://github.com/softreck/taskfile"
-Issues = "https://github.com/softreck/taskfile/issues"
+Homepage = "https://github.com/pyfunc/taskfile"
+Repository = "https://github.com/pyfunc/taskfile"
+Issues = "https://github.com/pyfunc/taskfile/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

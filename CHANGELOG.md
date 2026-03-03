@@ -1,3 +1,14 @@
+## [0.3.4] - 2026-03-03
+
+### Summary
+
+chore(config): new API capabilities
+
+### Build
+
+- update pyproject.toml
+
+
 ## [0.3.3] - 2026-03-03
 
 ### Summary
