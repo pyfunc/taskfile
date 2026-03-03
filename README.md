@@ -1,5 +1,12 @@
 # taskfile
 
+[![PyPI version](https://img.shields.io/pypi/v/taskfile.svg)](https://pypi.org/project/taskfile/)
+[![Python version](https://img.shields.io/pypi/pyversions/taskfile.svg)](https://pypi.org/project/taskfile/)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Build Status](https://github.com/pyfunc/taskfile/actions/workflows/ci.yml/badge.svg)](https://github.com/pyfunc/taskfile/actions)
+[![Codecov](https://codecov.io/gh/pyfunc/taskfile/branch/main/graph/badge.svg)](https://codecov.io/gh/pyfunc/taskfile)
+[![Documentation Status](https://readthedocs.org/projects/taskfile/badge/?version=latest)](https://taskfile.readthedocs.io/en/latest/?badge=latest)
+
 
 **Universal task runner with multi-environment deploy support.**
 
@@ -29,6 +36,8 @@ Without `taskfile`, you maintain separate configs for each. With `taskfile`:
 One compose file, `.env` files for differences, automatic Quadlet generation.
 
 ## Install
+
+[![PyPI](https://img.shields.io/pypi/v/taskfile.svg)](https://pypi.org/project/taskfile/)
 
 ```bash
 pip install taskfile

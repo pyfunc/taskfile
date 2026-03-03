@@ -1,3 +1,24 @@
+## [0.3.3] - 2026-03-03
+
+### Summary
+
+feat(docs): code analysis engine
+
+### Docs
+
+- docs: update README
+- docs: update README
+- docs: update context.md
+
+### Other
+
+- scripts: update project.sh
+- update project/analysis.toon
+- update project/evolution.toon
+- update project/project.toon
+- update project/prompt.txt
+
+
 ## [0.3.2] - 2026-03-03
 
 ### Summary
