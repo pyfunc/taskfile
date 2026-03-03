@@ -1,0 +1,29 @@
+version: "1"
+name: taskfile-demo
+description: Simple taskfile demonstration
+
+tasks:
+  hello:
+    desc: Print hello message
+    cmds:
+      - echo "Hello from taskfile!"
+
+  build:
+    desc: Build project
+    cmds:
+      - echo "Building project..."
+      - mkdir -p build
+      - echo "Build complete"
+
+  test:
+    desc: Run tests
+    cmds:
+      - echo "Running tests..."
+      - echo "All tests passed!"
+
+  deploy:
+    desc: Deploy application
+    deps: [build]
+    cmds:
+      - echo "Deploying application..."
+      - echo "Deployment complete"

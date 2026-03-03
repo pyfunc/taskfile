@@ -1,3 +1,18 @@
+## [0.3.2] - 2026-03-03
+
+### Summary
+
+feat(config): config module improvements
+
+### Build
+
+- update pyproject.toml
+
+### Other
+
+- config: update Taskfile.yml
+
+
 ## [0.3.1] - 2026-03-03
 
 ### Summary

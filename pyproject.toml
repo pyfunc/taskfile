@@ -4,13 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taskfile"
-version = "0.3.1"
+version = "0.3.2"
 description = "Universal Taskfile runner with multi-environment deploy support. CI/CD agnostic — run locally or from any pipeline."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.9"
 authors = [
-    {name = "Softreck", email = "info@softreck.dev"},
     "Tom Sapletta <tom@sapletta.com>",
 ]
 keywords = ["taskfile", "deploy", "ci-cd", "devops", "automation"]
