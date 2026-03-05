@@ -306,3 +306,75 @@ class TestPipelineConfig:
         }
         config = TaskfileConfig.from_dict(data)
         assert len(config.pipeline.stages) == 2
+
+
+class TestEnvironmentGroup:
+    """Test EnvironmentGroup parsing."""
+
+    def test_parse_groups(self):
+        from taskfile.models import TaskfileConfig
+        data = {
+            "environment_groups": {
+                "kiosks": {
+                    "members": ["kiosk-lobby", "kiosk-cafe"],
+                    "strategy": "rolling",
+                    "max_parallel": 1,
+                },
+                "sensors": {
+                    "members": ["sensor-yard", "sensor-roof"],
+                    "strategy": "parallel",
+                    "max_parallel": 5,
+                },
+            },
+            "environments": {
+                "kiosk-lobby": {"ssh_host": "192.168.1.50", "ssh_user": "pi"},
+                "kiosk-cafe": {"ssh_host": "192.168.1.51", "ssh_user": "pi"},
+                "sensor-yard": {"ssh_host": "192.168.1.60", "ssh_user": "pi"},
+                "sensor-roof": {"ssh_host": "192.168.1.61", "ssh_user": "pi"},
+            },
+            "tasks": {"deploy": {"cmds": ["echo deploy"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert len(config.environment_groups) == 2
+        assert config.environment_groups["kiosks"].strategy == "rolling"
+        assert config.environment_groups["kiosks"].members == ["kiosk-lobby", "kiosk-cafe"]
+        assert config.environment_groups["kiosks"].max_parallel == 1
+        assert config.environment_groups["sensors"].strategy == "parallel"
+
+    def test_parse_groups_defaults(self):
+        from taskfile.models import TaskfileConfig
+        data = {
+            "environment_groups": {
+                "fleet": {"members": ["a", "b"]},
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        grp = config.environment_groups["fleet"]
+        assert grp.strategy == "parallel"
+        assert grp.max_parallel == 5
+        assert grp.canary_count == 1
+
+    def test_parse_groups_empty(self):
+        from taskfile.models import TaskfileConfig
+        data = {"tasks": {"t": {"cmds": ["echo"]}}}
+        config = TaskfileConfig.from_dict(data)
+        assert config.environment_groups == {}
+
+    def test_canary_count(self):
+        from taskfile.models import TaskfileConfig
+        data = {
+            "environment_groups": {
+                "displays": {
+                    "members": ["d1", "d2", "d3"],
+                    "strategy": "canary",
+                    "canary_count": 1,
+                },
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        grp = config.environment_groups["displays"]
+        assert grp.strategy == "canary"
+        assert grp.canary_count == 1
+        assert len(grp.members) == 3
