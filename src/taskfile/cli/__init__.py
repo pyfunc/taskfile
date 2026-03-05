@@ -7,8 +7,9 @@ import taskfile.cli.health
 import taskfile.cli.release
 import taskfile.cli.fleet
 import taskfile.cli.auth
-import taskfile.cli.interactive  # doctor, interactive init, watch, graph
-import taskfile.cli.cache_cmds  # cache management
-import taskfile.cli.import_export  # import/export converters
+import taskfile.cli.interactive  # doctor, init, watch, graph
+import taskfile.cli.cache_cmds   # cache management
+import taskfile.cli.import_export  # import/export
+import taskfile.cli.registry_cmds  # pkg install/search
 
 __all__ = ["main"]

@@ -262,8 +262,15 @@ class TaskfileRunner:
             actual_cmd = f"python {tmp_path} {fn_args}".strip()
         else:
             return 0
-        result = subprocess.run(actual_cmd, shell=True, env=env, cwd=task.working_dir, text=True)
-        return result.returncode
+        try:
+            result = subprocess.run(actual_cmd, shell=True, env=env, cwd=task.working_dir, text=True)
+            return result.returncode
+        finally:
+            if fn.code and 'tmp_path' in locals():
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
 
     def _exec_function_node(self, fn, fn_args: str, env: dict, task: Task) -> int:
         """Execute a Node.js function (inline code or file)."""
@@ -394,12 +401,89 @@ class TaskfileRunner:
             return False
         return True
 
+    def _execute_script(self, task: Task, task_name: str) -> int:
+        """Execute an external script file referenced by task.script.
+
+        The script path is resolved relative to the Taskfile directory.
+        Variables are expanded in the script path.
+        """
+        script_path = self.expand_variables(task.script)
+
+        if not task.silent:
+            console.print(f"  [blue]→ script:[/] {script_path}")
+
+        if self.dry_run:
+            console.print("  [dim](dry run — skipped)[/]")
+            return 0
+
+        # Resolve relative to working_dir or cwd
+        resolved = Path(script_path)
+        if not resolved.is_absolute() and task.working_dir:
+            resolved = Path(task.working_dir) / resolved
+
+        if not resolved.exists():
+            console.print(f"  [red]✗ Script not found: {resolved}[/]")
+            return 1
+
+        env = {**os.environ, **self.variables}
+        try:
+            timeout = task.timeout if task.timeout > 0 else None
+            capture = task.register is not None
+            result = subprocess.run(
+                f"bash {resolved}",
+                shell=True,
+                cwd=task.working_dir,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE if capture else None,
+                stderr=None,
+                timeout=timeout,
+            )
+            if capture and result.stdout:
+                if not task.silent:
+                    sys.stdout.write(result.stdout)
+                self.variables[task.register] = result.stdout.strip()
+            return result.returncode
+        except subprocess.TimeoutExpired:
+            console.print(f"  [red]⏱ Script timed out after {task.timeout}s[/]")
+            return 124
+        except KeyboardInterrupt:
+            console.print("\n[yellow]⚠ Interrupted[/]")
+            return 130
+
     def _execute_commands(self, task: Task, task_name: str, start: float) -> bool:
         """Execute all commands in a task. Returns False if any failed (and not ignored).
 
         Supports retries (Ansible-inspired): when task.retries > 0, failed commands
         are retried up to task.retries times with task.retry_delay seconds between.
+
+        When task.script is set, the external script file is executed first,
+        followed by any inline commands.
         """
+        # Execute external script if defined
+        if task.script:
+            returncode = self._execute_script(task, task_name)
+            if returncode != 0 and task.retries > 0:
+                for attempt in range(1, task.retries + 1):
+                    console.print(
+                        f"  [yellow]↻ Retry {attempt}/{task.retries} "
+                        f"(waiting {task.retry_delay}s)[/]"
+                    )
+                    time.sleep(task.retry_delay)
+                    returncode = self._execute_script(task, task_name)
+                    if returncode == 0:
+                        break
+            if returncode != 0:
+                if task.ignore_errors:
+                    console.print(f"  [yellow]⚠ Script failed (ignored)[/]")
+                else:
+                    elapsed = time.time() - start
+                    console.print(
+                        f"[red]✗ Task '{task_name}' script failed after {elapsed:.1f}s "
+                        f"(exit code {returncode})[/]"
+                    )
+                    return False
+
         for cmd in task.commands:
             returncode = self.run_command(cmd, task)
             # Retry logic

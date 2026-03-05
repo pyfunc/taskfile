@@ -17,7 +17,7 @@ from rich.table import Table
 from rich import box
 
 from taskfile.cli.main import console, main
-from taskfile.parser import load_taskfile, find_taskfile
+from taskfile.parser import load_taskfile, find_taskfile, TaskfileNotFoundError, TaskfileParseError
 
 if TYPE_CHECKING:
     pass
@@ -32,8 +32,9 @@ class ProjectDiagnostics:
 
     def check_taskfile(self) -> bool:
         """Check if Taskfile.yml exists and is valid."""
-        path = find_taskfile()
-        if not path:
+        try:
+            path = find_taskfile()
+        except TaskfileNotFoundError:
             self.issues.append(("Taskfile.yml not found", "error", True))
             return False
         try:
@@ -615,4 +616,31 @@ def graph(ctx, task_name, dot, output):
         from taskfile.cli.main import _print_nearby_taskfiles
         if isinstance(e, TaskfileNotFoundError):
             _print_nearby_taskfiles(e.nearby)
+        sys.exit(1)
+
+
+@main.command()
+@click.option("--port", "-p", default=8080, help="Port to run server on (default: 8080)")
+@click.option("--no-browser", is_flag=True, help="Don't open browser automatically")
+def serve(port, no_browser):
+    """🌐 Start web dashboard for managing tasks.
+
+    Opens a web UI in your browser for visual task management.
+    You can view, search, and run tasks from the browser.
+
+    \b
+    Examples:
+        taskfile serve                    # Start on default port 8080
+        taskfile serve -p 3000           # Use custom port
+        taskfile serve --no-browser      # Don't auto-open browser
+    """
+    from taskfile.webui import serve_dashboard
+    
+    console.print(f"[bold green]🌐 Starting Taskfile Web UI...[/]")
+    console.print(f"[dim]Port: {port}[/]")
+    
+    try:
+        serve_dashboard(port=port, open_browser=not no_browser)
+    except Exception as e:
+        console.print(f"[red]Failed to start server: {e}[/]")
         sys.exit(1)

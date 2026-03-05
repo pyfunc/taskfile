@@ -428,10 +428,15 @@ def info(ctx, task_name):
             console.print(f"  [dim]Tags:[/] {', '.join(task.tags)}")
         if task.register:
             console.print(f"  [dim]Register:[/] {task.register}")
+        if task.script:
+            console.print(f"  [dim]Script:[/] {task.script}")
 
-        console.print(f"\n  [bold]Commands:[/]")
-        for cmd in task.commands:
-            console.print(f"    → {cmd}")
+        if task.script:
+            console.print(f"\n  [bold]Script:[/] {task.script}")
+        if task.commands:
+            console.print(f"\n  [bold]Commands:[/]")
+            for cmd in task.commands:
+                console.print(f"    → {cmd}")
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")

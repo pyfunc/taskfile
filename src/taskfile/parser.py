@@ -220,9 +220,9 @@ def _validate_tasks_exist(config: TaskfileConfig) -> list[str]:
 
 
 def _validate_task_commands(task_name: str, task) -> list[str]:
-    """Check that task has at least one command."""
-    if not task.commands:
-        return [f"Task '{task_name}' has no commands"]
+    """Check that task has at least one command or a script reference."""
+    if not task.commands and not task.script:
+        return [f"Task '{task_name}' has no commands and no script"]
     return []
 
 

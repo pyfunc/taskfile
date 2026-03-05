@@ -117,6 +117,7 @@ class Task:
     name: str
     description: str = ""
     commands: list[str] = field(default_factory=list)
+    script: str | None = None  # external script file path (alternative to inline cmds)
     deps: list[str] = field(default_factory=list)
     env_filter: list[str] | None = None
     platform_filter: list[str] | None = None
@@ -376,6 +377,7 @@ class TaskfileConfig:
                     name=task_name,
                     description=task_data.get("desc", task_data.get("description", "")),
                     commands=_normalize_commands(raw_cmds),
+                    script=task_data.get("script", None),
                     deps=task_data.get("deps", []),
                     env_filter=task_data.get("env", None),
                     platform_filter=task_data.get("platform", None),
