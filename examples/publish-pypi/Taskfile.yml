@@ -10,21 +10,18 @@ tasks:
 
   lint:
     desc: Run ruff linter
-    tags: [ci, quality]
     cmds:
       - ruff check src/
-    continue_on_error: true  # New syntax (was ignore_errors)
+    ignore_errors: true
 
   test:
     desc: Run pytest with coverage
-    tags: [ci, quality]
     cmds:
       - python -m pip install -e ".[dev]"
       - pytest tests/ -v --cov=src/
 
   build:
     desc: Build wheel + sdist
-    tags: [ci, build]
     deps: [test]
     cmds:
       - rm -rf dist/
@@ -33,37 +30,26 @@ tasks:
 
   publish:
     desc: Upload to PyPI
-    tags: [release, deploy]
     deps: [build]
-    retries: 2
-    retry_delay: 5
-    timeout: 300
     cmds:
       - twine upload dist/*
       - echo "✅ ${PACKAGE_NAME} v${VERSION} → https://pypi.org/project/${PACKAGE_NAME}/"
 
   publish-testpypi:
     desc: Upload to TestPyPI (safe testing)
-    tags: [test, deploy]
     deps: [build]
-    retries: 2
-    retry_delay: 5
     cmds:
       - twine upload --repository testpypi dist/*
 
   release:
     desc: Tag + build + publish
-    tags: [release, deploy]
     deps: [lint, test]
     parallel: true
-    register: RELEASE_TAG
     cmds:
       - git tag -a v${VERSION} -m "Release v${VERSION}"
       - git push origin v${VERSION}
-      - echo "v${VERSION}"  # Capture to register
       - rm -rf dist/ && python -m build && twine check dist/*
       - twine upload dist/*
-      - echo "Release {{RELEASE_TAG}} complete!"
 
   verify:
     desc: Check published package installs

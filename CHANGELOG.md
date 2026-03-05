@@ -9,37 +9,7 @@
 - **`timeout`** — command timeout in seconds, returns exit code 124 on timeout
 - **`tags`** — selective task execution with `--tags` CLI flag
 - **`register`** — capture command stdout into a variable for chaining
-- **`continue_on_error`** — alias for `ignore_errors` for consistency
-- **`stage`** — assign tasks to CI/CD stages for pipeline generation
-- **`dir`** — alias for `working_dir` to specify command working directory
-- **`include` section** — split Taskfile.yml into multiple files with optional prefix
-- **`pipeline` section** — define CI/CD stages for automated generation
-- **`compose` section** — Docker Compose integration with override files
-- **`environment_defaults`** — shared default configuration for environments
-- **`ssh_port`** — custom SSH port for environments
-- **`canary_count`** — number of canary deployments in environment groups
-- **`taskfile export`** — export Taskfile.yml to other CI/CD formats
-- **Enhanced environment properties** — `compose_file`, `quadlet_dir`, `quadlet_remote_dir`
-- **Version management** — built-in version bumping (patch/minor/major) and setting
-
-### CLI Commands
-
-- `taskfile import` — import GitHub Actions, GitLab CI, Makefile, shell scripts, Dockerfile
-- `taskfile export` — export Taskfile.yml to GitHub Actions, GitLab CI formats
-- `taskfile ci generate` — generate CI/CD configs from `pipeline` section
-- `taskfile ci run` — run CI pipeline stages locally
-- `taskfile ci preview` — preview generated CI configs
-- `taskfile deploy` — smart deploy with auto-detected strategy
-- `taskfile release` — full release pipeline with tagging
-- `taskfile rollback` — rollback to previous version
-- `taskfile setup` — one-command VPS provisioning
-- `taskfile fleet status` — check fleet health across all environments
-- `taskfile fleet repair` — diagnose and auto-fix remote issues
-- `taskfile auth setup` — interactive registry authentication
-- `taskfile quadlet generate` — generate Podman Quadlet from compose
-- `taskfile quadlet upload` — upload Quadlet files to server
-- `taskfile version` — version management (show, bump, set)
-- `--tags` flag — run only tasks matching specified tags
+- **`taskfile import`** — convert GitHub Actions, GitLab CI, Makefile, shell scripts, Dockerfile INTO Taskfile.yml
 
 ### Docs
 
@@ -47,8 +17,6 @@
 - Update `comparisons/README.md` — add new features to feature matrix
 - Update `examples/README.md` — add functions-embed and import-cicd examples
 - Update main `README.md` — new features, 24 examples, import command, functions reference
-- Update `docs/FORMAT.md` — document all new syntax sections and properties
-- Update `docs/USAGE.md` — document new CLI commands and usage patterns
 
 ### Examples
 
@@ -82,29 +50,10 @@
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
 
-## [0.3.31] - 2026-03-05
-
-## [0.3.30] - 2026-03-05
+## [0.3.32] - 2026-03-05
 
 ### Docs
 - Update CHANGELOG.md
-- Update README.md
-- Update TODO.md
-- Update docs/USAGE.md
-
-## [0.3.29] - 2026-03-05
-
-### Test
-- Update tests/test_e2e_examples.py
-
-### Other
-- Update src/taskfile/scaffold/templates/publish.yml
-
-## [0.3.28] - 2026-03-05
-
-### Docs
-- Update CHANGELOG.md
-- Update README.md
 - Update TODO.md
 - Update docs/FORMAT.md
 - Update docs/USAGE.md

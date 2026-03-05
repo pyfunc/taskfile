@@ -51,9 +51,6 @@ taskfile setup hosts             # Configure deployment hosts
 | `run` | Run one or more tasks | `taskfile run build` |
 | `info` | Show task details | `taskfile info deploy` |
 | `validate` | Validate Taskfile | `taskfile validate` |
-| `import` | Import from other format | `taskfile import Makefile` |
-| `export` | Export to other format | `taskfile export github-actions` |
-| `version` | Version management | `taskfile version bump` |
 
 ### Interactive Commands
 
@@ -80,14 +77,6 @@ taskfile setup hosts             # Configure deployment hosts
 | `export` | Export to other format | `taskfile export github-actions` |
 | `detect` | Detect config files | `taskfile detect` |
 
-### CI/CD Commands
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `ci generate` | Generate CI config | `taskfile ci generate --target github` |
-| `ci run` | Run CI pipeline locally | `taskfile ci run --stage test` |
-| `ci preview` | Preview CI config | `taskfile ci preview --target gitlab` |
-
 ### Package Management
 
 | Command | Description | Example |
@@ -96,65 +85,6 @@ taskfile setup hosts             # Configure deployment hosts
 | `pkg install` | Install package | `taskfile pkg install user/tasks` |
 | `pkg list` | List installed | `taskfile pkg list` |
 | `pkg uninstall` | Remove package | `taskfile pkg uninstall tasks` |
-
-### Deploy Commands
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `deploy` | Smart deploy with auto-strategy | `taskfile deploy --env prod` |
-| `release` | Full release pipeline | `taskfile release --tag v1.0.0` |
-| `rollback` | Rollback deployment | `taskfile rollback --target v0.9.0` |
-| `setup` | VPS provisioning | `taskfile setup 123.45.67.89` |
-
-### Fleet Management
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `fleet status` | Check fleet health | `taskfile fleet status` |
-| `fleet list` | List environments | `taskfile fleet list` |
-| `fleet repair` | Diagnose and fix | `taskfile fleet repair node-1` |
-
-### Registry & Auth
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `auth setup` | Configure registry tokens | `taskfile auth setup` |
-| `auth verify` | Test credentials | `taskfile auth verify` |
-
-### Quadlet Generation
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `quadlet generate` | Generate from compose | `taskfile quadlet generate` |
-| `quadlet upload` | Upload to server | `taskfile quadlet upload --env prod` |
-
-### Version Management
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `version show` | Show current version | `taskfile version show` |
-| `version bump` | Bump version (patch/minor/major) | `taskfile version bump patch` |
-| `version set <version>` | Set specific version | `taskfile version set 1.2.3` |
-
-Version management updates:
-- VERSION file in project root
-- Taskfile.yml version field
-- pyproject.toml version (if exists)
-- Creates git tag automatically
-
-```bash
-# Bump patch version (0.1.0 → 0.1.1)
-taskfile version bump
-
-# Bump minor version (0.1.0 → 0.2.0)
-taskfile version bump minor
-
-# Set specific version
-taskfile version set 2.0.0-rc1
-
-# Preview changes
-taskfile version bump --dry-run
-```
 
 ### Web UI
 
@@ -225,91 +155,6 @@ tasks:
 | `@fn` | Call embedded function | `@fn notify "Done"` |
 | `@python` | Inline Python | `@python print('hello')` |
 | `@remote` | SSH execution | `@remote docker ps` |
-
-### New Task Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `retries` | int | Retry attempts on failure |
-| `retry_delay` | int | Seconds between retries |
-| `timeout` | int | Max execution time in seconds |
-| `tags` | list | Tags for selective execution |
-| `register` | string | Capture output to variable |
-| `continue_on_error` | bool | Continue on failure |
-| `stage` | string | CI/CD stage assignment |
-| `dir` | string | Working directory |
-
-### Running with Tags
-
-```bash
-# Run only tasks with specific tags
-taskfile run --tags deploy
-taskfile run --tags ci,deploy
-
-# Combine with environment
-taskfile --env prod run --tags deploy
-```
-
-### Embedded Functions
-
-Define functions in your Taskfile:
-
-```yaml
-functions:
-  notify:
-    lang: python
-    code: |
-      import os
-      msg = os.environ.get('FN_ARGS', 'Done')
-      print(f"Notification: {msg}")
-
-tasks:
-  deploy:
-    cmds:
-      - "@fn notify Deployment started"
-      - echo "Deploying..."
-      - "@fn notify Deployment complete"
-```
-
-### Include External Files
-
-Split your Taskfile:
-
-```yaml
-# Taskfile.yml
-include:
-  - path: ./tasks/build.yml
-  - path: ./tasks/deploy.yml
-    prefix: deploy
-
-# tasks/deploy.yml
-tasks:
-  prod:
-    cmds: ["@remote systemctl restart app"]
-```
-
-### Pipeline Configuration
-
-Define CI/CD stages:
-
-```yaml
-pipeline:
-  docker_in_docker: true
-  secrets: [GHCR_TOKEN]
-  
-  stages:
-    - name: test
-      tasks: [lint, test]
-    - name: deploy
-      tasks: [deploy]
-      when: manual
-```
-
-Generate CI:
-```bash
-taskfile ci generate --target github
-taskfile ci run --stage test
-```
 
 ## Tips & Tricks
 
@@ -403,7 +248,7 @@ taskfile doctor            # Diagnose issues
 
 ```bash
 # Test SSH connection
-taskfile setup hosts       # Configure hosts
+taskfile run setup-hosts   # Configure hosts
 taskfile validate          # Validate config
 ```
 
