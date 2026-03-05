@@ -485,6 +485,9 @@ def import_cmd(source, source_type, output_path, force):
         sys.exit(1)
 
 
+from taskfile.cli.version import version
+main.add_command(version)
+
 if __name__ == "__main__":
     main()
 

@@ -13,6 +13,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+from taskfile.compose import resolve_variables as _compose_resolve_variables
 from taskfile.models import Environment, Platform, Task, TaskfileConfig
 from taskfile.parser import load_taskfile, validate_taskfile
 from taskfile.ssh import has_paramiko, ssh_exec, close_all as ssh_close_all
@@ -93,18 +94,40 @@ class TaskfileRunner:
         variables.setdefault("COMPOSE", self.env.compose_command)
         if self.platform_name:
             variables.setdefault("PLATFORM", self.platform_name)
+
+        # Resolve ${VAR:-default} / $VAR inside variable values.
+        # Important: avoid self-reference (e.g. TAG: ${TAG:-latest}) by resolving
+        # each variable against a context that excludes itself.
+        for key in list(variables.keys()):
+            value = variables.get(key)
+            if not isinstance(value, str):
+                continue
+            ctx: dict[str, str] = {**os.environ, **variables}
+            ctx.pop(key, None)
+            variables[key] = _compose_resolve_variables(value, ctx)
         return variables
 
     def expand_variables(self, text: str) -> str:
-        """Replace {{VAR}} and ${VAR} placeholders with resolved values."""
+        """Replace placeholders with resolved values.
+
+        Supports:
+            - {{VAR}}
+            - ${VAR}
+            - $VAR
+            - ${VAR:-default}
+        """
+        if not isinstance(text, str):
+            return text
+
+        # First pass: resolve legacy {{VAR}} placeholders.
         result = text
         for key, value in self.variables.items():
             if not isinstance(value, str):
                 value = str(value)
             result = result.replace(f"{{{{{key}}}}}", value)
-            result = result.replace(f"${{{key}}}", value)
-            result = result.replace(f"${key}", value)
-        return result
+
+        # Second pass: resolve ${VAR}, ${VAR:-default}, $VAR using shared resolver.
+        return _compose_resolve_variables(result, {**os.environ, **self.variables})
 
     def run_command(self, cmd: str, task: Task) -> int:
         """Execute a single command, locally or via SSH."""
@@ -558,35 +581,53 @@ class TaskfileRunner:
 
         success = True
         start_time = time.time()
-        
         try:
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                TimeElapsedColumn(),
-                console=console,
-                transient=True,
-            ) as progress:
+            # Rich Progress uses live rendering; for interactive scripts (read/select)
+            # it can make stdin prompts appear to "hang". Disable progress when any
+            # selected task is script-based.
+            has_script_task = any(
+                (self.config.tasks.get(n) is not None and self.config.tasks[n].script)
+                for n in task_names
+            )
+
+            if has_script_task:
                 for name in task_names:
-                    task = self.config.tasks.get(name)
-                    desc = f"Running {name}..."
-                    if task and task.description:
-                        desc = f"{name} — {task.description}"
-                    
-                    progress_task = progress.add_task(desc, total=None)
                     task_start = time.time()
-                    
                     if not self.run_task(name):
                         success = False
-                        progress.update(progress_task, completed=True)
                         break
-                    
-                    progress.update(progress_task, completed=True)
-                    
-                    # Notification for long-running tasks (>10s)
+
                     task_duration = time.time() - task_start
                     if task_duration > 10:
                         notify_task_complete(name, True, task_duration)
+            else:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    TimeElapsedColumn(),
+                    console=console,
+                    transient=True,
+                ) as progress:
+                    for name in task_names:
+                        task = self.config.tasks.get(name)
+                        desc = f"Running {name}..."
+                        if task and task.description:
+                            desc = f"{name} — {task.description}"
+
+                        progress_task = progress.add_task(desc, total=None)
+                        task_start = time.time()
+
+                        if not self.run_task(name):
+                            success = False
+                            progress.update(progress_task, completed=True)
+                            break
+
+                        progress.update(progress_task, completed=True)
+
+                        # Notification for long-running tasks (>10s)
+                        task_duration = time.time() - task_start
+                        if task_duration > 10:
+                            notify_task_complete(name, True, task_duration)
         finally:
             if self.use_embedded_ssh:
                 ssh_close_all()

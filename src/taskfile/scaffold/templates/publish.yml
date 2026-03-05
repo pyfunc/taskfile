@@ -228,7 +228,7 @@ tasks:
     desc: "Full release: bump version → build → publish everywhere"
     cmds:
       - echo "Releasing ${APP_NAME}:${TAG}"
-      - taskfile version-bump
+      - taskfile run version-bump
       - git add -A
       - git commit -m "Release ${TAG}" --allow-empty
       - git tag -a ${TAG} -m "Release ${TAG}"

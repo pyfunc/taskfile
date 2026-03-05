@@ -80,6 +80,14 @@
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
 
+## [0.3.29] - 2026-03-05
+
+### Test
+- Update tests/test_e2e_examples.py
+
+### Other
+- Update src/taskfile/scaffold/templates/publish.yml
+
 ## [0.3.28] - 2026-03-05
 
 ### Docs

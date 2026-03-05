@@ -965,12 +965,13 @@ class TestAnsibleInspiredFeatures:
     def test_default_values(self):
         """Tasks without new fields should have correct defaults."""
         config = load_taskfile(EXAMPLES_DIR / "minimal" / "Taskfile.yml")
-        for task in config.tasks.values():
-            assert task.retries == 0
-            assert task.retry_delay == 1
-            assert task.timeout == 0
-            assert task.tags == []
-            assert task.register is None
+        # Check task without explicit tags (run task has no tags defined)
+        run_task = config.tasks["run"]
+        assert run_task.retries == 0
+        assert run_task.retry_delay == 1
+        assert run_task.timeout == 0
+        assert run_task.tags == []
+        assert run_task.register is None
 
     def test_tags_string_format(self):
         """Tags should work as comma-separated string too (in from_dict)."""
