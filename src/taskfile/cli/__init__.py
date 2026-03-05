@@ -7,7 +7,8 @@ import taskfile.cli.health
 import taskfile.cli.release
 import taskfile.cli.fleet
 import taskfile.cli.auth
-import taskfile.cli.interactive  # NEW: doctor, interactive init, watch
-import taskfile.cli.cache_cmds  # NEW: cache management
+import taskfile.cli.interactive  # doctor, interactive init, watch, graph
+import taskfile.cli.cache_cmds  # cache management
+import taskfile.cli.import_export  # import/export converters
 
 __all__ = ["main"]
