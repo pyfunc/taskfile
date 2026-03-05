@@ -514,3 +514,105 @@ def env(ctx):
         if isinstance(e, TaskfileNotFoundError):
             _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
+
+
+@main.command()
+@click.argument("tasks", nargs=-1, required=True)
+@click.option("--path", "-p", multiple=True, help="Path(s) to watch (default: current directory)")
+@click.option("--debounce", "-d", default=300, help="Debounce time in milliseconds (default: 300)")
+@click.pass_context
+def watch(ctx, tasks, path, debounce):
+    """👁️  Watch files and run tasks on changes.
+
+    Automatically detects file changes and re-runs specified tasks.
+    Useful for development workflows like auto-rebuilding on code changes.
+
+    \b
+    Examples:
+        taskfile watch build              # Watch current dir, run 'build' on changes
+        taskfile watch build test         # Run multiple tasks on change
+        taskfile watch -p src build       # Watch only 'src' directory
+        taskfile watch -p src -p tests test  # Watch multiple paths
+        taskfile watch -d 500 build     # 500ms debounce (default: 300ms)
+    """
+    from taskfile.watch import watch_tasks
+    from taskfile.runner import TaskfileRunner
+
+    opts = ctx.obj
+    
+    watch_paths = list(path) if path else None
+    
+    try:
+        runner = TaskfileRunner(
+            taskfile_path=opts["taskfile_path"],
+            env_name=opts["env_name"],
+            platform_name=opts["platform_name"],
+            var_overrides=opts["var"],
+            dry_run=opts["dry_run"],
+            verbose=opts["verbose"],
+        )
+        
+        watch_tasks(
+            task_names=list(tasks),
+            watch_paths=watch_paths,
+            runner=runner,
+            debounce_ms=debounce,
+        )
+    except (TaskfileNotFoundError, TaskfileParseError) as e:
+        console.print(f"[red]Error:[/] {e}")
+        from taskfile.cli.main import _print_nearby_taskfiles
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
+        sys.exit(1)
+
+
+@main.command()
+@click.argument("task_name", required=False)
+@click.option("--dot", "-d", is_flag=True, help="Export to Graphviz DOT format")
+@click.option("--output", "-o", type=click.Path(), help="Output file for DOT export")
+@click.pass_context
+def graph(ctx, task_name, dot, output):
+    """🕸️  Show task dependency graph.
+
+    Visualizes task dependencies as a tree or exports to Graphviz DOT format.
+    Helps understand the relationships between tasks.
+
+    \b
+    Examples:
+        taskfile graph                  # Show all task dependencies
+        taskfile graph build           # Show dependencies for 'build' task only
+        taskfile graph --dot           # Export to DOT format
+        taskfile graph --dot -o tasks.dot  # Save to file
+    """
+    from taskfile.graph import print_task_tree, print_dependency_list, export_to_dot
+    from taskfile.parser import load_taskfile
+
+    opts = ctx.obj
+    
+    try:
+        config = load_taskfile(opts["taskfile_path"])
+        
+        if dot:
+            # Export to DOT format
+            from pathlib import Path
+            output_path = Path(output) if output else None
+            dot_content = export_to_dot(config, output_path)
+            
+            if output:
+                console.print(f"[green]✓ Exported to {output}[/]")
+                console.print("[dim]Generate image with: dot -Tpng -o graph.png[/]")
+            else:
+                console.print(dot_content)
+        elif task_name:
+            # Show specific task
+            print_task_tree(config, task_name)
+        else:
+            # Show all tasks
+            print_task_tree(config)
+            
+    except (TaskfileNotFoundError, TaskfileParseError) as e:
+        console.print(f"[red]Error:[/] {e}")
+        from taskfile.cli.main import _print_nearby_taskfiles
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
+        sys.exit(1)
