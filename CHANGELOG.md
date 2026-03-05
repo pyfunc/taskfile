@@ -20,6 +20,22 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.39] - 2026-03-05
+
+### Docs
+- Update project/README.md
+
+### Other
+- Update project/analysis.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/compact_flow.mmd
+- Update project/compact_flow.png
+- Update project/evolution.toon
+- Update project/flow.mmd
+- Update project/flow.png
+- Update project/project.toon
+
 ## [0.3.38] - 2026-03-05
 
 ### Docs
