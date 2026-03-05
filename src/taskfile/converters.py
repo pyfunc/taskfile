@@ -239,6 +239,83 @@ class NpmScriptsConverter:
         return json.dumps(package, indent=2)
 
 
+class GitLabCIConverter:
+    """Convert between Taskfile and GitLab CI."""
+    
+    @staticmethod
+    def import_gitlab_ci(content: str) -> dict:
+        """Parse GitLab CI YAML and extract jobs as tasks."""
+        import yaml
+        
+        data = yaml.safe_load(content)
+        tasks = {}
+        
+        if not data:
+            return {'version': '1', 'tasks': {}}
+        
+        # Extract jobs (excluding global keys like stages, variables, etc.)
+        global_keys = {'stages', 'variables', 'cache', 'image', 'services', 'before_script', 'after_script', 'default', 'include', 'workflow', 'artifacts'}
+        
+        for job_name, job in data.items():
+            if job_name in global_keys:
+                continue
+                
+            if not isinstance(job, dict):
+                continue
+            
+            commands = []
+            
+            # Add before_script if present
+            if 'before_script' in job:
+                before_script = job['before_script']
+                if isinstance(before_script, list):
+                    commands.extend(before_script)
+                else:
+                    commands.append(str(before_script))
+            
+            # Add script
+            if 'script' in job:
+                script = job['script']
+                if isinstance(script, list):
+                    commands.extend(script)
+                else:
+                    commands.append(str(script))
+            
+            # Add after_script if present
+            if 'after_script' in job:
+                after_script = job['after_script']
+                if isinstance(after_script, list):
+                    commands.extend(after_script)
+                else:
+                    commands.append(str(after_script))
+            
+            # Handle dependencies via 'needs' or 'dependencies'
+            deps = []
+            if 'needs' in job:
+                needs = job['needs']
+                if isinstance(needs, list):
+                    deps.extend(needs)
+                else:
+                    deps.append(str(needs))
+            elif 'dependencies' in job:
+                dependencies = job['dependencies']
+                if isinstance(dependencies, list):
+                    deps.extend(dependencies)
+                else:
+                    deps.append(str(dependencies))
+            
+            tasks[job_name] = {
+                'commands': commands,
+                'deps': deps,
+            }
+        
+        return {
+            'version': '1',
+            'name': 'imported-from-gitlab-ci',
+            'tasks': tasks,
+        }
+
+
 class DockerComposeConverter:
     """Convert Taskfile docker tasks to docker-compose services."""
     
@@ -286,6 +363,8 @@ def detect_format(file_path: Path) -> str | None:
     elif name.endswith('.yml') or name.endswith('.yaml'):
         if '.github/workflows' in str(file_path):
             return 'github-actions'
+        elif name == '.gitlab-ci.yml':
+            return 'gitlab-ci'
         elif 'docker-compose' in name:
             return 'docker-compose'
         else:
@@ -319,6 +398,8 @@ def import_file(file_path: Path, source_type: str | None = None) -> dict:
         return MakefileConverter.import_makefile(content)
     elif source_type == 'github-actions':
         return GitHubActionsConverter.import_workflow(content)
+    elif source_type == 'gitlab-ci':
+        return GitLabCIConverter.import_gitlab_ci(content)
     elif source_type == 'npm':
         return NpmScriptsConverter.import_package_json(content)
     else:

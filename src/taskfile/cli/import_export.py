@@ -17,12 +17,12 @@ from taskfile.parser import load_taskfile, TaskfileNotFoundError, TaskfileParseE
 @main.command(name="import")
 @click.argument("source", type=click.Path(exists=True))
 @click.option("--type", "source_type", type=click.Choice([
-    "makefile", "github-actions", "npm", "shell", "dockerfile"
+    "makefile", "github-actions", "gitlab-ci", "npm", "shell", "dockerfile"
 ]), default=None, help="Source file type (auto-detected if omitted)")
 @click.option("-o", "--output", "output_path", default="Taskfile.yml", help="Output path (default: Taskfile.yml)")
 @click.option("--force", is_flag=True, help="Overwrite existing output file")
 def import_cmd(source, source_type, output_path, force):
-    """📥 Import from Makefile, GitHub Actions, npm scripts, etc.
+    """📥 Import from Makefile, GitHub Actions, GitLab CI, npm scripts, etc.
 
     Converts existing build configurations to Taskfile format.
 
@@ -30,6 +30,7 @@ def import_cmd(source, source_type, output_path, force):
     Supported sources:
         makefile        — GNU Make (Makefile, GNUmakefile)
         github-actions  — .github/workflows/*.yml
+        gitlab-ci       — .gitlab-ci.yml
         npm             — package.json scripts
         shell           — *.sh (functions become tasks)
         dockerfile      — Dockerfile (stages become tasks)

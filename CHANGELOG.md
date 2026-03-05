@@ -50,6 +50,13 @@
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
 
+## [0.3.27] - 2026-03-05
+
+### Docs
+- Update docs/COMPARISONS.md
+- Update docs/FEATURES.md
+- Update docs/INSTALL.md
+
 ## [0.3.26] - 2026-03-05
 
 ### Docs
