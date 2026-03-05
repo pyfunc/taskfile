@@ -20,6 +20,7 @@
 - **`canary_count`** — number of canary deployments in environment groups
 - **`taskfile export`** — export Taskfile.yml to other CI/CD formats
 - **Enhanced environment properties** — `compose_file`, `quadlet_dir`, `quadlet_remote_dir`
+- **Version management** — built-in version bumping (patch/minor/major) and setting
 
 ### CLI Commands
 
@@ -37,6 +38,7 @@
 - `taskfile auth setup` — interactive registry authentication
 - `taskfile quadlet generate` — generate Podman Quadlet from compose
 - `taskfile quadlet upload` — upload Quadlet files to server
+- `taskfile version` — version management (show, bump, set)
 - `--tags` flag — run only tasks matching specified tags
 
 ### Docs
@@ -79,6 +81,14 @@
 - Add `TestAnsibleInspiredFeatures` — 10 tests for retries/timeout/tags/register/functions
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
+
+## [0.3.30] - 2026-03-05
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update TODO.md
+- Update docs/USAGE.md
 
 ## [0.3.29] - 2026-03-05
 

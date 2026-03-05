@@ -53,6 +53,7 @@ taskfile setup hosts             # Configure deployment hosts
 | `validate` | Validate Taskfile | `taskfile validate` |
 | `import` | Import from other format | `taskfile import Makefile` |
 | `export` | Export to other format | `taskfile export github-actions` |
+| `version` | Version management | `taskfile version bump` |
 
 ### Interactive Commands
 
@@ -126,6 +127,34 @@ taskfile setup hosts             # Configure deployment hosts
 |---------|-------------|---------|
 | `quadlet generate` | Generate from compose | `taskfile quadlet generate` |
 | `quadlet upload` | Upload to server | `taskfile quadlet upload --env prod` |
+
+### Version Management
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `version show` | Show current version | `taskfile version show` |
+| `version bump` | Bump version (patch/minor/major) | `taskfile version bump patch` |
+| `version set <version>` | Set specific version | `taskfile version set 1.2.3` |
+
+Version management updates:
+- VERSION file in project root
+- Taskfile.yml version field
+- pyproject.toml version (if exists)
+- Creates git tag automatically
+
+```bash
+# Bump patch version (0.1.0 → 0.1.1)
+taskfile version bump
+
+# Bump minor version (0.1.0 → 0.2.0)
+taskfile version bump minor
+
+# Set specific version
+taskfile version set 2.0.0-rc1
+
+# Preview changes
+taskfile version bump --dry-run
+```
 
 ### Web UI
 

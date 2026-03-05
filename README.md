@@ -382,6 +382,9 @@ Options:
 | `taskfile release [--tag v1.0]` | Full release pipeline: tag → build → deploy → health |
 | `taskfile rollback [--target TAG]` | Rollback to previous version |
 | `taskfile setup <IP>` | One-command VPS provisioning + deploy |
+| `taskfile version bump` | Bump version (patch/minor/major) |
+| `taskfile version show` | Show current version |
+| `taskfile version set <version>` | Set specific version |
 
 ### Fleet Management
 
@@ -752,6 +755,25 @@ Steps:
 4. Upload desktop binaries
 5. Build and deploy landing page
 6. Run health checks
+
+### Version Management
+
+Use shorthand commands for version management:
+
+```bash
+# Bump version (creates git tag automatically)
+taskfile version bump        # 0.1.0 → 0.1.1 (patch)
+taskfile version bump minor  # 0.1.0 → 0.2.0
+taskfile version bump major  # 0.1.0 → 1.0.0
+taskfile version bump --dry-run  # Preview changes
+
+# Show current version
+taskfile version show
+
+# Set specific version
+taskfile version set 1.0.0
+taskfile version set 2.0.0-rc1
+```
 
 Rollback:
 

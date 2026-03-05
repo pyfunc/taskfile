@@ -36,6 +36,7 @@
 - [x] Updated docs/FORMAT.md with new sections and properties
 - [x] Updated docs/USAGE.md with new CLI commands
 - [x] Updated examples to demonstrate new syntax (tags, retries, register, etc.)
+- [x] Added version management commands documentation
 
 ## 🐛 Known Issues
 
