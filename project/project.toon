@@ -1,63 +1,175 @@
-# taskfile | 15f 4324L | python:15
+# taskfile | 35f 4409L | python:43
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[15]:
-  setup.py,26
+M[35]:
+  src/taskfile/cigen/__init__.py,48
+  src/taskfile/cigen/base.py,54
+  src/taskfile/cigen/drone.py,37
+  src/taskfile/cigen/gitea.py,37
+  src/taskfile/cigen/github.py,82
+  src/taskfile/cigen/gitlab.py,61
+  src/taskfile/cigen/jenkins.py,46
+  src/taskfile/cigen/makefile.py,42
+  src/taskfile/cli/__init__.py,5
+  src/taskfile/cli/ci.py,171
+  src/taskfile/cli/deploy.py,138
+  src/taskfile/cli/main.py,159
+  src/taskfile/cli/quadlet.py,154
+  src/taskfile/scaffold/__init__.py,18
+  src/taskfile/scaffold/codereview.py,169
+  src/taskfile/scaffold/full.py,148
+  src/taskfile/scaffold/minimal.py,33
+  src/taskfile/scaffold/podman.py,81
+  src/taskfile/scaffold/web.py,79
+  tests/test_cigen.py,262
+  tests/test_cli.py,124
+  tests/test_compose.py,43
+  tests/test_models.py,233
+  tests/test_parser.py,38
+  tests/test_quadlet.py,104
+  tests/test_runner.py,71
+  tests/test_scaffold.py,88
   src/taskfile/__init__.py,34
-  src/taskfile/cigen.py,382
   src/taskfile/cirunner.py,194
-  src/taskfile/cli.py,588
   src/taskfile/compose.py,118
   src/taskfile/models.py,218
   src/taskfile/parser.py,77
-  src/taskfile/quadlet.py,191
+  src/taskfile/quadlet.py,214
   src/taskfile/runner.py,198
-  src/taskfile/scaffold.py,517
-  taskfile/__init__.py,2
-  taskfile/taskfile.py,41
   tests/__init__.py,0
-  tests/test_taskfile.py,878
 D:
-  src/taskfile/cigen.py:
-    i: yaml,__future__.annotations,pathlib.Path,rich.console.Console,taskfile.models.{PipelineConfig,PipelineStage,TaskfileConfig}
-    e: CITarget,GitHubActionsTarget,GitLabCITarget,GiteaActionsTarget,DroneCITarget,JenkinsTarget,MakefileTarget,register_target
+  src/taskfile/cigen/__init__.py:
+    i: pathlib.Path,taskfile.cigen.base.{CITarget,TARGETS,console},taskfile.models.TaskfileConfig
+    e: generate_ci,generate_all_ci,list_targets,preview_ci
+    generate_ci(config:TaskfileConfig;target:str;project_dir:Any='.')->Path
+    generate_all_ci(config:TaskfileConfig;project_dir:Any='.';targets:Any=None)->list[Path]
+    list_targets()->list[tuple[str, str, str]]
+    preview_ci(config:TaskfileConfig;target:str)->str
+  src/taskfile/cigen/base.py:
+    i: yaml,pathlib.Path,rich.console.Console,taskfile.models.{PipelineStage,TaskfileConfig}
+    e: TARGETS,register_target,CITarget
     CITarget: __init__(1),generate(0),write(1),_tag_var(0),_stage_env_flag(1)  # Base class for CI/CD target generators.
-    GitHubActionsTarget: _tag_var(0),generate(0)
-    GitLabCITarget: _tag_var(0),generate(0)
-    GiteaActionsTarget: _tag_var(0),generate(0)
-    DroneCITarget: _tag_var(0),generate(0)
     register_target(name:str)
     _sanitize_id(name:str)->str
     _yaml_dump(data:dict)->str
-    generate_ci(config:TaskfileConfig;target:str;project_dir:Any='.')->Path
-    generate_all_ci(config:TaskfileConfig;project_dir:Any='.';targets:Any=None)->list[Path]
-    list_targets()->list[tuple[str,str,str]]
-    preview_ci(config:TaskfileConfig;target:str)->str
-  src/taskfile/cirunner.py:
-    i: sys,time,__future__.annotations,rich.console.Console,rich.panel.Panel,rich.table.Table,rich.text.Text,taskfile.models.{PipelineConfig,PipelineStage},typing.Sequence
-    e: PipelineError,PipelineRunner,StageResult
-    PipelineError: __init__(2)  # Raised when a pipeline stage fails.
-    PipelineRunner: __init__(5),run(3),_resolve_stages(3),_print_pipeline_header(1),_print_summary(2)  # Runs CI/CD pipeline stages locally us...
-    StageResult: __init__(5)  # Result of running a single pipeline s...
-  src/taskfile/cli.py:
-    i: sys,click,__future__.annotations,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile}
-    e: parse_var,main,run,list_tasks,init,validate,info,deploy_cmd
-    parse_var(ctx;param;value:tuple[str;Ellipsis])->dict[str,str]
+  src/taskfile/cigen/drone.py:
+    i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
+    e: DroneCITarget
+    DroneCITarget: _tag_var(0),generate(0)
+  src/taskfile/cigen/gitea.py:
+    i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
+    e: GiteaActionsTarget
+    GiteaActionsTarget: _tag_var(0),generate(0)
+  src/taskfile/cigen/github.py:
+    i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
+    e: GitHubActionsTarget
+    GitHubActionsTarget: _tag_var(0),_build_steps(1),_apply_conditions(2),generate(0)
+  src/taskfile/cigen/gitlab.py:
+    i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
+    e: GitLabCITarget
+    GitLabCITarget: _tag_var(0),generate(0)
+  src/taskfile/cigen/jenkins.py:
+    i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
+    e: JenkinsTarget
+    JenkinsTarget: _tag_var(0),generate(0)
+  src/taskfile/cigen/makefile.py:
+    i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
+    e: MakefileTarget
+    MakefileTarget: generate(0)
+  src/taskfile/cli/ci.py:
+    i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
+    ci()
+    ci_generate(ctx;targets;gen_all;output_dir)
+    ci_run(ctx;stages;skip_stages;stop_at)
+    ci_list(ctx)
+    ci_preview(ctx;target)
+    ci_targets()
+  src/taskfile/cli/deploy.py:
+    i: sys,subprocess,click,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    e: deploy_cmd
+    _run(cmd:str;label:str;dry_run:bool)
+    _ssh(cmd:str;label:str;env:any;env_name:str;dry_run:bool)
+    _deploy_local_compose(env;env_file_path;dry_run)
+    _deploy_remote_compose(env;env_name;env_file_path;config;dry_run)
+    _deploy_quadlet(env;env_name;env_file_path;compose_path;var_overrides;dry_run)
+    deploy_cmd(ctx;compose_override)
+  src/taskfile/cli/main.py:
+    i: sys,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile},taskfile.runner.TaskfileRunner
+    e: parse_var,main,run,list_tasks,init,validate,info
+    parse_var(ctx;param;value:tuple[str;Ellipsis])->dict[str, str]
     main(ctx;taskfile_path;env_name;var;dry_run;verbose)
     run(ctx;tasks)
     list_tasks(ctx)
     init(template;force)
     validate(ctx)
     info(ctx;task_name)
-    deploy_cmd(ctx;compose_override)
+  src/taskfile/cli/quadlet.py:
+    i: sys,click,subprocess,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.models.Environment,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    e: quadlet,quadlet_generate,quadlet_upload
+    quadlet()
+    quadlet_generate(ctx;compose_path;env_file;output_dir;network;no_auto_update;...+1)
+    _get_upload_env(config:TaskfileConfig;env_name:Any)->tuple[str, Environment]
+    _get_upload_files(quadlet_dir:str)->list[Path]
+    _run_upload_commands(env:Environment;files:list[Path];dry_run:bool)->None
+    quadlet_upload(ctx;quadlet_dir)
+  src/taskfile/scaffold/__init__.py:
+    i: taskfile.scaffold.{codereview,full,minimal,podman,web}
+    e: TEMPLATES,generate_taskfile
+    generate_taskfile(template:str='full')->str
+  tests/test_cigen.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestCIGenerator,TestCIRunner,TestCodereviewPipeline
+    TestCIGenerator: config(0),test_list_targets(0),test_generate_github(2),test_generate_gitlab(2),test_generate_gitea(2)  # Test CI/CD config generation.
+    TestCIRunner: config(0),test_run_full_pipeline(1),test_run_specific_stage(1),test_run_manual_stage(1),test_skip_stage(1)  # Test local CI/CD pipeline runner.
+    TestCodereviewPipeline: test_pipeline_parses(0),test_generate_all_from_codereview(1),test_ci_run_dry(0)  # Test pipeline features with the coder...
+  tests/test_cli.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestCLI
+    TestCLI: test_list_command(1),test_validate_command(1),test_run_with_dry_run(1),test_deploy_local_dry_run(1),test_deploy_quadlet_dry_run(1)  # Test CLI commands using click's CliRu...
+  tests/test_compose.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestComposeFile
+    TestComposeFile: test_load_compose(1),test_service_names(1)
+  tests/test_models.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestEnvironment,TestTask,TestTaskfileConfig,TestEnvFile,TestResolveVariables,TestPipelineConfig
+    TestEnvironment: test_ssh_target(0),test_ssh_target_none_when_no_host(0),test_resolve_variables(0),test_new_fields_defaults(0),test_new_fields_from_dict(0)
+    TestTask: test_should_run_on_all_envs(0),test_should_run_on_filtered(0)
+    TestTaskfileConfig: test_from_dict_minimal(0),test_from_dict_shorthand_tasks(0),test_from_dict_full(0)
+    TestEnvFile: test_load_env_file(1),test_load_missing_env_file(0)
+    TestResolveVariables: test_simple_var(0),test_default_value(0),test_default_not_used(0),test_simple_dollar(0),test_unresolved_kept(0)
+  tests/test_parser.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestParser
+    TestParser: test_load_from_file(1),test_not_found(1),test_validate_missing_dep(0),test_validate_empty_commands(0)
+  tests/test_quadlet.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestQuadletGenerator
+    TestQuadletGenerator: test_generate_container_unit(0),test_generate_with_depends_on(0),test_generate_network_unit(0),test_compose_to_quadlet(1),test_compose_to_quadlet_with_filter(1)
+  tests/test_runner.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestRunner
+    TestRunner: _make_runner(2),test_expand_variables(0),test_run_simple_task(0),test_run_unknown_task(0),test_env_filter_skips_task(0)
+  tests/test_scaffold.py:
+    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
+    e: TestScaffold,TestCodereviewExample
+    TestScaffold: test_generate_valid_yaml(1),test_generated_config_parses(1)
+    TestCodereviewExample: test_taskfile_parses(0),test_compose_parses_with_env_local(0),test_compose_parses_with_env_prod(0),test_quadlet_generation_from_example(1)  # Validate the codereview.pl example fi...
+  src/taskfile/cirunner.py:
+    i: sys,time,rich.console.Console,rich.panel.Panel,rich.table.Table,rich.text.Text,taskfile.models.{PipelineConfig,PipelineStage,TaskfileConfig},typing.Sequence
+    e: PipelineError,PipelineRunner,StageResult
+    PipelineError: __init__(2)  # Raised when a pipeline stage fails.
+    PipelineRunner: __init__(5),run(3),_resolve_stages(3),_print_pipeline_header(1),_print_summary(2)  # Runs CI/CD pipeline stages locally us...
+    StageResult: __init__(5)  # Result of running a single pipeline s...
   src/taskfile/compose.py:
-    i: os,re,yaml,__future__.annotations,pathlib.Path,typing.Any
-    e: ComposeFile,load_env_file,resolve_variables,resolve_dict
+    i: os,re,yaml,pathlib.Path,typing.Any
+    e: VAR_PATTERN,load_env_file,resolve_variables,resolve_dict,ComposeFile
     ComposeFile: __init__(3),services(0),networks(0),volumes(0),get_service(1)  # Parsed docker-compose.yml with enviro...
-    load_env_file(path:Any)->dict[str,str]
+    load_env_file(path:Any)->dict[str, str]
     resolve_variables(text:str;variables:dict[str;str])->str
     resolve_dict(data:Any;variables:dict[str;str])->Any
   src/taskfile/models.py:
-    i: os,__future__.annotations,dataclasses.{dataclass,field},typing.Any
+    i: os,dataclasses.{dataclass,field},typing.Any
     e: Environment,ComposeConfig,Task,PipelineStage,PipelineConfig,TaskfileConfig
     Environment: ssh_target(0),ssh_opts(0),is_remote(0),resolve_variables(1)  # Deployment environment configuration.
     ComposeConfig:   # Compose-based deployment configuration.
@@ -66,41 +178,26 @@ D:
     PipelineConfig: from_dict(1),infer_from_tasks(1)  # CI/CD pipeline configuration.
     _normalize_commands(cmds:list)->list[str]
   src/taskfile/parser.py:
-    i: os,yaml,__future__.annotations,pathlib.Path,taskfile.models.TaskfileConfig
-    e: TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile
+    i: os,yaml,pathlib.Path,taskfile.models.TaskfileConfig
+    e: TASKFILE_NAMES,TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile
     TaskfileNotFoundError:   # Raised when no Taskfile is found in t...
     TaskfileParseError:   # Raised when Taskfile cannot be parsed.
     find_taskfile(start_dir:Any=None)->Path
     load_taskfile(path:Any=None)->TaskfileConfig
     validate_taskfile(config:TaskfileConfig)->list[str]
   src/taskfile/quadlet.py:
-    i: re,__future__.annotations,pathlib.Path,rich.console.Console,taskfile.compose.ComposeFile,typing.Any
+    i: re,pathlib.Path,rich.console.Console,taskfile.compose.ComposeFile,typing.Any
     e: generate_container_unit,generate_network_unit,generate_volume_unit,compose_to_quadlet
-    _parse_port(port_str:str)->tuple[str,str]
-    _parse_memory_limit(deploy:dict)->Any
-    _parse_cpus_limit(deploy:dict)->Any
-    generate_container_unit(service_name:str;service:dict;network_name:str='proxy';auto_update:bool=True)->str
-    generate_network_unit(network_name:str)->str
-    generate_volume_unit(volume_name:str)->str
-    compose_to_quadlet(compose:ComposeFile;output_dir:Any;network_name:str='proxy';auto_update:bool=True;services_filter:Any=None)->list[Path]
+    _parse_port(port_str:str)->tuple[str, str]
+    _parse_memory_limit(deploy:dict)->str | None
+    _parse_cpus_limit(deploy:dict)->str | None
+    _build_unit_section(service_name:str;service:dict)->list[str]
+    _build_container_env(service:dict;lines:list[str])->None
+    _build_container_ports(service:dict;lines:list[str])->None
+    _build_container_volumes(service:dict;lines:list[str])->None
+    _build_container_networks(service:dict;network_name:str;lines:list[str])->None
   src/taskfile/runner.py:
-    i: os,subprocess,sys,time,__future__.annotations,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.models.Environment
+    i: os,subprocess,sys,time,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.models.{Environment,Task}
     e: TaskRunError,TaskfileRunner
     TaskRunError: __init__(3)  # Raised when a task command fails.
     TaskfileRunner: __init__(6),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1)  # Executes tasks from a Taskfile config...
-  src/taskfile/scaffold.py:
-    e: generate_taskfile
-    generate_taskfile(template:str='full')->str
-  taskfile/taskfile.py:
-    i: subprocess,yaml,os,pathlib.Path
-    e: Taskfile,main
-    Taskfile: __init__(1),_load_config(0),validate_environment(0),deploy(0)
-    main()
-  tests/test_taskfile.py:
-    i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
-    e: TestEnvironment,TestTask,TestTaskfileConfig,TestParser,TestRunner,TestScaffold,TestEnvFile,TestResolveVariables
-    TestEnvironment: test_ssh_target(0),test_ssh_target_none_when_no_host(0),test_resolve_variables(0),test_new_fields_defaults(0),test_new_fields_from_dict(0)
-    TestTask: test_should_run_on_all_envs(0),test_should_run_on_filtered(0)
-    TestTaskfileConfig: test_from_dict_minimal(0),test_from_dict_shorthand_tasks(0),test_from_dict_full(0)
-    TestParser: test_load_from_file(1),test_not_found(1),test_validate_missing_dep(0),test_validate_empty_commands(0)
-    TestRunner: _make_runner(2),test_expand_variables(0),test_run_simple_task(0),test_run_unknown_task(0),test_env_filter_skips_task(0)

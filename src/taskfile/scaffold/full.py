@@ -1,0 +1,181 @@
+TEMPLATE = """\
+version: "1"
+name: my-project
+description: >
+  Full Taskfile example with multi-environment deploy,
+  Docker + Podman support, and CI/CD integration.
+
+default_env: local
+
+variables:
+  APP_NAME: my-project
+  IMAGE: ghcr.io/myorg/my-project
+  TAG: latest
+  DOMAIN: my-project.example.com
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    variables:
+      DOMAIN: ${APP_NAME}.localhost
+      TAG: dev
+
+  staging:
+    ssh_host: staging.example.com
+    ssh_user: deploy
+    ssh_port: 22
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: docker
+    compose_command: docker compose
+    variables:
+      DOMAIN: staging.example.com
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    variables:
+      DOMAIN: my-project.example.com
+
+# ─── Tasks ────────────────────────────────────────────
+
+tasks:
+
+  # ─── Build ────────────────────────────────────
+  build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push image to container registry
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  test:
+    desc: Run tests
+    cmds:
+      - docker compose run --rm app pytest
+    ignore_errors: false
+
+  lint:
+    desc: Run linter
+    cmds:
+      - docker compose run --rm app ruff check .
+    ignore_errors: true
+
+  # ─── Deploy ───────────────────────────────────
+  deploy-local:
+    desc: Start local dev environment
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+      - echo "✅ ${APP_NAME} → http://${DOMAIN}"
+
+  deploy-remote:
+    desc: Deploy to remote (staging/prod)
+    env: [staging, prod]
+    cmds:
+      - "@remote ${RUNTIME} pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"
+      - echo "✅ ${APP_NAME} → https://${DOMAIN}"
+
+  deploy:
+    desc: Full deploy pipeline
+    deps: [test, push]
+    cmds:
+      - echo "🚀 Deploying ${APP_NAME}:${TAG} to ${ENV}"
+
+  # ─── Release ──────────────────────────────────
+  release:
+    desc: Tag, build, push, deploy to prod
+    cmds:
+      - git tag -a ${TAG} -m "Release ${TAG}"
+      - git push origin ${TAG}
+      - docker build -t ${IMAGE}:${TAG} .
+      - docker push ${IMAGE}:${TAG}
+      - echo "📦 Released ${APP_NAME}:${TAG}"
+
+  # ─── Operations ───────────────────────────────
+  logs:
+    desc: View logs (local)
+    env: [local]
+    cmds:
+      - docker compose logs -f
+
+  logs-remote:
+    desc: View logs (remote)
+    env: [staging, prod]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME} -f"
+
+  status:
+    desc: Service status (local)
+    env: [local]
+    cmds:
+      - docker compose ps
+
+  status-remote:
+    desc: Service status (remote)
+    env: [staging, prod]
+    cmds:
+      - "@remote systemctl --user status ${APP_NAME}"
+      - "@remote ${RUNTIME} ps --filter name=${APP_NAME}"
+
+  stop:
+    desc: Stop all services (local)
+    env: [local]
+    cmds:
+      - docker compose down
+
+  stop-remote:
+    desc: Stop service (remote)
+    env: [staging, prod]
+    cmds:
+      - "@remote systemctl --user stop ${APP_NAME}"
+
+  restart-remote:
+    desc: Restart service (remote)
+    env: [staging, prod]
+    cmds:
+      - "@remote systemctl --user restart ${APP_NAME}"
+
+  # ─── Maintenance ──────────────────────────────
+  cleanup:
+    desc: Remove unused Docker resources
+    cmds:
+      - docker image prune -af
+      - docker volume prune -f
+      - docker builder prune -f
+      - echo "🧹 Cleaned up local Docker resources"
+
+  cleanup-remote:
+    desc: Clean unused images on server
+    env: [staging, prod]
+    cmds:
+      - "@remote ${RUNTIME} image prune -af"
+      - "@remote ${RUNTIME} volume prune -f"
+
+  # ─── Setup ────────────────────────────────────
+  setup-server:
+    desc: Initial server setup (install Podman, create dirs)
+    env: [prod]
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+      - "@remote podman network create proxy 2>/dev/null || true"
+      - "@remote loginctl enable-linger $(whoami)"
+      - echo "✅ Server ready for Podman Quadlet"
+
+  upload-quadlet:
+    desc: Upload Quadlet files to server
+    env: [prod]
+    cmds:
+      - scp deploy/*.container deploy/*.network ${SSH_USER}@${SSH_HOST}:~/.config/containers/systemd/
+      - "@remote systemctl --user daemon-reload"
+      - echo "✅ Quadlet files uploaded"
+"""

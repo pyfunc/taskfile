@@ -1,3 +1,61 @@
+## [0.3.5] - 2026-03-05
+
+### Summary
+
+refactor(build): code analysis engine
+
+### Core
+
+- update src/taskfile/cigen.py
+- update src/taskfile/cigen/__init__.py
+- update src/taskfile/cigen/base.py
+- update src/taskfile/cigen/drone.py
+- update src/taskfile/cigen/gitea.py
+- update src/taskfile/cigen/github.py
+- update src/taskfile/cigen/gitlab.py
+- update src/taskfile/cigen/jenkins.py
+- update src/taskfile/cigen/makefile.py
+- update src/taskfile/cli.py
+- ... and 13 more
+
+### Docs
+
+- docs: update README
+- docs: update context.md
+
+### Test
+
+- update tests/test_cigen.py
+- update tests/test_cli.py
+- update tests/test_compose.py
+- update tests/test_models.py
+- update tests/test_parser.py
+- update tests/test_quadlet.py
+- update tests/test_runner.py
+- update tests/test_scaffold.py
+- update tests/test_taskfile.py
+
+### Build
+
+- update pyproject.toml
+- update setup.py
+
+### Config
+
+- config: update goal.yaml
+
+### Other
+
+- update .idea/pyProjectModel.xml
+- update .idea/taskfile.iml
+- update project/analysis.toon
+- update project/evolution.toon
+- update project/project.toon
+- update project/prompt.txt
+- update taskfile/__init__.py
+- update taskfile/taskfile.py
+
+
 ## [0.3.4] - 2026-03-03
 
 ### Summary

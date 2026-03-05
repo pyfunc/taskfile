@@ -42,6 +42,121 @@ def _parse_cpus_limit(deploy: dict) -> str | None:
         return None
 
 
+def _build_unit_section(service_name: str, service: dict) -> list[str]:
+    lines = ["[Unit]", f"Description={service_name} container"]
+    depends = service.get("depends_on", [])
+    if isinstance(depends, dict):
+        depends = list(depends.keys())
+    for dep in depends:
+        lines.extend([f"After={dep}.service", f"Requires={dep}.service"])
+    return lines
+
+def _build_container_env(service: dict, lines: list[str]) -> None:
+    env = service.get("environment", {})
+    if isinstance(env, list):
+        for item in env:
+            lines.append(f"Environment={item}")
+    elif isinstance(env, dict):
+        for key, value in env.items():
+            lines.append(f"Environment={key}={value}")
+
+    env_files = service.get("env_file", [])
+    if isinstance(env_files, str):
+        env_files = [env_files]
+    for ef in env_files:
+        lines.append(f"EnvironmentFile={ef}")
+
+def _build_container_ports(service: dict, lines: list[str]) -> None:
+    for port in service.get("ports", []):
+        host_port, container_port = _parse_port(str(port))
+        lines.append(f"PublishPort={host_port}:{container_port}")
+
+def _build_container_volumes(service: dict, lines: list[str]) -> None:
+    for vol in service.get("volumes", []):
+        if isinstance(vol, str):
+            src = vol.split(":")[0]
+            if not src.startswith("/") and not src.startswith(".") and not src.startswith("$"):
+                vol_name = src
+                mount_parts = vol.split(":")
+                if len(mount_parts) >= 2:
+                    lines.append(f"Volume={vol_name}.volume:{mount_parts[1]}")
+                else:
+                    lines.append(f"Volume={vol}")
+            else:
+                lines.append(f"Volume={vol}")
+        elif isinstance(vol, dict):
+            src = vol.get("source", "")
+            tgt = vol.get("target", "")
+            ro = ":ro" if vol.get("read_only") else ""
+            lines.append(f"Volume={src}:{tgt}{ro}")
+
+def _build_container_networks(service: dict, network_name: str, lines: list[str]) -> None:
+    networks = service.get("networks", [])
+    if isinstance(networks, list):
+        if networks:
+            for net in networks:
+                lines.append(f"Network={net}.network")
+        else:
+            lines.append(f"Network={network_name}.network")
+    elif isinstance(networks, dict):
+        if networks:
+            for net in networks.keys():
+                lines.append(f"Network={net}.network")
+        else:
+            lines.append(f"Network={network_name}.network")
+    else:
+        lines.append(f"Network={network_name}.network")
+
+def _build_container_labels(service: dict, lines: list[str]) -> None:
+    labels = service.get("labels", {})
+    if isinstance(labels, list):
+        for item in labels:
+            lines.append(f"Label={item}")
+    elif isinstance(labels, dict):
+        for key, value in labels.items():
+            lines.append(f"Label={key}={value}")
+
+def _build_container_podman_args(service: dict, lines: list[str]) -> None:
+    deploy = service.get("deploy", {})
+    memory = _parse_memory_limit(deploy)
+    podman_args = []
+    if memory:
+        podman_args.append(f"--memory={memory}")
+    cpus = _parse_cpus_limit(deploy)
+    if cpus:
+        podman_args.append(f"--cpus={cpus}")
+    if podman_args:
+        lines.append(f"PodmanArgs={' '.join(podman_args)}")
+
+def _build_container_section(service_name: str, service: dict, network_name: str, auto_update: bool) -> list[str]:
+    lines = ["\\n[Container]"]
+    image = service.get("image", "")
+    if image:
+        lines.append(f"Image={image}")
+    lines.append(f"ContainerName={service_name}")
+    if auto_update and image:
+        lines.append("AutoUpdate=registry")
+
+    _build_container_env(service, lines)
+    _build_container_ports(service, lines)
+    _build_container_volumes(service, lines)
+    _build_container_networks(service, network_name, lines)
+    _build_container_labels(service, lines)
+    _build_container_podman_args(service, lines)
+
+    return lines
+
+def _build_service_section(service: dict) -> list[str]:
+    lines = ["\\n[Service]"]
+    restart = service.get("restart", "always")
+    if restart == "unless-stopped":
+        restart = "always"
+    lines.extend([f"Restart={restart}", "TimeoutStartSec=300"])
+    return lines
+
+def _build_install_section() -> list[str]:
+    return ["\\n[Install]", "WantedBy=multi-user.target default.target"]
+
 def generate_container_unit(
     service_name: str,
     service: dict,
@@ -59,122 +174,12 @@ def generate_container_unit(
     Returns:
         String content of the .container file
     """
-    lines_unit = ["[Unit]"]
-    lines_unit.append(f"Description={service_name} container")
+    lines_unit = _build_unit_section(service_name, service)
+    lines_container = _build_container_section(service_name, service, network_name, auto_update)
+    lines_service = _build_service_section(service)
+    lines_install = _build_install_section()
 
-    # Dependencies — if service has depends_on
-    depends = service.get("depends_on", [])
-    if isinstance(depends, dict):
-        depends = list(depends.keys())
-    for dep in depends:
-        lines_unit.append(f"After={dep}.service")
-        lines_unit.append(f"Requires={dep}.service")
-
-    # [Container] section
-    lines_container = ["\n[Container]"]
-
-    # Image
-    image = service.get("image", "")
-    if image:
-        lines_container.append(f"Image={image}")
-
-    lines_container.append(f"ContainerName={service_name}")
-
-    # Auto-update
-    if auto_update and image:
-        lines_container.append("AutoUpdate=registry")
-
-    # Environment variables
-    env = service.get("environment", {})
-    if isinstance(env, list):
-        for item in env:
-            lines_container.append(f"Environment={item}")
-    elif isinstance(env, dict):
-        for key, value in env.items():
-            lines_container.append(f"Environment={key}={value}")
-
-    # Env files
-    env_files = service.get("env_file", [])
-    if isinstance(env_files, str):
-        env_files = [env_files]
-    for ef in env_files:
-        lines_container.append(f"EnvironmentFile={ef}")
-
-    # Ports
-    ports = service.get("ports", [])
-    for port in ports:
-        host_port, container_port = _parse_port(str(port))
-        lines_container.append(f"PublishPort={host_port}:{container_port}")
-
-    # Volumes
-    volumes = service.get("volumes", [])
-    for vol in volumes:
-        if isinstance(vol, str):
-            # Check if it's a named volume (no / or . prefix)
-            src = vol.split(":")[0]
-            if not src.startswith("/") and not src.startswith(".") and not src.startswith("$"):
-                # Named volume → use Quadlet .volume reference
-                vol_name = src
-                mount_parts = vol.split(":")
-                if len(mount_parts) >= 2:
-                    lines_container.append(f"Volume={vol_name}.volume:{mount_parts[1]}")
-                else:
-                    lines_container.append(f"Volume={vol}")
-            else:
-                lines_container.append(f"Volume={vol}")
-        elif isinstance(vol, dict):
-            src = vol.get("source", "")
-            tgt = vol.get("target", "")
-            ro = ":ro" if vol.get("read_only") else ""
-            lines_container.append(f"Volume={src}:{tgt}{ro}")
-
-    # Network
-    networks = service.get("networks", [])
-    if isinstance(networks, list):
-        for net in networks:
-            lines_container.append(f"Network={net}.network")
-    elif isinstance(networks, dict):
-        for net in networks.keys():
-            lines_container.append(f"Network={net}.network")
-    else:
-        lines_container.append(f"Network={network_name}.network")
-
-    # Labels (including Traefik)
-    labels = service.get("labels", {})
-    if isinstance(labels, list):
-        for item in labels:
-            lines_container.append(f"Label={item}")
-    elif isinstance(labels, dict):
-        for key, value in labels.items():
-            lines_container.append(f"Label={key}={value}")
-
-    # Resource limits
-    deploy = service.get("deploy", {})
-    memory = _parse_memory_limit(deploy)
-    # Note: Quadlet doesn't have native memory limit syntax —
-    # we use PodmanArgs for cgroup limits
-    podman_args = []
-    if memory:
-        podman_args.append(f"--memory={memory}")
-    cpus = _parse_cpus_limit(deploy)
-    if cpus:
-        podman_args.append(f"--cpus={cpus}")
-    if podman_args:
-        lines_container.append(f"PodmanArgs={' '.join(podman_args)}")
-
-    # [Service] section
-    lines_service = ["\n[Service]"]
-    restart = service.get("restart", "always")
-    if restart == "unless-stopped":
-        restart = "always"
-    lines_service.append(f"Restart={restart}")
-    lines_service.append("TimeoutStartSec=300")
-
-    # [Install] section
-    lines_install = ["\n[Install]"]
-    lines_install.append("WantedBy=multi-user.target default.target")
-
-    return "\n".join(lines_unit + lines_container + lines_service + lines_install) + "\n"
+    return "\\n".join(lines_unit + lines_container + lines_service + lines_install) + "\\n"
 
 
 def generate_network_unit(network_name: str) -> str:
