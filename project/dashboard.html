@@ -60,12 +60,12 @@
 </p>
 
 <div class="grid">
-  <div class="card"><div class="value">4.5</div><div class="label">Avg CC</div></div>
-  <div class="card"><div class="value">36</div><div class="label">Critical (CC≥10)</div></div>
-  <div class="card"><div class="value">427</div><div class="label">Functions</div></div>
-  <div class="card"><div class="value">49</div><div class="label">Classes</div></div>
-  <div class="card"><div class="value">50</div><div class="label">Files</div></div>
-  <div class="card"><div class="value">17618</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">4.3</div><div class="label">Avg CC</div></div>
+  <div class="card"><div class="value">32</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">448</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">50</div><div class="label">Classes</div></div>
+  <div class="card"><div class="value">52</div><div class="label">Files</div></div>
+  <div class="card"><div class="value">17790</div><div class="label">Lines</div></div>
   <div class="card"><div class="value">0</div><div class="label">Duplicates</div></div>
   <div class="card"><div class="value">0</div><div class="label">Cycles</div></div>
 </div>
@@ -74,9 +74,9 @@
   <div class="chart-container">
     <h2 style="border:none;margin:0 0 .5rem;">Evolution (2026-03-05)</h2>
     <div class="evo-cards">
-      <div class="card"><div class="value">4.5</div><div class="label">CC̄ →</div></div>
-      <div class="card"><div class="value">36</div><div class="label">Critical →</div></div>
-      <div class="card"><div class="value">17618</div><div class="label">Lines</div></div>
+      <div class="card"><div class="value">4.3</div><div class="label">CC̄ →</div></div>
+      <div class="card"><div class="value">32</div><div class="label">Critical →</div></div>
+      <div class="card"><div class="value">17790</div><div class="label">Lines</div></div>
     </div>
     <p class="trend" style="margin-top:.5rem;">Run analysis multiple times to build a trend chart (≥3 data points needed).</p>
   </div>
@@ -121,42 +121,7 @@
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
-                <td>_resolve_includes</td>
-                <td>cc_exceeded</td>
-                <td>22</td>
-                <td>15</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>_import_github_actions</td>
-                <td>cc_exceeded</td>
-                <td>21</td>
-                <td>15</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>_import_gitlab_ci</td>
-                <td>cc_exceeded</td>
-                <td>20</td>
-                <td>15</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>_import_github_actions</td>
-                <td>high_fan_out</td>
-                <td>19</td>
-                <td>10</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
                 <td>RegistryClient._install_from_github</td>
-                <td>high_fan_out</td>
-                <td>18</td>
-                <td>10</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>init</td>
                 <td>high_fan_out</td>
                 <td>18</td>
                 <td>10</td>
@@ -170,9 +135,16 @@
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
+                <td>init</td>
+                <td>high_fan_out</td>
+                <td>18</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
                 <td>_import_gitlab_ci</td>
                 <td>high_fan_out</td>
-                <td>17</td>
+                <td>16</td>
                 <td>10</td>
             </tr>
             <tr class="error">
@@ -195,6 +167,34 @@
                 <td>high_fan_out</td>
                 <td>16</td>
                 <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>_import_makefile</td>
+                <td>high_fan_out</td>
+                <td>15</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>TaskfileRunner.run</td>
+                <td>high_fan_out</td>
+                <td>15</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>import_cmd</td>
+                <td>high_fan_out</td>
+                <td>15</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>ProjectDiagnostics.check_ports</td>
+                <td>cc_exceeded</td>
+                <td>19</td>
+                <td>15</td>
             </tr></tbody>
 </table>
 </div></div>
@@ -233,14 +233,14 @@ Examples:
     taskfile run buil</td>
             </tr>
             <tr>
-                <td><strong>_import_github_actions</strong></td>
-                <td>19</td>
-                <td>Convert GitHub Actions workflow YAML to Taskfile.yml.</td>
-            </tr>
-            <tr>
                 <td><strong>RegistryClient._install_from_github</strong></td>
                 <td>18</td>
                 <td>Install package from GitHub repository.</td>
+            </tr>
+            <tr>
+                <td><strong>ProjectDiagnostics.check_ports</strong></td>
+                <td>18</td>
+                <td>Check docker-compose port conflicts and suggest .env fixes.</td>
             </tr>
             <tr>
                 <td><strong>init</strong></td>
@@ -250,13 +250,8 @@ Examples:
 Without --interactive: uses</td>
             </tr>
             <tr>
-                <td><strong>ProjectDiagnostics.check_ports</strong></td>
-                <td>18</td>
-                <td>Check docker-compose port conflicts and suggest .env fixes.</td>
-            </tr>
-            <tr>
                 <td><strong>_import_gitlab_ci</strong></td>
-                <td>17</td>
+                <td>16</td>
                 <td>Convert .gitlab-ci.yml to Taskfile.yml.</td>
             </tr>
             <tr>
@@ -274,13 +269,21 @@ Examples:
                 <td>Interactive registry authentication setup.
 
 Guides you through obtaining API tok</td>
+            </tr>
+            <tr>
+                <td><strong>doctor</strong></td>
+                <td>16</td>
+                <td>🔧 Diagnose project and suggest fixes.
+
+Checks:
+    - Taskfile.yml existence and </td>
             </tr></tbody>
 </table>
 </div></div>
 </div>
 
 <div>
-<h2>Refactoring Priorities (15)</h2>
+<h2>Refactoring Priorities (13)</h2>
 <div class="card"><div class="table-wrap">
 <table>
   <thead><tr><th>#</th><th>Action</th><th>Impact</th><th>Effort</th></tr></thead>
@@ -293,55 +296,55 @@ Guides you through obtaining API tok</td>
             </tr>
             <tr>
                 <td>2</td>
-                <td>Split god module src/taskfile/cli/interactive.py (552L, 0 classes)</td>
+                <td>Split god module src/taskfile/webui/handlers.py (556L, 1 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>3</td>
-                <td>Split god module src/taskfile/webui.py (594L, 2 classes)</td>
-                <td><span class="badge high">high</span></td>
-                <td>high</td>
-            </tr>
-            <tr>
-                <td>4</td>
                 <td>Split GitLabCIConverter.import_gitlab_ci (CC=15 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
+                <td>4</td>
+                <td>Split _import_gitlab_ci (CC=16 → target CC<10)</td>
+                <td><span class="badge medium">medium</span></td>
+                <td>low</td>
+            </tr>
+            <tr>
                 <td>5</td>
-                <td>Split _detect_type (CC=16 → target CC<10)</td>
+                <td>Split execute_commands (CC=15 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>6</td>
-                <td>Split _import_github_actions (CC=21 → target CC<10)</td>
+                <td>Split TaskfileRunner.run (CC=16 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>7</td>
-                <td>Split _import_gitlab_ci (CC=20 → target CC<10)</td>
+                <td>Split ProjectDiagnostics.check_ports (CC=19 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>8</td>
-                <td>Split scan_nearby_taskfiles (CC=17 → target CC<10)</td>
+                <td>Split info (CC=19 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>9</td>
-                <td>Split _resolve_includes (CC=22 → target CC<10)</td>
+                <td>Split run (CC=15 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>10</td>
-                <td>Split run_command (CC=16 → target CC<10)</td>
+                <td>Split init (CC=16 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr></tbody>
@@ -350,7 +353,7 @@ Guides you through obtaining API tok</td>
 </div>
 </div>
 
-<footer>Generated by code2llm on 2026-03-05 18:40</footer>
+<footer>Generated by code2llm on 2026-03-05 18:51</footer>
 
 <script>
 // Evolution chart disabled — fewer than 3 data points
@@ -359,9 +362,9 @@ const modCtx = document.getElementById('modChart').getContext('2d');
 new Chart(modCtx, {
   type: 'bar',
   data: {
-    labels: ['fleet.py', 'parser.py', 'importer.py', 'diagnostics.py', 'info_cmd.py', 'interactive.py', 'commands.py', 'core.py', 'main.py', 'converters.py', 'cache.py', 'fleet.py', 'auth.py', 'release.py', 'health.py'],
-    datasets: [{ label: 'Max CC', data: [26, 22, 21, 19, 19, 16, 16, 16, 15, 15, 14, 13, 12, 12, 11],
-      backgroundColor: [26, 22, 21, 19, 19, 16, 16, 16, 15, 15, 14, 13, 12, 12, 11].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    labels: ['fleet.py', 'diagnostics.py', 'info_cmd.py', 'wizards.py', 'importer.py', 'core.py', 'main.py', 'converters.py', 'commands.py', 'cache.py', 'fleet.py', 'auth.py', 'release.py', 'health.py', 'parser.py'],
+    datasets: [{ label: 'Max CC', data: [26, 19, 19, 16, 16, 16, 15, 15, 15, 14, 13, 12, 12, 11, 11],
+      backgroundColor: [26, 19, 19, 16, 16, 16, 15, 15, 15, 14, 13, 12, 12, 11, 11].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
     }]
   },
   options: {

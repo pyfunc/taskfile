@@ -17,30 +17,31 @@ from taskfile.runner.functions import run_function, run_inline_python
 console = Console()
 
 
-def run_command(runner, cmd: str, task: Task) -> int:
-    """Execute a single command, locally or via SSH."""
-    expanded = runner.expand_variables(cmd)
+def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
+    """Check for special command prefixes (@fn, @python, @remote/@ssh).
 
-    # @fn prefix — call embedded function
-    if expanded.strip().startswith("@fn "):
+    Returns the exit code if handled, or None to fall through to local execution.
+    """
+    stripped = expanded.strip()
+
+    if stripped.startswith("@fn "):
         return run_function(runner, expanded, task)
 
-    # @python prefix — run inline Python expression
-    if expanded.strip().startswith("@python "):
+    if stripped.startswith("@python "):
         return run_inline_python(runner, expanded, task)
 
-    # Determine if command should run via SSH
-    is_remote = is_remote_command(expanded)
-
-    if is_remote and runner.env.ssh_target:
+    if is_remote_command(expanded) and runner.env.ssh_target:
         if runner.use_embedded_ssh:
             return run_embedded_ssh(runner, expanded, task)
-        actual_cmd = wrap_ssh(expanded, runner.env)
-    else:
-        actual_cmd = expanded
+        return _run_local(runner, wrap_ssh(expanded, runner.env), task, remote=True)
 
+    return None
+
+
+def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False) -> int:
+    """Execute a command locally (or a wrapped SSH command). Handles dry-run, capture, timeout."""
     if not task.silent:
-        prefix = "[blue]→[/]" if not is_remote else "[magenta]→ SSH[/]"
+        prefix = "[magenta]→ SSH[/]" if remote else "[blue]→[/]"
         console.print(f"  {prefix} {actual_cmd}")
 
     if runner.dry_run:
@@ -72,6 +73,19 @@ def run_command(runner, cmd: str, task: Task) -> int:
     except KeyboardInterrupt:
         console.print("\n[yellow]⚠ Interrupted[/]")
         return 130
+
+
+def run_command(runner, cmd: str, task: Task) -> int:
+    """Execute a single command, locally or via SSH."""
+    expanded = runner.expand_variables(cmd)
+
+    # Try special prefix dispatch first (@fn, @python, @remote/@ssh)
+    result = _dispatch_special_prefix(runner, expanded, task)
+    if result is not None:
+        return result
+
+    # Default: run locally
+    return _run_local(runner, expanded, task)
 
 
 def execute_script(runner, task: Task, task_name: str) -> int:

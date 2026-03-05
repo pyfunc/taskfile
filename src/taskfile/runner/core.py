@@ -1,4 +1,4 @@
-"""Core TaskfileRunner class — init, run, run_task, list_tasks."""
+"""Core TaskfileRunner class — facade composing TaskResolver (pure) + IO dispatch."""
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from taskfile.compose import resolve_variables as _compose_resolve_variables
 from taskfile.models import Environment, Platform, Task, TaskfileConfig
 from taskfile.parser import load_taskfile, validate_taskfile
 from taskfile.ssh import has_paramiko, close_all as ssh_close_all
 from taskfile.runner.commands import run_command, execute_commands
 from taskfile.runner.ssh import is_remote_command, strip_remote_prefix, wrap_ssh, run_embedded_ssh
 from taskfile.runner.functions import run_function, run_inline_python
+from taskfile.runner.resolver import TaskResolver
 
 console = Console()
 
@@ -34,7 +34,12 @@ class TaskRunError(Exception):
 
 
 class TaskfileRunner:
-    """Executes tasks from a Taskfile configuration."""
+    """Executes tasks from a Taskfile configuration.
+
+    Composes:
+    - TaskResolver (pure logic): variable expansion, filtering, task lookup
+    - IO methods (this class): console output, subprocess execution, SSH
+    """
 
     def __init__(
         self,
@@ -47,89 +52,61 @@ class TaskfileRunner:
         verbose: bool = False,
         use_embedded_ssh: bool = True,
     ):
-        self._init_config(config, taskfile_path)
-        self.env_name = env_name or self.config.default_env
-        self.platform_name = platform_name or self.config.default_platform
-        self.var_overrides = var_overrides or {}
+        loaded_config = config or load_taskfile(taskfile_path)
+        self._resolver = TaskResolver(loaded_config, env_name, platform_name, var_overrides)
+
         self.dry_run = dry_run
         self.verbose = verbose
         self.use_embedded_ssh = use_embedded_ssh and has_paramiko()
         self._executed: set[str] = set()
 
-        self.env = self._init_environment()
-        self.platform = self._init_platform()
-        self.variables = self._init_variables()
-
-    def _init_config(self, config: TaskfileConfig | None, taskfile_path: str | Path | None) -> None:
-        """Load or accept the Taskfile configuration."""
-        self.config = config or load_taskfile(taskfile_path)
-
-    def _init_environment(self) -> Environment:
-        """Initialize and validate environment configuration."""
-        if self.env_name not in self.config.environments:
+        # Emit warnings for undefined env/platform (IO concern)
+        if not self._resolver.env_is_defined():
             console.print(
-                f"[yellow]⚠ Environment '{self.env_name}' not defined, using defaults[/]"
+                f"[yellow]⚠ Environment '{self._resolver.env_name}' not defined, using defaults[/]"
             )
-            return Environment(name=self.env_name)
-        return self.config.environments[self.env_name]
-
-    def _init_platform(self) -> Platform | None:
-        """Initialize and validate platform configuration."""
-        if not self.platform_name:
-            return None
-        if self.platform_name not in self.config.platforms:
+        if self._resolver.platform_name and not self._resolver.platform_is_defined():
             console.print(
-                f"[yellow]⚠ Platform '{self.platform_name}' not defined, using defaults[/]"
+                f"[yellow]⚠ Platform '{self._resolver.platform_name}' not defined, using defaults[/]"
             )
-            return None
-        return self.config.platforms[self.platform_name]
 
-    def _init_variables(self) -> dict[str, str]:
-        """Resolve all variables: global → env → platform → CLI overrides."""
-        variables = self.env.resolve_variables(self.config.variables)
-        if self.platform:
-            variables.update(self.platform.variables)
-        variables.update(self.var_overrides)
-        # Built-in variables
-        variables.setdefault("ENV", self.env_name)
-        variables.setdefault("RUNTIME", self.env.container_runtime)
-        variables.setdefault("COMPOSE", self.env.compose_command)
-        if self.platform_name:
-            variables.setdefault("PLATFORM", self.platform_name)
+    # ─── Delegated properties from resolver ───
 
-        # Resolve ${VAR:-default} / $VAR inside variable values.
-        # Important: avoid self-reference (e.g. TAG: ${TAG:-latest}) by resolving
-        # each variable against a context that excludes itself.
-        for key in list(variables.keys()):
-            value = variables.get(key)
-            if not isinstance(value, str):
-                continue
-            ctx: dict[str, str] = {**os.environ, **variables}
-            ctx.pop(key, None)
-            variables[key] = _compose_resolve_variables(value, ctx)
-        return variables
+    @property
+    def config(self) -> TaskfileConfig:
+        return self._resolver.config
+
+    @property
+    def env_name(self) -> str:
+        return self._resolver.env_name
+
+    @property
+    def platform_name(self) -> str | None:
+        return self._resolver.platform_name
+
+    @property
+    def env(self) -> Environment:
+        return self._resolver.env
+
+    @property
+    def platform(self) -> Platform | None:
+        return self._resolver.platform
+
+    @property
+    def variables(self) -> dict[str, str]:
+        return self._resolver.variables
+
+    @variables.setter
+    def variables(self, value: dict[str, str]) -> None:
+        self._resolver.variables = value
+
+    @property
+    def var_overrides(self) -> dict[str, str]:
+        return self._resolver.var_overrides
 
     def expand_variables(self, text: str) -> str:
-        """Replace placeholders with resolved values.
-
-        Supports:
-            - {{VAR}}
-            - ${VAR}
-            - $VAR
-            - ${VAR:-default}
-        """
-        if not isinstance(text, str):
-            return text
-
-        # First pass: resolve legacy {{VAR}} placeholders.
-        result = text
-        for key, value in self.variables.items():
-            if not isinstance(value, str):
-                value = str(value)
-            result = result.replace(f"{{{{{key}}}}}", value)
-
-        # Second pass: resolve ${VAR}, ${VAR:-default}, $VAR using shared resolver.
-        return _compose_resolve_variables(result, {**os.environ, **self.variables})
+        """Replace placeholders with resolved values."""
+        return self._resolver.expand_variables(text)
 
     # ─── Command execution (delegated to commands module) ───
 
@@ -193,23 +170,14 @@ class TaskfileRunner:
 
     def _should_skip_task(self, task: Task, task_name: str) -> bool:
         """Check if task should be skipped based on filters/condition. Returns True if skipped."""
-        # Check environment filter
-        if not task.should_run_on(self.env_name):
-            console.print(
-                f"[yellow]⊘ Skipping '{task_name}' — not configured for env '{self.env_name}'[/]"
-            )
+        # Pure filter check via resolver (env/platform filters)
+        skip, reason = self._resolver.should_skip_task(task, task_name)
+        if skip:
+            console.print(f"[yellow]⊘ Skipping '{task_name}' — {reason}[/]")
             self._executed.add(task_name)
             return True
 
-        # Check platform filter
-        if not task.should_run_on_platform(self.platform_name):
-            console.print(
-                f"[yellow]⊘ Skipping '{task_name}' — not configured for platform '{self.platform_name}'[/]"
-            )
-            self._executed.add(task_name)
-            return True
-
-        # Check condition
+        # IO check: condition requires subprocess execution
         if not self.check_condition(task):
             console.print(f"[yellow]⊘ Skipping '{task_name}' — condition not met[/]")
             self._executed.add(task_name)

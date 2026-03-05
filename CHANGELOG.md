@@ -1,13 +1,38 @@
 ## [Unreleased]
 
+## [0.3.38] - 2026-03-05
+
+### Docs
+- Update CHANGELOG.md
+- Update docs/USAGE.md
+- Update project/README.md
+- Update project/context.md
+
+### Other
+- Update project/analysis.toon
+- Update project/analysis.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/compact_flow.mmd
+- Update project/compact_flow.png
+- Update project/dashboard.html
+- Update project/evolution.toon
+- Update project/flow.mmd
+- Update project/flow.png
+- ... and 4 more files
+
+## [1.11.0] — 2025-03-05
+
 ### Features
 
 - **Docker Helpers** — new CLI group `taskfile docker` with commands:
   - `docker ps` — show running containers
   - `docker stop-port <port>` — stop containers using specific port
-  - `docker stop-all` — stop all running containers
+  - `docker stop-all` — **new** — stop all running containers
   - `docker compose-down` — run docker compose down
 - **Port Conflict Detection** — `taskfile doctor` now detects port conflicts in docker-compose.yml and suggests fixes
+- **Deployment validation** — deploy script now validates .env and prompts for missing values
+- **Health check fix** — health check URL now correctly uses SSH_HOST instead of localhost
 - **Embedded functions** — `functions` section in Taskfile.yml with Python/shell/Node/binary support
 - **`@fn` prefix** — call embedded functions from task commands: `@fn notify arg1`
 - **`@python` prefix** — run inline Python from task commands: `@python print('hello')`
@@ -16,6 +41,19 @@
 - **`tags`** — selective task execution with `--tags` CLI flag
 - **`register`** — capture command stdout into a variable for chaining
 - **`taskfile import`** — convert GitHub Actions, GitLab CI, Makefile, shell scripts, Dockerfile INTO Taskfile.yml
+
+### Docs
+
+- Added Docker deployment examples to USAGE.md
+- Added Docker port management documentation
+- Added E2E tests for Docker commands (19 new tests)
+- Updated taskfile-example with minimal and multi-env examples
+
+### Fixed
+
+- Deploy script now exports IMAGE_WEB and TAG variables correctly
+- Deploy script validates and prompts for missing .env values
+- Health check URL uses correct SSH host
 
 ### Docs
 

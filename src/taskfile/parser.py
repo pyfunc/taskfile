@@ -19,6 +19,36 @@ TASKFILE_NAMES = [
 ]
 
 
+def _scan_dir_for_taskfiles(directory: Path, level: int) -> list[tuple[Path, int]]:
+    """Check a single directory for any Taskfile variants. Returns (path, level) pairs."""
+    found = []
+    for name in TASKFILE_NAMES:
+        candidate = directory / name
+        if candidate.is_file():
+            found.append((candidate, level))
+    return found
+
+
+def _scan_subdirectories(start: Path, max_depth: int = 2) -> list[tuple[Path, int]]:
+    """Walk subdirectories up to max_depth, collecting Taskfiles."""
+    found = []
+    try:
+        for child in start.iterdir():
+            if not child.is_dir():
+                continue
+            found.extend(_scan_dir_for_taskfiles(child, 1))
+            if max_depth >= 2:
+                try:
+                    for grandchild in child.iterdir():
+                        if grandchild.is_dir():
+                            found.extend(_scan_dir_for_taskfiles(grandchild, 2))
+                except (PermissionError, OSError):
+                    pass
+    except (PermissionError, OSError):
+        pass
+    return found
+
+
 def scan_nearby_taskfiles(start_dir: str | Path | None = None) -> list[tuple[Path, int]]:
     """Scan for Taskfiles in nearby directories.
 
@@ -33,45 +63,13 @@ def scan_nearby_taskfiles(start_dir: str | Path | None = None) -> list[tuple[Pat
     - positive = subdirectories
     """
     start = Path(start_dir or os.getcwd()).resolve()
-    found = []
+    found = _scan_dir_for_taskfiles(start, 0)
 
-    # Check current directory (level 0)
-    for name in TASKFILE_NAMES:
-        candidate = start / name
-        if candidate.is_file():
-            found.append((candidate, 0))
-
-    # Check 1 level up (parent, level -1)
     parent = start.parent
     if parent != start:
-        for name in TASKFILE_NAMES:
-            candidate = parent / name
-            if candidate.is_file():
-                found.append((candidate, -1))
+        found.extend(_scan_dir_for_taskfiles(parent, -1))
 
-    # Check 2 levels down (subdirectories, level 1 and 2)
-    try:
-        for child in start.iterdir():
-            if child.is_dir():
-                # Level 1 (direct subdirectory)
-                for name in TASKFILE_NAMES:
-                    candidate = child / name
-                    if candidate.is_file():
-                        found.append((candidate, 1))
-
-                # Level 2 (nested subdirectory)
-                try:
-                    for grandchild in child.iterdir():
-                        if grandchild.is_dir():
-                            for name in TASKFILE_NAMES:
-                                candidate = grandchild / name
-                                if candidate.is_file():
-                                    found.append((candidate, 2))
-                except (PermissionError, OSError):
-                    pass  # Skip directories we can't access
-    except (PermissionError, OSError):
-        pass  # Can't read current directory
-
+    found.extend(_scan_subdirectories(start))
     return found
 
 
@@ -113,6 +111,51 @@ def find_taskfile(start_dir: str | Path | None = None) -> Path:
     )
 
 
+def _parse_include_entry(entry, base_dir: Path) -> tuple[Path, str] | None:
+    """Parse a single include entry into (path, prefix). Returns None if invalid."""
+    if isinstance(entry, str):
+        return base_dir / entry, ""
+    elif isinstance(entry, dict):
+        return base_dir / entry.get("path", entry.get("file", "")), entry.get("prefix", "")
+    return None
+
+
+def _load_include_file(inc_path: Path) -> dict:
+    """Load and validate an included YAML file."""
+    if not inc_path.is_file():
+        raise TaskfileParseError(f"Include file not found: {inc_path}")
+    try:
+        with open(inc_path) as f:
+            inc_raw = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise TaskfileParseError(f"Invalid YAML in included file {inc_path}: {e}") from e
+    return inc_raw if isinstance(inc_raw, dict) else {}
+
+
+def _merge_include_sections(raw: dict, inc_raw: dict, prefix: str) -> None:
+    """Merge tasks/variables/environments from an included file into raw config.
+
+    Merge order: included values first, local Taskfile wins on conflict.
+    """
+    # Merge tasks (with optional prefix)
+    inc_tasks = inc_raw.get("tasks", {})
+    if inc_tasks and isinstance(inc_tasks, dict):
+        existing_tasks = raw.setdefault("tasks", {})
+        for task_name, task_data in inc_tasks.items():
+            key = f"{prefix}-{task_name}" if prefix else task_name
+            if key not in existing_tasks:
+                existing_tasks[key] = task_data
+
+    # Merge variables (included first, local wins)
+    for section in ("variables", "environments"):
+        inc_section = inc_raw.get(section, {})
+        if inc_section and isinstance(inc_section, dict):
+            existing = raw.setdefault(section, {})
+            for k, v in inc_section.items():
+                if k not in existing:
+                    existing[k] = v
+
+
 def _resolve_includes(raw: dict, base_dir: Path) -> dict:
     """Resolve `include` section — merge tasks/variables/environments from other files.
 
@@ -132,51 +175,13 @@ def _resolve_includes(raw: dict, base_dir: Path) -> dict:
         raise TaskfileParseError("'include' must be a list of file references")
 
     for entry in includes:
-        if isinstance(entry, str):
-            inc_path = base_dir / entry
-            prefix = ""
-        elif isinstance(entry, dict):
-            inc_path = base_dir / entry.get("path", entry.get("file", ""))
-            prefix = entry.get("prefix", "")
-        else:
+        parsed = _parse_include_entry(entry, base_dir)
+        if parsed is None:
             continue
-
-        if not inc_path.is_file():
-            raise TaskfileParseError(f"Include file not found: {inc_path}")
-
-        try:
-            with open(inc_path) as f:
-                inc_raw = yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            raise TaskfileParseError(f"Invalid YAML in included file {inc_path}: {e}") from e
-
-        if not isinstance(inc_raw, dict):
-            continue
-
-        # Merge tasks (with optional prefix)
-        inc_tasks = inc_raw.get("tasks", {})
-        if inc_tasks and isinstance(inc_tasks, dict):
-            existing_tasks = raw.setdefault("tasks", {})
-            for task_name, task_data in inc_tasks.items():
-                key = f"{prefix}-{task_name}" if prefix else task_name
-                if key not in existing_tasks:
-                    existing_tasks[key] = task_data
-
-        # Merge variables (included first, local wins)
-        inc_vars = inc_raw.get("variables", {})
-        if inc_vars and isinstance(inc_vars, dict):
-            existing_vars = raw.setdefault("variables", {})
-            for k, v in inc_vars.items():
-                if k not in existing_vars:
-                    existing_vars[k] = v
-
-        # Merge environments (included first, local wins)
-        inc_envs = inc_raw.get("environments", {})
-        if inc_envs and isinstance(inc_envs, dict):
-            existing_envs = raw.setdefault("environments", {})
-            for k, v in inc_envs.items():
-                if k not in existing_envs:
-                    existing_envs[k] = v
+        inc_path, prefix = parsed
+        inc_raw = _load_include_file(inc_path)
+        if inc_raw:
+            _merge_include_sections(raw, inc_raw, prefix)
 
     return raw
 

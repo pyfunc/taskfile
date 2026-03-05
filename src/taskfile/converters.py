@@ -1,10 +1,17 @@
-"""Import/Export converters for taskfile - convert to/from other formats."""
+"""Import/Export converters for taskfile - convert to/from other formats.
+
+Note: For CLI ``taskfile import`` (YAML-producing importer), see ``taskfile.importer``.
+This module provides a class-based API used by ``taskfile export`` and programmatic
+import/export via ``import_file`` / ``export_file``.
+"""
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from taskfile.importer import _FILENAME_TYPE_MAP as _IMPORTER_FILENAME_MAP
 
 if TYPE_CHECKING:
     from taskfile.models import TaskfileConfig, Task
@@ -355,27 +362,34 @@ class DockerComposeConverter:
 
 
 def detect_format(file_path: Path) -> str | None:
-    """Detect file format from path."""
+    """Detect file format from path.
+
+    Reuses the shared filename→type map from ``taskfile.importer`` for
+    Makefile / GitLab CI, and adds extra types (npm, docker-compose, python)
+    that only the converter layer needs.
+    """
     name = file_path.name.lower()
-    
-    if name in ('makefile', 'gnumakefile', 'makefile.mk'):
-        return 'makefile'
-    elif name.endswith('.yml') or name.endswith('.yaml'):
+
+    # Shared exact-name lookup (makefile, gnumakefile, .gitlab-ci.yml/yaml)
+    if name in _IMPORTER_FILENAME_MAP:
+        return _IMPORTER_FILENAME_MAP[name]
+
+    # Converter-specific types
+    if name == 'package.json':
+        return 'npm'
+    if name.endswith('.sh'):
+        return 'shell'
+    if name.endswith('.py'):
+        return 'python'
+
+    # YAML files: infer from path / content hints
+    if name.endswith(('.yml', '.yaml')):
         if '.github/workflows' in str(file_path):
             return 'github-actions'
-        elif name == '.gitlab-ci.yml':
-            return 'gitlab-ci'
-        elif 'docker-compose' in name:
+        if 'docker-compose' in name:
             return 'docker-compose'
-        else:
-            return 'yaml'
-    elif name == 'package.json':
-        return 'npm'
-    elif name.endswith('.sh'):
-        return 'shell'
-    elif name.endswith('.py'):
-        return 'python'
-    
+        return 'yaml'
+
     return None
 
 

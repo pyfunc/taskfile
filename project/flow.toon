@@ -1,6 +1,19 @@
-# taskfile/flow | 434 func | 12 pipelines | 12 hub-types | 2026-03-05
+# taskfile/flow | 455 func | 12 pipelines | 12 hub-types | 2026-03-05
 
 PIPELINES[12] (IO:12):
+  Src [IO]: list[str] → str
+              → run(task_names:list[str]) → bool        CC=16   IO  !! ▶
+              → run_task(task_name:str) → bool          CC=6    IO
+              → _execute_commands(task:Task, task_name:str, start:float) → bool CC=1    pure
+              → execute_commands(runner, task:Task, task_name:str, start:float) → bool CC=15   IO  !!
+              → run_command(runner, cmd:str, task:Task) → int CC=2    pure
+              → _dispatch_special_prefix(runner, expanded:str, task:Task) → int | None CC=6    pure
+              → run_embedded_ssh(runner, cmd:str, task:Task) → int CC=4    IO
+              → ssh_exec(env:Environment, command:str, timeout:int) → int CC=5    IO
+              → _get_connection(env:Environment) → paramiko.SSHClient CC=7    IO
+              → _pool_key(env:Environment) → str        CC=1    pure ■
+              PURITY: 4/10 pure  BOTTLENECK: run(CC=16)
+
   Src [IO]: ctx → str | None
               → deploy_cmd(ctx, compose_override)       CC=4    IO ▶
               → _execute_deploy_strategy(strategy:DeployStrategy) → None CC=4    IO
@@ -14,27 +27,17 @@ PIPELINES[12] (IO:12):
               → _parse_cpus_limit(deploy:dict) → str | None CC=2    pure ■
               PURITY: 3/10 pure  BOTTLENECK: deploy_cmd(CC=4)
 
-  Src [IO]: list[str] → str
-              → run(task_names:list[str]) → bool        CC=16   IO  !! ▶
-              → run_task(task_name:str) → bool          CC=6    IO
-              → _execute_commands(task:Task, task_name:str, start:float) → bool CC=1    pure
-              → execute_commands(runner, task:Task, task_name:str, start:float) → bool CC=15   IO  !!
-              → run_command(runner, cmd:str, task:Task) → int CC=16   IO  !!
-              → run_embedded_ssh(runner, cmd:str, task:Task) → int CC=4    IO
-              → ssh_exec(env:Environment, command:str, timeout:int) → int CC=5    IO
-              → _get_connection(env:Environment) → paramiko.SSHClient CC=7    IO
-              → _pool_key(env:Environment) → str        CC=1    pure ■
-              PURITY: 2/9 pure  BOTTLENECK: run(CC=16)
-
-  Src [IO]: ctx → str | None
+  Src [IO]: ctx → list[tuple[Path, int]]
               → quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services) CC=6    IO ▶
               → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None) → list[Path] CC=1    IO
               → _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None) → tuple[list[Path], set[str]] CC=4    IO
-              → generate_container_unit(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → str CC=1    pure
-              → _build_container_section(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → list[str] CC=4    mutation
-              → _build_container_podman_args(service:ServiceConfig, lines:list[str]) → None CC=4    mutation
-              → _parse_cpus_limit(deploy:dict) → str | None CC=2    pure ■
-              PURITY: 2/7 pure  BOTTLENECK: quadlet_generate(CC=6)
+              → _collect_named_volumes(service:ServiceConfig) → set[str] CC=6    mutation
+              → set(ctx, new_version, dry_run, force)   CC=8    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 1/9 pure  BOTTLENECK: set(CC=8)
 
   Src [IO]: ctx → list[tuple[Path, int]]
               → graph(ctx, task_name, dot, output)      CC=7    IO ▶
@@ -42,83 +45,100 @@ PIPELINES[12] (IO:12):
               → detect_cycles(graph:dict[str, list[str]]) → list[str] | None CC=4    IO
               → set(ctx, new_version, dry_run, force)   CC=8    IO
               → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
-              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 1/6 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 1/8 pure  BOTTLENECK: print_task_tree(CC=10)
 
   Src [IO]: list[str] | None → list[tuple[Path, int]]
               → run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool CC=8    IO ▶
               → _resolve_stages(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → list[PipelineStage] CC=6    mutation
               → set(ctx, new_version, dry_run, force)   CC=8    IO
               → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
-              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 1/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
-
-  Src [IO]: ? → list[tuple[Path, int]]
-              → do_GET()                                CC=7    pure ▶
-              → _serve_config_json()                    CC=2    pure
-              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
-              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
-              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 3/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
-
-  Src [IO]: TaskfileConfig | None → list[tuple[Path, int]]
-              → __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool, use_embedded_ssh:bool) CC=5    mutation ▶
-              → _init_config(config:TaskfileConfig | None, taskfile_path:str | Path | None) → None CC=2    mutation
-              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
-              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
-              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 1/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
-
-  Src [IO]: str → str
-              → _run_embedded_ssh(cmd:str, task:Task) → int CC=1    pure ▶
-              → run_embedded_ssh(runner, cmd:str, task:Task) → int CC=4    IO
-              → ssh_exec(env:Environment, command:str, timeout:int) → int CC=5    IO
-              → _get_connection(env:Environment) → paramiko.SSHClient CC=7    IO
-              → _pool_key(env:Environment) → str        CC=1    pure ■
-              PURITY: 2/5 pure  BOTTLENECK: _get_connection(CC=7)
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 1/7 pure  BOTTLENECK: run(CC=8)
 
   Src [IO]: ? → list[tuple[Path, int]]
               → auto_fix() → int                        CC=1    pure ▶
               → _fix_ports() → int                      CC=11   IO
               → set(ctx, new_version, dry_run, force)   CC=8    IO
               → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
-              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 2/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 2/7 pure  BOTTLENECK: _fix_ports(CC=11)
 
-  Src [IO]: ctx → HealthCheckResult
+  Src [IO]: ctx → list[tuple[Path, int]]
               → release(ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, force) CC=12   pure ▶
-              → _step_health_check(domain, ssh_host)    CC=1    IO
-              → health_check_all(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool) → bool CC=3    pure
-              → run_health_checks(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool) → HealthReport CC=11   mutation
-              → check_traefik_dashboard(host:str, user:str, ssh_key:str | None) → HealthCheckResult CC=5    pure ■
-              PURITY: 3/5 pure  BOTTLENECK: release(CC=12)
+              → _resolve_release_config(ctx, tag_version) → Entity CC=7    IO
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 2/7 pure  BOTTLENECK: release(CC=12)
 
   Src [IO]: ctx → list[tuple[Path, int]]
               → fleet_status_cmd(ctx, group)            CC=7    IO ▶
               → _load_config_or_exit(taskfile_path:str | None) → TaskfileConfig CC=2    IO
               → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
               → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
-              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 1/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 1/7 pure  BOTTLENECK: _scan_subdirectories(CC=8)
 
   Src [IO]: ctx → list[tuple[Path, int]]
               → fleet_repair_cmd(ctx, env_name, auto_fix) CC=7    IO ▶
               → _load_config_or_exit(taskfile_path:str | None) → TaskfileConfig CC=2    IO
               → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
               → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
-              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 1/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 1/7 pure  BOTTLENECK: _scan_subdirectories(CC=8)
+
+  Src [IO]: ctx → list[tuple[Path, int]]
+              → fleet_list_cmd(ctx)                     CC=8    IO ▶
+              → _load_config_or_exit(taskfile_path:str | None) → TaskfileConfig CC=2    IO
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 1/7 pure  BOTTLENECK: fleet_list_cmd(CC=8)
+
+  Src [IO]: ctx → list[tuple[Path, int]]
+              → run(ctx, tasks, run_tags)               CC=15   IO  !! ▶
+              → _run_env_group(taskfile_path, env_group:str, task_names:list[str], platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool) → bool CC=6    IO
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 1/7 pure  BOTTLENECK: run(CC=15)
+
+  Src [IO]: ? → list[tuple[Path, int]]
+              → do_GET()                                CC=7    pure ▶
+              → _serve_config_json()                    CC=2    pure
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
+              → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=3    mutation
+              → _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]] CC=8    mutation
+              → _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]] CC=3    mutation ■
+              PURITY: 3/7 pure  BOTTLENECK: _scan_subdirectories(CC=8)
 
 
 TRANSFORMS (fan-out ≥10):
   fleet_status_cmd(ctx, group)                            fan=25   !! side-effects
   bump(ctx, part, dry_run, force)                         fan=20   !! side-effects
   run(ctx, tasks, run_tags)                               fan=20   !! side-effects
-  _import_github_actions(content:str, filename:str) → str fan=19   fan=19
   _install_from_github(repo:str, version:str | None, save:bool) → Path fan=18   PIPELINE:RegistryClient.entry
-  init(template, force, interactive)                      fan=18   fan=18
   check_ports() → None                                    fan=18   PIPELINE:ProjectDiagnostics.entry
-  _import_gitlab_ci(content:str) → str                    fan=17   fan=17
+  init(template, force, interactive)                      fan=18   fan=18
+  _import_gitlab_ci(content:str) → str                    fan=16   fan=16
   set(ctx, new_version, dry_run, force)                   fan=16   fan=16
   auth_setup(registry)                                    fan=16   fan=16
   doctor(fix, verbose)                                    fan=16   fan=16
@@ -126,8 +146,58 @@ TRANSFORMS (fan-out ≥10):
   run(task_names:list[str]) → bool                        fan=15   PIPELINE:TaskfileRunner.entry
   import_cmd(source, source_type, output_path, force)     fan=15   fan=15
   run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool fan=14   PIPELINE:PipelineRunner.entry
+  pkg_install(package_name, version, save, no_save, registry) fan=14   fan=14
 
 CONTRACTS:
+  Pipeline: Src
+    run(task_names:list[str]) → bool
+      IN:  task_names:list[str]
+      OUT: bool
+      SIDE-EFFECT: IO(print)
+      SMELL: CC=16 → split
+
+    run_task(task_name:str) → bool
+      IN:  task_name:str
+      OUT: bool
+      SIDE-EFFECT: IO(print)
+
+    _execute_commands(task:Task, task_name:str, start:float) → bool
+      IN:  task:Task, task_name:str, start:float
+      OUT: bool
+
+    execute_commands(runner, task:Task, task_name:str, start:float) → bool
+      IN:  runner, task:Task, task_name:str, start:float
+      OUT: bool
+      SIDE-EFFECT: IO(print, print, print)
+      SMELL: CC=15 → split
+
+    run_command(runner, cmd:str, task:Task) → int
+      IN:  runner, cmd:str, task:Task
+      OUT: int
+
+    _dispatch_special_prefix(runner, expanded:str, task:Task) → int | None
+      IN:  runner, expanded:str, task:Task
+      OUT: int | None
+
+    run_embedded_ssh(runner, cmd:str, task:Task) → int
+      IN:  runner, cmd:str, task:Task
+      OUT: int
+      SIDE-EFFECT: IO(print, print, print)
+
+    ssh_exec(env:Environment, command:str, timeout:int) → int
+      IN:  env:Environment, command:str, timeout:int
+      OUT: int
+      SIDE-EFFECT: IO(print, print, print)
+
+    _get_connection(env:Environment) → paramiko.SSHClient
+      IN:  env:Environment
+      OUT: paramiko.SSHClient
+      SIDE-EFFECT: IO(connect, client.close)
+
+    _pool_key(env:Environment) → str
+      IN:  env:Environment
+      OUT: str
+
   Pipeline: Src
     deploy_cmd(ctx, compose_override)
       IN:  ctx, compose_override
@@ -177,53 +247,6 @@ CONTRACTS:
       OUT: str | None
 
   Pipeline: Src
-    run(task_names:list[str]) → bool
-      IN:  task_names:list[str]
-      OUT: bool
-      SIDE-EFFECT: IO(print)
-      SMELL: CC=16 → split
-
-    run_task(task_name:str) → bool
-      IN:  task_name:str
-      OUT: bool
-      SIDE-EFFECT: IO(print)
-
-    _execute_commands(task:Task, task_name:str, start:float) → bool
-      IN:  task:Task, task_name:str, start:float
-      OUT: bool
-
-    execute_commands(runner, task:Task, task_name:str, start:float) → bool
-      IN:  runner, task:Task, task_name:str, start:float
-      OUT: bool
-      SIDE-EFFECT: IO(print, print, print)
-      SMELL: CC=15 → split
-
-    run_command(runner, cmd:str, task:Task) → int
-      IN:  runner, cmd:str, task:Task
-      OUT: int
-      SIDE-EFFECT: IO(print, print, print)
-      SMELL: CC=16 → split
-
-    run_embedded_ssh(runner, cmd:str, task:Task) → int
-      IN:  runner, cmd:str, task:Task
-      OUT: int
-      SIDE-EFFECT: IO(print, print, print)
-
-    ssh_exec(env:Environment, command:str, timeout:int) → int
-      IN:  env:Environment, command:str, timeout:int
-      OUT: int
-      SIDE-EFFECT: IO(print, print, print)
-
-    _get_connection(env:Environment) → paramiko.SSHClient
-      IN:  env:Environment
-      OUT: paramiko.SSHClient
-      SIDE-EFFECT: IO(connect, client.close)
-
-    _pool_key(env:Environment) → str
-      IN:  env:Environment
-      OUT: str
-
-  Pipeline: Src
     quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services)
       IN:  ctx, compose_path, env_file, output_dir, network, no_auto_update, services
       OUT: None
@@ -239,23 +262,34 @@ CONTRACTS:
       OUT: tuple[list[Path], set[str]]
       SIDE-EFFECT: IO(write_text, print)
 
-    generate_container_unit(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → str
-      IN:  service_name:str, service:ServiceConfig, network_name:str, auto_update:bool
-      OUT: str
-
-    _build_container_section(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → list[str]
-      IN:  service_name:str, service:ServiceConfig, network_name:str, auto_update:bool
-      OUT: list[str]
+    _collect_named_volumes(service:ServiceConfig) → set[str]
+      IN:  service:ServiceConfig
+      OUT: set[str]
       SIDE-EFFECT: pure
 
-    _build_container_podman_args(service:ServiceConfig, lines:list[str]) → None
-      IN:  service:ServiceConfig, lines:list[str]
+    set(ctx, new_version, dry_run, force)
+      IN:  ctx, new_version, dry_run, force
       OUT: None
+      SIDE-EFFECT: IO(print, write_text, print)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+    scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]]
+      IN:  start_dir:str | Path | None
+      OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
 
-    _parse_cpus_limit(deploy:dict) → str | None
-      IN:  deploy:dict
-      OUT: str | None
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
 
   Pipeline: Src
     graph(ctx, task_name, dot, output)
@@ -286,7 +320,16 @@ CONTRACTS:
       IN:  start_dir:str | Path | None
       OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      SMELL: CC=17 → split
+
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
 
   Pipeline: Src
     run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool
@@ -313,81 +356,16 @@ CONTRACTS:
       IN:  start_dir:str | Path | None
       OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      SMELL: CC=17 → split
 
-  Pipeline: Src
-    do_GET()
-      IN:  ()
-      OUT: None
-
-    _serve_config_json()
-      IN:  ()
-      OUT: None
-
-    load_taskfile(path:str | Path | None) → TaskfileConfig
-      IN:  path:str | Path | None
-      OUT: TaskfileConfig
-      SIDE-EFFECT: IO(open)
-
-    find_taskfile(start_dir:str | Path | None) → Path
-      IN:  start_dir:str | Path | None
-      OUT: Path
-
-    scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]]
-      IN:  start_dir:str | Path | None
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
       OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      SMELL: CC=17 → split
 
-  Pipeline: Src
-    __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool, use_embedded_ssh:bool)
-      IN:  config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool, use_embedded_ssh:bool
-      OUT: None
-      SIDE-EFFECT: mutates self.env_name, self.platform_name, self.var_overrides
-
-    _init_config(config:TaskfileConfig | None, taskfile_path:str | Path | None) → None
-      IN:  config:TaskfileConfig | None, taskfile_path:str | Path | None
-      OUT: None
-      SIDE-EFFECT: mutates self.config
-
-    load_taskfile(path:str | Path | None) → TaskfileConfig
-      IN:  path:str | Path | None
-      OUT: TaskfileConfig
-      SIDE-EFFECT: IO(open)
-
-    find_taskfile(start_dir:str | Path | None) → Path
-      IN:  start_dir:str | Path | None
-      OUT: Path
-
-    scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]]
-      IN:  start_dir:str | Path | None
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
       OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      SMELL: CC=17 → split
-
-  Pipeline: Src
-    _run_embedded_ssh(cmd:str, task:Task) → int
-      IN:  cmd:str, task:Task
-      OUT: int
-
-    run_embedded_ssh(runner, cmd:str, task:Task) → int
-      IN:  runner, cmd:str, task:Task
-      OUT: int
-      SIDE-EFFECT: IO(print, print, print)
-
-    ssh_exec(env:Environment, command:str, timeout:int) → int
-      IN:  env:Environment, command:str, timeout:int
-      OUT: int
-      SIDE-EFFECT: IO(print, print, print)
-
-    _get_connection(env:Environment) → paramiko.SSHClient
-      IN:  env:Environment
-      OUT: paramiko.SSHClient
-      SIDE-EFFECT: IO(connect, client.close)
-
-    _pool_key(env:Environment) → str
-      IN:  env:Environment
-      OUT: str
 
   Pipeline: Src
     auto_fix() → int
@@ -412,34 +390,51 @@ CONTRACTS:
       IN:  start_dir:str | Path | None
       OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      SMELL: CC=17 → split
+
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
 
   Pipeline: Src
     release(ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, force)
       IN:  ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, force
       OUT: None
 
-    _step_health_check(domain, ssh_host)
-      IN:  domain, ssh_host
-      OUT: None
-      SIDE-EFFECT: IO(print)
-      INVARIANT: raises on invalid input
+    _resolve_release_config(ctx, tag_version) → Entity
+      IN:  ctx, tag_version
+      OUT: Entity
+      SIDE-EFFECT: IO(print, print, print)
+      INVARIANT: all entities exist in analysis
 
-    health_check_all(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool) → bool
-      IN:  domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool
-      OUT: bool
-      INVARIANT: raises on invalid input
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
 
-    run_health_checks(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool) → HealthReport
-      IN:  domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool
-      OUT: HealthReport
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+    scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]]
+      IN:  start_dir:str | Path | None
+      OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      INVARIANT: raises on invalid input
 
-    check_traefik_dashboard(host:str, user:str, ssh_key:str | None) → HealthCheckResult
-      IN:  host:str, user:str, ssh_key:str | None
-      OUT: HealthCheckResult
-      INVARIANT: raises on invalid input
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
 
   Pipeline: Src
     fleet_status_cmd(ctx, group)
@@ -465,7 +460,16 @@ CONTRACTS:
       IN:  start_dir:str | Path | None
       OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      SMELL: CC=17 → split
+
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
 
   Pipeline: Src
     fleet_repair_cmd(ctx, env_name, auto_fix)
@@ -491,20 +495,133 @@ CONTRACTS:
       IN:  start_dir:str | Path | None
       OUT: list[tuple[Path, int]]
       SIDE-EFFECT: pure
-      SMELL: CC=17 → split
+
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+  Pipeline: Src
+    fleet_list_cmd(ctx)
+      IN:  ctx
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    _load_config_or_exit(taskfile_path:str | None) → TaskfileConfig
+      IN:  taskfile_path:str | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(print)
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+    scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]]
+      IN:  start_dir:str | Path | None
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+  Pipeline: Src
+    run(ctx, tasks, run_tags)
+      IN:  ctx, tasks, run_tags
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+      SMELL: CC=15 → split
+
+    _run_env_group(taskfile_path, env_group:str, task_names:list[str], platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool) → bool
+      IN:  taskfile_path, env_group:str, task_names:list[str], platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool
+      OUT: bool
+      SIDE-EFFECT: IO(print, print, print)
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+    scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]]
+      IN:  start_dir:str | Path | None
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+  Pipeline: Src
+    do_GET()
+      IN:  ()
+      OUT: None
+
+    _serve_config_json()
+      IN:  ()
+      OUT: None
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+    scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]]
+      IN:  start_dir:str | Path | None
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_subdirectories(start:Path, max_depth:int) → list[tuple[Path, int]]
+      IN:  start:Path, max_depth:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
+
+    _scan_dir_for_taskfiles(directory:Path, level:int) → list[tuple[Path, int]]
+      IN:  directory:Path, level:int
+      OUT: list[tuple[Path, int]]
+      SIDE-EFFECT: pure
 
 
-DATA_TYPES (by cross-function usage) [376 annotated, 0 inferred / 434 functions]:
-  str                  consumed:212 produced:53   !! HUB-TYPE → split interface
-  bool                 consumed:48  produced:57   !! HUB-TYPE → split interface
-  int                  consumed:33  produced:25   !! HUB-TYPE → split interface
-  str | None           consumed:36  produced:9    !! HUB-TYPE → split interface
-  dict                 consumed:27  produced:14   !! HUB-TYPE → split interface
-  list[str]            consumed:20  produced:14   !! HUB-TYPE → split interface
-  Path                 consumed:18  produced:9    !! HUB-TYPE → split interface
-  TaskfileConfig       consumed:22  produced:3    !! HUB-TYPE → split interface
-  Task                 consumed:24  produced:0    !! HUB-TYPE → split interface
-  dict[str, str]       consumed:8   produced:10 
+DATA_TYPES (by cross-function usage) [398 annotated, 0 inferred / 455 functions]:
+  str                  consumed:220 produced:55   !! HUB-TYPE → split interface
+  bool                 consumed:49  produced:59   !! HUB-TYPE → split interface
+  int                  consumed:35  produced:26   !! HUB-TYPE → split interface
+  str | None           consumed:40  produced:9    !! HUB-TYPE → split interface
+  dict                 consumed:34  produced:15   !! HUB-TYPE → split interface
+  list[str]            consumed:20  produced:20   !! HUB-TYPE → split interface
+  Path                 consumed:23  produced:9    !! HUB-TYPE → split interface
+  Task                 consumed:27  produced:0    !! HUB-TYPE → split interface
+  TaskfileConfig       consumed:23  produced:3    !! HUB-TYPE → split interface
+  dict[str, str]       consumed:9   produced:10 
   list[str] | None     consumed:16  produced:1    !! HUB-TYPE → split interface
   FleetConfig          consumed:10  produced:2    !! HUB-TYPE → split interface
   ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
@@ -512,28 +629,28 @@ DATA_TYPES (by cross-function usage) [376 annotated, 0 inferred / 434 functions]
   str | Path | None    consumed:9   produced:0    input-heavy (read-only flow)
   str | Path           consumed:8   produced:0    input-heavy (read-only flow)
   Environment          consumed:6   produced:1    input-heavy (read-only flow)
+  dict[str, str] | None consumed:6   produced:0    input-heavy (read-only flow)
   list[Path]           consumed:1   produced:5    output-heavy
-  dict[str, str] | None consumed:4   produced:0    narrow scope
   set[str]             consumed:3   produced:1    narrow scope
 
   HUB TYPES (consumed ≥10):
-    str → 212 consumers → split into:
+    str → 220 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    bool → 48 consumers → split into:
+    bool → 49 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    int → 33 consumers → split into:
+    int → 35 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    str | None → 36 consumers → split into:
+    str | None → 40 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    dict → 27 consumers → split into:
+    dict → 34 consumers → split into:
       - replace with typed alternatives (dataclass/TypedDict)
     list[str] → 20 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    Path → 18 consumers → split into:
+    Path → 23 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    TaskfileConfig → 22 consumers → split into:
+    Task → 27 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    Task → 24 consumers → split into:
+    TaskfileConfig → 23 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     list[str] | None → 16 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
@@ -543,21 +660,21 @@ DATA_TYPES (by cross-function usage) [376 annotated, 0 inferred / 434 functions]
       - (analyze consumers to suggest sub-interfaces)
 
 SIDE_EFFECTS:
-  IO:        FileWatcher.start, FileWatcher.stop, watch_tasks, GitHubActionsConverter.export_workflow, NpmScriptsConverter.import_package_json, NpmScriptsConverter.export_package_json, DockerComposeConverter.export_docker_compose, import_file, import_file, _detect_type
+  IO:        FileWatcher.start, FileWatcher.stop, watch_tasks, GitHubActionsConverter.export_workflow, NpmScriptsConverter.import_package_json, NpmScriptsConverter.export_package_json, DockerComposeConverter.export_docker_compose, import_file, build_landing_page, import_file
   Cache:     TaskCache.__init__, TaskCache.save, TaskCache.clear, TaskCache.get_stats
-  Mutation:  FileWatcher.__init__, FileWatcher._detect_changes, MakefileConverter.import_makefile, MakefileConverter.export_makefile, GitHubActionsConverter.import_workflow, GitLabCIConverter.import_gitlab_ci, _import_github_actions, _import_gitlab_ci, _import_makefile, _import_shell_script
-  Pure:      FileWatcher._should_ignore, FileWatcher._get_files, detect_format, export_file, _slugify, generate_landing_page, create_landing_nginx_config, create_landing_compose_service, TaskPackage.to_dict, TaskPackage.from_dict
+  Mutation:  FileWatcher.__init__, FileWatcher._detect_changes, MakefileConverter.import_makefile, MakefileConverter.export_makefile, GitHubActionsConverter.import_workflow, GitLabCIConverter.import_gitlab_ci, _extract_gh_steps_as_commands, _import_github_actions, _import_gitlab_ci, _import_makefile
+  Pure:      FileWatcher._should_ignore, FileWatcher._get_files, detect_format, export_file, generate_landing_page, create_landing_nginx_config, create_landing_compose_service, _detect_type, _extract_gh_job_deps, _convert_gh_job_to_task
 
   PIPELINE PURITY:
+    Src             █░░░ 40% pure
     Src             █░░░ 30% pure
-    Src             ░░░░ 22% pure
+    Src             ░░░░ 11% pure
+    Src             ░░░░ 12% pure
+    Src             ░░░░ 14% pure
     Src             █░░░ 28% pure
-    Src             ░░░░ 16% pure
-    Src             ░░░░ 20% pure
-    Src             ██░░ 60% pure
-    Src             ░░░░ 20% pure
-    Src             █░░░ 40% pure
-    Src             █░░░ 40% pure
-    Src             ██░░ 60% pure
-    Src             ░░░░ 20% pure
-    Src             ░░░░ 20% pure
+    Src             █░░░ 28% pure
+    Src             ░░░░ 14% pure
+    Src             ░░░░ 14% pure
+    Src             ░░░░ 14% pure
+    Src             ░░░░ 14% pure
+    Src             █░░░ 42% pure

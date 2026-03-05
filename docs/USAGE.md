@@ -103,6 +103,63 @@ taskfile serve --no-browser # Don't open browser
 | `docker stop-all` | Stop all running containers | `taskfile docker stop-all --yes` |
 | `docker compose-down` | Run compose down | `taskfile docker compose-down --path ./deploy` |
 
+### Docker Deployment
+
+```yaml
+# Taskfile.yml with Docker deployment
+version: "1"
+name: myapp
+
+variables:
+  IMAGE: mycompany/myapp
+  TAG: ${TAG:-latest}
+
+environments:
+  staging:
+    ssh_host: ${STAGING_HOST}
+    ssh_user: ${DEPLOY_USER:-deploy}
+  prod:
+    ssh_host: ${PROD_HOST}
+    ssh_user: ${DEPLOY_USER:-deploy}
+
+tasks:
+  build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push image to registry
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  deploy:
+    desc: Deploy to remote server
+    env: [staging, prod]
+    deps: [build, push]
+    cmds:
+      - "@remote docker pull ${IMAGE}:${TAG}"
+      - "@remote docker stop myapp || true"
+      - "@remote docker run -d --name myapp -p 8080:8080 ${IMAGE}:${TAG}"
+      - "@fn health-check http://${ssh_host}:8080/health"
+```
+
+### Docker Port Management
+
+```bash
+# Check for port conflicts before deploy
+taskfile doctor
+
+# Stop containers using port 8080
+taskfile docker stop-port 8080 --yes
+
+# Stop all running containers
+taskfile docker stop-all --yes
+
+# Show running containers
+taskfile docker ps
+```
+
 ## Taskfile.yml Format
 
 ### Basic Structure

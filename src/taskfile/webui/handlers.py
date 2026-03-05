@@ -1,13 +1,10 @@
-"""Web UI server for taskfile - dashboard in browser."""
+"""HTTP request handler for taskfile web UI — routing, API, dashboard HTML."""
 
 from __future__ import annotations
 
 import json
 import subprocess
-import threading
-import webbrowser
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from pathlib import Path
+from http.server import BaseHTTPRequestHandler
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -557,38 +554,3 @@ class TaskfileHandler(BaseHTTPRequestHandler):
 </body>
 </html>
 '''
-
-
-class WebUIServer:
-    """Web UI server for taskfile."""
-    
-    def __init__(self, port: int = 8080):
-        self.port = port
-        self.server: HTTPServer | None = None
-    
-    def start(self, open_browser: bool = True) -> None:
-        """Start the web UI server."""
-        self.server = HTTPServer(('localhost', self.port), TaskfileHandler)
-        
-        url = f"http://localhost:{self.port}"
-        print(f"🌐 Taskfile Web UI running at {url}")
-        
-        if open_browser:
-            webbrowser.open(url)
-        
-        try:
-            self.server.serve_forever()
-        except KeyboardInterrupt:
-            print("\n👋 Shutting down...")
-            self.stop()
-    
-    def stop(self) -> None:
-        """Stop the server."""
-        if self.server:
-            self.server.shutdown()
-
-
-def serve_dashboard(port: int = 8080, open_browser: bool = True) -> None:
-    """Start the web dashboard."""
-    server = WebUIServer(port)
-    server.start(open_browser)

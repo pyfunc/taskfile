@@ -4,15 +4,15 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 434
-- **Total Classes**: 49
-- **Modules**: 66
-- **Entry Points**: 253
+- **Total Functions**: 455
+- **Total Classes**: 50
+- **Modules**: 70
+- **Entry Points**: 261
 
 ## Architecture by Module
 
 ### src.taskfile.runner.core
-- **Functions**: 31
+- **Functions**: 28
 - **Classes**: 2
 - **File**: `core.py`
 
@@ -25,6 +25,15 @@
 - **Functions**: 21
 - **Classes**: 1
 - **File**: `quadlet.py`
+
+### src.taskfile.parser
+- **Functions**: 16
+- **Classes**: 2
+- **File**: `parser.py`
+
+### src.taskfile.importer
+- **Functions**: 15
+- **File**: `importer.py`
 
 ### src.taskfile.models
 - **Functions**: 15
@@ -51,15 +60,6 @@
 - **Classes**: 5
 - **File**: `fleet.py`
 
-### src.taskfile.webui
-- **Functions**: 14
-- **Classes**: 2
-- **File**: `webui.py`
-
-### src.taskfile.cli.interactive
-- **Functions**: 14
-- **File**: `interactive.py`
-
 ### src.taskfile.cli.release
 - **Functions**: 14
 - **File**: `release.py`
@@ -73,15 +73,15 @@
 - **Classes**: 2
 - **File**: `provisioner.py`
 
+### src.taskfile.runner.resolver
+- **Functions**: 12
+- **Classes**: 1
+- **File**: `resolver.py`
+
 ### src.taskfile.converters
 - **Functions**: 11
 - **Classes**: 5
 - **File**: `converters.py`
-
-### src.taskfile.parser
-- **Functions**: 11
-- **Classes**: 2
-- **File**: `parser.py`
 
 ### src.taskfile.cache
 - **Functions**: 11
@@ -92,9 +92,10 @@
 - **Functions**: 11
 - **File**: `version.py`
 
-### src.taskfile.importer
-- **Functions**: 9
-- **File**: `importer.py`
+### src.taskfile.webui.handlers
+- **Functions**: 10
+- **Classes**: 1
+- **File**: `handlers.py`
 
 ### src.taskfile.compose
 - **Functions**: 9
@@ -153,7 +154,7 @@ Examples:
     taskfile version bump        # Bu
 - **Calls**: version.command, click.argument, click.option, click.option, version_file.exists, src.taskfile.cli.version._increment_version, console.print, version_file.write_text
 
-### src.taskfile.cli.interactive.init
+### src.taskfile.cli.interactive.wizards.init
 > ✨ Create a new Taskfile.yml with interactive setup.
 
 Without --interactive: uses template argument or minimal
@@ -225,14 +226,14 @@ Package names can be:
     - Direct URL: https://example.com/tas
 - **Calls**: pkg.command, click.argument, click.option, click.option, click.option, click.option, RegistryClient, console.print
 
-### src.taskfile.models.PipelineConfig.from_dict
-- **Calls**: cls, data.get, isinstance, str, data.get, data.get, data.get, data.get
-
 ### src.taskfile.runner.core.TaskfileRunner.run
 > Run multiple tasks in order. Returns True if all succeed.
 - **Calls**: src.taskfile.parser.validate_taskfile, time.time, console.print, any, time.time, src.taskfile.notifications.notify_task_complete, ssh_close_all, len
 
-### src.taskfile.cli.interactive.doctor
+### src.taskfile.models.PipelineConfig.from_dict
+- **Calls**: cls, data.get, isinstance, str, data.get, data.get, data.get, data.get
+
+### src.taskfile.cli.interactive.wizards.doctor
 > 🔧 Diagnose project and suggest fixes.
 
 Checks:
@@ -324,8 +325,8 @@ fleet_status_cmd [src.taskfile.cli.fleet]
 ci_generate [src.taskfile.cli.ci]
   └─ →> load_taskfile
       └─> _resolve_includes
-      └─> find_taskfile
-          └─> scan_nearby_taskfiles
+          └─> _parse_include_entry
+          └─> _load_include_file
 ```
 
 ### Flow 3: run
@@ -345,7 +346,7 @@ bump [src.taskfile.cli.version]
 
 ### Flow 6: init
 ```
-init [src.taskfile.cli.interactive]
+init [src.taskfile.cli.interactive.wizards]
 ```
 
 ### Flow 7: _parse_tasks
@@ -368,21 +369,31 @@ rollback [src.taskfile.cli.release]
 info [src.taskfile.cli.info_cmd]
   └─ →> load_taskfile
       └─> _resolve_includes
-      └─> find_taskfile
-          └─> scan_nearby_taskfiles
+          └─> _parse_include_entry
+          └─> _load_include_file
 ```
 
 ## Key Classes
 
 ### src.taskfile.runner.core.TaskfileRunner
 > Executes tasks from a Taskfile configuration.
-- **Methods**: 30
-- **Key Methods**: src.taskfile.runner.core.TaskfileRunner.__init__, src.taskfile.runner.core.TaskfileRunner._init_config, src.taskfile.runner.core.TaskfileRunner._init_environment, src.taskfile.runner.core.TaskfileRunner._init_platform, src.taskfile.runner.core.TaskfileRunner._init_variables, src.taskfile.runner.core.TaskfileRunner.expand_variables, src.taskfile.runner.core.TaskfileRunner.run_command, src.taskfile.runner.core.TaskfileRunner._is_remote_command, src.taskfile.runner.core.TaskfileRunner._strip_remote_prefix, src.taskfile.runner.core.TaskfileRunner._wrap_ssh
+
+Composes:
+- TaskResolver (pure logic): variable expan
+- **Methods**: 34
+- **Key Methods**: src.taskfile.runner.core.TaskfileRunner.__init__, src.taskfile.runner.core.TaskfileRunner.config, src.taskfile.runner.core.TaskfileRunner.env_name, src.taskfile.runner.core.TaskfileRunner.platform_name, src.taskfile.runner.core.TaskfileRunner.env, src.taskfile.runner.core.TaskfileRunner.platform, src.taskfile.runner.core.TaskfileRunner.variables, src.taskfile.runner.core.TaskfileRunner.variables, src.taskfile.runner.core.TaskfileRunner.var_overrides, src.taskfile.runner.core.TaskfileRunner.expand_variables
 
 ### src.taskfile.cli.diagnostics.ProjectDiagnostics
 > Diagnose and auto-fix common project issues.
 - **Methods**: 15
 - **Key Methods**: src.taskfile.cli.diagnostics.ProjectDiagnostics.__init__, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_taskfile, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_env_files, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ports, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_docker, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ssh_keys, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_git, src.taskfile.cli.diagnostics.ProjectDiagnostics.auto_fix, src.taskfile.cli.diagnostics.ProjectDiagnostics._fix_taskfile, src.taskfile.cli.diagnostics.ProjectDiagnostics._fix_git
+
+### src.taskfile.runner.resolver.TaskResolver
+> Pure-logic task resolver: variable expansion, filtering, dependency ordering.
+
+No subprocess calls, 
+- **Methods**: 12
+- **Key Methods**: src.taskfile.runner.resolver.TaskResolver.__init__, src.taskfile.runner.resolver.TaskResolver.from_path, src.taskfile.runner.resolver.TaskResolver._resolve_environment, src.taskfile.runner.resolver.TaskResolver._resolve_platform, src.taskfile.runner.resolver.TaskResolver._resolve_variables, src.taskfile.runner.resolver.TaskResolver.expand_variables, src.taskfile.runner.resolver.TaskResolver.get_task, src.taskfile.runner.resolver.TaskResolver.available_task_names, src.taskfile.runner.resolver.TaskResolver.should_skip_task, src.taskfile.runner.resolver.TaskResolver.get_dependency_order
 
 ### src.taskfile.provisioner.VPSProvisioner
 > Idempotent VPS provisioner using SSH.
@@ -394,16 +405,16 @@ info [src.taskfile.cli.info_cmd]
 - **Methods**: 10
 - **Key Methods**: src.taskfile.registry.RegistryClient.__init__, src.taskfile.registry.RegistryClient.search, src.taskfile.registry.RegistryClient._search_github, src.taskfile.registry.RegistryClient.install, src.taskfile.registry.RegistryClient._parse_package_name, src.taskfile.registry.RegistryClient._install_from_github, src.taskfile.registry.RegistryClient._install_from_url, src.taskfile.registry.RegistryClient._save_dependency, src.taskfile.registry.RegistryClient.list_installed, src.taskfile.registry.RegistryClient.uninstall
 
-### src.taskfile.webui.TaskfileHandler
-> HTTP request handler for taskfile web UI.
-- **Methods**: 10
-- **Key Methods**: src.taskfile.webui.TaskfileHandler.log_message, src.taskfile.webui.TaskfileHandler.do_GET, src.taskfile.webui.TaskfileHandler.do_POST, src.taskfile.webui.TaskfileHandler._serve_html, src.taskfile.webui.TaskfileHandler._serve_tasks_json, src.taskfile.webui.TaskfileHandler._serve_config_json, src.taskfile.webui.TaskfileHandler._run_task, src.taskfile.webui.TaskfileHandler._send_json, src.taskfile.webui.TaskfileHandler._send_404, src.taskfile.webui.TaskfileHandler._get_dashboard_html
-- **Inherits**: BaseHTTPRequestHandler
-
 ### src.taskfile.cache.TaskCache
 > Manages caching of task outputs based on input file hashes.
 - **Methods**: 10
 - **Key Methods**: src.taskfile.cache.TaskCache.__init__, src.taskfile.cache.TaskCache._load_cache, src.taskfile.cache.TaskCache._save_cache, src.taskfile.cache.TaskCache._compute_file_hash, src.taskfile.cache.TaskCache._compute_task_hash, src.taskfile.cache.TaskCache._get_input_files_hash, src.taskfile.cache.TaskCache.is_fresh, src.taskfile.cache.TaskCache.save, src.taskfile.cache.TaskCache.clear, src.taskfile.cache.TaskCache.get_stats
+
+### src.taskfile.webui.handlers.TaskfileHandler
+> HTTP request handler for taskfile web UI.
+- **Methods**: 10
+- **Key Methods**: src.taskfile.webui.handlers.TaskfileHandler.log_message, src.taskfile.webui.handlers.TaskfileHandler.do_GET, src.taskfile.webui.handlers.TaskfileHandler.do_POST, src.taskfile.webui.handlers.TaskfileHandler._serve_html, src.taskfile.webui.handlers.TaskfileHandler._serve_tasks_json, src.taskfile.webui.handlers.TaskfileHandler._serve_config_json, src.taskfile.webui.handlers.TaskfileHandler._run_task, src.taskfile.webui.handlers.TaskfileHandler._send_json, src.taskfile.webui.handlers.TaskfileHandler._send_404, src.taskfile.webui.handlers.TaskfileHandler._get_dashboard_html
+- **Inherits**: BaseHTTPRequestHandler
 
 ### src.taskfile.compose.ComposeFile
 > Parsed docker-compose.yml with environment resolution.
@@ -457,10 +468,10 @@ The pipeline is just an ordered list of st
 - **Methods**: 3
 - **Key Methods**: src.taskfile.registry.TaskPackage.__init__, src.taskfile.registry.TaskPackage.to_dict, src.taskfile.registry.TaskPackage.from_dict
 
-### src.taskfile.webui.WebUIServer
+### src.taskfile.webui.server.WebUIServer
 > Web UI server for taskfile.
 - **Methods**: 3
-- **Key Methods**: src.taskfile.webui.WebUIServer.__init__, src.taskfile.webui.WebUIServer.start, src.taskfile.webui.WebUIServer.stop
+- **Key Methods**: src.taskfile.webui.server.WebUIServer.__init__, src.taskfile.webui.server.WebUIServer.start, src.taskfile.webui.server.WebUIServer.stop
 
 ### src.taskfile.converters.MakefileConverter
 > Convert between Taskfile and Makefile.
@@ -472,18 +483,20 @@ The pipeline is just an ordered list of st
 - **Methods**: 2
 - **Key Methods**: src.taskfile.converters.GitHubActionsConverter.import_workflow, src.taskfile.converters.GitHubActionsConverter.export_workflow
 
-### src.taskfile.converters.NpmScriptsConverter
-> Convert between Taskfile and npm scripts.
-- **Methods**: 2
-- **Key Methods**: src.taskfile.converters.NpmScriptsConverter.import_package_json, src.taskfile.converters.NpmScriptsConverter.export_package_json
-
 ## Data Transformation Functions
 
 Key functions that process and transform data:
 
 ### src.taskfile.converters.detect_format
 > Detect file format from path.
-- **Output to**: file_path.name.lower, name.endswith, name.endswith, str, name.endswith
+
+Reuses the shared filename→type map from ``taskfile.importer`` for
+Ma
+- **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
+
+### src.taskfile.importer._convert_gh_job_to_task
+> Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
+- **Output to**: src.taskfile.importer._extract_gh_steps_as_commands, src.taskfile.importer._extract_gh_job_deps, src.taskfile.importer._slugify, job_data.get, job_data.get
 
 ### src.taskfile.registry.RegistryClient._parse_package_name
 > Parse package name and return (source, name).
@@ -491,6 +504,10 @@ Key functions that process and transform data:
 Examples:
     "tom-sapletta/web-tasks" -> ("github", 
 - **Output to**: name.startswith, name.startswith, name.startswith
+
+### src.taskfile.parser._parse_include_entry
+> Parse a single include entry into (path, prefix). Returns None if invalid.
+- **Output to**: isinstance, isinstance, entry.get, entry.get, entry.get
 
 ### src.taskfile.parser._validate_tasks_exist
 > Check that at least one task is defined.
@@ -577,13 +594,6 @@ Supports common forms:
 > Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
 - **Output to**: None.split, len, str
 
-### src.taskfile.quadlet._parse_memory_limit
-> Extract memory limit from deploy.resources.limits.memory.
-
-### src.taskfile.quadlet._parse_cpus_limit
-> Extract CPU limit from deploy.resources.limits.cpus.
-- **Output to**: str
-
 ## Behavioral Patterns
 
 ### recursion__add_deps_to_tree
@@ -615,7 +625,7 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.main.run` - 34 calls
 - `src.taskfile.fleet.FleetConfig.from_dict` - 32 calls
 - `src.taskfile.cli.version.bump` - 31 calls
-- `src.taskfile.cli.interactive.init` - 31 calls
+- `src.taskfile.cli.interactive.wizards.init` - 31 calls
 - `src.taskfile.cli.auth.auth_setup` - 30 calls
 - `src.taskfile.cli.release.rollback` - 30 calls
 - `src.taskfile.cli.info_cmd.info` - 29 calls
@@ -625,9 +635,9 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.fleet.check_device_status` - 26 calls
 - `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
 - `src.taskfile.cli.version.set` - 26 calls
-- `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
 - `src.taskfile.runner.core.TaskfileRunner.run` - 25 calls
-- `src.taskfile.cli.interactive.doctor` - 24 calls
+- `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
+- `src.taskfile.cli.interactive.wizards.doctor` - 24 calls
 - `src.taskfile.converters.GitLabCIConverter.import_gitlab_ci` - 23 calls
 - `src.taskfile.health.check_http_endpoint` - 23 calls
 - `src.taskfile.cli.import_export.detect` - 23 calls
@@ -640,16 +650,16 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.quadlet.quadlet_generate` - 19 calls
 - `src.taskfile.cigen.makefile.MakefileTarget.generate` - 18 calls
 - `src.taskfile.converters.MakefileConverter.import_makefile` - 17 calls
-- `src.taskfile.runner.commands.run_command` - 17 calls
-- `src.taskfile.cli.interactive.graph` - 17 calls
 - `src.taskfile.cli.health.health_cmd` - 17 calls
 - `src.taskfile.cli.ci.ci_run` - 17 calls
 - `src.taskfile.cli.main.import_cmd` - 17 calls
+- `src.taskfile.cli.interactive.menu.graph` - 17 calls
 - `src.taskfile.fleet.print_fleet_status` - 16 calls
 - `src.taskfile.runner.commands.execute_commands` - 16 calls
 - `src.taskfile.cli.registry_cmds.pkg_list` - 16 calls
-- `src.taskfile.cli.setup.setup` - 16 calls
 - `src.taskfile.cli.release.release` - 16 calls
+- `src.taskfile.cli.setup.setup` - 16 calls
+- `src.taskfile.converters.MakefileConverter.export_makefile` - 15 calls
 
 ## System Interactions
 

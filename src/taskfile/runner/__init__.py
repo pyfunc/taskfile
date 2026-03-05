@@ -5,5 +5,6 @@ All public symbols are re-exported here for backward compatibility.
 """
 
 from taskfile.runner.core import TaskfileRunner, TaskRunError
+from taskfile.runner.resolver import TaskResolver
 
-__all__ = ["TaskfileRunner", "TaskRunError"]
+__all__ = ["TaskfileRunner", "TaskRunError", "TaskResolver"]

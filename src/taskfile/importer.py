@@ -51,31 +51,98 @@ def import_file(source_path: str | Path, source_type: str | None = None) -> str:
         raise ValueError(f"Unknown source type: {source_type}")
 
 
+_FILENAME_TYPE_MAP: dict[str, str] = {
+    "makefile": "makefile",
+    "gnumakefile": "makefile",
+    ".gitlab-ci.yml": "gitlab-ci",
+    ".gitlab-ci.yaml": "gitlab-ci",
+}
+
+
+def _detect_type_from_yaml_content(path: Path) -> str:
+    """Detect source type by inspecting YAML file content."""
+    content = path.read_text(encoding="utf-8")
+    if "jobs:" in content and ("on:" in content or "workflow_dispatch" in content):
+        return "github-actions"
+    if "stages:" in content or "script:" in content:
+        return "gitlab-ci"
+    raise ValueError(f"Cannot detect source type for: {path.name}. Use --type to specify.")
+
+
 def _detect_type(path: Path) -> str:
     """Auto-detect source type from filename/path."""
     name = path.name.lower()
-    if name == "makefile" or name == "gnumakefile":
-        return "makefile"
-    if name == ".gitlab-ci.yml" or name == ".gitlab-ci.yaml":
-        return "gitlab-ci"
+
+    # Exact filename match
+    if name in _FILENAME_TYPE_MAP:
+        return _FILENAME_TYPE_MAP[name]
+
+    # Dockerfile variants
     if name == "dockerfile" or name.startswith("dockerfile."):
         return "dockerfile"
+
+    # Extension-based
     if name.endswith(".sh"):
         return "shell"
-    # Check for GitHub Actions path pattern
+
+    # GitHub Actions path pattern
     if ".github" in str(path) and name.endswith((".yml", ".yaml")):
         return "github-actions"
+
+    # Fallback: inspect YAML content
     if name.endswith((".yml", ".yaml")):
-        # Try to detect from content
-        content = path.read_text(encoding="utf-8")
-        if "jobs:" in content and ("on:" in content or "workflow_dispatch" in content):
-            return "github-actions"
-        if "stages:" in content or "script:" in content:
-            return "gitlab-ci"
+        return _detect_type_from_yaml_content(path)
+
     raise ValueError(f"Cannot detect source type for: {path.name}. Use --type to specify.")
 
 
 # ─── GitHub Actions ──────────────────────────────────────────────────────
+
+def _extract_gh_steps_as_commands(steps: list) -> list[str]:
+    """Extract commands from GitHub Actions steps."""
+    cmds = []
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        if "run" in step:
+            for line in step["run"].strip().splitlines():
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    cmds.append(line)
+        elif "uses" in step:
+            step_name = step.get("name", step["uses"])
+            cmds.append(f"echo '[skip] GitHub Action: {step_name}'")
+    return cmds
+
+
+def _extract_gh_job_deps(job_data: dict) -> list[str]:
+    """Extract dependency slugs from a GitHub Actions job."""
+    needs = job_data.get("needs", [])
+    if isinstance(needs, str):
+        needs = [needs]
+    return [_slugify(n) for n in needs]
+
+
+def _convert_gh_job_to_task(job_name: str, job_data: dict, variables: dict) -> tuple[str, dict[str, Any]]:
+    """Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict)."""
+    cmds = _extract_gh_steps_as_commands(job_data.get("steps", []))
+    deps = _extract_gh_job_deps(job_data)
+
+    task_name = _slugify(job_name)
+    task: dict[str, Any] = {"desc": job_data.get("name", job_name)}
+    if cmds:
+        task["cmds"] = cmds
+    if deps:
+        task["deps"] = deps
+
+    # Extract job env into shared variables
+    job_env = job_data.get("env", {})
+    if job_env:
+        for k, v in job_env.items():
+            variables[k] = str(v)
+
+    return task_name, task
+
 
 def _import_github_actions(content: str, filename: str) -> str:
     """Convert GitHub Actions workflow YAML to Taskfile.yml."""
@@ -94,7 +161,7 @@ def _import_github_actions(content: str, filename: str) -> str:
         "tasks": {},
     }
 
-    # Extract env vars
+    # Extract global env vars
     global_env = data.get("env", {})
     if global_env:
         taskfile["variables"] = {k: str(v) for k, v in global_env.items()}
@@ -104,42 +171,7 @@ def _import_github_actions(content: str, filename: str) -> str:
     for job_name, job_data in jobs.items():
         if not isinstance(job_data, dict):
             continue
-
-        steps = job_data.get("steps", [])
-        cmds = []
-        for step in steps:
-            if isinstance(step, dict):
-                if "run" in step:
-                    run_cmd = step["run"].strip()
-                    # Multi-line: take each line
-                    for line in run_cmd.splitlines():
-                        line = line.strip()
-                        if line and not line.startswith("#"):
-                            cmds.append(line)
-                elif "uses" in step:
-                    action = step["uses"]
-                    step_name = step.get("name", action)
-                    cmds.append(f"echo '[skip] GitHub Action: {step_name}'")
-
-        deps = []
-        needs = job_data.get("needs", [])
-        if isinstance(needs, str):
-            needs = [needs]
-        deps = [_slugify(n) for n in needs]
-
-        task_name = _slugify(job_name)
-        task: dict[str, Any] = {"desc": job_data.get("name", job_name)}
-        if cmds:
-            task["cmds"] = cmds
-        if deps:
-            task["deps"] = deps
-
-        # Extract job env
-        job_env = job_data.get("env", {})
-        if job_env:
-            for k, v in job_env.items():
-                taskfile["variables"][k] = str(v)
-
+        task_name, task = _convert_gh_job_to_task(job_name, job_data, taskfile["variables"])
         taskfile["tasks"][task_name] = task
         pipeline_stages.append(task_name)
 
@@ -152,6 +184,28 @@ def _import_github_actions(content: str, filename: str) -> str:
 
 
 # ─── GitLab CI ──────────────────────────────────────────────────────────
+
+_GL_RESERVED_KEYS = frozenset({
+    "stages", "variables", "image", "before_script", "after_script",
+    "cache", "services", "include", "default", "workflow", "pages",
+})
+
+
+def _extract_gl_job_commands(job_data: dict, global_before_script: list) -> list[str]:
+    """Extract commands from a GitLab CI job, prepending global before_script."""
+    scripts = job_data.get("script", [])
+    if isinstance(scripts, str):
+        scripts = [scripts]
+    return list(global_before_script) + list(scripts)
+
+
+def _extract_gl_job_deps(job_data: dict) -> list[str]:
+    """Extract dependency slugs from a GitLab CI job."""
+    deps = job_data.get("needs", job_data.get("dependencies", []))
+    if isinstance(deps, str):
+        deps = [deps]
+    return [_slugify(d) if isinstance(d, str) else _slugify(d.get("job", "")) for d in deps] if deps else []
+
 
 def _import_gitlab_ci(content: str) -> str:
     """Convert .gitlab-ci.yml to Taskfile.yml."""
@@ -172,31 +226,20 @@ def _import_gitlab_ci(content: str) -> str:
     if global_vars:
         taskfile["variables"] = {k: str(v) for k, v in global_vars.items()}
 
-    # Extract stages order
     stages_order = data.get("stages", [])
-
-    # Reserved keys that are not jobs
-    reserved = {"stages", "variables", "image", "before_script", "after_script",
-                "cache", "services", "include", "default", "workflow", "pages"}
+    before = data.get("before_script", [])
+    if isinstance(before, str):
+        before = [before]
 
     pipeline_stages: dict[str, list[str]] = {}
 
     for job_name, job_data in data.items():
-        if job_name in reserved or job_name.startswith("."):
+        if job_name in _GL_RESERVED_KEYS or job_name.startswith("."):
             continue
         if not isinstance(job_data, dict):
             continue
 
-        scripts = job_data.get("script", [])
-        if isinstance(scripts, str):
-            scripts = [scripts]
-
-        before = data.get("before_script", [])
-        if isinstance(before, str):
-            before = [before]
-
-        cmds = list(before) + list(scripts)
-
+        cmds = _extract_gl_job_commands(job_data, before)
         task_name = _slugify(job_name)
         stage = job_data.get("stage", "")
 
@@ -207,22 +250,19 @@ def _import_gitlab_ci(content: str) -> str:
             task["stage"] = stage
             pipeline_stages.setdefault(stage, []).append(task_name)
 
-        # Dependencies
-        deps = job_data.get("needs", job_data.get("dependencies", []))
-        if isinstance(deps, str):
-            deps = [deps]
+        deps = _extract_gl_job_deps(job_data)
         if deps:
-            task["deps"] = [_slugify(d) if isinstance(d, str) else _slugify(d.get("job", "")) for d in deps]
+            task["deps"] = deps
 
         taskfile["tasks"][task_name] = task
 
     # Build pipeline from stages
     if pipeline_stages or stages_order:
-        ordered_stages = []
-        for stage_name in stages_order:
-            tasks = pipeline_stages.get(stage_name, [])
-            if tasks:
-                ordered_stages.append({"name": stage_name, "tasks": tasks})
+        ordered_stages = [
+            {"name": stage_name, "tasks": pipeline_stages.get(stage_name, [])}
+            for stage_name in stages_order
+            if pipeline_stages.get(stage_name)
+        ]
         taskfile["pipeline"] = {"stages": ordered_stages}
 
     return _dump_taskfile(taskfile)
