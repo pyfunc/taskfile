@@ -36,12 +36,13 @@ def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
 @click.version_option(__version__, prog_name="taskfile")
 @click.option("-f", "--file", "taskfile_path", default=None, help="Path to Taskfile.yml")
 @click.option("-e", "--env", "env_name", default=None, help="Target environment")
+@click.option("-G", "--env-group", "env_group", default=None, help="Target environment group (fleet)")
 @click.option("-p", "--platform", "platform_name", default=None, help="Target platform (e.g. desktop, web)")
 @click.option("--var", multiple=True, callback=parse_var, help="Override variable: --var KEY=VALUE")
 @click.option("--dry-run", is_flag=True, help="Show commands without executing")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
 @click.pass_context
-def main(ctx, taskfile_path, env_name, platform_name, var, dry_run, verbose):
+def main(ctx, taskfile_path, env_name, env_group, platform_name, var, dry_run, verbose):
     """taskfile — Universal task runner with multi-environment deploy.
 
     \b
@@ -49,10 +50,12 @@ def main(ctx, taskfile_path, env_name, platform_name, var, dry_run, verbose):
     List tasks:    taskfile list
     Init project:  taskfile init
     Quick run:     taskfile <task_name> --env prod --platform web
+    Fleet deploy:  taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
     """
     ctx.ensure_object(dict)
     ctx.obj["taskfile_path"] = taskfile_path
     ctx.obj["env_name"] = env_name
+    ctx.obj["env_group"] = env_group
     ctx.obj["platform_name"] = platform_name
     ctx.obj["var"] = var
     ctx.obj["dry_run"] = dry_run
@@ -76,18 +79,32 @@ def run(ctx, tasks):
         taskfile run build deploy --env prod
         taskfile run release --var TAG=v1.2.3
         taskfile run deploy --env prod --dry-run
+        taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
     """
     opts = ctx.obj
+    env_group = opts.get("env_group")
+
     try:
-        runner = TaskfileRunner(
-            taskfile_path=opts["taskfile_path"],
-            env_name=opts["env_name"],
-            platform_name=opts["platform_name"],
-            var_overrides=opts["var"],
-            dry_run=opts["dry_run"],
-            verbose=opts["verbose"],
-        )
-        success = runner.run(list(tasks))
+        if env_group:
+            success = _run_env_group(
+                taskfile_path=opts["taskfile_path"],
+                env_group=env_group,
+                task_names=list(tasks),
+                platform_name=opts["platform_name"],
+                var_overrides=opts["var"],
+                dry_run=opts["dry_run"],
+                verbose=opts["verbose"],
+            )
+        else:
+            runner = TaskfileRunner(
+                taskfile_path=opts["taskfile_path"],
+                env_name=opts["env_name"],
+                platform_name=opts["platform_name"],
+                var_overrides=opts["var"],
+                dry_run=opts["dry_run"],
+                verbose=opts["verbose"],
+            )
+            success = runner.run(list(tasks))
         sys.exit(0 if success else 1)
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
@@ -183,6 +200,10 @@ def info(ctx, task_name):
             console.print(f"  [dim]Platforms:[/] {', '.join(task.platform_filter)}")
         if task.condition:
             console.print(f"  [dim]Condition:[/] {task.condition}")
+        if task.parallel:
+            console.print(f"  [dim]Parallel:[/] yes (deps run concurrently)")
+        if task.ignore_errors:
+            console.print(f"  [dim]Ignore errors:[/] yes")
 
         console.print(f"\n  [bold]Commands:[/]")
         for cmd in task.commands:

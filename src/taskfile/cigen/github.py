@@ -10,6 +10,8 @@ class GitHubActionsTarget(CITarget):
     description = "GitHub Actions"
 
     def _tag_var(self) -> str:
+        if self._has_tag_stages():
+            return "${{ github.ref_name }}"
         return "${{ github.sha }}"
 
     def _build_steps(self, stage) -> list[dict]:
@@ -107,8 +109,19 @@ class GitHubActionsTarget(CITarget):
                 job["needs"] = prev_job
 
             self._apply_conditions(job, stage)
+            self._apply_secrets_env(job, p)
 
             workflow["jobs"][job_id] = job
             prev_job = job_id
 
         return _yaml_dump(workflow)
+
+    def _apply_secrets_env(self, job: dict, pipeline) -> None:
+        """Add secrets as environment variables to the job."""
+        if not pipeline.secrets:
+            return
+        env = {}
+        for secret in pipeline.secrets:
+            env[secret] = "${{ secrets." + secret + " }}"
+        if env:
+            job["env"] = env

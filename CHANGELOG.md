@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.3.11] - 2026-03-05
+
+### Test
+- Update tests/test_auth.py
+- Update tests/test_fleet.py
+
 ## [0.3.10] - 2026-03-05
 
 ### Docs

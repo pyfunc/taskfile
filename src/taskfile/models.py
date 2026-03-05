@@ -78,6 +78,17 @@ class Platform:
 
 
 @dataclass
+class EnvironmentGroup:
+    """Group of environments sharing an update strategy (e.g. RPi fleet)."""
+
+    name: str
+    members: list[str] = field(default_factory=list)
+    strategy: str = "parallel"  # rolling | parallel | canary
+    max_parallel: int = 5
+    canary_count: int = 1
+
+
+@dataclass
 class ComposeConfig:
     """Compose-based deployment configuration."""
 
@@ -213,6 +224,7 @@ class TaskfileConfig:
     description: str = ""
     variables: dict[str, str] = field(default_factory=dict)
     environments: dict[str, Environment] = field(default_factory=dict)
+    environment_groups: dict[str, EnvironmentGroup] = field(default_factory=dict)
     tasks: dict[str, Task] = field(default_factory=dict)
     platforms: dict[str, Platform] = field(default_factory=dict)
     compose: ComposeConfig = field(default_factory=ComposeConfig)
@@ -234,6 +246,9 @@ class TaskfileConfig:
 
         config.compose = cls._parse_compose(data.get("compose", {}))
         config.environments = cls._parse_environments(data.get("environments", {}))
+        config.environment_groups = cls._parse_environment_groups(
+            data.get("environment_groups", {})
+        )
         config.platforms = cls._parse_platforms(data.get("platforms", {}))
         config.tasks = cls._parse_tasks(data.get("tasks", {}))
         config.pipeline = cls._parse_pipeline(data.get("pipeline", {}), config.tasks)
@@ -276,6 +291,21 @@ class TaskfileConfig:
         if "local" not in environments:
             environments["local"] = Environment(name="local")
         return environments
+
+    @staticmethod
+    def _parse_environment_groups(groups_section: dict) -> dict[str, EnvironmentGroup]:
+        """Parse environment_groups section."""
+        groups: dict[str, EnvironmentGroup] = {}
+        for name, grp_data in groups_section.items():
+            if isinstance(grp_data, dict):
+                groups[name] = EnvironmentGroup(
+                    name=name,
+                    members=grp_data.get("members", []),
+                    strategy=grp_data.get("strategy", "parallel"),
+                    max_parallel=grp_data.get("max_parallel", 5),
+                    canary_count=grp_data.get("canary_count", 1),
+                )
+        return groups
 
     @staticmethod
     def _parse_platforms(plat_section: dict) -> dict[str, Platform]:
