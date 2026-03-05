@@ -52,18 +52,20 @@ class TaskResolver:
     # ─── .env file loading ───
 
     def _load_dotenv(self) -> None:
-        """Auto-load .env file from the Taskfile directory into os.environ.
+        """Auto-load .env file from the Taskfile directory.
 
-        Values from .env do NOT overwrite existing os.environ entries,
-        so explicit exports always take precedence.
+        Values are stored in self._dotenv (NOT os.environ) to avoid
+        global pollution.  Existing os.environ entries take precedence.
         """
+        self._dotenv: dict[str, str] = {}
         taskfile_dir = Path(self.config.source_path).parent if self.config.source_path else Path.cwd()
         for candidate in (".env", ".env.local"):
             env_path = taskfile_dir / candidate
             if env_path.is_file():
                 dotenv = load_env_file(env_path)
                 for key, value in dotenv.items():
-                    os.environ.setdefault(key, value)
+                    if key not in os.environ:
+                        self._dotenv.setdefault(key, value)
 
     # ─── Environment / platform resolution ───
 
@@ -80,10 +82,9 @@ class TaskResolver:
         self._resolve_env_fields(env)
         return env
 
-    @staticmethod
-    def _resolve_env_fields(env: Environment) -> None:
+    def _resolve_env_fields(self, env: Environment) -> None:
         """Expand ${VAR:-default} in environment string fields using os.environ."""
-        ctx = dict(os.environ)
+        ctx = {**self._dotenv, **os.environ}
         for field_name in (
             "ssh_host", "ssh_user", "ssh_key",
             "compose_command", "container_runtime", "service_manager",
@@ -100,8 +101,11 @@ class TaskResolver:
         return self.config.platforms.get(self.platform_name)
 
     def _resolve_variables(self) -> dict[str, str]:
-        """Resolve all variables: global → env → platform → CLI overrides."""
-        variables = self.env.resolve_variables(self.config.variables)
+        """Resolve all variables: dotenv → global → env → platform → CLI overrides."""
+        variables = self.env.resolve_variables(self.config.variables, self._dotenv)
+        # Merge dotenv values (lowest priority — don't override Taskfile or env vars)
+        for key, value in self._dotenv.items():
+            variables.setdefault(key, value)
         if self.platform:
             variables.update(self.platform.variables)
         variables.update(self.var_overrides)
@@ -117,7 +121,7 @@ class TaskResolver:
             value = variables.get(key)
             if not isinstance(value, str):
                 continue
-            ctx: dict[str, str] = {**os.environ, **variables}
+            ctx: dict[str, str] = {**self._dotenv, **os.environ, **variables}
             ctx.pop(key, None)
             variables[key] = _compose_resolve_variables(value, ctx)
         return variables
@@ -138,7 +142,7 @@ class TaskResolver:
                 value = str(value)
             result = result.replace(f"{{{{{key}}}}}", value)
 
-        return _compose_resolve_variables(result, {**os.environ, **self.variables})
+        return _compose_resolve_variables(result, {**self._dotenv, **os.environ, **self.variables})
 
     # ─── Task lookup and filtering (pure) ───
 

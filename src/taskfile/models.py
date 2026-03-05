@@ -44,15 +44,17 @@ class Environment:
     def is_remote(self) -> bool:
         return self.ssh_host is not None
 
-    def resolve_variables(self, global_vars: dict[str, str]) -> dict[str, str]:
+    def resolve_variables(self, global_vars: dict[str, str], dotenv_vars: dict[str, str] | None = None) -> dict[str, str]:
         """Merge global variables with environment-specific ones.
         Environment variables override global ones.
         CLI --var overrides are applied separately in the runner.
         """
         merged = {**global_vars, **self.variables}
         resolved = {}
+        # Use dotenv_vars if provided, otherwise fall back to os.environ
+        env_source = dotenv_vars if dotenv_vars is not None else os.environ
         for key, value in merged.items():
-            resolved[key] = os.environ.get(key, value)
+            resolved[key] = env_source.get(key, value)
         return resolved
 
 
@@ -66,14 +68,16 @@ class Platform:
     deploy_cmd: str | None = None
     description: str = ""
 
-    def resolve_variables(self, global_vars: dict[str, str]) -> dict[str, str]:
+    def resolve_variables(self, global_vars: dict[str, str], dotenv_vars: dict[str, str] | None = None) -> dict[str, str]:
         """Merge global variables with platform-specific ones.
         Platform variables override global ones.
         """
         merged = {**global_vars, **self.variables}
         resolved = {}
+        # Use dotenv_vars if provided, otherwise fall back to os.environ
+        env_source = dotenv_vars if dotenv_vars is not None else os.environ
         for key, value in merged.items():
-            resolved[key] = os.environ.get(key, value)
+            resolved[key] = env_source.get(key, value)
         return resolved
 
 
