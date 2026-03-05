@@ -1,0 +1,38 @@
+version: "1"
+name: myproject
+description: "Include: split Taskfile.yml into multiple files via `include`"
+
+# ─── Include external task files ──────────────────────
+# Tasks, variables, and environments from included files
+# are merged. Local definitions take precedence.
+
+include:
+  - path: ./tasks/build.yml
+  - path: ./tasks/deploy.yml
+    prefix: deploy
+  - path: ./tasks/test.yml
+
+# ─── Local variables (override included) ─────────────
+variables:
+  APP_NAME: myproject
+  IMAGE: ghcr.io/myorg/myproject
+  TAG: latest
+
+# ─── Local environments (override included) ──────────
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+
+# ─── Local tasks (override included) ─────────────────
+tasks:
+  all:
+    desc: Run full pipeline
+    deps: [lint, test, build]
+    cmds:
+      - echo "Full pipeline complete"
+
+  clean:
+    desc: Remove all artifacts
+    cmds:
+      - rm -rf dist/ build/ coverage/

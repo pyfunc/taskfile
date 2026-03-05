@@ -1,5 +1,24 @@
 ## [Unreleased]
 
+## [0.3.15] - 2026-03-05
+
+### Docs
+- Update examples/ci-generation/README.md
+- Update examples/script-extraction/README.md
+
+### Other
+- Update examples/ci-generation/Taskfile.yml
+- Update examples/include-split/Taskfile.yml
+- Update examples/include-split/tasks/build.yml
+- Update examples/include-split/tasks/deploy.yml
+- Update examples/include-split/tasks/test.yml
+- Update examples/script-extraction/Taskfile.yml
+- Update examples/script-extraction/scripts/build.sh
+- Update examples/script-extraction/scripts/ci-pipeline.sh
+- Update examples/script-extraction/scripts/deploy.sh
+- Update examples/script-extraction/scripts/health-check.sh
+- ... and 8 more files
+
 ## [0.3.14] - 2026-03-05
 
 ### Docs

@@ -1,0 +1,18 @@
+# tasks/test.yml — Test-related tasks (included by Taskfile.yml)
+
+tasks:
+  lint:
+    desc: Run linters
+    cmds:
+      - ruff check src/
+    ignore_errors: true
+
+  test:
+    desc: Run tests
+    cmds:
+      - pytest tests/ -v
+
+  test-coverage:
+    desc: Run tests with coverage
+    cmds:
+      - pytest tests/ -v --cov=src/ --cov-report=html:coverage/

@@ -1,0 +1,104 @@
+version: "1"
+name: webapp
+description: "Script extraction: split Taskfile into shell/Python scripts for complex logic"
+
+variables:
+  APP_NAME: webapp
+  IMAGE: ghcr.io/myorg/webapp
+  TAG: latest
+  DOMAIN: app.example.com
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+
+# ─── Tasks ────────────────────────────────────────────
+# Each task delegates complex logic to scripts/ directory.
+# Taskfile.yml stays declarative; scripts/ holds the logic.
+
+tasks:
+
+  # ─── Simple inline (stays in Taskfile) ──────────────
+  test:
+    desc: Run tests (simple → inline)
+    cmds:
+      - pytest tests/ -v
+
+  lint:
+    desc: Run linters (simple → inline)
+    cmds:
+      - ruff check src/
+    ignore_errors: true
+
+  # ─── Shell script extraction ────────────────────────
+  build:
+    desc: Build image (complex → shell script)
+    deps: [test]
+    cmds:
+      - ./scripts/build.sh
+
+  deploy:
+    desc: Deploy to current env (shell script)
+    cmds:
+      - ./scripts/deploy.sh
+
+  health:
+    desc: Health check with retries (shell script)
+    silent: true
+    cmds:
+      - ./scripts/health-check.sh
+
+  # ─── Python script extraction ───────────────────────
+  release:
+    desc: Full release workflow (complex → Python script)
+    cmds:
+      - python scripts/release.py --tag ${TAG}
+
+  migrate:
+    desc: Database migration (Python script)
+    cmds:
+      - python scripts/migrate.py --env ${ENV}
+
+  report:
+    desc: Generate deployment report (Python script)
+    cmds:
+      - python scripts/report.py --app ${APP_NAME} --env ${ENV}
+
+  # ─── Mixed: inline + script ─────────────────────────
+  ci:
+    desc: Full CI (inline setup + script for complex logic)
+    cmds:
+      - pip install -e ".[dev]"
+      - ./scripts/ci-pipeline.sh
+
+  provision:
+    desc: Server provisioning (Python for SSH logic)
+    env: [prod]
+    cmds:
+      - python scripts/provision.py --host ${SSH_HOST} --user ${SSH_USER}
+
+  # ─── Importing CI configs ──────────────────────────
+  generate-ci:
+    desc: Generate CI/CD configs from pipeline section
+    cmds:
+      - taskfile ci generate --all
+
+  validate-ci:
+    desc: Validate generated CI configs
+    cmds:
+      - yamllint .github/workflows/taskfile.yml 2>/dev/null || true
+      - yamllint .gitlab-ci.yml 2>/dev/null || true
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf dist/ build/ *.egg-info
+      - docker rmi ${IMAGE}:${TAG} 2>/dev/null || true

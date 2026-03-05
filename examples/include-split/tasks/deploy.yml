@@ -1,0 +1,35 @@
+# tasks/deploy.yml — Deploy-related tasks (included with prefix: deploy)
+# Task names become: deploy-local, deploy-staging, deploy-prod
+
+environments:
+  staging:
+    ssh_host: staging.example.com
+    ssh_user: deploy
+    container_runtime: docker
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    container_runtime: podman
+    service_manager: quadlet
+
+tasks:
+  local:
+    desc: Deploy locally
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+
+  staging:
+    desc: Deploy to staging
+    env: [staging]
+    cmds:
+      - "@remote docker pull ${IMAGE}:${TAG}"
+      - "@remote docker compose up -d"
+
+  prod:
+    desc: Deploy to production
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"

@@ -1,0 +1,22 @@
+# tasks/build.yml — Build-related tasks (included by Taskfile.yml)
+
+variables:
+  BUILD_DIR: dist
+
+tasks:
+  build:
+    desc: Build Docker image
+    deps: [test]
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  build-multi:
+    desc: Build multi-arch image
+    cmds:
+      - docker buildx build --platform linux/amd64,linux/arm64 -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push image to registry
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
