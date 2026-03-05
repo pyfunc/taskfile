@@ -421,3 +421,96 @@ def init(template, force, interactive):
     console.print("  taskfile doctor     — Check setup")
     console.print("  taskfile list       — See available tasks")
     console.print("  taskfile run build  — Build your project")
+
+
+@main.group()
+def setup():
+    """🛠️  Setup project - hosts, env, dependencies.
+
+    Quick setup commands for common configuration tasks.
+
+    \b
+    Examples:
+        taskfile setup hosts    # Configure deployment hosts
+        taskfile setup env      # Configure environment variables
+    """
+    pass
+
+
+@setup.command()
+@click.pass_context
+def hosts(ctx):
+    """Configure deployment hosts (staging/prod) interactively.
+
+    Runs the setup-hosts task from Taskfile.yml with interactive prompts.
+
+    \b
+    Example:
+        taskfile setup hosts
+    """
+    from taskfile.runner import TaskfileRunner
+
+    opts = ctx.obj
+    try:
+        runner = TaskfileRunner(
+            taskfile_path=opts["taskfile_path"],
+            env_name=opts["env_name"],
+            platform_name=opts["platform_name"],
+            var_overrides=opts["var"],
+            dry_run=opts["dry_run"],
+            verbose=opts["verbose"],
+        )
+
+        if "setup-hosts" not in runner.config.tasks:
+            console.print("[yellow]⚠ Task 'setup-hosts' not found in Taskfile.yml[/]")
+            console.print("[dim]  Run: taskfile list  — to see available tasks[/]")
+            sys.exit(1)
+
+        success = runner.run(["setup-hosts"])
+        sys.exit(0 if success else 1)
+    except (TaskfileNotFoundError, TaskfileParseError) as e:
+        console.print(f"[red]Error:[/] {e}")
+        from taskfile.cli.main import _print_nearby_taskfiles
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
+        sys.exit(1)
+
+
+@setup.command()
+@click.pass_context
+def env(ctx):
+    """Configure environment variables (.env) interactively.
+
+    Runs the setup-env task from Taskfile.yml with interactive prompts
+    for LLM provider selection, API keys, ports, etc.
+
+    \b
+    Example:
+        taskfile setup env
+    """
+    from taskfile.runner import TaskfileRunner
+
+    opts = ctx.obj
+    try:
+        runner = TaskfileRunner(
+            taskfile_path=opts["taskfile_path"],
+            env_name=opts["env_name"],
+            platform_name=opts["platform_name"],
+            var_overrides=opts["var"],
+            dry_run=opts["dry_run"],
+            verbose=opts["verbose"],
+        )
+
+        if "setup-env" not in runner.config.tasks:
+            console.print("[yellow]⚠ Task 'setup-env' not found in Taskfile.yml[/]")
+            console.print("[dim]  Add setup-env task or use: taskfile run setup-hosts[/]")
+            sys.exit(1)
+
+        success = runner.run(["setup-env"])
+        sys.exit(0 if success else 1)
+    except (TaskfileNotFoundError, TaskfileParseError) as e:
+        console.print(f"[red]Error:[/] {e}")
+        from taskfile.cli.main import _print_nearby_taskfiles
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
+        sys.exit(1)
