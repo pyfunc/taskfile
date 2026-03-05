@@ -144,8 +144,8 @@ def _convert_gh_job_to_task(job_name: str, job_data: dict, variables: dict) -> t
     return task_name, task
 
 
-def _import_github_actions(content: str, filename: str) -> str:
-    """Convert GitHub Actions workflow YAML to Taskfile.yml."""
+def parse_github_actions(content: str, filename: str = "workflow.yml") -> dict:
+    """Parse GitHub Actions workflow YAML into a Taskfile dict."""
     data = yaml.safe_load(content)
     if not isinstance(data, dict):
         raise ValueError("Invalid GitHub Actions YAML")
@@ -180,7 +180,12 @@ def _import_github_actions(content: str, filename: str) -> str:
             "stages": [{"name": s, "tasks": [s]} for s in pipeline_stages]
         }
 
-    return _dump_taskfile(taskfile)
+    return taskfile
+
+
+def _import_github_actions(content: str, filename: str) -> str:
+    """Convert GitHub Actions workflow YAML to Taskfile.yml."""
+    return _dump_taskfile(parse_github_actions(content, filename))
 
 
 # ─── GitLab CI ──────────────────────────────────────────────────────────
@@ -243,8 +248,8 @@ def _build_gl_pipeline(
     taskfile["pipeline"] = {"stages": ordered_stages}
 
 
-def _import_gitlab_ci(content: str) -> str:
-    """Convert .gitlab-ci.yml to Taskfile.yml."""
+def parse_gitlab_ci(content: str) -> dict:
+    """Parse .gitlab-ci.yml into a Taskfile dict."""
     data = yaml.safe_load(content)
     if not isinstance(data, dict):
         raise ValueError("Invalid GitLab CI YAML")
@@ -278,13 +283,18 @@ def _import_gitlab_ci(content: str) -> str:
 
     _build_gl_pipeline(taskfile, pipeline_stages, stages_order)
 
-    return _dump_taskfile(taskfile)
+    return taskfile
+
+
+def _import_gitlab_ci(content: str) -> str:
+    """Convert .gitlab-ci.yml to Taskfile.yml."""
+    return _dump_taskfile(parse_gitlab_ci(content))
 
 
 # ─── Makefile ────────────────────────────────────────────────────────────
 
-def _import_makefile(content: str) -> str:
-    """Convert Makefile to Taskfile.yml."""
+def parse_makefile(content: str) -> dict:
+    """Parse Makefile into a Taskfile dict."""
     taskfile: dict[str, Any] = {
         "version": "1",
         "name": "imported-makefile",
@@ -332,7 +342,12 @@ def _import_makefile(content: str) -> str:
 
         taskfile["tasks"][_slugify(name)] = task
 
-    return _dump_taskfile(taskfile)
+    return taskfile
+
+
+def _import_makefile(content: str) -> str:
+    """Convert Makefile to Taskfile.yml."""
+    return _dump_taskfile(parse_makefile(content))
 
 
 # ─── Shell Script ────────────────────────────────────────────────────────

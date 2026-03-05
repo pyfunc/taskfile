@@ -51,6 +51,20 @@ class HealthReport:
         return sum(1 for c in self.checks if c.status == "unhealthy")
 
 
+def _unhealthy_result(
+    name: str, url: str, start: float, error: str, status_code: int | None = None
+) -> HealthCheckResult:
+    """Build an unhealthy HealthCheckResult."""
+    return HealthCheckResult(
+        name=name,
+        url=url,
+        status="unhealthy",
+        status_code=status_code,
+        response_time_ms=(time.time() - start) * 1000,
+        error=error,
+    )
+
+
 def check_http_endpoint(
     name: str,
     url: str,
@@ -85,57 +99,26 @@ def check_http_endpoint(
                     url=url,
                     status="healthy",
                     status_code=status_code,
-                    response_time_ms=elapsed,
+                    response_time_ms=(time.time() - start) * 1000,
                 )
-            else:
-                # Wrong status code
-                if attempt == retries - 1:
-                    return HealthCheckResult(
-                        name=name,
-                        url=url,
-                        status="unhealthy",
-                        status_code=status_code,
-                        response_time_ms=elapsed,
-                        error=f"Unexpected status: {status_code}",
-                    )
-                time.sleep(1)  # Wait before retry
+            if attempt == retries - 1:
+                return _unhealthy_result(name, url, start, f"Unexpected status: {status_code}", status_code)
+            time.sleep(1)
 
         except HTTPError as e:
-            elapsed = (time.time() - start) * 1000
             if attempt == retries - 1:
-                return HealthCheckResult(
-                    name=name,
-                    url=url,
-                    status="unhealthy",
-                    status_code=e.code,
-                    response_time_ms=elapsed,
-                    error=f"HTTP error: {e.code}",
-                )
+                return _unhealthy_result(name, url, start, f"HTTP error: {e.code}", e.code)
             time.sleep(1)
 
         except URLError as e:
-            elapsed = (time.time() - start) * 1000
             if attempt == retries - 1:
                 reason = str(e.reason) if hasattr(e, "reason") else str(e)
-                return HealthCheckResult(
-                    name=name,
-                    url=url,
-                    status="unhealthy",
-                    response_time_ms=elapsed,
-                    error=f"Connection error: {reason[:50]}",
-                )
+                return _unhealthy_result(name, url, start, f"Connection error: {reason[:50]}")
             time.sleep(1)
 
         except Exception as e:
             if attempt == retries - 1:
-                elapsed = (time.time() - start) * 1000
-                return HealthCheckResult(
-                    name=name,
-                    url=url,
-                    status="unhealthy",
-                    response_time_ms=elapsed,
-                    error=f"Error: {str(e)[:50]}",
-                )
+                return _unhealthy_result(name, url, start, f"Error: {str(e)[:50]}")
             time.sleep(1)
 
     # Should not reach here, but just in case

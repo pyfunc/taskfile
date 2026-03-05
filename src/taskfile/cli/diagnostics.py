@@ -144,42 +144,44 @@ class ProjectDiagnostics:
         """Attempt to fix auto-fixable issues."""
         return self._fix_taskfile() + self._fix_git() + self._fix_api_keys() + self._fix_ports() + self._fix_env_vars()
 
+    @staticmethod
+    def _read_port_value(content: str) -> str:
+        """Read the value of a bare PORT= line from env file content."""
+        for line in content.splitlines():
+            if line.startswith("PORT=") and not line.startswith("PORT_"):
+                return line.split("=", 1)[1].strip() or "8000"
+        return "8000"
+
+    @staticmethod
+    def _rename_port_in_env(env_path: Path, port_value: str) -> None:
+        """Rename bare PORT= to PORT_WEB= in an env file."""
+        content = env_path.read_text()
+        new_lines = []
+        for line in content.splitlines():
+            if line.startswith("PORT=") and not line.startswith("PORT_"):
+                new_lines.append(f"PORT_WEB={port_value}")
+                console.print(f"  [green]✓[/] Changed PORT={port_value} → PORT_WEB={port_value}")
+            else:
+                new_lines.append(line)
+        env_path.write_text("\n".join(new_lines) + "\n")
+
     def _fix_env_vars(self) -> int:
         """Fix incorrect env variable names (PORT -> PORT_WEB/PORT_LANDING)."""
         fixed = 0
         for issue, severity, auto_fixable in self.issues[:]:
             if not auto_fixable or "Use PORT_WEB or PORT_LANDING instead of PORT" not in issue:
                 continue
-            
-            # Extract filename from issue message
+
             env_file = issue.split(":")[0]
             env_path = Path(env_file)
             if not env_path.exists():
                 continue
-            
-            # Ask user which service this port is for
+
             console.print(f"[yellow]⚠[/] Found PORT= in {env_file}")
             console.print("  docker-compose.yml expects PORT_WEB (for web service) and PORT_LANDING (for landing service)")
-            
-            # Read current value
-            content = env_path.read_text()
-            port_value = "8000"  # default
-            for line in content.splitlines():
-                if line.startswith("PORT=") and not line.startswith("PORT_"):
-                    port_value = line.split("=", 1)[1].strip() or "8000"
-                    break
-            
-            # Fix by renaming PORT to PORT_WEB (most common case)
-            new_lines = []
-            for line in content.splitlines():
-                if line.startswith("PORT=") and not line.startswith("PORT_"):
-                    # Replace with PORT_WEB
-                    new_lines.append(f"PORT_WEB={port_value}")
-                    console.print(f"  [green]✓[/] Changed PORT={port_value} → PORT_WEB={port_value}")
-                else:
-                    new_lines.append(line)
-            
-            env_path.write_text("\n".join(new_lines) + "\n")
+
+            port_value = self._read_port_value(env_path.read_text())
+            self._rename_port_in_env(env_path, port_value)
             console.print(f"[green]✓ Fixed {env_file}[/]")
             fixed += 1
             self.issues.remove((issue, severity, auto_fixable))

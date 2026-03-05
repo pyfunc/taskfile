@@ -11,7 +11,12 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from taskfile.importer import _FILENAME_TYPE_MAP as _IMPORTER_FILENAME_MAP
+from taskfile.importer import (
+    _FILENAME_TYPE_MAP as _IMPORTER_FILENAME_MAP,
+    parse_github_actions,
+    parse_gitlab_ci,
+    parse_makefile,
+)
 
 if TYPE_CHECKING:
     from taskfile.models import TaskfileConfig, Task
@@ -19,60 +24,15 @@ if TYPE_CHECKING:
 
 class MakefileConverter:
     """Convert between Taskfile and Makefile."""
-    
-    @staticmethod
-    def _save_target(tasks: dict, name: str | None, commands: list[str]) -> None:
-        """Save accumulated commands for a Makefile target."""
-        if not name or not commands:
-            return
-        existing_deps = tasks.get(name, {}).get('deps', [])
-        tasks[name] = {'commands': commands, 'deps': existing_deps}
 
     @staticmethod
     def import_makefile(content: str) -> dict:
-        """Parse Makefile and extract targets as tasks."""
-        tasks = {}
-        variables = {}
-        
-        lines = content.split('\n')
-        current_target = None
-        current_commands = []
-        
-        for line in lines:
-            # Variables
-            var_match = re.match(r'^([A-Z_][A-Z0-9_]*)\s*[:?]?=\s*(.+)$', line.strip())
-            if var_match:
-                variables[var_match.group(1)] = var_match.group(2)
-                continue
-            
-            # Target definition
-            target_match = re.match(r'^([a-zA-Z_-][a-zA-Z0-9_-]*):(.*)$', line.strip())
-            if target_match:
-                MakefileConverter._save_target(tasks, current_target, current_commands)
-                current_target = target_match.group(1)
-                current_commands = []
-                
-                deps_str = target_match.group(2).strip()
-                if deps_str:
-                    deps = [d.strip() for d in deps_str.split()]
-                    tasks.setdefault(current_target, {'commands': [], 'deps': []})['deps'] = deps
-                
-                continue
-            
-            # Command (indented with tab)
-            if current_target and line.startswith('\t'):
-                cmd = line[1:].strip()
-                if cmd:
-                    current_commands.append(cmd)
-        
-        MakefileConverter._save_target(tasks, current_target, current_commands)
-        
-        return {
-            'version': '1',
-            'name': 'imported-from-makefile',
-            'variables': variables,
-            'tasks': tasks,
-        }
+        """Parse Makefile and extract targets as tasks.
+
+        Delegates to :func:`taskfile.importer.parse_makefile` for the actual
+        parsing so that the logic lives in a single place.
+        """
+        return parse_makefile(content)
     
     @staticmethod
     def export_makefile(config: TaskfileConfig) -> str:
@@ -112,36 +72,11 @@ class GitHubActionsConverter:
     
     @staticmethod
     def import_workflow(content: str) -> dict:
-        """Parse GitHub Actions workflow YAML."""
-        import yaml
-        
-        data = yaml.safe_load(content)
-        tasks = {}
-        
-        if not data or 'jobs' not in data:
-            return {'version': '1', 'tasks': {}}
-        
-        for job_name, job in data['jobs'].items():
-            if 'steps' not in job:
-                continue
-            
-            commands = []
-            for step in job['steps']:
-                if 'run' in step:
-                    commands.append(step['run'])
-                elif 'uses' in step:
-                    commands.append(f'# Action: {step["uses"]}')
-            
-            tasks[job_name] = {
-                'commands': commands,
-                'deps': [],
-            }
-        
-        return {
-            'version': '1',
-            'name': data.get('name', 'imported-from-gha'),
-            'tasks': tasks,
-        }
+        """Parse GitHub Actions workflow YAML.
+
+        Delegates to :func:`taskfile.importer.parse_github_actions`.
+        """
+        return parse_github_actions(content)
     
     @staticmethod
     def export_workflow(config: TaskfileConfig, workflow_name: str = 'ci') -> str:
@@ -239,62 +174,16 @@ class NpmScriptsConverter:
         return json.dumps(package, indent=2)
 
 
-def _coerce_to_list(value) -> list[str]:
-    """Coerce a YAML value (str or list) to a list of strings."""
-    if isinstance(value, list):
-        return value
-    return [str(value)]
-
-
-def _extract_gitlab_commands(job: dict) -> list[str]:
-    """Extract commands from a GitLab CI job (before_script + script + after_script)."""
-    commands = []
-    for key in ('before_script', 'script', 'after_script'):
-        if key in job:
-            commands.extend(_coerce_to_list(job[key]))
-    return commands
-
-
-def _extract_gitlab_deps(job: dict) -> list[str]:
-    """Extract dependencies from a GitLab CI job (needs or dependencies)."""
-    for key in ('needs', 'dependencies'):
-        if key in job:
-            return _coerce_to_list(job[key])
-    return []
-
-
 class GitLabCIConverter:
     """Convert between Taskfile and GitLab CI."""
-    
-    _GLOBAL_KEYS = frozenset({
-        'stages', 'variables', 'cache', 'image', 'services',
-        'before_script', 'after_script', 'default', 'include',
-        'workflow', 'artifacts',
-    })
 
     @staticmethod
     def import_gitlab_ci(content: str) -> dict:
-        """Parse GitLab CI YAML and extract jobs as tasks."""
-        import yaml
-        
-        data = yaml.safe_load(content)
-        if not data:
-            return {'version': '1', 'tasks': {}}
-        
-        tasks = {}
-        for job_name, job in data.items():
-            if job_name in GitLabCIConverter._GLOBAL_KEYS or not isinstance(job, dict):
-                continue
-            tasks[job_name] = {
-                'commands': _extract_gitlab_commands(job),
-                'deps': _extract_gitlab_deps(job),
-            }
-        
-        return {
-            'version': '1',
-            'name': 'imported-from-gitlab-ci',
-            'tasks': tasks,
-        }
+        """Parse GitLab CI YAML and extract jobs as tasks.
+
+        Delegates to :func:`taskfile.importer.parse_gitlab_ci`.
+        """
+        return parse_gitlab_ci(content)
 
 
 class DockerComposeConverter:

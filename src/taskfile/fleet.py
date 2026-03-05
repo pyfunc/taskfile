@@ -368,6 +368,20 @@ def deploy_to_device(
         return False
 
 
+def _select_targets(
+    config: FleetConfig, group_name: str | None, device_name: str | None
+) -> list[Device]:
+    """Filter devices by group and/or device name."""
+    targets: list[Device] = []
+    for name, dev in config.devices.items():
+        if device_name and name != device_name:
+            continue
+        if group_name and dev.group != group_name:
+            continue
+        targets.append(dev)
+    return targets
+
+
 def deploy_to_group(
     config: FleetConfig,
     group_name: str | None = None,
@@ -376,34 +390,23 @@ def deploy_to_group(
     tag: str = "latest",
 ) -> bool:
     """Deploy app to a group of devices using the group's update strategy."""
-    targets: list[Device] = []
-    for name, dev in config.devices.items():
-        if device_name and name != device_name:
-            continue
-        if group_name and dev.group != group_name:
-            continue
-        targets.append(dev)
-
+    targets = _select_targets(config, group_name, device_name)
     if not targets:
         console.print("[red]No matching devices[/]")
         return False
 
-    strategy = "parallel"
-    max_parallel = 5
-    if group_name and group_name in config.groups:
-        grp = config.groups[group_name]
-        strategy = grp.update_strategy
-        max_parallel = grp.max_parallel
+    grp = config.groups.get(group_name or "") if group_name else None
+    strategy = grp.update_strategy if grp else "parallel"
+    max_parallel = grp.max_parallel if grp else 5
 
     console.print(f"🚀 Deploying {app_name}:{tag} to {len(targets)} device(s) ({strategy})")
 
     if strategy == "rolling":
         return _deploy_rolling(config, targets, app_name, tag)
-    elif strategy == "canary":
-        canary_count = config.groups.get(group_name or "", DeviceGroup(name="")).canary_count
+    if strategy == "canary":
+        canary_count = grp.canary_count if grp else 1
         return _deploy_canary(config, targets, app_name, tag, canary_count)
-    else:
-        return _deploy_parallel(config, targets, app_name, tag, max_parallel)
+    return _deploy_parallel(config, targets, app_name, tag, max_parallel)
 
 
 def _deploy_rolling(config: FleetConfig, targets: list[Device], app: str, tag: str) -> bool:
