@@ -82,6 +82,8 @@
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
 
+## [0.3.31] - 2026-03-05
+
 ## [0.3.30] - 2026-03-05
 
 ### Docs

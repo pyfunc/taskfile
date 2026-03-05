@@ -172,39 +172,41 @@ class ProjectDiagnostics:
                 # Offer two strategies:
                 # 1) update .env to a free port (recommended)
                 # 2) stop the docker container(s) that publish the conflicting port
-                if Confirm.ask("Fix port conflicts by updating .env?", default=True):
-                    env_path = Path(".env")
-                    for key, port in sorted(self.port_fixes.items()):
-                        _upsert_env_value(env_path, key, str(port))
-                        console.print(f"[green]✓[/] Set {key}={port} in .env")
-                        fixed += 1
-                else:
-                    # Try to stop containers using the original conflicting ports.
-                    # We parse port numbers from issue strings: "Port <n> for service..."
-                    conflict_ports: set[int] = set()
-                    for msg, _, _ in self.issues:
-                        if not (isinstance(msg, str) and msg.startswith("Port ") and " for service " in msg):
-                            continue
-                        m = re.match(r"^Port\s+(?P<port>\d+)\s+for service", msg)
-                        if m:
-                            conflict_ports.add(int(m.group("port")))
+                # Prefer stopping conflicting containers first (user preference).
+                # If that does not free ports (or user declines), fall back to updating .env.
 
-                    stopped_any = False
-                    for p in sorted(conflict_ports):
-                        containers = _docker_containers_using_port(p)
-                        if not containers:
-                            continue
-                        console.print(f"[yellow]Port {p} is published by:[/]")
-                        for c in containers:
-                            console.print(f"  {c['id']}  {c['name']}  {c['ports']}")
-                        if Confirm.ask(f"Stop {len(containers)} container(s) to free port {p}?", default=False):
-                            _docker_stop([c["id"] for c in containers])
-                            console.print(f"[green]✓[/] Stopped container(s) using port {p}")
-                            fixed += len(containers)
-                            stopped_any = True
+                # Parse conflicting ports from issue strings: "Port <n> for service..."
+                conflict_ports: set[int] = set()
+                for msg, _, _ in self.issues:
+                    if not (isinstance(msg, str) and msg.startswith("Port ") and " for service " in msg):
+                        continue
+                    m = re.match(r"^Port\s+(?P<port>\d+)\s+for service", msg)
+                    if m:
+                        conflict_ports.add(int(m.group("port")))
 
-                    if not stopped_any:
-                        console.print("[dim]No containers stopped. You can rerun with .env fix or stop manually.[/]")
+                stopped_any = False
+                for p in sorted(conflict_ports):
+                    containers = _docker_containers_using_port(p)
+                    if not containers:
+                        continue
+                    console.print(f"[yellow]Port {p} is published by:[/]")
+                    for c in containers:
+                        console.print(f"  {c['id']}  {c['name']}  {c['ports']}")
+                    if Confirm.ask(f"Stop {len(containers)} container(s) to free port {p}?", default=True):
+                        _docker_stop([c["id"] for c in containers])
+                        console.print(f"[green]✓[/] Stopped container(s) using port {p}")
+                        fixed += len(containers)
+                        stopped_any = True
+
+                if not stopped_any:
+                    if Confirm.ask("No containers stopped (or none found). Update .env with free ports?", default=True):
+                        env_path = Path(".env")
+                        for key, port in sorted(self.port_fixes.items()):
+                            _upsert_env_value(env_path, key, str(port))
+                            console.print(f"[green]✓[/] Set {key}={port} in .env")
+                            fixed += 1
+                    else:
+                        console.print("[dim]No changes applied for port conflicts.[/]")
 
                 # Clear so we don't re-apply on next loop iteration
                 self.port_fixes.clear()
