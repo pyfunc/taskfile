@@ -59,6 +59,22 @@ def _print_nearby_taskfiles(nearby: list[tuple[Path, int]]) -> None:
         console.print(f"  cd {rel_dir} && taskfile run <task>")
 
 
+def _suggest_similar_tasks(unknown: str, available: list[str], max_suggestions: int = 3) -> list[str]:
+    """Suggest similar task names based on string similarity."""
+    from difflib import get_close_matches
+    
+    # Get close matches using difflib
+    matches = get_close_matches(unknown, available, n=max_suggestions, cutoff=0.4)
+    
+    # Also check for partial matches
+    partial_matches = [t for t in available if unknown in t or t in unknown]
+    
+    # Combine and deduplicate
+    all_matches = matches + [p for p in partial_matches if p not in matches]
+    
+    return all_matches[:max_suggestions]
+
+
 def _run_env_group(
     taskfile_path,
     env_group: str,
@@ -263,6 +279,20 @@ def run(ctx, tasks, run_tags):
                 verbose=opts["verbose"],
             )
             task_list = list(tasks)
+            
+            # Auto-suggest for unknown tasks
+            unknown_tasks = [t for t in task_list if t not in runner.config.tasks]
+            if unknown_tasks:
+                for unknown in unknown_tasks:
+                    suggestions = _suggest_similar_tasks(unknown, list(runner.config.tasks.keys()))
+                    console.print(f"[red]✗ Unknown task:[/] {unknown}")
+                    if suggestions:
+                        console.print(f"[dim]  Did you mean: {', '.join(suggestions)}?[/]")
+                console.print(f"\n[yellow]Available tasks:[/] {', '.join(sorted(runner.config.tasks.keys())[:20])}")
+                if len(runner.config.tasks) > 20:
+                    console.print(f"[dim]  ... and {len(runner.config.tasks) - 20} more[/]")
+                sys.exit(1)
+            
             if tag_filter:
                 task_list = _filter_tasks_by_tags(runner.config, task_list, tag_filter)
                 if not task_list:
