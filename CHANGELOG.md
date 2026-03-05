@@ -20,6 +20,14 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.48] - 2026-03-05
+
+### Docs
+- Update docs/API.md
+
+### Test
+- Update tests/test_api.py
+
 ## [0.3.47] - 2026-03-05
 
 ### Docs
