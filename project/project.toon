@@ -1,6 +1,12 @@
-# taskfile | 55f 11268L | python:55
+# taskfile | 63f 13522L | python:63
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[55]:
+M[63]:
+  src/taskfile/cli/interactive.py,326
+  examples/functions-embed/scripts/report.py,16
+  examples/script-extraction/scripts/migrate.py,20
+  examples/script-extraction/scripts/provision.py,41
+  examples/script-extraction/scripts/release.py,41
+  examples/script-extraction/scripts/report.py,25
   src/taskfile/__init__.py,34
   src/taskfile/__main__.py,4
   src/taskfile/cigen/__init__.py,48
@@ -12,26 +18,27 @@ M[55]:
   src/taskfile/cigen/jenkins.py,46
   src/taskfile/cigen/makefile.py,42
   src/taskfile/cirunner.py,204
-  src/taskfile/cli/__init__.py,10
+  src/taskfile/cli/__init__.py,11
   src/taskfile/cli/auth.py,207
   src/taskfile/cli/ci.py,171
   src/taskfile/cli/deploy.py,227
   src/taskfile/cli/fleet.py,274
   src/taskfile/cli/health.py,51
-  src/taskfile/cli/main.py,282
+  src/taskfile/cli/main.py,409
   src/taskfile/cli/quadlet.py,154
   src/taskfile/cli/release.py,294
   src/taskfile/cli/setup.py,358
   src/taskfile/compose.py,127
   src/taskfile/fleet.py,371
   src/taskfile/health.py,348
+  src/taskfile/importer.py,274
   src/taskfile/landing.py,326
-  src/taskfile/models.py,311
-  src/taskfile/parser.py,106
+  src/taskfile/models.py,354
+  src/taskfile/parser.py,205
   src/taskfile/provisioner.py,237
   src/taskfile/quadlet.py,254
-  src/taskfile/runner.py,325
-  src/taskfile/scaffold/__init__.py,23
+  src/taskfile/runner.py,466
+  src/taskfile/scaffold/__init__.py,24
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
   src/taskfile/scaffold/minimal.py,33
@@ -39,12 +46,13 @@ M[55]:
   src/taskfile/scaffold/podman.py,81
   src/taskfile/scaffold/publish.py,238
   src/taskfile/scaffold/web.py,79
+  src/taskfile/ssh.py,92
   tests/__init__.py,0
   tests/test_auth.py,72
   tests/test_cigen.py,262
   tests/test_cli.py,124
   tests/test_compose.py,43
-  tests/test_e2e_examples.py,343
+  tests/test_e2e_examples.py,847
   tests/test_fleet.py,208
   tests/test_health.py,166
   tests/test_landing.py,197
@@ -57,6 +65,40 @@ M[55]:
   tests/test_scaffold.py,88
   tests/test_setup.py,189
 D:
+  src/taskfile/cli/interactive.py:
+    i: os,re,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
+    e: ProjectDiagnostics,doctor,init
+    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),check_docker(0),check_ssh_keys(0)  # Diagnose and auto-fix common project...
+    _detect_project_type()->str
+    _suggest_template(project_type:str)->str
+    _collect_env_config_interactive()->dict[str, str]
+    _write_env_file(config:dict[str;str];env_name:str='local')->None
+    _collect_init_choices()->dict[str, any]
+    _create_gitignore()->None
+    doctor(fix;verbose)
+    init(template;force;interactive)
+  examples/functions-embed/scripts/report.py:
+    i: json,os,datetime
+    e: main
+    main()
+  examples/script-extraction/scripts/migrate.py:
+    i: argparse,os,sys
+    e: main
+    main()
+  examples/script-extraction/scripts/provision.py:
+    i: argparse,subprocess,sys
+    e: ssh_run,main
+    ssh_run(host:str;user:str;cmd:str;check:bool=True)->int
+    main()
+  examples/script-extraction/scripts/release.py:
+    i: argparse,os,subprocess,sys
+    e: run,main
+    run(cmd:str;check:bool=True)->int
+    main()
+  examples/script-extraction/scripts/report.py:
+    i: argparse,json,os,datetime
+    e: main
+    main()
   src/taskfile/cigen/__init__.py:
     i: pathlib.Path,taskfile.cigen.base.{CITarget,TARGETS,console},taskfile.models.TaskfileConfig
     e: generate_ci,generate_all_ci,list_targets,preview_ci
@@ -149,15 +191,15 @@ D:
     health_cmd(ctx;domain;ssh_host;ssh_user;ssh_key;no_ssh)
   src/taskfile/cli/main.py:
     i: sys,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile},taskfile.runner.TaskfileRunner
-    e: parse_var,main,run,list_tasks,init,validate,info
+    e: parse_var,main,run,list_tasks,init,validate,info,import_cmd
+    _print_nearby_taskfiles(nearby:list[tuple[Path;int]])->None
     _run_env_group(taskfile_path;env_group:str;task_names:list[str];platform_name:Any=None;var_overrides:Any=None;dry_run:bool=False;...+1)->bool
     _group_rolling(members:list[str];run_fn)->bool
     _group_canary(members:list[str];run_fn;canary_count:int)->bool
     _group_parallel(members:list[str];run_fn;max_parallel:int)->bool
     parse_var(ctx;param;value:tuple[str;Ellipsis])->dict[str, str]
     main(ctx;taskfile_path;env_name;env_group;platform_name;var;...+1)
-    run(ctx;tasks)
-    list_tasks(ctx)
+    run(ctx;tasks;run_tags)
   src/taskfile/cli/quadlet.py:
     i: sys,click,subprocess,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.models.Environment,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
     e: quadlet,quadlet_generate,quadlet_upload
@@ -224,6 +266,17 @@ D:
     run_health_checks(domain:str;ssh_host:Any=None;ssh_user:str='deploy';ssh_key:Any=None;check_web:bool=True;check_landing:bool=True;...+1)->HealthReport
     print_health_report(report:HealthReport)->None
     health_check_all(domain:str;ssh_host:Any=None;ssh_user:str='deploy';ssh_key:Any=None;exit_on_error:bool=True)->bool
+  src/taskfile/importer.py:
+    i: re,yaml,pathlib.Path,typing.Any
+    e: import_file
+    import_file(source_path:Any;source_type:Any=None)->str
+    _detect_type(path:Path)->str
+    _import_github_actions(content:str;filename:str)->str
+    _import_gitlab_ci(content:str)->str
+    _import_makefile(content:str)->str
+    _import_shell_script(content:str;filename:str)->str
+    _import_dockerfile(content:str)->str
+    _slugify(name:str)->str
   src/taskfile/landing.py:
     i: pathlib.Path,rich.console.Console,typing.TYPE_CHECKING
     e: LANDING_TEMPLATE,generate_landing_page,build_landing_page,create_landing_nginx_config,create_landing_compose_service
@@ -233,26 +286,26 @@ D:
     create_landing_compose_service(domain:str;landing_port:int=8080;traefik_enabled:bool=True)->dict
   src/taskfile/models.py:
     i: os,dataclasses.{dataclass,field},typing.Any
-    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Task,PipelineStage,PipelineConfig,TaskfileConfig
+    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig
     Environment: ssh_target(0),ssh_opts(0),is_remote(0),resolve_variables(1)  # Deployment environment configuration.
     Platform: resolve_variables(1)  # Target platform configuration (e.g.
     EnvironmentGroup:   # Group of environments sharing an upda...
     ComposeConfig:   # Compose-based deployment configuration.
-    Task: should_run_on(1),should_run_on_platform(1)  # Single task definition.
+    Function:   # Embedded function callable from tasks...
     _normalize_commands(cmds:list)->list[str]
   src/taskfile/parser.py:
     i: os,yaml,pathlib.Path,taskfile.models.TaskfileConfig
-    e: TASKFILE_NAMES,TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile
-    TaskfileNotFoundError:   # Raised when no Taskfile is found in t...
+    e: TASKFILE_NAMES,scan_nearby_taskfiles,TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile
+    TaskfileNotFoundError: __init__(2)  # Raised when no Taskfile is found in t...
     TaskfileParseError:   # Raised when Taskfile cannot be parsed.
+    scan_nearby_taskfiles(start_dir:Any=None)->list[tuple[Path, int]]
     find_taskfile(start_dir:Any=None)->Path
+    _resolve_includes(raw:dict;base_dir:Path)->dict
     load_taskfile(path:Any=None)->TaskfileConfig
     _validate_tasks_exist(config:TaskfileConfig)->list[str]
     _validate_task_commands(task_name:str;task)->list[str]
     _validate_task_dependencies(config:TaskfileConfig;task_name:str;task)->list[str]
     _validate_task_env_filter(config:TaskfileConfig;task_name:str;task)->list[str]
-    _validate_task_platform_filter(config:TaskfileConfig;task_name:str;task)->list[str]
-    validate_taskfile(config:TaskfileConfig)->list[str]
   src/taskfile/provisioner.py:
     i: subprocess,sys,dataclasses.dataclass,pathlib.Path,rich.console.Console,typing.TYPE_CHECKING
     e: ProvisionConfig,VPSProvisioner,provision_vps
@@ -281,6 +334,15 @@ D:
     e: _TEMPLATES_DIR,_TEMPLATE_NAMES,generate_taskfile
     _load_template(name:str)->str
     generate_taskfile(template:str='full')->str
+  src/taskfile/ssh.py:
+    i: os,subprocess,paramiko,rich.console.Console,typing.TYPE_CHECKING
+    e: _HAS_PARAMIKO,has_paramiko,close_all,ssh_exec
+    has_paramiko()->bool
+    _pool_key(env:Environment)->str
+    _get_connection(env:Environment)->"paramiko.SSHClient"
+    close_all()->None
+    ssh_exec(env:Environment;command:str;timeout:int=300)->int
+    _ssh_exec_subprocess(env:Environment;command:str)->int
   tests/test_auth.py:
     i: pytest,pathlib.Path,taskfile.cli.auth.{REGISTRIES,_ensure_gitignore,_read_env_file,_write_env_var}
     e: TestReadEnvFile,TestWriteEnvVar,TestEnsureGitignore,TestRegistries
@@ -304,7 +366,7 @@ D:
     TestComposeFile: test_load_compose(1),test_service_names(1)
   tests/test_e2e_examples.py:
     i: pytest,os,sys,click.testing.CliRunner,pathlib.Path,taskfile.cli.main,taskfile.parser.{TaskfileConfig,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
-    e: EXAMPLES_DIR,TestMinimalExample,TestSaasAppExample,TestMultiplatformExample,TestCodereviewExample,TestExamplesCrossCutting,TestExamplesAdvancedFeatures
+    e: EXAMPLES_DIR,TestMinimalExample,TestSaasAppExample,TestMultiplatformExample,TestCodereviewExample,TestExamplesCrossCutting,TestExamplesAdvancedFeatures,TestIncludeFeature
     TestMinimalExample: minimal_path(0),test_load_minimal_taskfile(1),test_minimal_variables(1),test_minimal_task_dependencies(1),test_minimal_dry_run(1)  # E2E tests for examples/minimal/ - bas...
     TestSaasAppExample: saas_path(0),test_load_saas_taskfile(1),test_saas_environment_config(1),test_saas_pipeline_structure(1),test_saas_task_env_filters(1)  # E2E tests for examples/saas-app/ - mu...
     TestMultiplatformExample: multi_path(0),test_load_multiplatform_taskfile(1),test_multiplatform_platforms_defined(1),test_multiplatform_env_platform_matrix(1),test_multiplatform_runner_with_platform(1)  # E2E tests for examples/multiplatform/...

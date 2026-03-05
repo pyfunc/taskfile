@@ -21,6 +21,44 @@ from taskfile.scaffold import generate_taskfile
 console = Console()
 
 
+def _print_nearby_taskfiles(nearby: list[tuple[Path, int]]) -> None:
+    """Print information about nearby Taskfiles and how to use them."""
+    if not nearby:
+        return
+    
+    console.print("\n[bold yellow]📍 Found Taskfiles in nearby directories:[/]")
+    for path, level in sorted(nearby, key=lambda x: (abs(x[1]), str(x[0]))):
+        if level == 0:
+            rel = f"./{path.name}"
+            hint = "[green]← you are here[/]"
+        elif level < 0:
+            parent_parts = [".."] * abs(level)
+            rel = "/".join(parent_parts) + f"/{path.name}"
+            hint = f"[yellow]({abs(level)} level{'s' if abs(level) > 1 else ''} up)[/]"
+        else:
+            try:
+                rel = str(path.relative_to(Path.cwd()))
+            except ValueError:
+                rel = str(path)
+            hint = f"[blue]({level} level{'s' if level > 1 else ''} down)[/]"
+        console.print(f"   {rel} {hint}")
+    
+    # Show how to use the first found
+    first = nearby[0]
+    console.print("\n[dim]To use:[/]")
+    if first[1] == 0:
+        console.print(f"  taskfile run <task>")
+    elif first[1] < 0:
+        parent_parts = [".."] * abs(first[1])
+        console.print(f"  cd {'/'.join(parent_parts)} && taskfile run <task>")
+    else:
+        try:
+            rel_dir = str(first[0].parent.relative_to(Path.cwd()))
+        except ValueError:
+            rel_dir = str(first[0].parent)
+        console.print(f"  cd {rel_dir} && taskfile run <task>")
+
+
 def _run_env_group(
     taskfile_path,
     env_group: str,
@@ -234,6 +272,8 @@ def run(ctx, tasks, run_tags):
         sys.exit(0 if success else 1)
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
 
 
@@ -261,6 +301,8 @@ def list_tasks(ctx):
         runner.list_tasks()
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
 
 
@@ -315,6 +357,8 @@ def validate(ctx):
             )
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
 
 
@@ -361,6 +405,8 @@ def info(ctx, task_name):
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
+        if isinstance(e, TaskfileNotFoundError):
+            _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
 
 

@@ -7,5 +7,6 @@ import taskfile.cli.health
 import taskfile.cli.release
 import taskfile.cli.fleet
 import taskfile.cli.auth
+import taskfile.cli.interactive  # NEW: doctor, interactive init
 
 __all__ = ["main"]

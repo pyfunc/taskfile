@@ -19,8 +19,68 @@ TASKFILE_NAMES = [
 ]
 
 
+def scan_nearby_taskfiles(start_dir: str | Path | None = None) -> list[tuple[Path, int]]:
+    """Scan for Taskfiles in nearby directories.
+
+    Searches:
+    - 1 level up (parent directory)
+    - 2 levels down (subdirectories)
+    - Current directory
+
+    Returns list of (path, relative_level) where:
+    - negative = parent/ancestor directories
+    - zero = current directory
+    - positive = subdirectories
+    """
+    start = Path(start_dir or os.getcwd()).resolve()
+    found = []
+
+    # Check current directory (level 0)
+    for name in TASKFILE_NAMES:
+        candidate = start / name
+        if candidate.is_file():
+            found.append((candidate, 0))
+
+    # Check 1 level up (parent, level -1)
+    parent = start.parent
+    if parent != start:
+        for name in TASKFILE_NAMES:
+            candidate = parent / name
+            if candidate.is_file():
+                found.append((candidate, -1))
+
+    # Check 2 levels down (subdirectories, level 1 and 2)
+    try:
+        for child in start.iterdir():
+            if child.is_dir():
+                # Level 1 (direct subdirectory)
+                for name in TASKFILE_NAMES:
+                    candidate = child / name
+                    if candidate.is_file():
+                        found.append((candidate, 1))
+
+                # Level 2 (nested subdirectory)
+                try:
+                    for grandchild in child.iterdir():
+                        if grandchild.is_dir():
+                            for name in TASKFILE_NAMES:
+                                candidate = grandchild / name
+                                if candidate.is_file():
+                                    found.append((candidate, 2))
+                except (PermissionError, OSError):
+                    pass  # Skip directories we can't access
+    except (PermissionError, OSError):
+        pass  # Can't read current directory
+
+    return found
+
+
 class TaskfileNotFoundError(Exception):
     """Raised when no Taskfile is found in the search path."""
+
+    def __init__(self, message: str, nearby: list[tuple[Path, int]] | None = None):
+        super().__init__(message)
+        self.nearby = nearby or []
 
 
 class TaskfileParseError(Exception):
@@ -48,7 +108,8 @@ def find_taskfile(start_dir: str | Path | None = None) -> Path:
 
     raise TaskfileNotFoundError(
         f"No Taskfile found. Searched for: {', '.join(TASKFILE_NAMES)}\n"
-        f"Run 'taskfile init' to create one."
+        f"Run 'taskfile init' to create one.",
+        nearby=scan_nearby_taskfiles(start_dir)
     )
 
 
