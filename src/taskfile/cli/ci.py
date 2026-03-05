@@ -88,7 +88,7 @@ def ci_generate(ctx, targets, gen_all, output_dir):
             sys.exit(0)
 
         console.print(f"\n[green]✓ Generated {len(generated)} CI/CD config(s)[/]")
-        console.print("[dim]  All configs call 'taskfile run' — your pipeline logic stays in Taskfile.yml[/]")
+        console.print("[dim]  All configs call 'taskfile' — your pipeline logic stays in Taskfile.yml[/]")
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")

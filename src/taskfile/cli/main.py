@@ -47,16 +47,16 @@ def _print_nearby_taskfiles(nearby: list[tuple[Path, int]]) -> None:
     first = nearby[0]
     console.print("\n[dim]To use:[/]")
     if first[1] == 0:
-        console.print(f"  taskfile run <task>")
+        console.print(f"  taskfile <task>")
     elif first[1] < 0:
         parent_parts = [".."] * abs(first[1])
-        console.print(f"  cd {'/'.join(parent_parts)} && taskfile run <task>")
+        console.print(f"  cd {'/'.join(parent_parts)} && taskfile <task>")
     else:
         try:
             rel_dir = str(first[0].parent.relative_to(Path.cwd()))
         except ValueError:
             rel_dir = str(first[0].parent)
-        console.print(f"  cd {rel_dir} && taskfile run <task>")
+        console.print(f"  cd {rel_dir} && taskfile <task>")
 
 
 def _suggest_similar_tasks(unknown: str, available: list[str], max_suggestions: int = 3) -> list[str]:
@@ -217,11 +217,11 @@ def main(ctx, taskfile_path, env_name, env_group, platform_name, var, dry_run, v
     """taskfile — Universal task runner with multi-environment deploy.
 
     \b
-    Run tasks:     taskfile run build deploy
+    Run tasks:     taskfile build deploy
     List tasks:    taskfile list
     Init project:  taskfile init
     Quick run:     taskfile <task_name> --env prod --platform web
-    Fleet deploy:  taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
+    Fleet deploy:  taskfile -G kiosks deploy-kiosk --var TAG=v1.0
     """
     ctx.ensure_object(dict)
     ctx.obj["taskfile_path"] = taskfile_path
@@ -247,12 +247,12 @@ def run(ctx, tasks, run_tags):
 
     \b
     Examples:
-        taskfile run build
-        taskfile run build deploy --env prod
-        taskfile run release --var TAG=v1.2.3
-        taskfile run deploy --env prod --dry-run
-        taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
-        taskfile run --tags ci build test lint
+        taskfile build
+        taskfile build deploy --env prod
+        taskfile release --var TAG=v1.2.3
+        taskfile deploy --env prod --dry-run
+        taskfile -G kiosks deploy-kiosk --var TAG=v1.0
+        taskfile --tags ci build test lint
     """
     opts = ctx.obj
     env_group = opts.get("env_group")

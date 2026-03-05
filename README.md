@@ -227,8 +227,8 @@ Options:
 
 | Command | Description |
 |---------|-------------|
-| `taskfile run <tasks...>` | Run one or more tasks |
-| `taskfile run <tasks...> --tags ci` | Run only tasks matching tags |
+| `taskfile <tasks...>` | Run one or more tasks |
+| `taskfile <tasks...> --tags ci` | Run only tasks matching tags |
 | `taskfile list` | List tasks, environments, groups, platforms, variables |
 | `taskfile info <task>` | Show detailed info about a task (incl. tags, retries, timeout) |
 | `taskfile validate` | Check Taskfile.yml for errors |
@@ -333,7 +333,7 @@ Deploy to **desktop** and **web** platforms across environments:
 ```bash
 taskfile --env local --platform desktop run deploy
 taskfile --env prod --platform web run deploy
-taskfile run release    # all platforms at once
+taskfile release    # all platforms at once
 ```
 
 Variables cascade: **global → environment → platform → CLI overrides**.
@@ -521,11 +521,11 @@ This creates a `Taskfile.yml` with tasks for:
 
 ```bash
 # Publish to all registries
-taskfile run publish-all --var TAG=v1.0.0
+taskfile publish-all --var TAG=v1.0.0
 
 # Publish to single registry
-taskfile run publish-pypi --var TAG=v1.0.0
-taskfile run publish-docker --var TAG=v1.0.0
+taskfile publish-pypi --var TAG=v1.0.0
+taskfile publish-docker --var TAG=v1.0.0
 ```
 
 ---
@@ -816,7 +816,7 @@ deploy:
 	taskfile --env prod run deploy
 
 test:
-	taskfile run test
+	taskfile test
 
 .PHONY: deploy test
 ```

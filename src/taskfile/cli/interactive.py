@@ -348,7 +348,7 @@ def doctor(fix, verbose):
         console.print("\n[bold green]Your project is ready! 🚀[/]")
         console.print("\n[dim]Next steps:[/]")
         console.print("  taskfile list       — See available tasks")
-        console.print("  taskfile run build  — Build your project")
+        console.print("  taskfile build  — Build your project")
     else:
         error_count = sum(1 for _, s, _ in diagnostics.issues if s == "error")
         if error_count > 0:
@@ -504,7 +504,7 @@ def env(ctx):
 
         if "setup-env" not in runner.config.tasks:
             console.print("[yellow]⚠ Task 'setup-env' not found in Taskfile.yml[/]")
-            console.print("[dim]  Add setup-env task or use: taskfile run setup-hosts[/]")
+            console.print("[dim]  Add setup-env task or use: taskfile setup-hosts[/]")
             sys.exit(1)
 
         success = runner.run(["setup-env"])

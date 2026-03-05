@@ -327,7 +327,7 @@ def _print_summary(config: SetupConfig) -> None:
         console.print(f"\n  [green]http://{config.ip}[/] — Application")
 
     console.print(f"\n[dim]Next steps:[/]")
-    console.print(f"  taskfile run logs       — View logs")
+    console.print(f"  taskfile logs       — View logs")
     console.print(f"  taskfile --env prod run status — Check production status")
 
 

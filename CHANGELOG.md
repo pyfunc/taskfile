@@ -50,6 +50,14 @@
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
 
+## [0.3.26] - 2026-03-05
+
+### Docs
+- Update README.md
+
+### Other
+- Update src/taskfile/scaffold/templates/publish.yml
+
 ## [0.3.25] - 2026-03-05
 
 ### Docs

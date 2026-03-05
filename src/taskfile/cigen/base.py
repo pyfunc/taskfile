@@ -48,11 +48,11 @@ class CITarget:
         return f"--env {env}" if env else ""
 
     def _stage_tasks_cmd(self, stage: PipelineStage) -> str:
-        """Build the taskfile run command for a stage."""
+        """Build the taskfile command for a stage."""
         tasks = " ".join(stage.tasks)
         env_flag = self._stage_env_flag(stage)
         tag = self._tag_var()
-        return f"taskfile {env_flag} run {tasks} --var TAG={tag}".strip()
+        return f"taskfile {env_flag} {tasks} --var TAG={tag}".strip()
 
 def _sanitize_id(name: str) -> str:
     """Make a name safe for use as YAML key / job ID."""
