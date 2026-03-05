@@ -1,7 +1,6 @@
-# taskfile | 63f 13522L | python:63
+# taskfile | 65f 13923L | python:65
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[63]:
-  src/taskfile/cli/interactive.py,326
+M[65]:
   examples/functions-embed/scripts/report.py,16
   examples/script-extraction/scripts/migrate.py,20
   examples/script-extraction/scripts/provision.py,41
@@ -21,10 +20,12 @@ M[63]:
   src/taskfile/cli/__init__.py,11
   src/taskfile/cli/auth.py,207
   src/taskfile/cli/ci.py,171
+  src/taskfile/cli/completion.py,123
   src/taskfile/cli/deploy.py,227
   src/taskfile/cli/fleet.py,274
   src/taskfile/cli/health.py,51
-  src/taskfile/cli/main.py,409
+  src/taskfile/cli/interactive.py,401
+  src/taskfile/cli/main.py,405
   src/taskfile/cli/quadlet.py,154
   src/taskfile/cli/release.py,294
   src/taskfile/cli/setup.py,358
@@ -34,10 +35,11 @@ M[63]:
   src/taskfile/importer.py,274
   src/taskfile/landing.py,326
   src/taskfile/models.py,354
+  src/taskfile/notifications.py,83
   src/taskfile/parser.py,205
   src/taskfile/provisioner.py,237
   src/taskfile/quadlet.py,254
-  src/taskfile/runner.py,466
+  src/taskfile/runner.py,491
   src/taskfile/scaffold/__init__.py,24
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
@@ -65,18 +67,6 @@ M[63]:
   tests/test_scaffold.py,88
   tests/test_setup.py,189
 D:
-  src/taskfile/cli/interactive.py:
-    i: os,re,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
-    e: ProjectDiagnostics,doctor,init
-    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),check_docker(0),check_ssh_keys(0)  # Diagnose and auto-fix common project...
-    _detect_project_type()->str
-    _suggest_template(project_type:str)->str
-    _collect_env_config_interactive()->dict[str, str]
-    _write_env_file(config:dict[str;str];env_name:str='local')->None
-    _collect_init_choices()->dict[str, any]
-    _create_gitignore()->None
-    doctor(fix;verbose)
-    init(template;force;interactive)
   examples/functions-embed/scripts/report.py:
     i: json,os,datetime
     e: main
@@ -162,6 +152,13 @@ D:
     ci_list(ctx)
     ci_preview(ctx;target)
     ci_targets()
+  src/taskfile/cli/completion.py:
+    i: os,click,click.shell_completion.CompletionItem,pathlib.Path,taskfile.parser.{TaskfileNotFoundError,find_taskfile,load_taskfile},typing.TYPE_CHECKING
+    e: get_task_names,get_environment_names,get_platform_names,generate_completion_script
+    get_task_names(ctx;param;incomplete:str)->list[CompletionItem]
+    get_environment_names(ctx;param;incomplete:str)->list[CompletionItem]
+    get_platform_names(ctx;param;incomplete:str)->list[CompletionItem]
+    generate_completion_script(shell:str)->str
   src/taskfile/cli/deploy.py:
     i: sys,subprocess,click,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile},typing.Any
     e: DeployStrategy,deploy_cmd
@@ -189,17 +186,29 @@ D:
     i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.health.{health_check_all,print_health_report,run_health_checks},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError},typing.TYPE_CHECKING
     e: health_cmd
     health_cmd(ctx;domain;ssh_host;ssh_user;ssh_key;no_ssh)
+  src/taskfile/cli/interactive.py:
+    i: os,re,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
+    e: ProjectDiagnostics,doctor,init,setup,hosts,env
+    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),check_docker(0),check_ssh_keys(0)  # Diagnose and auto-fix common project...
+    _detect_project_type()->str
+    _suggest_template(project_type:str)->str
+    _collect_env_config_interactive()->dict[str, str]
+    _write_env_file(config:dict[str;str];env_name:str='local')->None
+    _collect_init_choices()->dict[str, any]
+    _create_gitignore()->None
+    doctor(fix;verbose)
+    init(template;force;interactive)
   src/taskfile/cli/main.py:
     i: sys,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile},taskfile.runner.TaskfileRunner
     e: parse_var,main,run,list_tasks,init,validate,info,import_cmd
     _print_nearby_taskfiles(nearby:list[tuple[Path;int]])->None
+    _suggest_similar_tasks(unknown:str;available:list[str];max_suggestions:int=3)->list[str]
     _run_env_group(taskfile_path;env_group:str;task_names:list[str];platform_name:Any=None;var_overrides:Any=None;dry_run:bool=False;...+1)->bool
     _group_rolling(members:list[str];run_fn)->bool
     _group_canary(members:list[str];run_fn;canary_count:int)->bool
     _group_parallel(members:list[str];run_fn;max_parallel:int)->bool
     parse_var(ctx;param;value:tuple[str;Ellipsis])->dict[str, str]
     main(ctx;taskfile_path;env_name;env_group;platform_name;var;...+1)
-    run(ctx;tasks;run_tags)
   src/taskfile/cli/quadlet.py:
     i: sys,click,subprocess,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.models.Environment,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
     e: quadlet,quadlet_generate,quadlet_upload
@@ -293,6 +302,14 @@ D:
     ComposeConfig:   # Compose-based deployment configuration.
     Function:   # Embedded function callable from tasks...
     _normalize_commands(cmds:list)->list[str]
+  src/taskfile/notifications.py:
+    i: os,platform,subprocess,typing.TYPE_CHECKING
+    e: notify_task_complete,is_notification_available
+    notify_task_complete(task_name:str;success:bool;duration:Any=None)->None
+    _notify_macos(title:str;message:str)->None
+    _notify_linux(title:str;message:str)->None
+    _notify_windows(title:str;message:str)->None
+    is_notification_available()->bool
   src/taskfile/parser.py:
     i: os,yaml,pathlib.Path,taskfile.models.TaskfileConfig
     e: TASKFILE_NAMES,scan_nearby_taskfiles,TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile

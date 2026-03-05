@@ -463,20 +463,53 @@ class TaskfileRunner:
 
     def run(self, task_names: list[str]) -> bool:
         """Run multiple tasks in order. Returns True if all succeed."""
+        from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+        from taskfile.notifications import notify_task_complete
+        import time
+
         # Validate first
         warnings = validate_taskfile(self.config)
         for w in warnings:
             console.print(f"[yellow]⚠ {w}[/]")
 
         success = True
+        start_time = time.time()
+        
         try:
-            for name in task_names:
-                if not self.run_task(name):
-                    success = False
-                    break
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                TimeElapsedColumn(),
+                console=console,
+                transient=True,
+            ) as progress:
+                for name in task_names:
+                    task = self.config.tasks.get(name)
+                    desc = f"Running {name}..."
+                    if task and task.description:
+                        desc = f"{name} — {task.description}"
+                    
+                    progress_task = progress.add_task(desc, total=None)
+                    task_start = time.time()
+                    
+                    if not self.run_task(name):
+                        success = False
+                        progress.update(progress_task, completed=True)
+                        break
+                    
+                    progress.update(progress_task, completed=True)
+                    
+                    # Notification for long-running tasks (>10s)
+                    task_duration = time.time() - task_start
+                    if task_duration > 10:
+                        notify_task_complete(name, True, task_duration)
         finally:
             if self.use_embedded_ssh:
                 ssh_close_all()
+
+        total_duration = time.time() - start_time
+        if len(task_names) == 1 and total_duration > 10:
+            notify_task_complete(task_names[0], success, total_duration)
 
         return success
 

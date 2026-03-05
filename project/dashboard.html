@@ -61,11 +61,11 @@
 
 <div class="grid">
   <div class="card"><div class="value">4.4</div><div class="label">Avg CC</div></div>
-  <div class="card"><div class="value">23</div><div class="label">Critical (CC≥10)</div></div>
-  <div class="card"><div class="value">291</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">25</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">305</div><div class="label">Functions</div></div>
   <div class="card"><div class="value">37</div><div class="label">Classes</div></div>
-  <div class="card"><div class="value">31</div><div class="label">Files</div></div>
-  <div class="card"><div class="value">13221</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">33</div><div class="label">Files</div></div>
+  <div class="card"><div class="value">13658</div><div class="label">Lines</div></div>
   <div class="card"><div class="value">0</div><div class="label">Duplicates</div></div>
   <div class="card"><div class="value">1</div><div class="label">Cycles</div></div>
 </div>
@@ -75,8 +75,8 @@
     <h2 style="border:none;margin:0 0 .5rem;">Evolution (2026-03-05)</h2>
     <div class="evo-cards">
       <div class="card"><div class="value">4.4</div><div class="label">CC̄ →</div></div>
-      <div class="card"><div class="value">23</div><div class="label">Critical →</div></div>
-      <div class="card"><div class="value">13221</div><div class="label">Lines</div></div>
+      <div class="card"><div class="value">25</div><div class="label">Critical →</div></div>
+      <div class="card"><div class="value">13658</div><div class="label">Lines</div></div>
     </div>
     <p class="trend" style="margin-top:.5rem;">Run analysis multiple times to build a trend chart (≥3 data points needed).</p>
   </div>
@@ -109,7 +109,7 @@
                 <td><span class="badge critical">critical</span></td>
                 <td>run</td>
                 <td>high_fan_out</td>
-                <td>21</td>
+                <td>20</td>
                 <td>10</td>
             </tr>
             <tr class="error">
@@ -184,16 +184,16 @@
             </tr>
             <tr class="warning">
                 <td><span class="badge warning">warning</span></td>
-                <td>run</td>
+                <td>scan_nearby_taskfiles</td>
                 <td>cc_exceeded</td>
-                <td>19</td>
+                <td>17</td>
                 <td>15</td>
             </tr>
             <tr class="warning">
                 <td><span class="badge warning">warning</span></td>
-                <td>scan_nearby_taskfiles</td>
+                <td>_detect_type</td>
                 <td>cc_exceeded</td>
-                <td>17</td>
+                <td>16</td>
                 <td>15</td>
             </tr></tbody>
 </table>
@@ -217,7 +217,7 @@ Examples:
             </tr>
             <tr>
                 <td><strong>run</strong></td>
-                <td>21</td>
+                <td>20</td>
                 <td>Run one or more tasks.
 
 
@@ -270,12 +270,9 @@ Checks:
     - Taskfile.yml existence and </td>
             </tr>
             <tr>
-                <td><strong>PipelineRunner.run</strong></td>
+                <td><strong>TaskfileRunner.run</strong></td>
                 <td>14</td>
-                <td>Run pipeline stages in order.
-
-Args:
-    stage_filter: Only run these stages (No</td>
+                <td>Run multiple tasks in order. Returns True if all succeed.</td>
             </tr></tbody>
 </table>
 </div></div>
@@ -295,55 +292,55 @@ Args:
             </tr>
             <tr>
                 <td>2</td>
-                <td>Split god module src/taskfile/runner.py (553L, 2 classes)</td>
+                <td>Split god module src/taskfile/cli/interactive.py (516L, 1 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>3</td>
+                <td>Split god module src/taskfile/runner.py (586L, 2 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
+            </tr>
+            <tr>
+                <td>4</td>
                 <td>Split _detect_type (CC=16 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>4</td>
+                <td>5</td>
                 <td>Split _import_github_actions (CC=21 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>5</td>
+                <td>6</td>
                 <td>Split _import_gitlab_ci (CC=20 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>6</td>
+                <td>7</td>
                 <td>Split TaskfileRunner.run_command (CC=16 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>7</td>
+                <td>8</td>
                 <td>Split scan_nearby_taskfiles (CC=17 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>8</td>
+                <td>9</td>
                 <td>Split _resolve_includes (CC=22 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>9</td>
-                <td>Split init (CC=16 → target CC<10)</td>
-                <td><span class="badge medium">medium</span></td>
-                <td>low</td>
-            </tr>
-            <tr>
                 <td>10</td>
-                <td>Split run (CC=19 → target CC<10)</td>
+                <td>Split init (CC=16 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr></tbody>
@@ -352,7 +349,7 @@ Args:
 </div>
 </div>
 
-<footer>Generated by code2llm on 2026-03-05 13:26</footer>
+<footer>Generated by code2llm on 2026-03-05 14:14</footer>
 
 <script>
 // Evolution chart disabled — fewer than 3 data points
@@ -361,9 +358,9 @@ const modCtx = document.getElementById('modChart').getContext('2d');
 new Chart(modCtx, {
   type: 'bar',
   data: {
-    labels: ['fleet.py', 'parser.py', 'importer.py', 'main.py', 'interactive.py', 'runner.py', 'fleet.py', 'auth.py', 'release.py', 'health.py', 'ci.py', 'setup.py', 'health.py', 'compose.py', 'quadlet.py'],
-    datasets: [{ label: 'Max CC', data: [31, 22, 21, 19, 16, 16, 13, 12, 12, 11, 10, 10, 9, 9, 9],
-      backgroundColor: [31, 22, 21, 19, 16, 16, 13, 12, 12, 11, 10, 10, 9, 9, 9].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    labels: ['fleet.py', 'parser.py', 'importer.py', 'interactive.py', 'main.py', 'runner.py', 'fleet.py', 'auth.py', 'release.py', 'health.py', 'ci.py', 'setup.py', 'health.py', 'compose.py', 'quadlet.py'],
+    datasets: [{ label: 'Max CC', data: [31, 22, 21, 16, 16, 16, 13, 12, 12, 11, 10, 10, 9, 9, 9],
+      backgroundColor: [31, 22, 21, 16, 16, 16, 13, 12, 12, 11, 10, 10, 9, 9, 9].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
     }]
   },
   options: {

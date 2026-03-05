@@ -1,5 +1,5 @@
-# code2llm | 41f 8862L | py:41 | 2026-03-05
-# CC̄=4.4 | critical:23/298 | dups:0 | cycles:1
+# code2llm | 43f 9299L | py:43 | 2026-03-05
+# CC̄=4.4 | critical:25/312 | dups:0 | cycles:1
 
 HEALTH[10]:
   🟡 CC    _detect_type CC=16 (limit:15)
@@ -10,8 +10,8 @@ HEALTH[10]:
   🟡 CC    _resolve_includes CC=22 (limit:15)
   🟡 CC    init CC=16 (limit:15)
   🟡 CC    fleet_repair_cmd CC=31 (limit:15)
-  🟡 CC    run CC=19 (limit:15)
-  🟡 CC    info CC=15 (limit:15)
+  🟡 CC    run CC=15 (limit:15)
+  🟡 CC    info CC=16 (limit:15)
 
 REFACTOR[2]:
   1. split 10 high-CC methods  (CC>15)
@@ -21,12 +21,12 @@ COUPLING: no cross-package imports detected
 
 LAYERS:
   src/                            CC̄=4.4    ←in:0  →out:0
-  │ !! runner                     553L  2C   34m  CC=16     ←0
+  │ !! runner                     586L  2C   34m  CC=16     ←0
+  │ !! interactive                516L  1C   19m  CC=16     ←0
+  │ !! main                       485L  0C   15m  CC=16     ←1
   │ !  fleet                      476L  5C   14m  CC=13     ←0
   │ !  setup                      448L  1C   15m  CC=10     ←0
-  │ !! main                       442L  0C   13m  CC=19     ←0
   │ !  health                     425L  2C    6m  CC=11     ←2
-  │ !! interactive                423L  1C   16m  CC=16     ←0
   │ models                     409L  9C   15m  CC=6      ←1
   │ !! importer                   374L  0C    9m  CC=21     ←1
   │ landing                    365L  0C    4m  CC=2      ←1
@@ -35,7 +35,7 @@ LAYERS:
   │ quadlet                    309L  1C   21m  CC=9      ←2
   │ provisioner                308L  2C   12m  CC=5      ←0
   │ publish                    280L  0C    0m  CC=0.0    ←0
-  │ !! parser                     274L  2C   11m  CC=22     ←9
+  │ !! parser                     274L  2C   11m  CC=22     ←10
   │ deploy                     274L  1C   15m  CC=6      ←0
   │ cirunner                   262L  3C    9m  CC=8      ←0
   │ !  auth                       256L  0C    7m  CC=12     ←0
@@ -45,8 +45,10 @@ LAYERS:
   │ quadlet                    189L  0C    6m  CC=6      ←0
   │ full                       181L  0C    0m  CC=0.0    ←0
   │ compose                    165L  1C    9m  CC=9      ←0
+  │ completion                 159L  0C    4m  CC=8      ←0
   │ ssh                        132L  0C    6m  CC=7      ←1
   │ github                     127L  1C    7m  CC=7      ←0
+  │ notifications              109L  0C    5m  CC=8      ←1
   │ gitlab                     105L  1C    8m  CC=5      ←0
   │ podman                      94L  0C    0m  CC=0.0    ←0
   │ web                         93L  0C    0m  CC=0.0    ←0
@@ -66,38 +68,40 @@ LAYERS:
 
 DUPLICATES[0]: none
 
-FUNCTIONS (CC≥10, 23 of 291):
+FUNCTIONS (CC≥10, 25 of 305):
    31.0  fleet_repair_cmd                           41n   3exit  loops+cond+ret  !! split
    22.0  _resolve_includes                          26n   3exit  loops+cond+ret  !! split
    21.0  _import_github_actions                     24n   2exit  loops+cond+ret  !! split
    20.0  _import_gitlab_ci                          29n   2exit  loops+cond+ret  !! split
-   19.0  run                                         2n   1exit    !! split
    17.0  scan_nearby_taskfiles                      11n   2exit  loops+cond+ret  !! split
    16.0  _detect_type                               25n   8exit  cond+ret  !! split
    16.0  TaskfileRunner.run_command                 18n   5exit  cond+ret  !! split
    16.0  init                                       18n   1exit  cond  !! split
-   15.0  info                                        2n   1exit    !! split
+   16.0  info                                        2n   1exit    !! split
+   15.0  run                                         2n   1exit    !! split
    13.0  check_device_status                         5n   2exit  cond+ret
    12.0  _import_makefile                           16n   2exit  loops+cond+ret
    12.0  _import_shell_script                       13n   2exit  loops+cond+ret
-   12.0  auth_setup                                 14n   1exit  loops+cond
    12.0  deploy_to_group                            19n   5exit  loops+cond+ret
+   12.0  auth_setup                                 14n   1exit  loops+cond
    12.0  release                                    10n   1exit  cond
    11.0  check_http_endpoint                         4n   2exit  loops+ret
    11.0  run_health_checks                          15n   2exit  cond+ret
    11.0  rollback                                   16n   1exit  cond
+   11.0  _print_nearby_taskfiles                    14n   2exit  loops+cond+ret
    10.0  TaskfileRunner._run_function               22n   7exit  cond+ret
+   10.0  TaskfileRunner.run                          6n   2exit  loops+cond+ret
    10.0  save_fleet                                 18n   2exit  loops+cond+ret
    10.0  ci_generate                                 2n   1exit  
    10.0  _collect_interactive_setup                 15n   2exit  cond+ret
 
   summary:
-    critical(≥10): 23 | high(5-10): 77 | medium(2-5): 135 | low(<2): 56
-    8% CC≥10  34% CC≥5
+    critical(≥10): 25 | high(5-10): 85 | medium(2-5): 136 | low(<2): 59
+    8% CC≥10  36% CC≥5
 
 HOTSPOTS:
   #1  fleet_status_cmd                     fan=25   "calls 25 functions"
-  #2  run                                  fan=21   "calls 21 functions"
+  #2  run                                  fan=20   "calls 20 functions"
   #3  _import_github_actions               fan=19   "calls 19 functions"
   #4  init                                 fan=18   "calls 18 functions"
   #5  fleet_repair_cmd                     fan=18   "calls 18 functions"
@@ -105,10 +109,10 @@ HOTSPOTS:
   #7  auth_setup                           fan=16   "calls 16 functions"
   #8  _import_makefile                     fan=15   "calls 15 functions"
   #9  doctor                               fan=15   "calls 15 functions"
-  #10 PipelineRunner.run                   fan=14   "PipelineRunner method, fan-out=14"
+  #10 TaskfileRunner.run                   fan=14   "TaskfileRunner method, fan-out=14"
 
 CLASSES:
-  TaskfileRunner                 ████████████████████████  33m  CC̄=4.3   max=16    !!
+  TaskfileRunner                 ████████████████████████  33m  CC̄=4.4   max=16    !!
   VPSProvisioner                 ████████                  11m  CC̄=2.8   max=5   
   ProjectDiagnostics             █████                      8m  CC̄=3.5   max=8   
   TaskfileConfig                 █████                      8m  CC̄=3.2   max=6   
@@ -120,8 +124,8 @@ CLASSES:
   DroneCITarget                  ███                        5m  CC̄=2.8   max=4   
   Task                           █                          2m  CC̄=2.5   max=3   
   PipelineConfig                 █                          2m  CC̄=4.5   max=5   
-  JenkinsTarget                  █                          2m  CC̄=1.5   max=2   
   GiteaActionsTarget             █                          2m  CC̄=4.5   max=8   
+  JenkinsTarget                  █                          2m  CC̄=1.5   max=2   
   TaskRunError                                              1m  CC̄=1.0   max=1   
   TaskfileNotFoundError                                     1m  CC̄=2.0   max=2   
   PipelineError                                             1m  CC̄=1.0   max=1   
@@ -184,8 +188,36 @@ D:
     _import_dockerfile(content)
     _slugify(name)
     _dump_taskfile(data)
+  src/taskfile/runner.py:
+    e: TaskRunError,TaskfileRunner
+    TaskRunError  # Raised when a task command fails....
+      __init__(3)  CC=1.0
+        → __init__(3)  CC=1.0
+    TaskfileRunner  # Executes tasks from a Taskfile configuration....
+      __init__(8)  CC=5.0
+        → _init_config(2)  CC=2.0
+        → _init_environment(0)  CC=2.0
+        → _init_platform(0)  CC=3.0
+        → _init_variables(0)  CC=3.0
+  src/taskfile/cli/interactive.py:
+    e: ProjectDiagnostics,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,init,setup,hosts,env
+    ProjectDiagnostics  # Diagnose and auto-fix common project issues....
+      __init__(0)  CC=1.0
+    _detect_project_type()
+    _suggest_template(project_type)
+    _collect_env_config_interactive()
+    _write_env_file(config,env_name)
+    _collect_init_choices()
+    _create_gitignore()
+    doctor(fix,verbose)
+    init(template,force,interactive)
+    setup()
+    hosts(ctx)
+    env(ctx)
   src/taskfile/cli/main.py:
-    e: _run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,init,validate,info,import_cmd
+    e: _print_nearby_taskfiles,_suggest_similar_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,init,validate,info,import_cmd
+    _print_nearby_taskfiles(nearby)
+    _suggest_similar_tasks(unknown,available,max_suggestions)
     _run_env_group(taskfile_path,env_group,task_names,platform_name,var_overrides,dry_run,verbose)
     _group_rolling(members,run_fn)
     _group_canary(members,run_fn,canary_count)
@@ -199,29 +231,6 @@ D:
     validate(ctx)
     info(ctx,task_name)
     import_cmd(source,source_type,output_path,force)
-  src/taskfile/runner.py:
-    e: TaskRunError,TaskfileRunner
-    TaskRunError  # Raised when a task command fails....
-      __init__(3)  CC=1.0
-        → __init__(3)  CC=1.0
-    TaskfileRunner  # Executes tasks from a Taskfile configuration....
-      __init__(8)  CC=5.0
-        → _init_config(2)  CC=2.0
-        → _init_environment(0)  CC=2.0
-        → _init_platform(0)  CC=3.0
-        → _init_variables(0)  CC=3.0
-  src/taskfile/cli/interactive.py:
-    e: ProjectDiagnostics,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,init
-    ProjectDiagnostics  # Diagnose and auto-fix common project issues....
-      __init__(0)  CC=1.0
-    _detect_project_type()
-    _suggest_template(project_type)
-    _collect_env_config_interactive()
-    _write_env_file(config,env_name)
-    _collect_init_choices()
-    _create_gitignore()
-    doctor(fix,verbose)
-    init(template,force,interactive)
   src/taskfile/fleet.py:
     e: FleetApp,DeviceGroup,Device,FleetConfig,DeviceStatus,load_fleet,save_fleet,_ssh_cmd,_ping_device,check_device_status,fleet_status,print_fleet_status,deploy_to_device,deploy_to_group,_deploy_rolling,_deploy_canary,_deploy_parallel,add_device
     FleetApp  # Container application definition for fleet devices....
@@ -349,6 +358,19 @@ Th...
       __init__(5)  CC=2.0
     StageResult  # Result of running a single pipeline stage....
       __init__(5)  CC=1.0
+  src/taskfile/notifications.py:
+    e: notify_task_complete,_notify_macos,_notify_linux,_notify_windows,is_notification_available
+    notify_task_complete(task_name,success,duration)
+    _notify_macos(title,message)
+    _notify_linux(title,message)
+    _notify_windows(title,message)
+    is_notification_available()
+  src/taskfile/cli/completion.py:
+    e: get_task_names,get_environment_names,get_platform_names,generate_completion_script
+    get_task_names(ctx,param,incomplete)
+    get_environment_names(ctx,param,incomplete)
+    get_platform_names(ctx,param,incomplete)
+    generate_completion_script(shell)
   src/taskfile/cigen/gitea.py:
     e: GiteaActionsTarget
     GiteaActionsTarget

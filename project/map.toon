@@ -1,6 +1,6 @@
-# taskfile | 46f 9062L | python:46
+# taskfile | 48f 9499L | python:48
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[46]:
+M[48]:
   examples/functions-embed/scripts/report.py,22
   examples/script-extraction/scripts/migrate.py,32
   examples/script-extraction/scripts/provision.py,55
@@ -20,11 +20,12 @@ M[46]:
   src/taskfile/cli/__init__.py,12
   src/taskfile/cli/auth.py,256
   src/taskfile/cli/ci.py,202
+  src/taskfile/cli/completion.py,159
   src/taskfile/cli/deploy.py,274
   src/taskfile/cli/fleet.py,357
   src/taskfile/cli/health.py,70
-  src/taskfile/cli/interactive.py,423
-  src/taskfile/cli/main.py,442
+  src/taskfile/cli/interactive.py,516
+  src/taskfile/cli/main.py,485
   src/taskfile/cli/quadlet.py,189
   src/taskfile/cli/release.py,364
   src/taskfile/cli/setup.py,448
@@ -34,10 +35,11 @@ M[46]:
   src/taskfile/importer.py,374
   src/taskfile/landing.py,365
   src/taskfile/models.py,409
+  src/taskfile/notifications.py,109
   src/taskfile/parser.py,274
   src/taskfile/provisioner.py,308
   src/taskfile/quadlet.py,309
-  src/taskfile/runner.py,553
+  src/taskfile/runner.py,586
   src/taskfile/scaffold/__init__.py,33
   src/taskfile/scaffold/codereview.py,207
   src/taskfile/scaffold/full.py,181
@@ -83,8 +85,28 @@ D:
     _import_dockerfile(content)
     _slugify(name)
     _dump_taskfile(data)
+  src/taskfile/runner.py:
+    e: TaskRunError,TaskfileRunner
+    TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
+    TaskfileRunner: __init__(8),_init_config(2),_init_environment(0),_init_platform(0),_init_variables(0),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),_run_embedded_ssh(2),_run_function(2),_exec_function_shell(4),_exec_function_python(4),_exec_function_node(4),_exec_function_binary(4),_run_inline_python(2),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_run_dependencies_parallel(2),_execute_commands(3),_print_task_header(2),run_task(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_environment_groups_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration...
+  src/taskfile/cli/interactive.py:
+    e: ProjectDiagnostics,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,init,setup,hosts,env
+    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),check_docker(0),check_ssh_keys(0),check_git(0),auto_fix(0),print_report(0)  # Diagnose and auto-fix common project issues...
+    _detect_project_type()
+    _suggest_template(project_type)
+    _collect_env_config_interactive()
+    _write_env_file(config;env_name)
+    _collect_init_choices()
+    _create_gitignore()
+    doctor(fix;verbose)
+    init(template;force;interactive)
+    setup()
+    hosts(ctx)
+    env(ctx)
   src/taskfile/cli/main.py:
-    e: _run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,init,validate,info,import_cmd
+    e: _print_nearby_taskfiles,_suggest_similar_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,init,validate,info,import_cmd
+    _print_nearby_taskfiles(nearby)
+    _suggest_similar_tasks(unknown;available;max_suggestions)
     _run_env_group(taskfile_path;env_group;task_names;platform_name;var_overrides;dry_run;verbose)
     _group_rolling(members;run_fn)
     _group_canary(members;run_fn;canary_count)
@@ -98,21 +120,6 @@ D:
     validate(ctx)
     info(ctx;task_name)
     import_cmd(source;source_type;output_path;force)
-  src/taskfile/runner.py:
-    e: TaskRunError,TaskfileRunner
-    TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
-    TaskfileRunner: __init__(8),_init_config(2),_init_environment(0),_init_platform(0),_init_variables(0),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),_run_embedded_ssh(2),_run_function(2),_exec_function_shell(4),_exec_function_python(4),_exec_function_node(4),_exec_function_binary(4),_run_inline_python(2),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_run_dependencies_parallel(2),_execute_commands(3),_print_task_header(2),run_task(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_environment_groups_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration...
-  src/taskfile/cli/interactive.py:
-    e: ProjectDiagnostics,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,init
-    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),check_docker(0),check_ssh_keys(0),check_git(0),auto_fix(0),print_report(0)  # Diagnose and auto-fix common project issues...
-    _detect_project_type()
-    _suggest_template(project_type)
-    _collect_env_config_interactive()
-    _write_env_file(config;env_name)
-    _collect_init_choices()
-    _create_gitignore()
-    doctor(fix;verbose)
-    init(template;force;interactive)
   src/taskfile/fleet.py:
     e: FleetApp,DeviceGroup,Device,FleetConfig,DeviceStatus,load_fleet,save_fleet,_ssh_cmd,_ping_device,check_device_status,fleet_status,print_fleet_status,deploy_to_device,deploy_to_group,_deploy_rolling,_deploy_canary,_deploy_parallel,add_device
     FleetApp:  # Container application definition for fleet devices...
@@ -233,6 +240,19 @@ D:
 
 Th...
     StageResult: __init__(5)  # Result of running a single pipeline stage...
+  src/taskfile/notifications.py:
+    e: notify_task_complete,_notify_macos,_notify_linux,_notify_windows,is_notification_available
+    notify_task_complete(task_name;success;duration)
+    _notify_macos(title;message)
+    _notify_linux(title;message)
+    _notify_windows(title;message)
+    is_notification_available()
+  src/taskfile/cli/completion.py:
+    e: get_task_names,get_environment_names,get_platform_names,generate_completion_script
+    get_task_names(ctx;param;incomplete)
+    get_environment_names(ctx;param;incomplete)
+    get_platform_names(ctx;param;incomplete)
+    generate_completion_script(shell)
   src/taskfile/cigen/gitea.py:
     e: GiteaActionsTarget
     GiteaActionsTarget(CITarget): _tag_var(0),generate(0)

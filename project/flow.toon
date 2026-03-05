@@ -1,4 +1,4 @@
-# taskfile/flow | 298 func | 12 pipelines | 10 hub-types | 2026-03-05
+# taskfile/flow | 312 func | 12 pipelines | 10 hub-types | 2026-03-05
 
 PIPELINES[12] (IO:12):
   Src [IO]: ctx → str | None
@@ -15,7 +15,7 @@ PIPELINES[12] (IO:12):
               PURITY: 3/10 pure  BOTTLENECK: deploy_cmd(CC=4)
 
   Src [IO]: list[str] → str
-              → run(task_names:list[str]) → bool        CC=5    IO ▶
+              → run(task_names:list[str]) → bool        CC=10   IO ▶
               → run_task(task_name:str) → bool          CC=6    IO
               → _execute_commands(task:Task, task_name:str, start:float) → bool CC=8    IO
               → run_command(cmd:str, task:Task) → int   CC=16   IO  !!
@@ -76,12 +76,12 @@ PIPELINES[12] (IO:12):
               PURITY: 1/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
 
   Src [IO]: ctx → list[tuple[Path, int]]
-              → run(ctx, tasks, run_tags)               CC=19   IO  !! ▶
+              → run(ctx, tasks, run_tags)               CC=15   IO  !! ▶
               → _run_env_group(taskfile_path, env_group:str, task_names:list[str], platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool) → bool CC=6    IO
               → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
               → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure
               → scan_nearby_taskfiles(start_dir:str | Path | None) → list[tuple[Path, int]] CC=17   mutation  !! ■
-              PURITY: 1/5 pure  BOTTLENECK: run(CC=19)
+              PURITY: 1/5 pure  BOTTLENECK: scan_nearby_taskfiles(CC=17)
 
   Src [IO]: FleetConfig → subprocess.CompletedProcess
               → deploy_to_group(config:FleetConfig, group_name:str | None, device_name:str | None, app_name:str, tag:str) → bool CC=12   IO ▶
@@ -107,7 +107,7 @@ PIPELINES[12] (IO:12):
 
 TRANSFORMS (fan-out ≥10):
   fleet_status_cmd(ctx, group)                            fan=25   !! side-effects
-  run(ctx, tasks, run_tags)                               fan=21   !! side-effects
+  run(ctx, tasks, run_tags)                               fan=20   !! side-effects
   _import_github_actions(content:str, filename:str) → str fan=19   fan=19
   init(template, force, interactive)                      fan=18   fan=18
   fleet_repair_cmd(ctx, env_name, auto_fix)               fan=18   fan=18
@@ -115,12 +115,12 @@ TRANSFORMS (fan-out ≥10):
   auth_setup(registry)                                    fan=16   fan=16
   _import_makefile(content:str) → str                     fan=15   fan=15
   doctor(fix, verbose)                                    fan=15   fan=15
+  run(task_names:list[str]) → bool                        fan=14   PIPELINE:TaskfileRunner.entry
   run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool fan=14   PIPELINE:PipelineRunner.entry
   _import_shell_script(content:str, filename:str) → str   fan=13   fan=13
   run_command(cmd:str, task:Task) → int                   fan=12   PIPELINE:TaskfileRunner.entry
   _run_function(cmd:str, task:Task) → int                 fan=12   PIPELINE:TaskfileRunner.entry
   _resolve_includes(raw:dict, base_dir:Path) → dict       fan=12   fan=12
-  _collect_init_choices() → dict[str, any]                fan=12   fan=12
 
 CONTRACTS:
   Pipeline: Src
@@ -383,7 +383,7 @@ CONTRACTS:
       IN:  ctx, tasks, run_tags
       OUT: None
       SIDE-EFFECT: IO(print, print, print)
-      SMELL: CC=19 → split
+      SMELL: CC=15 → split
 
     _run_env_group(taskfile_path, env_group:str, task_names:list[str], platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool) → bool
       IN:  taskfile_path, env_group:str, task_names:list[str], platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool
@@ -468,13 +468,13 @@ CONTRACTS:
       SMELL: CC=17 → split
 
 
-DATA_TYPES (by cross-function usage) [263 annotated, 0 inferred / 298 functions]:
-  str                  consumed:151 produced:41   !! HUB-TYPE → split interface
-  bool                 consumed:39  produced:47   !! HUB-TYPE → split interface
+DATA_TYPES (by cross-function usage) [274 annotated, 0 inferred / 312 functions]:
+  str                  consumed:163 produced:42   !! HUB-TYPE → split interface
+  bool                 consumed:40  produced:48   !! HUB-TYPE → split interface
   str | None           consumed:29  produced:4    !! HUB-TYPE → split interface
   dict                 consumed:24  produced:7    !! HUB-TYPE → split interface
-  int                  consumed:16  produced:13   !! HUB-TYPE → split interface
-  list[str]            consumed:15  produced:13   !! HUB-TYPE → split interface
+  list[str]            consumed:16  produced:14   !! HUB-TYPE → split interface
+  int                  consumed:17  produced:13   !! HUB-TYPE → split interface
   dict[str, str]       consumed:5   produced:10 
   TaskfileConfig       consumed:12  produced:3    !! HUB-TYPE → split interface
   Task                 consumed:14  produced:0    !! HUB-TYPE → split interface
@@ -483,25 +483,25 @@ DATA_TYPES (by cross-function usage) [263 annotated, 0 inferred / 298 functions]
   ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
   SetupConfig          consumed:8   produced:2  
   list[str] | None     consumed:9   produced:0    input-heavy (read-only flow)
-  str | Path           consumed:8   produced:0    input-heavy (read-only flow)
   str | Path | None    consumed:8   produced:0    input-heavy (read-only flow)
+  str | Path           consumed:8   produced:0    input-heavy (read-only flow)
   Environment          consumed:6   produced:1    input-heavy (read-only flow)
   list[Path]           consumed:1   produced:4  
   dict[str, str] | None consumed:4   produced:0    narrow scope
   float                consumed:3   produced:0    narrow scope
 
   HUB TYPES (consumed ≥10):
-    str → 151 consumers → split into:
+    str → 163 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    bool → 39 consumers → split into:
+    bool → 40 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     str | None → 29 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     dict → 24 consumers → split into:
       - replace with typed alternatives (dataclass/TypedDict)
-    int → 16 consumers → split into:
+    list[str] → 16 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    list[str] → 15 consumers → split into:
+    int → 17 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     TaskfileConfig → 12 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)

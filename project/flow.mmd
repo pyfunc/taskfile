@@ -50,7 +50,7 @@ flowchart TD
         src___execute_commands("_execute_commands CC=8")
         src___print_task_header["_print_task_header"]
         src__taskfile__runner__TaskfileRunner__run_task["run_task"]
-        src__taskfile__runner__TaskfileRunner__run["run"]
+        src__taskfile__runner__TaskfileRunner__run("run CC=10")
         src__taskfile__runner__TaskfileRunner__list_tasks["list_tasks"]
         src___list_header["_list_header"]
         src___list_tasks_section["_list_tasks_section"]
@@ -93,6 +93,7 @@ flowchart TD
     src___init_config --> src__taskfile__parser__load_taskfile
     src___run_embedded_ssh --> src__taskfile__ssh__ssh_exec
     src__taskfile__runner__TaskfileRunner__run --> src__taskfile__parser__validate_taskfile
+    src__taskfile__runner__TaskfileRunner__run --> src__taskfile__notifications__notify_task_complete
     src__taskfile__parser__find_taskfile --> src__taskfile__parser__scan_nearby_taskfiles
     src__taskfile__parser__load_taskfile --> src__taskfile__parser___resolve_includes
     src__taskfile__parser__load_taskfile --> src__taskfile__models__TaskfileConfig__from_dict
@@ -113,11 +114,10 @@ flowchart TD
     src__taskfile__ssh___get_connection --> src__taskfile__ssh___pool_key
     src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___ssh_exec_subprocess
     src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___get_connection
+    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_macos
+    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_linux
+    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_windows
     src__taskfile__scaffold__generate_taskfile --> src__taskfile__scaffold___load_template
-    src__taskfile__cli__auth___write_env_var --> src__taskfile__cli__auth___read_env_file
-    src__taskfile__cli__auth__auth_setup --> src__taskfile__cli__auth___ensure_gitignore
-    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___read_env_file
-    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___check_tool
     src__taskfile__fleet__load_fleet --> src__taskfile__fleet__FleetConfig__from_dict
     src__taskfile__fleet__check_device_status --> src__taskfile__fleet___ping_device
     src__taskfile__fleet__check_device_status --> src__taskfile__fleet___ssh_cmd
@@ -127,6 +127,10 @@ flowchart TD
     src__taskfile__fleet__deploy_to_group --> src__taskfile__fleet___deploy_parallel
     src__taskfile__fleet___deploy_rolling --> src__taskfile__fleet__deploy_to_device
     src__taskfile__fleet___deploy_canary --> src__taskfile__fleet__deploy_to_device
+    src__taskfile__cli__auth___write_env_var --> src__taskfile__cli__auth___read_env_file
+    src__taskfile__cli__auth__auth_setup --> src__taskfile__cli__auth___ensure_gitignore
+    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___read_env_file
+    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___check_tool
     src__taskfile__cli__quadlet__quadlet_generate --> src__taskfile__quadlet__compose_to_quadlet
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_env
@@ -142,6 +146,8 @@ flowchart TD
     src___collect_init_choices --> src__taskfile__cli__interactive___suggest_template
     src___collect_init_choices --> src___collect_env_config_interactive
     src__taskfile__cli__interactive__init --> src__taskfile__scaffold__generate_taskfile
+    src__taskfile__cli__interactive__hosts --> src__taskfile__cli__main___print_nearby_taskfiles
+    src__taskfile__cli__interactive__env --> src__taskfile__cli__main___print_nearby_taskfiles
     src__taskfile__cli__ci__ci_generate --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_run --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_list --> src__taskfile__parser__load_taskfile
@@ -180,6 +186,9 @@ flowchart TD
     src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___execute_setup_steps
     src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___print_summary
     src__taskfile__cli__setup__setup --> src___collect_interactive_setup
+    src__taskfile__cli__completion__get_task_names --> src__taskfile__parser__load_taskfile
+    src__get_environment_names --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__completion__get_platform_names --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__deploy___ssh --> src__taskfile__cli__deploy___run
     src__taskfile__cli__deploy___deploy_local_compose --> src__taskfile__cli__deploy___run
     src__taskfile__cli__deploy___deploy_remote_compose --> src__taskfile__cli__deploy___ssh
@@ -215,11 +224,12 @@ flowchart TD
     src__taskfile__cli__main___run_env_group --> src__taskfile__cli__main___group_canary
     src__taskfile__cli__main___run_env_group --> src__taskfile__cli__main___group_parallel
     src__taskfile__cli__main__run --> src__taskfile__cli__main___run_env_group
-    src__taskfile__cli__main__run --> src__taskfile__cli__main___filter_tasks_by_tags
     src__taskfile__cli__main__list_tasks --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__main__list_tasks --> src__taskfile__cli__main___print_nearby_taskfiles
     src__taskfile__cli__main__init --> src__taskfile__scaffold__generate_taskfile
     src__taskfile__cli__main__validate --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__main__validate --> src__taskfile__parser__validate_taskfile
+    src__taskfile__cli__main__validate --> src__taskfile__cli__main___print_nearby_taskfiles
     src__taskfile__cli__main__info --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__main__import_cmd --> src__taskfile__importer__import_file
     examples__main --> examples__script_extraction__scripts__release__run
@@ -248,4 +258,4 @@ flowchart TD
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
     class src__taskfile__importer___detect_type,src__taskfile__importer___import_github_actions,src__taskfile__importer___import_gitlab_ci,src__taskfile__runner__TaskfileRunner__run_command,src__taskfile__parser__scan_nearby_taskfiles,src__taskfile__parser___resolve_includes,src__taskfile__cli__interactive__init,src__taskfile__cli__fleet__fleet_repair_cmd,src__taskfile__cli__main__run,src__taskfile__cli__main__info highCC
-    class src__taskfile__importer__import_file,src__taskfile__importer___import_makefile,src__taskfile__importer___import_shell_script,src___run_function,src___run_dependencies_parallel,src___execute_commands,src__taskfile__compose__load_env_file,src__taskfile__cirunner__PipelineRunner__run,src__taskfile__health__check_http_endpoint,src__taskfile__health__run_health_checks,src__taskfile__cli__auth__auth_setup,src__taskfile__cli__auth__auth_verify,src__taskfile__fleet__save_fleet,src__taskfile__fleet__check_device_status,src__taskfile__fleet__deploy_to_device,src__taskfile__fleet__deploy_to_group,src__taskfile__cli__health__health_cmd,src__auto_fix,src__taskfile__cli__interactive__doctor,src__taskfile__cli__ci__ci_generate,src__taskfile__cli__release___run_command,src__taskfile__cli__release__release,src__taskfile__cli__release__rollback,src___collect_interactive_setup,src__taskfile__cli__setup___execute_setup_steps,src__taskfile__cli__fleet___get_remote_envs,src__taskfile__cli__fleet__fleet_list_cmd,src__generate,src__taskfile__cli__main___filter_tasks_by_tags,src__taskfile__quadlet___build_container_volumes medCC
+    class src__taskfile__importer__import_file,src__taskfile__importer___import_makefile,src__taskfile__importer___import_shell_script,src___run_function,src___run_dependencies_parallel,src___execute_commands,src__taskfile__runner__TaskfileRunner__run,src__taskfile__compose__load_env_file,src__taskfile__cirunner__PipelineRunner__run,src__taskfile__health__check_http_endpoint,src__taskfile__health__run_health_checks,src__taskfile__notifications__notify_task_complete,src__taskfile__fleet__save_fleet,src__taskfile__fleet__check_device_status,src__taskfile__fleet__deploy_to_device,src__taskfile__fleet__deploy_to_group,src__taskfile__cli__auth__auth_setup,src__taskfile__cli__auth__auth_verify,src__taskfile__cli__health__health_cmd,src__auto_fix,src__taskfile__cli__interactive__doctor,src__taskfile__cli__ci__ci_generate,src__taskfile__cli__release___run_command,src__taskfile__cli__release__release,src__taskfile__cli__release__rollback,src___collect_interactive_setup,src__taskfile__cli__setup___execute_setup_steps,src__taskfile__cli__completion__get_task_names,src__get_environment_names,src__taskfile__cli__fleet___get_remote_envs medCC
