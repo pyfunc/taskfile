@@ -6,7 +6,7 @@ from pathlib import Path
 
 from taskfile.models import TaskfileConfig, Task, Environment
 from taskfile.parser import load_taskfile, validate_taskfile, TaskfileNotFoundError
-from taskfile.runner import TaskfileRunner
+from taskfile.runner import TaskfileRunner, TaskResolver
 from taskfile.scaffold import generate_taskfile
 from taskfile.compose import ComposeFile, load_env_file, resolve_variables
 from taskfile.quadlet import generate_container_unit, compose_to_quadlet, generate_network_unit
@@ -87,15 +87,14 @@ class TestRunner:
         assert runner.run_task("fail") is True
 
     def test_init_environment_existing(self):
-        """Test _init_environment with existing environment."""
+        """Test environment resolution with existing environment."""
         runner = self._make_runner({"t": {"cmds": ["echo"]}}, env_name="prod")
-        env = runner._init_environment()
-        assert env.name == "prod"
-        assert env.ssh_host == "example.com"
-        assert env.container_runtime == "podman"
+        assert runner.env.name == "prod"
+        assert runner.env.ssh_host == "example.com"
+        assert runner.env.container_runtime == "podman"
 
     def test_init_environment_missing(self):
-        """Test _init_environment creates default for missing env."""
+        """Test environment resolution creates default for missing env."""
         data = {
             "variables": {},
             "environments": {"local": {"container_runtime": "docker"}},
@@ -103,12 +102,11 @@ class TestRunner:
         }
         config = TaskfileConfig.from_dict(data)
         runner = TaskfileRunner(config=config, env_name="nonexistent")
-        env = runner._init_environment()
-        assert env.name == "nonexistent"
-        assert env.container_runtime == "docker"  # Default value
+        assert runner.env.name == "nonexistent"
+        assert runner.env.container_runtime == "docker"  # Default value
 
     def test_init_platform_existing(self):
-        """Test _init_platform with existing platform."""
+        """Test platform resolution with existing platform."""
         data = {
             "variables": {},
             "environments": {"local": {}},
@@ -117,13 +115,12 @@ class TestRunner:
         }
         config = TaskfileConfig.from_dict(data)
         runner = TaskfileRunner(config=config, platform_name="web")
-        platform = runner._init_platform()
-        assert platform is not None
-        assert platform.name == "web"
-        assert platform.variables["PORT"] == "3000"
+        assert runner.platform is not None
+        assert runner.platform.name == "web"
+        assert runner.platform.variables["PORT"] == "3000"
 
     def test_init_platform_missing(self):
-        """Test _init_platform returns None for missing platform."""
+        """Test platform resolution returns None for missing platform."""
         data = {
             "variables": {},
             "environments": {"local": {}},
@@ -132,14 +129,12 @@ class TestRunner:
         }
         config = TaskfileConfig.from_dict(data)
         runner = TaskfileRunner(config=config, platform_name="nonexistent")
-        platform = runner._init_platform()
-        assert platform is None
+        assert runner.platform is None
 
     def test_init_platform_none(self):
-        """Test _init_platform with no platform specified."""
+        """Test platform resolution with no platform specified."""
         runner = self._make_runner({"t": {"cmds": ["echo"]}}, platform_name=None)
-        platform = runner._init_platform()
-        assert platform is None
+        assert runner.platform is None
 
     def test_init_variables_resolution(self):
         """Test variable resolution order: global → env → platform → CLI."""
@@ -162,7 +157,7 @@ class TestRunner:
             platform_name="web",
             var_overrides={"TAG": "cli", "CLI_VAR": "cli"},
         )
-        variables = runner._init_variables()
+        variables = runner.variables
 
         # CLI overrides all
         assert variables["TAG"] == "cli"
@@ -182,7 +177,7 @@ class TestRunner:
     def test_built_in_variables(self):
         """Test that built-in variables are set correctly."""
         runner = self._make_runner({"t": {"cmds": ["echo"]}}, env_name="local")
-        variables = runner._init_variables()
+        variables = runner.variables
 
         assert variables["ENV"] == "local"
         assert variables["RUNTIME"] == "docker"
