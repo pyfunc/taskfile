@@ -1,7 +1,6 @@
 # taskfile | 36f 4729L | python:36
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[36]:
-  src/taskfile/scaffold/multiplatform.py,173
   src/taskfile/__init__.py,34
   src/taskfile/cigen/__init__.py,48
   src/taskfile/cigen/base.py,54
@@ -26,6 +25,7 @@ M[36]:
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
   src/taskfile/scaffold/minimal.py,33
+  src/taskfile/scaffold/multiplatform.py,173
   src/taskfile/scaffold/podman.py,81
   src/taskfile/scaffold/web.py,79
   tests/__init__.py,0

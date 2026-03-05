@@ -153,13 +153,69 @@ taskfile --env local deploy    # → docker compose up -d
 taskfile --env prod deploy     # → generate Quadlet → scp → systemctl restart
 ```
 
+## Multi-Platform Deploy
+
+Deploy to **desktop** and **web** platforms across **local** and **production** environments using one standardized format:
+
+```
+┌──────────┬───────────────────────┬──────────────────────────┐
+│          │ local                 │ prod                     │
+├──────────┼───────────────────────┼──────────────────────────┤
+│ desktop  │ npm run dev:electron  │ electron-builder publish │
+│ web      │ docker compose up     │ podman pull + restart    │
+└──────────┴───────────────────────┴──────────────────────────┘
+```
+
+```bash
+# Desktop app — local dev
+taskfile --env local --platform desktop run deploy
+
+# Web app — production
+taskfile --env prod --platform web run deploy
+
+# Release all platforms at once
+taskfile run release
+```
+
+Define platforms in `Taskfile.yml`:
+
+```yaml
+platforms:
+  desktop:
+    desc: Electron desktop application
+    variables:
+      BUILD_DIR: dist/desktop
+  web:
+    desc: Web application (Docker container)
+    variables:
+      BUILD_DIR: dist/web
+
+tasks:
+  deploy-web-prod:
+    env: [prod]
+    platform: [web]
+    cmds:
+      - docker push ${REGISTRY}/${APP_NAME}:${TAG}
+      - "@remote podman pull ${REGISTRY}/${APP_NAME}:${TAG}"
+```
+
+Variables cascade: **global → environment → platform → CLI overrides**.
+
+See `examples/multiplatform/` for a full working example, or generate one:
+
+```bash
+taskfile init --template multiplatform
+```
+
 ## Key Features
 
 - **Multi-env deploy** — local/staging/prod with different runtimes
+- **Multi-platform deploy** — desktop/web/mobile with platform-specific variables and filters
 - **`@remote` prefix** — commands run via SSH on target server
-- **Variable substitution** — `${VAR}`, `{{VAR}}`, cascading: global → env → CLI → OS
+- **Variable substitution** — `${VAR}`, `{{VAR}}`, cascading: global → env → platform → CLI → OS
 - **Task dependencies** — `deps: [test, push, generate]`
 - **Environment filters** — `env: [prod]` restricts task to specific envs
+- **Platform filters** — `platform: [web]` restricts task to specific platforms
 - **Conditional execution** — `condition: "test -f migrations/pending.sql"`
 - **Dry run** — `--dry-run` shows commands without executing
 
@@ -192,12 +248,13 @@ taskfile quadlet upload          Upload Quadlet files to server
 
 Options:
   -e, --env ENV             Target environment (default: local)
+  -p, --platform PLATFORM   Target platform (e.g. desktop, web)
   -f, --file PATH           Path to Taskfile.yml
   --var KEY=VALUE            Override variable (repeatable)
   --dry-run                 Show commands without executing
   -v, --verbose             Verbose output
 
-Templates: minimal | web | podman | codereview | full
+Templates: minimal | web | podman | codereview | full | multiplatform
 ```
 
 ## License

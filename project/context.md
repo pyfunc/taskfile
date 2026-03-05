@@ -44,13 +44,13 @@
 - **Functions**: 7
 - **File**: `main.py`
 
-### src.taskfile.cli.quadlet
-- **Functions**: 6
-- **File**: `quadlet.py`
-
 ### src.taskfile.cli.ci
 - **Functions**: 6
 - **File**: `ci.py`
+
+### src.taskfile.cli.quadlet
+- **Functions**: 6
+- **File**: `quadlet.py`
 
 ### src.taskfile.cli.deploy
 - **Functions**: 6
@@ -390,12 +390,6 @@ The pipeline is just an ordered list of st
 - **Methods**: 2
 - **Key Methods**: src.taskfile.models.PipelineConfig.from_dict, src.taskfile.models.PipelineConfig.infer_from_tasks
 
-### src.taskfile.runner.TaskRunError
-> Raised when a task command fails.
-- **Methods**: 1
-- **Key Methods**: src.taskfile.runner.TaskRunError.__init__
-- **Inherits**: Exception
-
 ### src.taskfile.cirunner.PipelineError
 > Raised when a pipeline stage fails.
 - **Methods**: 1
@@ -406,6 +400,12 @@ The pipeline is just an ordered list of st
 > Result of running a single pipeline stage.
 - **Methods**: 1
 - **Key Methods**: src.taskfile.cirunner.StageResult.__init__
+
+### src.taskfile.runner.TaskRunError
+> Raised when a task command fails.
+- **Methods**: 1
+- **Key Methods**: src.taskfile.runner.TaskRunError.__init__
+- **Inherits**: Exception
 
 ### src.taskfile.cigen.makefile.MakefileTarget
 - **Methods**: 1
