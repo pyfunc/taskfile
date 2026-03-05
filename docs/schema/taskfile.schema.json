@@ -1,0 +1,541 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pyfunc/taskfile/blob/main/docs/schema/taskfile.schema.json",
+  "title": "Taskfile",
+  "description": "Schema for Taskfile.yml — universal task runner with multi-environment deploy support.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Taskfile format version.",
+      "default": "1",
+      "enum": ["1"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Project name used in variables as ${APP_NAME}."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable project description."
+    },
+    "default_env": {
+      "type": "string",
+      "description": "Default environment when --env is not specified.",
+      "default": "local"
+    },
+    "default_platform": {
+      "type": ["string", "null"],
+      "description": "Default platform when --platform is not specified.",
+      "default": null
+    },
+    "variables": {
+      "type": "object",
+      "description": "Global variables available in all tasks via ${VAR_NAME}. Overridable with --var KEY=VALUE.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "environments": {
+      "type": "object",
+      "description": "Deployment environments (local, staging, prod, etc.). A 'local' environment is auto-created if not defined.",
+      "additionalProperties": {
+        "$ref": "#/$defs/Environment"
+      }
+    },
+    "environment_groups": {
+      "type": "object",
+      "description": "Groups of environments for fleet/batch operations with deployment strategies.",
+      "additionalProperties": {
+        "$ref": "#/$defs/EnvironmentGroup"
+      }
+    },
+    "platforms": {
+      "type": "object",
+      "description": "Target platforms (e.g. desktop, web, mobile) with platform-specific variables and commands.",
+      "additionalProperties": {
+        "$ref": "#/$defs/Platform"
+      }
+    },
+    "functions": {
+      "type": "object",
+      "description": "Embedded functions callable from tasks via @fn prefix. Supports shell, Python, and Node.js.",
+      "additionalProperties": {
+        "$ref": "#/$defs/Function"
+      }
+    },
+    "tasks": {
+      "type": "object",
+      "description": "Task definitions. Each task has commands, dependencies, filters, and execution options.",
+      "additionalProperties": {
+        "$ref": "#/$defs/Task"
+      }
+    },
+    "compose": {
+      "$ref": "#/$defs/ComposeConfig",
+      "description": "Docker/Podman Compose configuration."
+    },
+    "pipeline": {
+      "$ref": "#/$defs/PipelineConfig",
+      "description": "CI/CD pipeline definition. Stages can be auto-inferred from task 'stage' fields."
+    },
+    "include": {
+      "type": "array",
+      "description": "Include tasks/variables/environments from other Taskfile YAML files.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Path to included Taskfile (relative to this file)."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Path to included Taskfile."
+              },
+              "file": {
+                "type": "string",
+                "description": "Alias for 'path'."
+              },
+              "prefix": {
+                "type": "string",
+                "description": "Prefix for imported task names (e.g. 'build' → 'deploy-build')."
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "required": ["tasks"],
+  "$defs": {
+    "Environment": {
+      "type": "object",
+      "description": "Deployment environment with SSH, container runtime, and compose settings.",
+      "properties": {
+        "variables": {
+          "type": "object",
+          "description": "Environment-specific variables (override global).",
+          "additionalProperties": { "type": "string" }
+        },
+        "ssh_host": {
+          "type": ["string", "null"],
+          "description": "SSH hostname or IP. Enables @remote commands for this env."
+        },
+        "ssh_user": {
+          "type": "string",
+          "description": "SSH username.",
+          "default": "deploy"
+        },
+        "ssh_port": {
+          "type": "integer",
+          "description": "SSH port.",
+          "default": 22
+        },
+        "ssh_key": {
+          "type": ["string", "null"],
+          "description": "Path to SSH private key (e.g. ~/.ssh/id_ed25519)."
+        },
+        "container_runtime": {
+          "type": "string",
+          "description": "Container runtime to use.",
+          "enum": ["docker", "podman"],
+          "default": "docker"
+        },
+        "compose_command": {
+          "type": "string",
+          "description": "Compose command. Used by ${COMPOSE} macro.",
+          "default": "docker compose",
+          "examples": ["docker compose", "podman-compose"]
+        },
+        "service_manager": {
+          "type": "string",
+          "description": "How services are managed on the target.",
+          "enum": ["compose", "quadlet", "systemd"],
+          "default": "compose"
+        },
+        "env_file": {
+          "type": ["string", "null"],
+          "description": "Environment file path. Used by ${COMPOSE} macro (--env-file).",
+          "examples": [".env.local", ".env.prod"]
+        },
+        "compose_file": {
+          "type": "string",
+          "description": "Path to docker-compose.yml.",
+          "default": "docker-compose.yml"
+        },
+        "quadlet_dir": {
+          "type": "string",
+          "description": "Local directory for generated Quadlet .container files.",
+          "default": "deploy/quadlet"
+        },
+        "quadlet_remote_dir": {
+          "type": "string",
+          "description": "Remote directory for Quadlet unit files.",
+          "default": "~/.config/containers/systemd"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EnvironmentGroup": {
+      "type": "object",
+      "description": "Group of environments for batch operations (fleet deploy).",
+      "properties": {
+        "members": {
+          "type": "array",
+          "description": "List of environment names belonging to this group.",
+          "items": { "type": "string" }
+        },
+        "strategy": {
+          "type": "string",
+          "description": "Deployment strategy for the group.",
+          "enum": ["parallel", "rolling", "canary"],
+          "default": "parallel"
+        },
+        "max_parallel": {
+          "type": "integer",
+          "description": "Maximum concurrent deployments (for parallel/rolling).",
+          "default": 5,
+          "minimum": 1
+        },
+        "canary_count": {
+          "type": "integer",
+          "description": "Number of canary environments to deploy first (for canary strategy).",
+          "default": 1,
+          "minimum": 1
+        }
+      },
+      "required": ["members"],
+      "additionalProperties": false
+    },
+    "Platform": {
+      "type": "object",
+      "description": "Target platform definition with platform-specific overrides.",
+      "properties": {
+        "variables": {
+          "type": "object",
+          "description": "Platform-specific variables (override global).",
+          "additionalProperties": { "type": "string" }
+        },
+        "build_cmd": {
+          "type": ["string", "null"],
+          "description": "Platform-specific build command."
+        },
+        "deploy_cmd": {
+          "type": ["string", "null"],
+          "description": "Platform-specific deploy command."
+        },
+        "desc": {
+          "type": "string",
+          "description": "Human-readable platform description."
+        },
+        "description": {
+          "type": "string",
+          "description": "Alias for 'desc'."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Function": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Shorthand: inline shell code as a string."
+        },
+        {
+          "type": "object",
+          "description": "Embedded function callable from tasks via '@fn name'.",
+          "properties": {
+            "lang": {
+              "type": "string",
+              "description": "Function language.",
+              "enum": ["shell", "python", "node", "binary"],
+              "default": "shell"
+            },
+            "code": {
+              "type": ["string", "null"],
+              "description": "Inline function code (multiline with |)."
+            },
+            "file": {
+              "type": ["string", "null"],
+              "description": "External file containing the function."
+            },
+            "function": {
+              "type": ["string", "null"],
+              "description": "Specific function name to call (Python modules)."
+            },
+            "desc": {
+              "type": "string",
+              "description": "Function description."
+            },
+            "description": {
+              "type": "string",
+              "description": "Alias for 'desc'."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Task": {
+      "oneOf": [
+        {
+          "type": "array",
+          "description": "Shorthand: list of commands (no options).",
+          "items": { "type": "string" }
+        },
+        {
+          "type": "object",
+          "description": "Full task definition with commands, deps, filters, and options.",
+          "properties": {
+            "desc": {
+              "type": "string",
+              "description": "Human-readable task description (shown in 'taskfile list')."
+            },
+            "description": {
+              "type": "string",
+              "description": "Alias for 'desc'."
+            },
+            "cmds": {
+              "type": "array",
+              "description": "Commands to execute. Supports @local, @remote, @fn, @python prefixes.",
+              "items": { "type": "string" }
+            },
+            "commands": {
+              "type": "array",
+              "description": "Alias for 'cmds'.",
+              "items": { "type": "string" }
+            },
+            "script": {
+              "type": ["string", "null"],
+              "description": "External script file to execute (alternative to inline cmds)."
+            },
+            "deps": {
+              "type": "array",
+              "description": "Tasks that must complete before this task runs.",
+              "items": { "type": "string" }
+            },
+            "env": {
+              "type": ["array", "null"],
+              "description": "Limit task to these environments. null = runs on all envs.",
+              "items": { "type": "string" },
+              "examples": [["local"], ["local", "prod"], ["staging", "prod"]]
+            },
+            "platform": {
+              "type": ["array", "null"],
+              "description": "Limit task to these platforms. null = runs on all platforms.",
+              "items": { "type": "string" },
+              "examples": [["web"], ["desktop", "web"]]
+            },
+            "dir": {
+              "type": ["string", "null"],
+              "description": "Working directory for commands (relative to Taskfile location)."
+            },
+            "silent": {
+              "type": "boolean",
+              "description": "Suppress command echo (only show output).",
+              "default": false
+            },
+            "ignore_errors": {
+              "type": "boolean",
+              "description": "Continue on command failure.",
+              "default": false
+            },
+            "continue_on_error": {
+              "type": "boolean",
+              "description": "Alias for 'ignore_errors'.",
+              "default": false
+            },
+            "condition": {
+              "type": ["string", "null"],
+              "description": "Shell command that must succeed (exit 0) for task to run."
+            },
+            "stage": {
+              "type": ["string", "null"],
+              "description": "CI/CD pipeline stage this task belongs to (auto-inferred)."
+            },
+            "parallel": {
+              "type": "boolean",
+              "description": "Run dependencies concurrently.",
+              "default": false
+            },
+            "retries": {
+              "type": "integer",
+              "description": "Number of retry attempts on failure.",
+              "default": 0,
+              "minimum": 0
+            },
+            "retry_delay": {
+              "type": "integer",
+              "description": "Seconds between retries.",
+              "default": 1,
+              "minimum": 0
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "Command timeout in seconds (0 = no timeout).",
+              "default": 0,
+              "minimum": 0
+            },
+            "tags": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                {
+                  "type": "string",
+                  "description": "Comma-separated tags."
+                }
+              ],
+              "description": "Tags for selective execution with --tags filter.",
+              "default": []
+            },
+            "register": {
+              "type": ["string", "null"],
+              "description": "Capture stdout into this variable name for use in later tasks."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ComposeConfig": {
+      "type": "object",
+      "description": "Docker/Podman Compose settings.",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Path to docker-compose.yml.",
+          "default": "docker-compose.yml"
+        },
+        "override_files": {
+          "type": "array",
+          "description": "Additional compose override files.",
+          "items": { "type": "string" }
+        },
+        "network": {
+          "type": "string",
+          "description": "Docker network name.",
+          "default": "proxy"
+        },
+        "auto_update": {
+          "type": "boolean",
+          "description": "Enable auto-update on deploy.",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "PipelineConfig": {
+      "type": "object",
+      "description": "CI/CD pipeline definition used by 'taskfile ci generate'.",
+      "properties": {
+        "stages": {
+          "type": "array",
+          "description": "Pipeline stages. Can be inferred from task 'stage' fields.",
+          "items": {
+            "$ref": "#/$defs/PipelineStage"
+          }
+        },
+        "python_version": {
+          "type": "string",
+          "description": "Python version for CI runners.",
+          "default": "3.12"
+        },
+        "runner_image": {
+          "type": "string",
+          "description": "CI runner image.",
+          "default": "ubuntu-latest"
+        },
+        "docker_in_docker": {
+          "type": "boolean",
+          "description": "Enable Docker-in-Docker for CI.",
+          "default": false
+        },
+        "cache": {
+          "type": "array",
+          "description": "Paths to cache in CI.",
+          "items": { "type": "string" }
+        },
+        "artifacts": {
+          "type": "array",
+          "description": "Paths to archive as CI artifacts.",
+          "items": { "type": "string" }
+        },
+        "secrets": {
+          "type": "array",
+          "description": "Secret names required by CI.",
+          "items": { "type": "string" }
+        },
+        "branches": {
+          "type": "array",
+          "description": "Branches that trigger the pipeline.",
+          "items": { "type": "string" },
+          "default": ["main"]
+        },
+        "install_cmd": {
+          "type": "string",
+          "description": "Command to install taskfile in CI.",
+          "default": "pip install taskfile"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PipelineStage": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Shorthand: stage name = task name."
+        },
+        {
+          "type": "object",
+          "description": "Full pipeline stage definition.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Stage name."
+            },
+            "tasks": {
+              "type": "array",
+              "description": "Tasks to run in this stage.",
+              "items": { "type": "string" }
+            },
+            "env": {
+              "type": ["string", "null"],
+              "description": "Override environment for this stage."
+            },
+            "when": {
+              "type": "string",
+              "description": "When to trigger: auto, manual, tag, branch:main.",
+              "default": "auto"
+            },
+            "runner": {
+              "type": ["string", "null"],
+              "description": "Override runner image for this stage."
+            },
+            "docker_in_docker": {
+              "type": "boolean",
+              "description": "Enable DinD for this stage.",
+              "default": false
+            },
+            "artifacts": {
+              "type": "array",
+              "description": "Artifacts produced by this stage.",
+              "items": { "type": "string" }
+            },
+            "cache": {
+              "type": "array",
+              "description": "Paths to cache for this stage.",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["name"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

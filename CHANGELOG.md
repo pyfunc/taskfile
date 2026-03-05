@@ -20,6 +20,12 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.47] - 2026-03-05
+
+### Docs
+- Update docs/CLI.md
+- Update docs/schema/taskfile.schema.json
+
 ## [0.3.46] - 2026-03-05
 
 ### Docs

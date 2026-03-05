@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taskfile"
-version = "0.3.46"
+version = "0.3.47"
 description = "Universal Taskfile runner with multi-environment deploy support. CI/CD agnostic — run locally or from any pipeline."
 readme = "README.md"
 license = "Apache-2.0"
@@ -29,6 +29,11 @@ dependencies = [
 [project.optional-dependencies]
 ssh = [
     "paramiko>=3.0",
+]
+api = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.0",
 ]
 dev = [
     "pytest>=7.0",
