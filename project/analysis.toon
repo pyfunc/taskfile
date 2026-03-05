@@ -1,5 +1,5 @@
-# code2llm | 27f 3623L | py:27 | 2026-03-05
-# CC̄=3.9 | critical:10/120 | dups:0 | cycles:1
+# code2llm | 27f 3776L | py:27 | 2026-03-05
+# CC̄=3.4 | critical:2/149 | dups:0 | cycles:1
 
 HEALTH[0]: ok
 
@@ -9,30 +9,30 @@ REFACTOR[1]:
 COUPLING: no cross-package imports detected
 
 LAYERS:
-  src/                            CC̄=3.9    ←in:0  →out:0
+  src/                            CC̄=3.4    ←in:0  →out:0
   │ models                     329L  7C   13m  CC=6      ←1
-  │ !  runner                     303L  2C   16m  CC=13     ←0
+  │ !  runner                     328L  2C   21m  CC=10     ←0
   │ quadlet                    293L  0C   21m  CC=9      ←2
-  │ !  cirunner                   250L  3C    8m  CC=10     ←0
+  │ cirunner                   262L  3C    9m  CC=8      ←0
   │ multiplatform              222L  0C    0m  CC=0.0    ←0
+  │ deploy                     209L  0C   13m  CC=6      ←0
   │ codereview                 207L  0C    0m  CC=0.0    ←0
   │ !  ci                         202L  0C    6m  CC=10     ←0
   │ main                       197L  0C    7m  CC=9      ←0
   │ quadlet                    189L  0C    6m  CC=6      ←0
   │ full                       181L  0C    0m  CC=0.0    ←0
-  │ !  deploy                     170L  0C    6m  CC=14     ←0
-  │ !  compose                    154L  1C    7m  CC=10     ←0
-  │ !  parser                     113L  2C    3m  CC=12     ←5
+  │ compose                    165L  1C    9m  CC=9      ←0
+  │ parser                     143L  2C    8m  CC=6      ←5
+  │ gitlab                     105L  1C    8m  CC=5      ←0
   │ github                     103L  1C    4m  CC=7      ←0
   │ podman                      94L  0C    0m  CC=0.0    ←0
   │ web                         93L  0C    0m  CC=0.0    ←0
-  │ !  gitlab                      83L  1C    2m  CC=14     ←0
   │ base                        67L  1C    9m  CC=3      ←4
+  │ drone                       63L  1C    5m  CC=4      ←0
   │ __init__                    58L  0C    4m  CC=3      ←1
   │ jenkins                     54L  1C    2m  CC=2      ←0
   │ makefile                    53L  1C    1m  CC=7      ←0
   │ gitea                       51L  1C    2m  CC=8      ←0
-  │ !  drone                       49L  1C    2m  CC=10     ←0
   │ minimal                     40L  0C    0m  CC=0.0    ←0
   │ __init__                    39L  0C    0m  CC=0.0    ←0
   │ __init__                    23L  0C    1m  CC=2      ←1
@@ -41,50 +41,42 @@ LAYERS:
 
 DUPLICATES[0]: none
 
-FUNCTIONS (CC≥10, 10 of 120):
-   14.0  deploy_cmd                                  2n   1exit  
-   14.0  GitLabCITarget.generate                    18n   2exit  loops+cond+ret
-   13.0  TaskfileRunner.run_task                    32n   9exit  loops+cond+ret
-   13.0  _deploy_quadlet                            10n   1exit  loops+cond
-   12.0  validate_taskfile                          17n   2exit  loops+cond+ret
-   10.0  ComposeFile.get_traefik_labels             15n   5exit  loops+cond+ret
-   10.0  PipelineRunner._resolve_stages             12n   2exit  loops+cond+ret
+FUNCTIONS (CC≥10, 2 of 149):
    10.0  TaskfileRunner.__init__                    12n   1exit  cond
    10.0  ci_generate                                 2n   1exit  
-   10.0  DroneCITarget.generate                     10n   2exit  loops+cond+ret
 
   summary:
-    critical(≥10): 10 | high(5-10): 27 | medium(2-5): 54 | low(<2): 29
-    8% CC≥10  31% CC≥5
+    critical(≥10): 2 | high(5-10): 33 | medium(2-5): 83 | low(<2): 31
+    1% CC≥10  23% CC≥5
 
 HOTSPOTS:
   #1  PipelineRunner.run                   fan=14   "PipelineRunner method, fan-out=14"
-  #2  _deploy_quadlet                      fan=14   "calls 14 functions"
-  #3  TaskfileRunner.run_task              fan=13   "TaskfileRunner method, fan-out=13"
-  #4  ci_generate                          fan=12   "calls 12 functions"
-  #5  deploy_cmd                           fan=12   "calls 12 functions"
-  #6  load_taskfile                        fan=10   "calls 10 functions"
-  #7  load_env_file                        fan=10   "calls 10 functions"
-  #8  quadlet_generate                     fan=9    "calls 9 functions"
-  #9  quadlet_upload                       fan=9    "calls 9 functions"
-  #10 ci_run                               fan=9    "calls 9 functions"
+  #2  ci_generate                          fan=12   "calls 12 functions"
+  #3  load_taskfile                        fan=10   "calls 10 functions"
+  #4  load_env_file                        fan=10   "calls 10 functions"
+  #5  ci_run                               fan=9    "calls 9 functions"
+  #6  quadlet_generate                     fan=9    "calls 9 functions"
+  #7  quadlet_upload                       fan=9    "calls 9 functions"
+  #8  _quadlet_step2_upload                fan=9    "calls 9 functions"
+  #9  deploy_cmd                           fan=9    "calls 9 functions"
+  #10 init                                 fan=9    "calls 9 functions"
 
 CLASSES:
-  TaskfileRunner                 ████████████████████████  15m  CC̄=4.5   max=13  
-  PipelineRunner                 █████████                  6m  CC̄=5.5   max=10  
-  CITarget                       █████████                  6m  CC̄=1.3   max=3   
-  TaskfileConfig                 █████████                  6m  CC̄=2.7   max=4   
-  ComposeFile                    ██████                     4m  CC̄=4.2   max=10  
-  GitHubActionsTarget            ██████                     4m  CC̄=4.8   max=7   
-  DroneCITarget                  ███                        2m  CC̄=5.5   max=10  
-  GitLabCITarget                 ███                        2m  CC̄=7.5   max=14  
-  JenkinsTarget                  ███                        2m  CC̄=1.5   max=2   
-  GiteaActionsTarget             ███                        2m  CC̄=4.5   max=8   
-  Task                           ███                        2m  CC̄=2.5   max=3   
-  PipelineConfig                 ███                        2m  CC̄=4.5   max=5   
+  TaskfileRunner                 ████████████████████████  20m  CC̄=3.8   max=10  
+  GitLabCITarget                 █████████                  8m  CC̄=2.6   max=5   
+  PipelineRunner                 ████████                   7m  CC̄=5.0   max=8   
+  ComposeFile                    ███████                    6m  CC̄=3.0   max=5   
+  CITarget                       ███████                    6m  CC̄=1.3   max=3   
+  TaskfileConfig                 ███████                    6m  CC̄=2.7   max=4   
+  DroneCITarget                  ██████                     5m  CC̄=2.8   max=4   
+  GitHubActionsTarget            ████                       4m  CC̄=4.8   max=7   
+  JenkinsTarget                  ██                         2m  CC̄=1.5   max=2   
+  GiteaActionsTarget             ██                         2m  CC̄=4.5   max=8   
+  Task                           ██                         2m  CC̄=2.5   max=3   
+  PipelineConfig                 ██                         2m  CC̄=4.5   max=5   
+  TaskRunError                   █                          1m  CC̄=1.0   max=1   
   PipelineError                  █                          1m  CC̄=1.0   max=1   
   StageResult                    █                          1m  CC̄=1.0   max=1   
-  TaskRunError                   █                          1m  CC̄=1.0   max=1   
   MakefileTarget                 █                          1m  CC̄=7.0   max=7   
   Environment                    █                          1m  CC̄=2.0   max=2   
   Platform                       █                          1m  CC̄=2.0   max=2   
@@ -94,18 +86,6 @@ CLASSES:
   PipelineStage                                             0m  CC̄=0.0   max=0.0 
 
 D:
-  src/taskfile/cli/deploy.py:
-    e: _run,_ssh,_deploy_local_compose,_deploy_remote_compose,_deploy_quadlet,deploy_cmd
-    _run(cmd,label,dry_run)
-    _ssh(cmd,label,env,env_name,dry_run)
-    _deploy_local_compose(env,env_file_path,dry_run)
-    _deploy_remote_compose(env,env_name,env_file_path,config,dry_run)
-    _deploy_quadlet(env,env_name,env_file_path,compose_path,var_overrides,dry_run)
-    deploy_cmd(ctx,compose_override)
-  src/taskfile/cigen/gitlab.py:
-    e: GitLabCITarget
-    GitLabCITarget
-      _tag_var(0)  CC=1.0
   src/taskfile/runner.py:
     e: TaskRunError,TaskfileRunner
     TaskRunError  # Raised when a task command fails....
@@ -113,31 +93,6 @@ D:
         → __init__(3)  CC=1.0
     TaskfileRunner  # Executes tasks from a Taskfile configuration....
       __init__(7)  CC=10.0
-  src/taskfile/parser.py:
-    e: TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile
-    TaskfileNotFoundError  # Raised when no Taskfile is found in the search path....
-    TaskfileParseError  # Raised when Taskfile cannot be parsed....
-    find_taskfile(start_dir)
-    load_taskfile(path)
-    validate_taskfile(config)
-  src/taskfile/compose.py:
-    e: ComposeFile,load_env_file,resolve_variables,resolve_dict
-    ComposeFile  # Parsed docker-compose.yml with environment resolution....
-      __init__(3)  CC=5.0
-    load_env_file(path)
-    resolve_variables(text,variables)
-    resolve_dict(data,variables)
-  src/taskfile/cirunner.py:
-    e: PipelineError,PipelineRunner,StageResult
-    PipelineError  # Raised when a pipeline stage fails....
-      __init__(2)  CC=1.0
-        → __init__(2)  CC=1.0
-    PipelineRunner  # Runs CI/CD pipeline stages locally using TaskfileRunner.
-
-Th...
-      __init__(5)  CC=2.0
-    StageResult  # Result of running a single pipeline stage....
-      __init__(5)  CC=1.0
   src/taskfile/cli/ci.py:
     e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
     ci()
@@ -146,10 +101,13 @@ Th...
     ci_list(ctx)
     ci_preview(ctx,target)
     ci_targets()
-  src/taskfile/cigen/drone.py:
-    e: DroneCITarget
-    DroneCITarget
-      _tag_var(0)  CC=1.0
+  src/taskfile/compose.py:
+    e: ComposeFile,load_env_file,resolve_variables,resolve_dict
+    ComposeFile  # Parsed docker-compose.yml with environment resolution....
+      __init__(3)  CC=5.0
+    load_env_file(path)
+    resolve_variables(text,variables)
+    resolve_dict(data,variables)
   src/taskfile/quadlet.py:
     e: _parse_port,_parse_memory_limit,_parse_cpus_limit,_build_unit_section,_build_container_env,_build_container_ports,_build_container_volumes,_build_container_networks,_build_container_labels,_build_container_podman_args,_build_container_section,_build_service_section,_build_install_section,generate_container_unit,generate_network_unit,generate_volume_unit,_collect_named_volumes,_generate_network_file,_generate_container_files,_generate_volume_files,compose_to_quadlet
     _parse_port(port_str)
@@ -182,6 +140,17 @@ Th...
     init(template,force)
     validate(ctx)
     info(ctx,task_name)
+  src/taskfile/cirunner.py:
+    e: PipelineError,PipelineRunner,StageResult
+    PipelineError  # Raised when a pipeline stage fails....
+      __init__(2)  CC=1.0
+        → __init__(2)  CC=1.0
+    PipelineRunner  # Runs CI/CD pipeline stages locally using TaskfileRunner.
+
+Th...
+      __init__(5)  CC=2.0
+    StageResult  # Result of running a single pipeline stage....
+      __init__(5)  CC=1.0
   src/taskfile/cigen/gitea.py:
     e: GiteaActionsTarget
     GiteaActionsTarget
@@ -194,6 +163,18 @@ Th...
     e: GitHubActionsTarget
     GitHubActionsTarget
       _tag_var(0)  CC=1.0
+  src/taskfile/parser.py:
+    e: TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,_validate_tasks_exist,_validate_task_commands,_validate_task_dependencies,_validate_task_env_filter,_validate_task_platform_filter,validate_taskfile
+    TaskfileNotFoundError  # Raised when no Taskfile is found in the search path....
+    TaskfileParseError  # Raised when Taskfile cannot be parsed....
+    find_taskfile(start_dir)
+    load_taskfile(path)
+    _validate_tasks_exist(config)
+    _validate_task_commands(task_name,task)
+    _validate_task_dependencies(config,task_name,task)
+    _validate_task_env_filter(config,task_name,task)
+    _validate_task_platform_filter(config,task_name,task)
+    validate_taskfile(config)
   src/taskfile/cli/quadlet.py:
     e: quadlet,quadlet_generate,_get_upload_env,_get_upload_files,_run_upload_commands,quadlet_upload
     quadlet()
@@ -202,6 +183,21 @@ Th...
     _get_upload_files(quadlet_dir)
     _run_upload_commands(env,files,dry_run)
     quadlet_upload(ctx,quadlet_dir)
+  src/taskfile/cli/deploy.py:
+    e: _run,_ssh,_deploy_local_compose,_deploy_remote_compose,_quadlet_step1_generate,_quadlet_step2_upload,_quadlet_step3_reload_and_pull,_quadlet_step4_restart_and_cleanup,_deploy_quadlet,_resolve_deploy_config,_print_deploy_header,_execute_deploy_strategy,deploy_cmd
+    _run(cmd,label,dry_run)
+    _ssh(cmd,label,env,env_name,dry_run)
+    _deploy_local_compose(env,env_file_path,dry_run)
+    _deploy_remote_compose(env,env_name,env_file_path,config,dry_run)
+    _quadlet_step1_generate(env,compose_path,env_file_path,var_overrides,dry_run)
+    _quadlet_step2_upload(env,env_name,dry_run)
+    _quadlet_step3_reload_and_pull(env,env_name,compose,dry_run)
+    _quadlet_step4_restart_and_cleanup(env,env_name,compose,dry_run)
+    _deploy_quadlet(env,env_name,env_file_path,compose_path,var_overrides,dry_run)
+    _resolve_deploy_config(ctx,compose_override)
+    _print_deploy_header(config,env_name,env,compose_path,env_file_path)
+    _execute_deploy_strategy(env,env_name,env_file_path,config,compose_path,var_overrides,dry_run)
+    deploy_cmd(ctx,compose_override)
   src/taskfile/models.py:
     e: Environment,Platform,ComposeConfig,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
     Environment  # Deployment environment configuration....
@@ -223,6 +219,14 @@ Th...
         → _parse_pipeline(1)  CC=2.0
         → from_dict(1)  CC=1.0
     _normalize_commands(cmds)
+  src/taskfile/cigen/gitlab.py:
+    e: GitLabCITarget
+    GitLabCITarget
+      _tag_var(0)  CC=1.0
+  src/taskfile/cigen/drone.py:
+    e: DroneCITarget
+    DroneCITarget
+      _tag_var(0)  CC=1.0
   src/taskfile/cigen/base.py:
     e: CITarget,register_target,_sanitize_id,_yaml_dump
     CITarget  # Base class for CI/CD target generators....
@@ -246,8 +250,8 @@ Th...
   src/taskfile/__init__.py:
   src/taskfile/scaffold/web.py:
   src/taskfile/scaffold/minimal.py:
-  src/taskfile/scaffold/podman.py:
   src/taskfile/scaffold/full.py:
+  src/taskfile/scaffold/podman.py:
   src/taskfile/scaffold/multiplatform.py:
   src/taskfile/scaffold/codereview.py:
   src/taskfile/cli/__init__.py:

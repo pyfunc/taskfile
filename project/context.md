@@ -4,10 +4,10 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 120
+- **Total Functions**: 149
 - **Total Classes**: 22
 - **Modules**: 27
-- **Entry Points**: 77
+- **Entry Points**: 94
 
 ## Architecture by Module
 
@@ -16,45 +16,60 @@
 - **File**: `quadlet.py`
 
 ### src.taskfile.runner
-- **Functions**: 16
+- **Functions**: 21
 - **Classes**: 2
 - **File**: `runner.py`
+
+### src.taskfile.cli.deploy
+- **Functions**: 13
+- **File**: `deploy.py`
 
 ### src.taskfile.models
 - **Functions**: 13
 - **Classes**: 7
 - **File**: `models.py`
 
+### src.taskfile.compose
+- **Functions**: 9
+- **Classes**: 1
+- **File**: `compose.py`
+
+### src.taskfile.cirunner
+- **Functions**: 9
+- **Classes**: 3
+- **File**: `cirunner.py`
+
 ### src.taskfile.cigen.base
 - **Functions**: 9
 - **Classes**: 1
 - **File**: `base.py`
 
-### src.taskfile.cirunner
+### src.taskfile.parser
 - **Functions**: 8
-- **Classes**: 3
-- **File**: `cirunner.py`
+- **Classes**: 2
+- **File**: `parser.py`
 
-### src.taskfile.compose
-- **Functions**: 7
+### src.taskfile.cigen.gitlab
+- **Functions**: 8
 - **Classes**: 1
-- **File**: `compose.py`
+- **File**: `gitlab.py`
 
 ### src.taskfile.cli.main
 - **Functions**: 7
 - **File**: `main.py`
 
-### src.taskfile.cli.quadlet
-- **Functions**: 6
-- **File**: `quadlet.py`
-
 ### src.taskfile.cli.ci
 - **Functions**: 6
 - **File**: `ci.py`
 
-### src.taskfile.cli.deploy
+### src.taskfile.cli.quadlet
 - **Functions**: 6
-- **File**: `deploy.py`
+- **File**: `quadlet.py`
+
+### src.taskfile.cigen.drone
+- **Functions**: 5
+- **Classes**: 1
+- **File**: `drone.py`
 
 ### src.taskfile.cigen
 - **Functions**: 4
@@ -64,21 +79,6 @@
 - **Functions**: 4
 - **Classes**: 1
 - **File**: `github.py`
-
-### src.taskfile.parser
-- **Functions**: 3
-- **Classes**: 2
-- **File**: `parser.py`
-
-### src.taskfile.cigen.drone
-- **Functions**: 2
-- **Classes**: 1
-- **File**: `drone.py`
-
-### src.taskfile.cigen.gitlab
-- **Functions**: 2
-- **Classes**: 1
-- **File**: `gitlab.py`
 
 ### src.taskfile.cigen.jenkins
 - **Functions**: 2
@@ -112,10 +112,6 @@ Examples:
     taskfile ci generate --targe
 - **Calls**: ci.command, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, console.print, None.join, console.print
 
-### src.taskfile.runner.TaskfileRunner.run_task
-> Run a task and its dependencies. Returns True on success.
-- **Calls**: Text, header.append, console.print, time.time, console.print, self._executed.add, console.print, None.join
-
 ### src.taskfile.cirunner.PipelineRunner.run
 > Run pipeline stages in order.
 
@@ -124,13 +120,6 @@ Args:
     skip_stages: Skip these stages
     stop_at: S
 - **Calls**: self._resolve_stages, self._print_pipeline_header, time.time, enumerate, self._print_summary, console.print, console.print, console.print
-
-### src.taskfile.cli.deploy.deploy_cmd
-> Full deploy pipeline: build → push → generate Quadlet → upload → restart.
-
-Reads environment config from Taskfile.yml and performs the correct
-deploy 
-- **Calls**: main.command, click.option, opts.get, opts.get, opts.get, src.taskfile.parser.load_taskfile, env.resolve_variables, variables.update
 
 ### src.taskfile.models.PipelineConfig.from_dict
 - **Calls**: cls, data.get, isinstance, str, data.get, data.get, data.get, data.get
@@ -183,6 +172,13 @@ and remote quadlet directory.
 ### src.taskfile.runner.TaskfileRunner.__init__
 - **Calls**: set, self.env.resolve_variables, self.variables.update, self.variables.setdefault, self.variables.setdefault, self.variables.setdefault, src.taskfile.parser.load_taskfile, console.print
 
+### src.taskfile.cli.deploy.deploy_cmd
+> Full deploy pipeline: build → push → generate Quadlet → upload → restart.
+
+Reads environment config from Taskfile.yml and performs the correct
+deploy 
+- **Calls**: main.command, click.option, ctx.obj.get, ctx.obj.get, src.taskfile.cli.deploy._resolve_deploy_config, src.taskfile.cli.deploy._print_deploy_header, src.taskfile.cli.deploy._execute_deploy_strategy, console.print
+
 ### src.taskfile.cli.main.init
 > Create a new Taskfile.yml in the current directory.
 
@@ -221,9 +217,13 @@ Init project:
 > Print final pipeline results summary.
 - **Calls**: console.print, Table, table.add_column, table.add_column, table.add_column, table.add_column, console.print, console.print
 
-### src.taskfile.compose.ComposeFile.get_traefik_labels
-> Extract Traefik labels from a service.
-- **Calls**: self.get_service, service.get, isinstance, isinstance, item.partition, result.items, k.startswith, labels.items
+### src.taskfile.runner.TaskfileRunner._should_skip_task
+> Check if task should be skipped based on filters/condition. Returns True if skipped.
+- **Calls**: task.should_run_on, console.print, self._executed.add, task.should_run_on_platform, console.print, self._executed.add, self.check_condition, console.print
+
+### src.taskfile.runner.TaskfileRunner.run_task
+> Run a task and its dependencies. Returns True on success.
+- **Calls**: self._get_task_or_fail, self._should_skip_task, self._print_task_header, time.time, console.print, self._executed.add, self._run_dependencies, self._execute_commands
 
 ### src.taskfile.cirunner.PipelineRunner.list_stages
 > Print available pipeline stages.
@@ -239,6 +239,10 @@ Examples:
     taskfile run release --var TAG=v1.2.3
     task
 - **Calls**: main.command, click.argument, TaskfileRunner, runner.run, sys.exit, list, console.print, sys.exit
+
+### src.taskfile.cigen.gitlab.GitLabCITarget.generate
+> Generate GitLab CI configuration.
+- **Calls**: self._build_base_doc, src.taskfile.cigen.base._yaml_dump, src.taskfile.cigen.base._sanitize_id, self._build_job, self._apply_dind, self._apply_when_rules, self._apply_ssh_setup, self._apply_artifacts
 
 ### src.taskfile.models.TaskfileConfig._parse_platforms
 > Parse all platform definitions.
@@ -260,13 +264,9 @@ Examples:
 > Parse the compose section of Taskfile.
 - **Calls**: ComposeConfig, isinstance, ComposeConfig, compose_data.get, compose_data.get, compose_data.get, compose_data.get
 
-### src.taskfile.runner.TaskfileRunner.expand_variables
-> Replace {{VAR}} and ${VAR} placeholders with resolved values.
-- **Calls**: self.variables.items, result.replace, result.replace, result.replace, isinstance, str
-
-### src.taskfile.cli.ci.ci_targets
-> List available CI/CD generation targets.
-- **Calls**: ci.command, console.print, src.taskfile.cigen.list_targets, console.print, console.print, console.print
+### src.taskfile.compose.ComposeFile.get_traefik_labels
+> Extract Traefik labels from a service.
+- **Calls**: self.get_service, service.get, isinstance, self._labels_list_to_dict, isinstance, self._filter_traefik_labels
 
 ## Process Flows
 
@@ -279,51 +279,53 @@ ci_generate [src.taskfile.cli.ci]
       └─> find_taskfile
 ```
 
-### Flow 2: run_task
-```
-run_task [src.taskfile.runner.TaskfileRunner]
-```
-
-### Flow 3: run
+### Flow 2: run
 ```
 run [src.taskfile.cirunner.PipelineRunner]
 ```
 
-### Flow 4: deploy_cmd
-```
-deploy_cmd [src.taskfile.cli.deploy]
-```
-
-### Flow 5: from_dict
+### Flow 3: from_dict
 ```
 from_dict [src.taskfile.models.PipelineConfig]
 ```
 
-### Flow 6: quadlet_generate
+### Flow 4: quadlet_generate
 ```
 quadlet_generate [src.taskfile.cli.quadlet]
 ```
 
-### Flow 7: _parse_tasks
+### Flow 5: _parse_tasks
 ```
 _parse_tasks [src.taskfile.models.TaskfileConfig]
 ```
 
-### Flow 8: info
+### Flow 6: info
 ```
 info [src.taskfile.cli.main]
   └─ →> load_taskfile
       └─> find_taskfile
 ```
 
-### Flow 9: generate
+### Flow 7: generate
 ```
 generate [src.taskfile.cigen.makefile.MakefileTarget]
 ```
 
-### Flow 10: ci_run
+### Flow 8: ci_run
 ```
 ci_run [src.taskfile.cli.ci]
+  └─ →> load_taskfile
+      └─> find_taskfile
+```
+
+### Flow 9: _parse_environments
+```
+_parse_environments [src.taskfile.models.TaskfileConfig]
+```
+
+### Flow 10: quadlet_upload
+```
+quadlet_upload [src.taskfile.cli.quadlet]
   └─ →> load_taskfile
       └─> find_taskfile
 ```
@@ -332,20 +334,25 @@ ci_run [src.taskfile.cli.ci]
 
 ### src.taskfile.runner.TaskfileRunner
 > Executes tasks from a Taskfile configuration.
-- **Methods**: 15
-- **Key Methods**: src.taskfile.runner.TaskfileRunner.__init__, src.taskfile.runner.TaskfileRunner.expand_variables, src.taskfile.runner.TaskfileRunner.run_command, src.taskfile.runner.TaskfileRunner._is_remote_command, src.taskfile.runner.TaskfileRunner._strip_remote_prefix, src.taskfile.runner.TaskfileRunner._wrap_ssh, src.taskfile.runner.TaskfileRunner.check_condition, src.taskfile.runner.TaskfileRunner.run_task, src.taskfile.runner.TaskfileRunner.run, src.taskfile.runner.TaskfileRunner.list_tasks
+- **Methods**: 20
+- **Key Methods**: src.taskfile.runner.TaskfileRunner.__init__, src.taskfile.runner.TaskfileRunner.expand_variables, src.taskfile.runner.TaskfileRunner.run_command, src.taskfile.runner.TaskfileRunner._is_remote_command, src.taskfile.runner.TaskfileRunner._strip_remote_prefix, src.taskfile.runner.TaskfileRunner._wrap_ssh, src.taskfile.runner.TaskfileRunner.check_condition, src.taskfile.runner.TaskfileRunner._get_task_or_fail, src.taskfile.runner.TaskfileRunner._should_skip_task, src.taskfile.runner.TaskfileRunner._run_dependencies
 
 ### src.taskfile.compose.ComposeFile
 > Parsed docker-compose.yml with environment resolution.
-- **Methods**: 7
-- **Key Methods**: src.taskfile.compose.ComposeFile.__init__, src.taskfile.compose.ComposeFile.services, src.taskfile.compose.ComposeFile.networks, src.taskfile.compose.ComposeFile.volumes, src.taskfile.compose.ComposeFile.get_service, src.taskfile.compose.ComposeFile.get_traefik_labels, src.taskfile.compose.ComposeFile.service_names
+- **Methods**: 9
+- **Key Methods**: src.taskfile.compose.ComposeFile.__init__, src.taskfile.compose.ComposeFile.services, src.taskfile.compose.ComposeFile.networks, src.taskfile.compose.ComposeFile.volumes, src.taskfile.compose.ComposeFile.get_service, src.taskfile.compose.ComposeFile._labels_list_to_dict, src.taskfile.compose.ComposeFile._filter_traefik_labels, src.taskfile.compose.ComposeFile.get_traefik_labels, src.taskfile.compose.ComposeFile.service_names
+
+### src.taskfile.cigen.gitlab.GitLabCITarget
+- **Methods**: 8
+- **Key Methods**: src.taskfile.cigen.gitlab.GitLabCITarget._tag_var, src.taskfile.cigen.gitlab.GitLabCITarget._build_base_doc, src.taskfile.cigen.gitlab.GitLabCITarget._build_job, src.taskfile.cigen.gitlab.GitLabCITarget._apply_dind, src.taskfile.cigen.gitlab.GitLabCITarget._apply_when_rules, src.taskfile.cigen.gitlab.GitLabCITarget._apply_ssh_setup, src.taskfile.cigen.gitlab.GitLabCITarget._apply_artifacts, src.taskfile.cigen.gitlab.GitLabCITarget.generate
+- **Inherits**: CITarget
 
 ### src.taskfile.cirunner.PipelineRunner
 > Runs CI/CD pipeline stages locally using TaskfileRunner.
 
 The pipeline is just an ordered list of st
-- **Methods**: 6
-- **Key Methods**: src.taskfile.cirunner.PipelineRunner.__init__, src.taskfile.cirunner.PipelineRunner.run, src.taskfile.cirunner.PipelineRunner._resolve_stages, src.taskfile.cirunner.PipelineRunner._print_pipeline_header, src.taskfile.cirunner.PipelineRunner._print_summary, src.taskfile.cirunner.PipelineRunner.list_stages
+- **Methods**: 7
+- **Key Methods**: src.taskfile.cirunner.PipelineRunner.__init__, src.taskfile.cirunner.PipelineRunner.run, src.taskfile.cirunner.PipelineRunner._should_skip_stage, src.taskfile.cirunner.PipelineRunner._resolve_stages, src.taskfile.cirunner.PipelineRunner._print_pipeline_header, src.taskfile.cirunner.PipelineRunner._print_summary, src.taskfile.cirunner.PipelineRunner.list_stages
 
 ### src.taskfile.cigen.base.CITarget
 > Base class for CI/CD target generators.
@@ -357,6 +364,11 @@ The pipeline is just an ordered list of st
 - **Methods**: 6
 - **Key Methods**: src.taskfile.models.TaskfileConfig.from_dict, src.taskfile.models.TaskfileConfig._parse_compose, src.taskfile.models.TaskfileConfig._parse_environments, src.taskfile.models.TaskfileConfig._parse_platforms, src.taskfile.models.TaskfileConfig._parse_tasks, src.taskfile.models.TaskfileConfig._parse_pipeline
 
+### src.taskfile.cigen.drone.DroneCITarget
+- **Methods**: 5
+- **Key Methods**: src.taskfile.cigen.drone.DroneCITarget._tag_var, src.taskfile.cigen.drone.DroneCITarget._build_base_doc, src.taskfile.cigen.drone.DroneCITarget._build_step, src.taskfile.cigen.drone.DroneCITarget._add_global_volumes, src.taskfile.cigen.drone.DroneCITarget.generate
+- **Inherits**: CITarget
+
 ### src.taskfile.cigen.github.GitHubActionsTarget
 - **Methods**: 4
 - **Key Methods**: src.taskfile.cigen.github.GitHubActionsTarget._tag_var, src.taskfile.cigen.github.GitHubActionsTarget._build_steps, src.taskfile.cigen.github.GitHubActionsTarget._apply_conditions, src.taskfile.cigen.github.GitHubActionsTarget.generate
@@ -366,16 +378,6 @@ The pipeline is just an ordered list of st
 > Deployment environment configuration.
 - **Methods**: 4
 - **Key Methods**: src.taskfile.models.Environment.ssh_target, src.taskfile.models.Environment.ssh_opts, src.taskfile.models.Environment.is_remote, src.taskfile.models.Environment.resolve_variables
-
-### src.taskfile.cigen.drone.DroneCITarget
-- **Methods**: 2
-- **Key Methods**: src.taskfile.cigen.drone.DroneCITarget._tag_var, src.taskfile.cigen.drone.DroneCITarget.generate
-- **Inherits**: CITarget
-
-### src.taskfile.cigen.gitlab.GitLabCITarget
-- **Methods**: 2
-- **Key Methods**: src.taskfile.cigen.gitlab.GitLabCITarget._tag_var, src.taskfile.cigen.gitlab.GitLabCITarget.generate
-- **Inherits**: CITarget
 
 ### src.taskfile.cigen.jenkins.JenkinsTarget
 - **Methods**: 2
@@ -397,6 +399,12 @@ The pipeline is just an ordered list of st
 - **Methods**: 2
 - **Key Methods**: src.taskfile.models.PipelineConfig.from_dict, src.taskfile.models.PipelineConfig.infer_from_tasks
 
+### src.taskfile.runner.TaskRunError
+> Raised when a task command fails.
+- **Methods**: 1
+- **Key Methods**: src.taskfile.runner.TaskRunError.__init__
+- **Inherits**: Exception
+
 ### src.taskfile.cirunner.PipelineError
 > Raised when a pipeline stage fails.
 - **Methods**: 1
@@ -407,12 +415,6 @@ The pipeline is just an ordered list of st
 > Result of running a single pipeline stage.
 - **Methods**: 1
 - **Key Methods**: src.taskfile.cirunner.StageResult.__init__
-
-### src.taskfile.runner.TaskRunError
-> Raised when a task command fails.
-- **Methods**: 1
-- **Key Methods**: src.taskfile.runner.TaskRunError.__init__
-- **Inherits**: Exception
 
 ### src.taskfile.cigen.makefile.MakefileTarget
 - **Methods**: 1
@@ -438,9 +440,27 @@ The pipeline is just an ordered list of st
 
 Key functions that process and transform data:
 
+### src.taskfile.parser._validate_tasks_exist
+> Check that at least one task is defined.
+
+### src.taskfile.parser._validate_task_commands
+> Check that task has at least one command.
+
+### src.taskfile.parser._validate_task_dependencies
+> Check that all task dependencies exist.
+- **Output to**: warnings.append
+
+### src.taskfile.parser._validate_task_env_filter
+> Check that all environment references in filters exist.
+- **Output to**: warnings.append
+
+### src.taskfile.parser._validate_task_platform_filter
+> Check that all platform references in filters exist.
+- **Output to**: warnings.append
+
 ### src.taskfile.parser.validate_taskfile
 > Validate a TaskfileConfig and return list of warnings.
-- **Output to**: config.tasks.items, warnings.append, warnings.append, warnings.append, warnings.append
+- **Output to**: warnings.extend, config.tasks.items, src.taskfile.parser._validate_tasks_exist, warnings.extend, warnings.extend
 
 ### src.taskfile.quadlet._parse_port
 > Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
@@ -493,9 +513,7 @@ Key functions that process and transform data:
 Functions exposed as public API (no underscore prefix):
 
 - `src.taskfile.cli.ci.ci_generate` - 41 calls
-- `src.taskfile.runner.TaskfileRunner.run_task` - 29 calls
 - `src.taskfile.cirunner.PipelineRunner.run` - 28 calls
-- `src.taskfile.cli.deploy.deploy_cmd` - 28 calls
 - `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
 - `src.taskfile.cli.quadlet.quadlet_generate` - 19 calls
 - `src.taskfile.cli.main.info` - 18 calls
@@ -503,34 +521,36 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.models.TaskfileConfig.from_dict` - 18 calls
 - `src.taskfile.cli.ci.ci_run` - 17 calls
 - `src.taskfile.cli.quadlet.quadlet_upload` - 15 calls
+- `src.taskfile.cli.deploy.deploy_cmd` - 12 calls
 - `src.taskfile.cli.main.init` - 12 calls
 - `src.taskfile.cli.main.validate` - 12 calls
 - `src.taskfile.parser.load_taskfile` - 11 calls
+- `src.taskfile.parser.validate_taskfile` - 11 calls
 - `src.taskfile.cli.ci.ci_preview` - 11 calls
 - `src.taskfile.cli.main.main` - 11 calls
 - `src.taskfile.compose.load_env_file` - 10 calls
-- `src.taskfile.compose.ComposeFile.get_traefik_labels` - 9 calls
+- `src.taskfile.runner.TaskfileRunner.run_task` - 9 calls
 - `src.taskfile.compose.resolve_variables` - 8 calls
-- `src.taskfile.cirunner.PipelineRunner.list_stages` - 8 calls
 - `src.taskfile.quadlet.compose_to_quadlet` - 8 calls
+- `src.taskfile.cirunner.PipelineRunner.list_stages` - 8 calls
 - `src.taskfile.cli.main.run` - 8 calls
+- `src.taskfile.cigen.gitlab.GitLabCITarget.generate` - 8 calls
 - `src.taskfile.compose.resolve_dict` - 7 calls
 - `src.taskfile.runner.TaskfileRunner.run_command` - 7 calls
 - `src.taskfile.cli.ci.ci_list` - 7 calls
 - `src.taskfile.parser.find_taskfile` - 6 calls
-- `src.taskfile.parser.validate_taskfile` - 6 calls
+- `src.taskfile.compose.ComposeFile.get_traefik_labels` - 6 calls
 - `src.taskfile.runner.TaskfileRunner.expand_variables` - 6 calls
 - `src.taskfile.cli.ci.ci_targets` - 6 calls
 - `src.taskfile.cli.main.list_tasks` - 6 calls
-- `src.taskfile.cigen.gitlab.GitLabCITarget.generate` - 6 calls
 - `src.taskfile.cigen.generate_ci` - 6 calls
 - `src.taskfile.models.PipelineConfig.infer_from_tasks` - 6 calls
-- `src.taskfile.runner.TaskfileRunner.list_tasks` - 5 calls
 - `src.taskfile.quadlet.generate_container_unit` - 5 calls
+- `src.taskfile.runner.TaskfileRunner.list_tasks` - 5 calls
+- `src.taskfile.cigen.drone.DroneCITarget.generate` - 5 calls
 - `src.taskfile.cigen.jenkins.JenkinsTarget.generate` - 5 calls
 - `src.taskfile.cigen.preview_ci` - 5 calls
 - `src.taskfile.cigen.base.CITarget.write` - 4 calls
-- `src.taskfile.cigen.drone.DroneCITarget.generate` - 4 calls
 - `src.taskfile.cli.main.parse_var` - 4 calls
 
 ## System Interactions
@@ -542,18 +562,11 @@ graph TD
     ci_generate --> command
     ci_generate --> option
     ci_generate --> load_taskfile
-    run_task --> Text
-    run_task --> append
-    run_task --> print
-    run_task --> time
     run --> _resolve_stages
     run --> _print_pipeline_head
     run --> time
     run --> enumerate
     run --> _print_summary
-    deploy_cmd --> command
-    deploy_cmd --> option
-    deploy_cmd --> get
     from_dict --> cls
     from_dict --> get
     from_dict --> isinstance
@@ -569,6 +582,13 @@ graph TD
     info --> load_taskfile
     info --> print
     generate --> sorted
+    generate --> join
+    generate --> items
+    generate --> replace
+    generate --> append
+    from_dict --> _parse_compose
+    from_dict --> _parse_environments
+    from_dict --> _parse_platforms
 ```
 
 ## Reverse Engineering Guidelines

@@ -1,26 +1,26 @@
-# taskfile | 36f 4794L | python:36
+# taskfile | 36f 4947L | python:36
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[36]:
   src/taskfile/__init__.py,34
   src/taskfile/cigen/__init__.py,48
   src/taskfile/cigen/base.py,54
-  src/taskfile/cigen/drone.py,37
+  src/taskfile/cigen/drone.py,49
   src/taskfile/cigen/gitea.py,37
   src/taskfile/cigen/github.py,82
-  src/taskfile/cigen/gitlab.py,61
+  src/taskfile/cigen/gitlab.py,83
   src/taskfile/cigen/jenkins.py,46
   src/taskfile/cigen/makefile.py,42
-  src/taskfile/cirunner.py,194
+  src/taskfile/cirunner.py,204
   src/taskfile/cli/__init__.py,5
   src/taskfile/cli/ci.py,171
-  src/taskfile/cli/deploy.py,138
+  src/taskfile/cli/deploy.py,170
   src/taskfile/cli/main.py,165
   src/taskfile/cli/quadlet.py,154
-  src/taskfile/compose.py,118
+  src/taskfile/compose.py,127
   src/taskfile/models.py,283
-  src/taskfile/parser.py,83
+  src/taskfile/parser.py,106
   src/taskfile/quadlet.py,241
-  src/taskfile/runner.py,246
+  src/taskfile/runner.py,269
   src/taskfile/scaffold/__init__.py,20
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
@@ -55,7 +55,7 @@ D:
   src/taskfile/cigen/drone.py:
     i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
     e: DroneCITarget
-    DroneCITarget: _tag_var(0),generate(0)
+    DroneCITarget: _tag_var(0),_build_base_doc(0),_build_step(2),_add_global_volumes(2),generate(0)
   src/taskfile/cigen/gitea.py:
     i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
     e: GiteaActionsTarget
@@ -67,7 +67,7 @@ D:
   src/taskfile/cigen/gitlab.py:
     i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
     e: GitLabCITarget
-    GitLabCITarget: _tag_var(0),generate(0)
+    GitLabCITarget: _tag_var(0),_build_base_doc(0),_build_job(1),_apply_dind(3),_apply_when_rules(3)
   src/taskfile/cigen/jenkins.py:
     i: taskfile.cigen.base.{CITarget,_sanitize_id,_yaml_dump,register_target}
     e: JenkinsTarget
@@ -80,7 +80,7 @@ D:
     i: sys,time,rich.console.Console,rich.panel.Panel,rich.table.Table,rich.text.Text,taskfile.models.{PipelineConfig,PipelineStage,TaskfileConfig},typing.Sequence
     e: PipelineError,PipelineRunner,StageResult
     PipelineError: __init__(2)  # Raised when a pipeline stage fails.
-    PipelineRunner: __init__(5),run(3),_resolve_stages(3),_print_pipeline_header(1),_print_summary(2)  # Runs CI/CD pipeline stages locally us...
+    PipelineRunner: __init__(5),run(3),_should_skip_stage(3),_resolve_stages(3),_print_pipeline_header(1)  # Runs CI/CD pipeline stages locally us...
     StageResult: __init__(5)  # Result of running a single pipeline s...
   src/taskfile/cli/ci.py:
     i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
@@ -98,8 +98,10 @@ D:
     _ssh(cmd:str;label:str;env:any;env_name:str;dry_run:bool)
     _deploy_local_compose(env;env_file_path;dry_run)
     _deploy_remote_compose(env;env_name;env_file_path;config;dry_run)
-    _deploy_quadlet(env;env_name;env_file_path;compose_path;var_overrides;dry_run)
-    deploy_cmd(ctx;compose_override)
+    _quadlet_step1_generate(env;compose_path;env_file_path;var_overrides;dry_run)
+    _quadlet_step2_upload(env;env_name;dry_run)
+    _quadlet_step3_reload_and_pull(env;env_name;compose;dry_run)
+    _quadlet_step4_restart_and_cleanup(env;env_name;compose;dry_run)
   src/taskfile/cli/main.py:
     i: sys,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile},taskfile.runner.TaskfileRunner
     e: parse_var,main,run,list_tasks,init,validate,info
@@ -142,6 +144,11 @@ D:
     TaskfileParseError:   # Raised when Taskfile cannot be parsed.
     find_taskfile(start_dir:Any=None)->Path
     load_taskfile(path:Any=None)->TaskfileConfig
+    _validate_tasks_exist(config:TaskfileConfig)->list[str]
+    _validate_task_commands(task_name:str;task)->list[str]
+    _validate_task_dependencies(config:TaskfileConfig;task_name:str;task)->list[str]
+    _validate_task_env_filter(config:TaskfileConfig;task_name:str;task)->list[str]
+    _validate_task_platform_filter(config:TaskfileConfig;task_name:str;task)->list[str]
     validate_taskfile(config:TaskfileConfig)->list[str]
   src/taskfile/quadlet.py:
     i: re,pathlib.Path,rich.console.Console,taskfile.compose.ComposeFile,typing.Any

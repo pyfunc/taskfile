@@ -1,3 +1,29 @@
+## [0.3.8] - 2026-03-05
+
+### Summary
+
+refactor(docs): code analysis engine
+
+### Docs
+
+- docs: update README
+- docs: update context.md
+
+### Other
+
+- update project/analysis.toon
+- update project/calls.mmd
+- update project/calls.png
+- update project/compact_flow.mmd
+- update project/compact_flow.png
+- update project/dashboard.html
+- update project/evolution.toon
+- update project/flow.mmd
+- update project/flow.png
+- update project/flow.toon
+- ... and 3 more
+
+
 ## [0.3.7] - 2026-03-05
 
 ### Summary
