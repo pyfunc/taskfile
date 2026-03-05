@@ -1,5 +1,25 @@
 ## [Unreleased]
 
+### Refactor
+- **Phase 1 — Split god modules into packages:**
+  - `runner.py` (711L) → `runner/` package (`core.py`, `commands.py`, `ssh.py`, `functions.py`)
+  - `main.py` (490L) → extracted `cli/info_cmd.py`
+  - `interactive.py` (552L) → `cli/interactive/` package (`wizards.py`, `menu.py`)
+  - `webui.py` (594L) → `webui/` package (`server.py`, `handlers.py`)
+- **Phase 2 — Extract Method for high-CC functions:**
+  - `_resolve_includes` → `_parse_include_entry`, `_load_include_file`, `_merge_include_sections`
+  - `_import_github_actions` / `_import_gitlab_ci` → extracted step/job/dep helpers
+  - `_detect_type` → `_FILENAME_TYPE_MAP` dict lookup + `_detect_type_from_yaml_content`
+  - `run_command` → `_dispatch_special_prefix` + `_run_local`
+  - `scan_nearby_taskfiles` → `_scan_dir_for_taskfiles` + `_scan_subdirectories`
+- **Phase 3 — Runner class decomposition:**
+  - Extracted `TaskResolver` (pure logic: variable expansion, filtering, dependency ordering)
+  - `TaskfileRunner` is now a facade composing `TaskResolver` + IO methods
+- **Phase 4 — Cleanup:**
+  - Consolidated `converters.py` ↔ `importer.py` duplication (shared `_FILENAME_TYPE_MAP`)
+  - Added 27 new `TaskResolver` unit tests
+  - All backward compatibility preserved via `__init__.py` re-exports
+
 ## [0.3.38] - 2026-03-05
 
 ### Docs
