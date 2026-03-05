@@ -131,22 +131,33 @@ class ComposeFile:
         """Get a single resolved service by name."""
         return self.services.get(name)
 
+    @staticmethod
+    def _labels_list_to_dict(labels: list) -> dict[str, str]:
+        """Convert list format ['key=value'] to dict, filtering for traefik labels."""
+        result = {}
+        for item in labels:
+            if "=" in item:
+                k, _, v = item.partition("=")
+                if k.startswith("traefik."):
+                    result[k] = v
+        return result
+
+    @staticmethod
+    def _filter_traefik_labels(labels: dict) -> dict[str, str]:
+        """Filter dict labels for traefik-prefixed keys."""
+        return {k: v for k, v in labels.items() if k.startswith("traefik.")}
+
     def get_traefik_labels(self, service_name: str) -> dict[str, str]:
         """Extract Traefik labels from a service."""
         service = self.get_service(service_name)
         if not service:
             return {}
+
         labels = service.get("labels", {})
         if isinstance(labels, list):
-            # Convert list format to dict
-            result = {}
-            for item in labels:
-                if "=" in item:
-                    k, _, v = item.partition("=")
-                    result[k] = v
-            return {k: v for k, v in result.items() if k.startswith("traefik.")}
+            return self._labels_list_to_dict(labels)
         elif isinstance(labels, dict):
-            return {k: v for k, v in labels.items() if k.startswith("traefik.")}
+            return self._filter_traefik_labels(labels)
         return {}
 
     def service_names(self) -> list[str]:

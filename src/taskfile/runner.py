@@ -158,19 +158,17 @@ class TaskfileRunner:
         )
         return result.returncode == 0
 
-    def run_task(self, task_name: str) -> bool:
-        """Run a task and its dependencies. Returns True on success."""
-        if task_name in self._executed:
-            return True
+    def _get_task_or_fail(self, task_name: str) -> Task | None:
+        """Lookup task by name, print error if not found."""
+        if task_name in self.config.tasks:
+            return self.config.tasks[task_name]
+        console.print(f"[red]✗ Unknown task: {task_name}[/]")
+        available = ", ".join(sorted(self.config.tasks.keys()))
+        console.print(f"[dim]  Available tasks: {available}[/]")
+        return None
 
-        if task_name not in self.config.tasks:
-            console.print(f"[red]✗ Unknown task: {task_name}[/]")
-            available = ", ".join(sorted(self.config.tasks.keys()))
-            console.print(f"[dim]  Available tasks: {available}[/]")
-            return False
-
-        task = self.config.tasks[task_name]
-
+    def _should_skip_task(self, task: Task, task_name: str) -> bool:
+        """Check if task should be skipped based on filters/condition. Returns True if skipped."""
         # Check environment filter
         if not task.should_run_on(self.env_name):
             console.print(
@@ -193,23 +191,18 @@ class TaskfileRunner:
             self._executed.add(task_name)
             return True
 
-        # Run dependencies first
+        return False
+
+    def _run_dependencies(self, task: Task, task_name: str) -> bool:
+        """Run all task dependencies. Returns False if any failed."""
         for dep in task.deps:
             if not self.run_task(dep):
                 console.print(f"[red]✗ Dependency '{dep}' failed for '{task_name}'[/]")
                 return False
+        return True
 
-        # Run task
-        header = Text(f"▶ {task_name}", style="bold green")
-        if task.description:
-            header.append(f" — {task.description}", style="dim")
-        header.append(f" [{self.env_name}]", style="bold cyan")
-        if self.platform_name:
-            header.append(f" [{self.platform_name}]", style="bold magenta")
-        console.print(header)
-
-        start = time.time()
-
+    def _execute_commands(self, task: Task, task_name: str, start: float) -> bool:
+        """Execute all commands in a task. Returns False if any failed (and not ignored)."""
         for cmd in task.commands:
             returncode = self.run_command(cmd, task)
             if returncode != 0:
@@ -222,6 +215,38 @@ class TaskfileRunner:
                         f"(exit code {returncode})[/]"
                     )
                     return False
+        return True
+
+    def _print_task_header(self, task_name: str, task: Task) -> None:
+        """Print task execution header with env/platform info."""
+        header = Text(f"▶ {task_name}", style="bold green")
+        if task.description:
+            header.append(f" — {task.description}", style="dim")
+        header.append(f" [{self.env_name}]", style="bold cyan")
+        if self.platform_name:
+            header.append(f" [{self.platform_name}]", style="bold magenta")
+        console.print(header)
+
+    def run_task(self, task_name: str) -> bool:
+        """Run a task and its dependencies. Returns True on success."""
+        if task_name in self._executed:
+            return True
+
+        task = self._get_task_or_fail(task_name)
+        if task is None:
+            return False
+
+        if self._should_skip_task(task, task_name):
+            return True
+
+        if not self._run_dependencies(task, task_name):
+            return False
+
+        self._print_task_header(task_name, task)
+        start = time.time()
+
+        if not self._execute_commands(task, task_name, start):
+            return False
 
         elapsed = time.time() - start
         console.print(f"  [green]✓ Done[/] [dim]({elapsed:.1f}s)[/]")

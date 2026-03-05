@@ -81,33 +81,63 @@ def load_taskfile(path: str | Path | None = None) -> TaskfileConfig:
     return config
 
 
+def _validate_tasks_exist(config: TaskfileConfig) -> list[str]:
+    """Check that at least one task is defined."""
+    if not config.tasks:
+        return ["No tasks defined"]
+    return []
+
+
+def _validate_task_commands(task_name: str, task) -> list[str]:
+    """Check that task has at least one command."""
+    if not task.commands:
+        return [f"Task '{task_name}' has no commands"]
+    return []
+
+
+def _validate_task_dependencies(config: TaskfileConfig, task_name: str, task) -> list[str]:
+    """Check that all task dependencies exist."""
+    warnings = []
+    for dep in task.deps:
+        if dep not in config.tasks:
+            warnings.append(f"Task '{task_name}' depends on unknown task '{dep}'")
+    return warnings
+
+
+def _validate_task_env_filter(config: TaskfileConfig, task_name: str, task) -> list[str]:
+    """Check that all environment references in filters exist."""
+    warnings = []
+    if task.env_filter:
+        for env in task.env_filter:
+            if env not in config.environments:
+                warnings.append(
+                    f"Task '{task_name}' references unknown environment '{env}'"
+                )
+    return warnings
+
+
+def _validate_task_platform_filter(config: TaskfileConfig, task_name: str, task) -> list[str]:
+    """Check that all platform references in filters exist."""
+    warnings = []
+    if task.platform_filter:
+        for plat in task.platform_filter:
+            if plat not in config.platforms:
+                warnings.append(
+                    f"Task '{task_name}' references unknown platform '{plat}'"
+                )
+    return warnings
+
+
 def validate_taskfile(config: TaskfileConfig) -> list[str]:
     """Validate a TaskfileConfig and return list of warnings."""
     warnings = []
 
-    if not config.tasks:
-        warnings.append("No tasks defined")
+    warnings.extend(_validate_tasks_exist(config))
 
     for task_name, task in config.tasks.items():
-        if not task.commands:
-            warnings.append(f"Task '{task_name}' has no commands")
-
-        for dep in task.deps:
-            if dep not in config.tasks:
-                warnings.append(f"Task '{task_name}' depends on unknown task '{dep}'")
-
-        if task.env_filter:
-            for env in task.env_filter:
-                if env not in config.environments:
-                    warnings.append(
-                        f"Task '{task_name}' references unknown environment '{env}'"
-                    )
-
-        if task.platform_filter:
-            for plat in task.platform_filter:
-                if plat not in config.platforms:
-                    warnings.append(
-                        f"Task '{task_name}' references unknown platform '{plat}'"
-                    )
+        warnings.extend(_validate_task_commands(task_name, task))
+        warnings.extend(_validate_task_dependencies(config, task_name, task))
+        warnings.extend(_validate_task_env_filter(config, task_name, task))
+        warnings.extend(_validate_task_platform_filter(config, task_name, task))
 
     return warnings

@@ -148,6 +148,32 @@ class PipelineRunner:
         self._print_summary(total_elapsed, success)
         return success
 
+    def _should_skip_stage(
+        self,
+        stage: PipelineStage,
+        stage_filter: list[str] | None,
+        skip_set: set[str],
+    ) -> bool:
+        """Determine if a stage should be skipped based on filters."""
+        # Filter by explicit selection
+        if stage_filter and stage.name not in stage_filter:
+            return True
+
+        # Skip explicitly excluded
+        if stage.name in skip_set:
+            console.print(f"  [dim]⊘ Skipping stage '{stage.name}' (excluded)[/]")
+            return True
+
+        # Skip manual stages unless explicitly requested
+        if stage.when == "manual" and not stage_filter:
+            console.print(
+                f"  [dim]⊘ Skipping stage '{stage.name}' (manual — "
+                f"use --stage {stage.name} to run)[/]"
+            )
+            return True
+
+        return False
+
     def _resolve_stages(
         self,
         stage_filter: list[str] | None,
@@ -156,24 +182,10 @@ class PipelineRunner:
     ) -> list[PipelineStage]:
         """Resolve which stages to run."""
         stages = []
-        skip = set(skip_stages or [])
+        skip_set = set(skip_stages or [])
 
         for stage in self.pipeline.stages:
-            # Filter by explicit selection
-            if stage_filter and stage.name not in stage_filter:
-                continue
-
-            # Skip explicitly excluded
-            if stage.name in skip:
-                console.print(f"  [dim]⊘ Skipping stage '{stage.name}' (excluded)[/]")
-                continue
-
-            # Skip manual stages unless explicitly requested
-            if stage.when == "manual" and not stage_filter:
-                console.print(
-                    f"  [dim]⊘ Skipping stage '{stage.name}' (manual — "
-                    f"use --stage {stage.name} to run)[/]"
-                )
+            if self._should_skip_stage(stage, stage_filter, skip_set):
                 continue
 
             stages.append(stage)

@@ -1,3 +1,20 @@
+## [0.3.7] - 2026-03-05
+
+### Summary
+
+refactor(build): configuration management system
+
+### Core
+
+- update src/taskfile/cigen/drone.py
+- update src/taskfile/cigen/gitlab.py
+- update src/taskfile/cirunner.py
+- update src/taskfile/cli/deploy.py
+- update src/taskfile/compose.py
+- update src/taskfile/parser.py
+- update src/taskfile/runner.py
+
+
 ## [0.3.6] - 2026-03-05
 
 ### Summary

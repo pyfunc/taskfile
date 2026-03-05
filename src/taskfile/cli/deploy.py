@@ -39,11 +39,11 @@ def _deploy_remote_compose(env, env_name, env_file_path, config, dry_run):
          "Starting services on remote...", env, env_name, dry_run)
     console.print(f"\n[green]✅ Remote compose deploy complete ({env_name})[/]")
 
-def _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run):
+def _quadlet_step1_generate(env, compose_path, env_file_path, var_overrides, dry_run):
+    """Step 1: Generate Quadlet files from compose."""
     from taskfile.compose import ComposeFile
     from taskfile.quadlet import compose_to_quadlet
 
-    # Step 1: Generate Quadlet
     console.print("[bold]Step 1/4: Generating Quadlet files[/]")
     compose = ComposeFile(
         compose_path=compose_path,
@@ -51,7 +51,7 @@ def _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, d
         extra_vars=var_overrides,
     )
     if not dry_run:
-        generated = compose_to_quadlet(
+        compose_to_quadlet(
             compose=compose,
             output_dir=env.quadlet_dir,
             network_name="proxy",
@@ -59,9 +59,11 @@ def _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, d
         )
     else:
         console.print(f"  [dim](dry run — would generate from {compose_path})[/]")
-        generated = []
+    return compose
 
-    # Step 2: Upload to server
+
+def _quadlet_step2_upload(env, env_name, dry_run):
+    """Step 2: Upload Quadlet files to remote server."""
     console.print(f"\n[bold]Step 2/4: Uploading to {env.ssh_target}[/]")
     quadlet_dir = Path(env.quadlet_dir)
     if not dry_run and quadlet_dir.is_dir():
@@ -74,22 +76,94 @@ def _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, d
     else:
         console.print(f"  [dim](dry run — would upload to {env.quadlet_remote_dir})[/]")
 
-    # Step 3: Reload + pull
+
+def _quadlet_step3_reload_and_pull(env, env_name, compose, dry_run):
+    """Step 3: Reload systemd and pull container images."""
     console.print(f"\n[bold]Step 3/4: Pull images & reload systemd[/]")
     _ssh("systemctl --user daemon-reload", "", env, env_name, dry_run)
-    for svc_name in compose.service_names() if not dry_run else ["(services)"]:
-        svc = compose.get_service(svc_name) if not dry_run else {}
-        image = svc.get("image", "") if svc else ""
-        if image and not dry_run:
-            _ssh(f"podman pull {image}", "", env, env_name, dry_run)
+    if not dry_run:
+        for svc_name in compose.service_names():
+            svc = compose.get_service(svc_name)
+            image = svc.get("image", "") if svc else ""
+            if image:
+                _ssh(f"podman pull {image}", "", env, env_name, dry_run)
 
-    # Step 4: Restart services
+
+def _quadlet_step4_restart_and_cleanup(env, env_name, compose, dry_run):
+    """Step 4: Restart services and cleanup old images."""
     console.print(f"\n[bold]Step 4/4: Restarting services[/]")
-    for svc_name in compose.service_names() if not dry_run else ["(services)"]:
-        _ssh(f"systemctl --user restart {svc_name}", "", env, env_name, dry_run)
-
+    if not dry_run:
+        for svc_name in compose.service_names():
+            _ssh(f"systemctl --user restart {svc_name}", "", env, env_name, dry_run)
     _ssh("podman image prune -f", "Cleaning up old images...", env, env_name, dry_run)
     console.print(f"\n[green]✅ Quadlet deploy complete ({env_name})[/]")
+
+
+def _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run):
+    """Deploy using Podman Quadlet (generate → upload → restart)."""
+    compose = _quadlet_step1_generate(env, compose_path, env_file_path, var_overrides, dry_run)
+    _quadlet_step2_upload(env, env_name, dry_run)
+    _quadlet_step3_reload_and_pull(env, env_name, compose, dry_run)
+    _quadlet_step4_restart_and_cleanup(env, env_name, compose, dry_run)
+
+def _resolve_deploy_config(ctx, compose_override: str | None) -> tuple:
+    """Resolve environment, variables, and paths for deployment.
+
+    Returns: (config, env_name, env, compose_path, env_file_path, var_overrides, dry_run)
+    """
+    opts = ctx.obj
+    env_name = opts.get("env_name")
+    dry_run = opts.get("dry_run", False)
+    var_overrides = opts.get("var", {})
+
+    config = load_taskfile(opts.get("taskfile_path"))
+    env_name = env_name or config.default_env
+
+    if env_name not in config.environments:
+        console.print(f"[red]Unknown environment: {env_name}[/]")
+        sys.exit(1)
+
+    env = config.environments[env_name]
+
+    # Resolve variables
+    variables = env.resolve_variables(config.variables)
+    variables.update(var_overrides)
+
+    compose_path = compose_override or env.compose_file
+    env_file_path = env.env_file
+
+    return config, env_name, env, compose_path, env_file_path, var_overrides, dry_run
+
+
+def _print_deploy_header(config, env_name: str, env, compose_path: str, env_file_path: str | None) -> None:
+    """Print deployment configuration header."""
+    console.print(f"\n[bold]Deploying [cyan]{config.name or 'project'}[/] to [yellow]{env_name}[/][/]")
+    console.print(f"  compose:  {compose_path}")
+    if env_file_path:
+        console.print(f"  env-file: {env_file_path}")
+    console.print(f"  runtime:  {env.container_runtime}")
+    console.print(f"  manager:  {env.service_manager}")
+    console.print()
+
+
+def _execute_deploy_strategy(
+    env, env_name: str, env_file_path: str | None,
+    config, compose_path: str, var_overrides: dict, dry_run: bool
+) -> None:
+    """Select and execute the appropriate deploy strategy."""
+    if env.service_manager == "compose" and not env.ssh_host:
+        _deploy_local_compose(env, env_file_path, dry_run)
+        return
+    if env.service_manager == "compose" and env.ssh_host:
+        _deploy_remote_compose(env, env_name, env_file_path, config, dry_run)
+        return
+    if env.service_manager == "quadlet":
+        _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run)
+        return
+
+    console.print(f"[red]Unknown service_manager: {env.service_manager}[/]")
+    sys.exit(1)
+
 
 @main.command(name="deploy")
 @click.option("--compose", "compose_override", default=None, help="Path to docker-compose.yml")
@@ -112,57 +186,22 @@ def deploy_cmd(ctx, compose_override):
         taskfile --env prod deploy --var TAG=v1.2.3
         taskfile --env prod --dry-run deploy
     """
-    opts = ctx.obj
-    env_name = opts.get("env_name")
-    dry_run = opts.get("dry_run", False)
-    var_overrides = opts.get("var", {})
-    compose_path_override = compose_override
+    dry_run = ctx.obj.get("dry_run", False)
+    verbose = ctx.obj.get("verbose", False)
 
     try:
-        config = load_taskfile(opts.get("taskfile_path"))
-        env_name = env_name or config.default_env
+        config, env_name, env, compose_path, env_file_path, var_overrides, dry_run = \
+            _resolve_deploy_config(ctx, compose_override)
 
-        if env_name not in config.environments:
-            console.print(f"[red]Unknown environment: {env_name}[/]")
-            sys.exit(1)
-
-        env = config.environments[env_name]
-
-        # Resolve variables
-        variables = env.resolve_variables(config.variables)
-        variables.update(var_overrides)
-
-        compose_path = compose_path_override or env.compose_file
-        env_file_path = env.env_file
-
-        console.print(f"\n[bold]Deploying [cyan]{config.name or 'project'}[/] to [yellow]{env_name}[/][/]")
-        console.print(f"  compose:  {compose_path}")
-        if env_file_path:
-            console.print(f"  env-file: {env_file_path}")
-        console.print(f"  runtime:  {env.container_runtime}")
-        console.print(f"  manager:  {env.service_manager}")
-        console.print()
-
-
-        if env.service_manager == "compose" and not env.ssh_host:
-            _deploy_local_compose(env, env_file_path, dry_run)
-            return
-        if env.service_manager == "compose" and env.ssh_host:
-            _deploy_remote_compose(env, env_name, env_file_path, config, dry_run)
-            return
-        if env.service_manager == "quadlet":
-            _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run)
-            return
-
-        console.print(f"[red]Unknown service_manager: {env.service_manager}[/]")
-        sys.exit(1)
+        _print_deploy_header(config, env_name, env, compose_path, env_file_path)
+        _execute_deploy_strategy(env, env_name, env_file_path, config, compose_path, var_overrides, dry_run)
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         sys.exit(1)
     except Exception as e:
         console.print(f"[red]Deploy failed:[/] {e}")
-        if opts.get("verbose"):
+        if verbose:
             import traceback
             traceback.print_exc()
         sys.exit(1)
