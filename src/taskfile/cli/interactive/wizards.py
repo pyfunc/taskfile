@@ -246,6 +246,26 @@ def doctor(fix, verbose):
             sys.exit(1)
 
 
+def _apply_init_extras(choices: dict) -> None:
+    """Write env files, .gitignore, and init git based on wizard choices."""
+    env_config = choices.get("env_config") or {}
+    if env_config:
+        _write_env_file(env_config, "local")
+        staging_config = {k: v for k, v in env_config.items() if "STAGING" in k or "PROD" in k}
+        if staging_config and any(k.startswith("STAGING_") for k in env_config):
+            _write_env_file(staging_config, "prod")
+
+    if choices.get("create_gitignore"):
+        _create_gitignore()
+
+    if choices.get("init_git"):
+        try:
+            subprocess.run(["git", "init"], capture_output=True, check=True)
+            console.print("[green]✓ Initialized git repository[/]")
+        except Exception as e:
+            console.print(f"[yellow]⚠ Git init failed: {e}[/]")
+
+
 @main.command()
 @click.option("--template", type=click.Choice([
     "minimal", "web", "podman", "codereview", "full",
@@ -286,25 +306,7 @@ def init(template, force, interactive):
     outpath.write_text(content)
     console.print(f"[green]✓ Created Taskfile.yml (template: {template})[/]")
 
-    # Write environment files
-    if choices.get("env_config"):
-        _write_env_file(choices["env_config"], "local")
-        if any(k.startswith("STAGING_") for k in choices["env_config"]):
-            staging_config = {k: v for k, v in choices["env_config"].items() if "STAGING" in k or "PROD" in k}
-            if staging_config:
-                _write_env_file(staging_config, "prod")
-
-    # Create .gitignore
-    if choices.get("create_gitignore"):
-        _create_gitignore()
-
-    # Init git
-    if choices.get("init_git"):
-        try:
-            subprocess.run(["git", "init"], capture_output=True, check=True)
-            console.print("[green]✓ Initialized git repository[/]")
-        except Exception as e:
-            console.print(f"[yellow]⚠ Git init failed: {e}[/]")
+    _apply_init_extras(choices)
 
     # Summary
     console.print("\n[bold green]✨ Project initialized! 🚀[/]")

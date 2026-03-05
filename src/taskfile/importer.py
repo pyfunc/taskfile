@@ -207,6 +207,42 @@ def _extract_gl_job_deps(job_data: dict) -> list[str]:
     return [_slugify(d) if isinstance(d, str) else _slugify(d.get("job", "")) for d in deps] if deps else []
 
 
+def _build_gl_task(
+    taskfile: dict, pipeline_stages: dict, job_name: str, job_data: dict, before: list
+) -> None:
+    """Convert a single GitLab CI job into a Taskfile task entry."""
+    cmds = _extract_gl_job_commands(job_data, before)
+    task_name = _slugify(job_name)
+    stage = job_data.get("stage", "")
+
+    task: dict[str, Any] = {"desc": f"GitLab CI job: {job_name}"}
+    if cmds:
+        task["cmds"] = cmds
+    if stage:
+        task["stage"] = stage
+        pipeline_stages.setdefault(stage, []).append(task_name)
+
+    deps = _extract_gl_job_deps(job_data)
+    if deps:
+        task["deps"] = deps
+
+    taskfile["tasks"][task_name] = task
+
+
+def _build_gl_pipeline(
+    taskfile: dict, pipeline_stages: dict, stages_order: list
+) -> None:
+    """Build the pipeline section from collected stages."""
+    if not pipeline_stages and not stages_order:
+        return
+    ordered_stages = [
+        {"name": stage_name, "tasks": pipeline_stages.get(stage_name, [])}
+        for stage_name in stages_order
+        if pipeline_stages.get(stage_name)
+    ]
+    taskfile["pipeline"] = {"stages": ordered_stages}
+
+
 def _import_gitlab_ci(content: str) -> str:
     """Convert .gitlab-ci.yml to Taskfile.yml."""
     data = yaml.safe_load(content)
@@ -238,32 +274,9 @@ def _import_gitlab_ci(content: str) -> str:
             continue
         if not isinstance(job_data, dict):
             continue
+        _build_gl_task(taskfile, pipeline_stages, job_name, job_data, before)
 
-        cmds = _extract_gl_job_commands(job_data, before)
-        task_name = _slugify(job_name)
-        stage = job_data.get("stage", "")
-
-        task: dict[str, Any] = {"desc": f"GitLab CI job: {job_name}"}
-        if cmds:
-            task["cmds"] = cmds
-        if stage:
-            task["stage"] = stage
-            pipeline_stages.setdefault(stage, []).append(task_name)
-
-        deps = _extract_gl_job_deps(job_data)
-        if deps:
-            task["deps"] = deps
-
-        taskfile["tasks"][task_name] = task
-
-    # Build pipeline from stages
-    if pipeline_stages or stages_order:
-        ordered_stages = [
-            {"name": stage_name, "tasks": pipeline_stages.get(stage_name, [])}
-            for stage_name in stages_order
-            if pipeline_stages.get(stage_name)
-        ]
-        taskfile["pipeline"] = {"stages": ordered_stages}
+    _build_gl_pipeline(taskfile, pipeline_stages, stages_order)
 
     return _dump_taskfile(taskfile)
 

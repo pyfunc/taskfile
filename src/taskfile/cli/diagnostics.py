@@ -50,11 +50,26 @@ class ProjectDiagnostics:
 
     def check_env_files(self) -> None:
         """Check environment files."""
+        # Expected variable patterns for docker-compose port mappings
+        expected_port_vars = {"PORT_WEB", "PORT_LANDING"}
+        
         for env_file in [".env", ".env.local", ".env.prod"]:
-            if Path(env_file).exists():
-                content = Path(env_file).read_text()
-                if "OPENROUTER_API_KEY=" in content and "OPENROUTER_API_KEY=\n" in content:
-                    self.issues.append((f"{env_file}: OPENROUTER_API_KEY is empty", "warning", True))
+            if not Path(env_file).exists():
+                continue
+                
+            content = Path(env_file).read_text()
+            
+            # Check for empty API keys
+            if "OPENROUTER_API_KEY=" in content and "OPENROUTER_API_KEY=\n" in content:
+                self.issues.append((f"{env_file}: OPENROUTER_API_KEY is empty", "warning", True))
+            
+            # Check for incorrect PORT variable names
+            for line in content.splitlines():
+                if line.startswith("PORT=") and not line.startswith("PORT_"):
+                    self.issues.append(
+                        (f"{env_file}: Use PORT_WEB or PORT_LANDING instead of PORT", "warning", True)
+                    )
+                    break  # Only report once per file
 
     def check_ports(self) -> None:
         """Check docker-compose port conflicts and suggest .env fixes."""
@@ -127,7 +142,48 @@ class ProjectDiagnostics:
 
     def auto_fix(self) -> int:
         """Attempt to fix auto-fixable issues."""
-        return self._fix_taskfile() + self._fix_git() + self._fix_api_keys() + self._fix_ports()
+        return self._fix_taskfile() + self._fix_git() + self._fix_api_keys() + self._fix_ports() + self._fix_env_vars()
+
+    def _fix_env_vars(self) -> int:
+        """Fix incorrect env variable names (PORT -> PORT_WEB/PORT_LANDING)."""
+        fixed = 0
+        for issue, severity, auto_fixable in self.issues[:]:
+            if not auto_fixable or "Use PORT_WEB or PORT_LANDING instead of PORT" not in issue:
+                continue
+            
+            # Extract filename from issue message
+            env_file = issue.split(":")[0]
+            env_path = Path(env_file)
+            if not env_path.exists():
+                continue
+            
+            # Ask user which service this port is for
+            console.print(f"[yellow]⚠[/] Found PORT= in {env_file}")
+            console.print("  docker-compose.yml expects PORT_WEB (for web service) and PORT_LANDING (for landing service)")
+            
+            # Read current value
+            content = env_path.read_text()
+            port_value = "8000"  # default
+            for line in content.splitlines():
+                if line.startswith("PORT=") and not line.startswith("PORT_"):
+                    port_value = line.split("=", 1)[1].strip() or "8000"
+                    break
+            
+            # Fix by renaming PORT to PORT_WEB (most common case)
+            new_lines = []
+            for line in content.splitlines():
+                if line.startswith("PORT=") and not line.startswith("PORT_"):
+                    # Replace with PORT_WEB
+                    new_lines.append(f"PORT_WEB={port_value}")
+                    console.print(f"  [green]✓[/] Changed PORT={port_value} → PORT_WEB={port_value}")
+                else:
+                    new_lines.append(line)
+            
+            env_path.write_text("\n".join(new_lines) + "\n")
+            console.print(f"[green]✓ Fixed {env_file}[/]")
+            fixed += 1
+            self.issues.remove((issue, severity, auto_fixable))
+        return fixed
 
     def _fix_taskfile(self) -> int:
         """Fix missing Taskfile.yml."""

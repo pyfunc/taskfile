@@ -21,6 +21,34 @@ from taskfile.scaffold import generate_taskfile
 console = Console()
 
 
+def _format_nearby_path(path: Path, level: int) -> tuple[str, str]:
+    """Format a nearby Taskfile path and hint based on directory level."""
+    if level == 0:
+        return f"./{path.name}", "[green]← you are here[/]"
+    if level < 0:
+        parent_parts = [".."] * abs(level)
+        rel = "/".join(parent_parts) + f"/{path.name}"
+        return rel, f"[yellow]({abs(level)} level{'s' if abs(level) > 1 else ''} up)[/]"
+    try:
+        rel = str(path.relative_to(Path.cwd()))
+    except ValueError:
+        rel = str(path)
+    return rel, f"[blue]({level} level{'s' if level > 1 else ''} down)[/]"
+
+
+def _nearby_cd_hint(path: Path, level: int) -> str:
+    """Return a 'cd ...' hint for reaching a nearby Taskfile."""
+    if level == 0:
+        return "taskfile <task>"
+    if level < 0:
+        return f"cd {'/'.join(['..'] * abs(level))} && taskfile <task>"
+    try:
+        rel_dir = str(path.parent.relative_to(Path.cwd()))
+    except ValueError:
+        rel_dir = str(path.parent)
+    return f"cd {rel_dir} && taskfile <task>"
+
+
 def _print_nearby_taskfiles(nearby: list[tuple[Path, int]]) -> None:
     """Print information about nearby Taskfiles and how to use them."""
     if not nearby:
@@ -28,35 +56,11 @@ def _print_nearby_taskfiles(nearby: list[tuple[Path, int]]) -> None:
     
     console.print("\n[bold yellow]📍 Found Taskfiles in nearby directories:[/]")
     for path, level in sorted(nearby, key=lambda x: (abs(x[1]), str(x[0]))):
-        if level == 0:
-            rel = f"./{path.name}"
-            hint = "[green]← you are here[/]"
-        elif level < 0:
-            parent_parts = [".."] * abs(level)
-            rel = "/".join(parent_parts) + f"/{path.name}"
-            hint = f"[yellow]({abs(level)} level{'s' if abs(level) > 1 else ''} up)[/]"
-        else:
-            try:
-                rel = str(path.relative_to(Path.cwd()))
-            except ValueError:
-                rel = str(path)
-            hint = f"[blue]({level} level{'s' if level > 1 else ''} down)[/]"
+        rel, hint = _format_nearby_path(path, level)
         console.print(f"   {rel} {hint}")
     
-    # Show how to use the first found
-    first = nearby[0]
     console.print("\n[dim]To use:[/]")
-    if first[1] == 0:
-        console.print(f"  taskfile <task>")
-    elif first[1] < 0:
-        parent_parts = [".."] * abs(first[1])
-        console.print(f"  cd {'/'.join(parent_parts)} && taskfile <task>")
-    else:
-        try:
-            rel_dir = str(first[0].parent.relative_to(Path.cwd()))
-        except ValueError:
-            rel_dir = str(first[0].parent)
-        console.print(f"  cd {rel_dir} && taskfile <task>")
+    console.print(f"  {_nearby_cd_hint(nearby[0][0], nearby[0][1])}")
 
 
 def _suggest_similar_tasks(unknown: str, available: list[str], max_suggestions: int = 3) -> list[str]:
@@ -73,6 +77,23 @@ def _suggest_similar_tasks(unknown: str, available: list[str], max_suggestions: 
     all_matches = matches + [p for p in partial_matches if p not in matches]
     
     return all_matches[:max_suggestions]
+
+
+def _check_unknown_tasks(task_list: list[str], available_tasks: dict) -> None:
+    """Check for unknown tasks, print suggestions, and exit if any found."""
+    unknown_tasks = [t for t in task_list if t not in available_tasks]
+    if not unknown_tasks:
+        return
+    for unknown in unknown_tasks:
+        suggestions = _suggest_similar_tasks(unknown, list(available_tasks.keys()))
+        console.print(f"[red]✗ Unknown task:[/] {unknown}")
+        if suggestions:
+            console.print(f"[dim]  Did you mean: {', '.join(suggestions)}?[/]")
+    task_names = sorted(available_tasks.keys())
+    console.print(f"\n[yellow]Available tasks:[/] {', '.join(task_names[:20])}")
+    if len(task_names) > 20:
+        console.print(f"[dim]  ... and {len(task_names) - 20} more[/]")
+    sys.exit(1)
 
 
 def _run_env_group(
@@ -279,19 +300,7 @@ def run(ctx, tasks, run_tags):
                 verbose=opts["verbose"],
             )
             task_list = list(tasks)
-            
-            # Auto-suggest for unknown tasks
-            unknown_tasks = [t for t in task_list if t not in runner.config.tasks]
-            if unknown_tasks:
-                for unknown in unknown_tasks:
-                    suggestions = _suggest_similar_tasks(unknown, list(runner.config.tasks.keys()))
-                    console.print(f"[red]✗ Unknown task:[/] {unknown}")
-                    if suggestions:
-                        console.print(f"[dim]  Did you mean: {', '.join(suggestions)}?[/]")
-                console.print(f"\n[yellow]Available tasks:[/] {', '.join(sorted(runner.config.tasks.keys())[:20])}")
-                if len(runner.config.tasks) > 20:
-                    console.print(f"[dim]  ... and {len(runner.config.tasks) - 20} more[/]")
-                sys.exit(1)
+            _check_unknown_tasks(task_list, runner.config.tasks)
             
             if tag_filter:
                 task_list = _filter_tasks_by_tags(runner.config, task_list, tag_filter)

@@ -116,6 +116,20 @@ def _resolve_release_config(ctx, tag_version):
     return config, app_name, current_tag, domain, ssh_host
 
 
+def _resolve_domain(config, domain_override: str | None = None) -> tuple[str, str | None]:
+    """Resolve domain and ssh_host from config or override. Exits on failure."""
+    domain = domain_override
+    ssh_host = None
+    if not domain and "prod" in config.environments:
+        env = config.environments["prod"]
+        domain = env.variables.get("DOMAIN")
+        ssh_host = env.ssh_host
+    if not domain:
+        console.print("[red]Error:[/] No domain specified. Use --domain or set DOMAIN in .env.prod")
+        sys.exit(1)
+    return domain, ssh_host
+
+
 def _show_release_plan(app_name, current_tag, domain, skip_desktop, skip_landing, skip_health):
     """Display the release plan panel."""
     console.print(Panel.fit(
@@ -310,18 +324,7 @@ def rollback(ctx, target_tag, domain, dry_run):
         console.print("[red]Error:[/] No previous tag found for rollback")
         sys.exit(1)
 
-    # Get domain
-    check_domain = domain
-    if not check_domain and "prod" in config.environments:
-        env = config.environments["prod"]
-        check_domain = env.variables.get("DOMAIN")
-        ssh_host = env.ssh_host
-    else:
-        ssh_host = None
-
-    if not check_domain:
-        console.print("[red]Error:[/] No domain specified. Use --domain or set DOMAIN in .env.prod")
-        sys.exit(1)
+    check_domain, ssh_host = _resolve_domain(config, domain)
 
     console.print(Panel.fit(
         f"[bold yellow]⚠️ Rollback to {rollback_tag}[/]\n"
