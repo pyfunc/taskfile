@@ -1,3 +1,23 @@
+## [0.3.9] - 2026-03-05
+
+### Summary
+
+feat(examples): multi-language support with 2 supporting modules
+
+### Other
+
+- build: update Makefile
+- build: update Makefile
+- build: update Makefile
+- build: update Makefile
+- scripts: update run-all.sh
+- scripts: update run-codereview.sh
+- scripts: update run-minimal.sh
+- scripts: update run-multiplatform.sh
+- scripts: update run-saas-app.sh
+- build: update Makefile
+
+
 ## [0.3.8] - 2026-03-05
 
 ### Summary

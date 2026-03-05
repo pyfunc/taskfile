@@ -109,5 +109,26 @@ stage-generate: ## Pipeline stage: generate
 stage-deploy: ## Pipeline stage: deploy
 	taskfile --env prod run deploy-quick --var TAG=$(TAG)
 
+.PHONY: test
+test: ## Validate Taskfile and show tasks
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo "  codereview.pl Example (Real-World Production)"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo ""
+	@echo "▶ Validating Taskfile..."
+	@python3 -c "from taskfile.parser import load_taskfile, validate_taskfile; c=load_taskfile('Taskfile.yml'); validate_taskfile(c)"
+	@echo "✅ Validation passed"
+	@echo ""
+	@echo "📋 Environments:"
+	@python3 -c "from taskfile.parser import load_taskfile; c=load_taskfile('Taskfile.yml'); [print(f'  - {n}: {e.container_runtime}') for n,e in c.environments.items()]"
+	@echo ""
+	@echo "📋 Tasks:"
+	@python3 -c "from taskfile.parser import load_taskfile; c=load_taskfile('Taskfile.yml'); [print(f'  - {n}: {t.description or \"No desc\"}') for n,t in c.tasks.items()]"
+	@echo ""
+	@echo "📋 Pipeline stages:"
+	@python3 -c "from taskfile.parser import load_taskfile; c=load_taskfile('Taskfile.yml'); [print(f'  - {s.name}: {s.tasks}') for s in c.pipeline.stages]"
+	@echo ""
+	@echo "✅ codereview.pl example test completed"
+
 .PHONY: pipeline
 pipeline: stage-test stage-build stage-generate stage-deploy ## Run full pipeline
