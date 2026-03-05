@@ -15,6 +15,7 @@ from rich.text import Text
 
 from taskfile.models import Environment, Platform, Task, TaskfileConfig
 from taskfile.parser import load_taskfile, validate_taskfile
+from taskfile.ssh import has_paramiko, ssh_exec, close_all as ssh_close_all
 
 console = Console()
 
@@ -41,6 +42,7 @@ class TaskfileRunner:
         var_overrides: dict[str, str] | None = None,
         dry_run: bool = False,
         verbose: bool = False,
+        use_embedded_ssh: bool = True,
     ):
         self._init_config(config, taskfile_path)
         self.env_name = env_name or self.config.default_env
@@ -48,6 +50,7 @@ class TaskfileRunner:
         self.var_overrides = var_overrides or {}
         self.dry_run = dry_run
         self.verbose = verbose
+        self.use_embedded_ssh = use_embedded_ssh and has_paramiko()
         self._executed: set[str] = set()
 
         self.env = self._init_environment()
@@ -111,6 +114,8 @@ class TaskfileRunner:
         is_remote = self._is_remote_command(expanded)
 
         if is_remote and self.env.ssh_target:
+            if self.use_embedded_ssh:
+                return self._run_embedded_ssh(expanded, task)
             actual_cmd = self._wrap_ssh(expanded)
         else:
             actual_cmd = expanded
@@ -159,6 +164,20 @@ class TaskfileRunner:
         # Escape single quotes in command
         escaped = remote_cmd.replace("'", "'\\''")
         return f"ssh {opts} {target} '{escaped}'"
+
+    def _run_embedded_ssh(self, cmd: str, task: Task) -> int:
+        """Execute remote command via embedded SSH (paramiko)."""
+        remote_cmd = self._strip_remote_prefix(cmd)
+        if not task.silent:
+            console.print(f"  [magenta]→ SSH (embedded)[/] {remote_cmd}")
+        if self.dry_run:
+            console.print("  [dim](dry run — skipped)[/]")
+            return 0
+        try:
+            return ssh_exec(self.env, remote_cmd)
+        except KeyboardInterrupt:
+            console.print("\n[yellow]⚠ Interrupted[/]")
+            return 130
 
     def check_condition(self, task: Task) -> bool:
         """Check if task condition is met."""
@@ -310,10 +329,14 @@ class TaskfileRunner:
             console.print(f"[yellow]⚠ {w}[/]")
 
         success = True
-        for name in task_names:
-            if not self.run_task(name):
-                success = False
-                break
+        try:
+            for name in task_names:
+                if not self.run_task(name):
+                    success = False
+                    break
+        finally:
+            if self.use_embedded_ssh:
+                ssh_close_all()
 
         return success
 
