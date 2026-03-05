@@ -2,6 +2,11 @@
 
 ### Features
 
+- **Docker Helpers** — new CLI group `taskfile docker` with commands:
+  - `docker ps` — show running containers
+  - `docker stop-port <port>` — stop containers using specific port
+  - `docker compose-down` — run docker compose down
+- **Port Conflict Detection** — `taskfile doctor` now detects port conflicts in docker-compose.yml and suggests fixes
 - **Embedded functions** — `functions` section in Taskfile.yml with Python/shell/Node/binary support
 - **`@fn` prefix** — call embedded functions from task commands: `@fn notify arg1`
 - **`@python` prefix** — run inline Python from task commands: `@python print('hello')`
@@ -49,6 +54,13 @@
 - Add `TestAnsibleInspiredFeatures` — 10 tests for retries/timeout/tags/register/functions
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
+
+## [0.3.33] - 2026-03-05
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update docs/USAGE.md
 
 ## [0.3.32] - 2026-03-05
 

@@ -94,6 +94,14 @@ taskfile serve -p 3000     # Custom port
 taskfile serve --no-browser # Don't open browser
 ```
 
+### Docker Helpers
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `docker ps` | Show running containers | `taskfile docker ps` |
+| `docker stop-port` | Stop containers using port | `taskfile docker stop-port 8000 --yes` |
+| `docker compose-down` | Run compose down | `taskfile docker compose-down --path ./deploy` |
+
 ## Taskfile.yml Format
 
 ### Basic Structure
@@ -248,7 +256,7 @@ taskfile doctor            # Diagnose issues
 
 ```bash
 # Test SSH connection
-taskfile run setup-hosts   # Configure hosts
+taskfile setup hosts       # Configure hosts
 taskfile validate          # Validate config
 ```
 

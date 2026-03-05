@@ -413,6 +413,14 @@ Options:
 | `taskfile ci generate` | Generate CI/CD config (GitHub Actions, GitLab, etc.) |
 | `taskfile health` | Check health of deployed services |
 
+### Docker Helpers
+
+| Command | Description |
+|---------|-------------|
+| `taskfile docker ps` | Show running Docker containers |
+| `taskfile docker stop-port <port>` | Stop containers using a specific port |
+| `taskfile docker compose-down` | Run `docker compose down` in directory |
+
 ---
 
 ## Multi-Environment Deploy
