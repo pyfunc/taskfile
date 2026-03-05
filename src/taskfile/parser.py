@@ -132,27 +132,28 @@ def _load_include_file(inc_path: Path) -> dict:
     return inc_raw if isinstance(inc_raw, dict) else {}
 
 
-def _merge_dict_section(raw: dict, inc_raw: dict, section: str, key_fn=None) -> None:
-    """Merge a single dict section from inc_raw into raw (local wins on conflict)."""
-    inc_section = inc_raw.get(section, {})
-    if not inc_section or not isinstance(inc_section, dict):
-        return
-    existing = raw.setdefault(section, {})
-    for k, v in inc_section.items():
-        key = key_fn(k) if key_fn else k
-        if key not in existing:
-            existing[key] = v
-
-
 def _merge_include_sections(raw: dict, inc_raw: dict, prefix: str) -> None:
     """Merge tasks/variables/environments from an included file into raw config.
 
     Merge order: included values first, local Taskfile wins on conflict.
     """
-    task_key = (lambda k: f"{prefix}-{k}") if prefix else None
-    _merge_dict_section(raw, inc_raw, "tasks", key_fn=task_key)
-    _merge_dict_section(raw, inc_raw, "variables")
-    _merge_dict_section(raw, inc_raw, "environments")
+    # Merge tasks (with optional prefix)
+    inc_tasks = inc_raw.get("tasks", {})
+    if inc_tasks and isinstance(inc_tasks, dict):
+        existing_tasks = raw.setdefault("tasks", {})
+        for task_name, task_data in inc_tasks.items():
+            key = f"{prefix}-{task_name}" if prefix else task_name
+            if key not in existing_tasks:
+                existing_tasks[key] = task_data
+
+    # Merge variables (included first, local wins)
+    for section in ("variables", "environments"):
+        inc_section = inc_raw.get(section, {})
+        if inc_section and isinstance(inc_section, dict):
+            existing = raw.setdefault(section, {})
+            for k, v in inc_section.items():
+                if k not in existing:
+                    existing[k] = v
 
 
 def _resolve_includes(raw: dict, base_dir: Path) -> dict:

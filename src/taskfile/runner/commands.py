@@ -11,16 +11,20 @@ from pathlib import Path
 from rich.console import Console
 
 from taskfile.models import Task
-from taskfile.runner.ssh import is_remote_command, wrap_ssh, run_embedded_ssh
+from taskfile.runner.ssh import is_remote_command, is_local_command, strip_local_prefix, wrap_ssh, run_embedded_ssh
 from taskfile.runner.functions import run_function, run_inline_python
 
 console = Console()
 
 
 def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
-    """Check for special command prefixes (@fn, @python, @remote/@ssh).
+    """Check for special command prefixes (@fn, @python, @local, @remote/@ssh).
 
     Returns the exit code if handled, or None to fall through to local execution.
+
+    Routing logic:
+        @local  → run only when env has NO ssh_host (skip on remote envs)
+        @remote → run only when env HAS ssh_host  (skip on local envs)
     """
     stripped = expanded.strip()
 
@@ -30,7 +34,17 @@ def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
     if stripped.startswith("@python "):
         return run_inline_python(runner, expanded, task)
 
-    if is_remote_command(expanded) and runner.env.ssh_target:
+    # @local — execute only on local (non-SSH) environments
+    if is_local_command(expanded):
+        if runner.env.is_remote:
+            return 0  # skip @local commands on remote envs
+        local_cmd = strip_local_prefix(expanded)
+        return _run_local(runner, local_cmd, task)
+
+    # @remote — execute only on remote (SSH) environments
+    if is_remote_command(expanded):
+        if not runner.env.ssh_target:
+            return 0  # skip @remote commands on local envs
         if runner.use_embedded_ssh:
             return run_embedded_ssh(runner, expanded, task)
         return _run_local(runner, wrap_ssh(expanded, runner.env), task, remote=True)

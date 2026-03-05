@@ -10,6 +10,19 @@ from taskfile.ssh import ssh_exec
 console = Console()
 
 
+def is_local_command(cmd: str) -> bool:
+    """Detect if command is prefixed with @local."""
+    return cmd.strip().startswith("@local ")
+
+
+def strip_local_prefix(cmd: str) -> str:
+    """Remove @local prefix from command."""
+    stripped = cmd.strip()
+    if stripped.startswith("@local "):
+        return stripped[len("@local "):]
+    return stripped
+
+
 def is_remote_command(cmd: str) -> bool:
     """Detect if command is prefixed with @remote or @ssh."""
     return cmd.strip().startswith("@remote ") or cmd.strip().startswith("@ssh ")
