@@ -71,6 +71,65 @@ class ProjectDiagnostics:
                     )
                     break  # Only report once per file
 
+    def validate_taskfile_variables(self) -> None:
+        """Validate variables defined in Taskfile.yml are present in .env files."""
+        try:
+            from taskfile.parser import find_taskfile, load_taskfile
+            taskfile_path = find_taskfile()
+            taskfile_data = load_taskfile(taskfile_path)
+        except Exception:
+            return
+        
+        # Get variables from Taskfile
+        variables = taskfile_data.get("variables", {})
+        if not variables:
+            return
+        
+        # Collect required variables (those with ${VAR:-default} or ${VAR} syntax)
+        required_vars = set()
+        for var_name, var_value in variables.items():
+            if isinstance(var_value, str):
+                # Check for ${VAR} references in variable values
+                import re
+                refs = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}', var_value)
+                required_vars.update(refs)
+        
+        # Also check environments section for SSH config variables
+        environments = taskfile_data.get("environments", {})
+        for env_name, env_config in environments.items():
+            if isinstance(env_config, dict):
+                for key in ["ssh_host", "ssh_user", "ssh_key"]:
+                    value = env_config.get(key, "")
+                    if isinstance(value, str) and value.startswith("${"):
+                        import re
+                        m = re.match(r'\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)', value)
+                        if m:
+                            required_vars.add(m.group("var"))
+        
+        # Check each .env file for missing variables
+        for env_file in [".env", ".env.local", ".env.prod", ".env.staging"]:
+            env_path = Path(env_file)
+            if not env_path.exists():
+                continue
+            
+            env_content = env_path.read_text()
+            env_vars = set()
+            for line in env_content.splitlines():
+                if "=" in line and not line.startswith("#"):
+                    var_name = line.split("=", 1)[0].strip()
+                    env_vars.add(var_name)
+            
+            # Find missing required variables
+            for var in required_vars:
+                if var not in env_vars:
+                    self.issues.append(
+                        (f"{env_file}: Missing required variable {var}", "warning", True)
+                    )
+                elif f"{var}=\n" in env_content or f"{var}=\r\n" in env_content:
+                    self.issues.append(
+                        (f"{env_file}: {var} is empty", "warning", True)
+                    )
+
     def check_ports(self) -> None:
         """Check docker-compose port conflicts and suggest .env fixes."""
         compose_path = Path("docker-compose.yml")
@@ -142,7 +201,28 @@ class ProjectDiagnostics:
 
     def auto_fix(self) -> int:
         """Attempt to fix auto-fixable issues."""
-        return self._fix_taskfile() + self._fix_git() + self._fix_api_keys() + self._fix_ports() + self._fix_env_vars()
+        return self._fix_taskfile() + self._fix_git() + self._fix_api_keys() + self._fix_ports() + self._fix_env_vars() + self._fix_taskfile_variables()
+
+    def _fix_taskfile_variables(self) -> int:
+        """Fix missing Taskfile variables by prompting user."""
+        fixed = 0
+        for issue, severity, auto_fixable in self.issues[:]:
+            if not auto_fixable or "Missing required variable" not in issue:
+                continue
+            
+            env_file = issue.split(":")[0]
+            var_name = issue.split("Missing required variable ")[-1].strip()
+            env_path = Path(env_file)
+            
+            console.print(f"[yellow]⚠[/] Missing {var_name} in {env_file}")
+            from rich.prompt import Prompt
+            value = Prompt.ask(f"Enter value for {var_name}", default="")
+            if value:
+                _upsert_env_value(env_path, var_name, value)
+                console.print(f"[green]✓[/] Added {var_name}={value} to {env_file}")
+                fixed += 1
+                self.issues.remove((issue, severity, auto_fixable))
+        return fixed
 
     @staticmethod
     def _read_port_value(content: str) -> str:

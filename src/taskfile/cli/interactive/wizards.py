@@ -220,6 +220,7 @@ def doctor(fix, verbose):
     with console.status("[bold green]Checking project...[/]"):
         diagnostics.check_taskfile()
         diagnostics.check_env_files()
+        diagnostics.validate_taskfile_variables()
         diagnostics.check_ports()
         diagnostics.check_docker()
         diagnostics.check_ssh_keys()
