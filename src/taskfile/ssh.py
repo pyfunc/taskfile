@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 
+from clickmd import MarkdownRenderer
+
 if TYPE_CHECKING:
     from taskfile.models import Environment
 
@@ -108,11 +110,13 @@ def ssh_exec(env: Environment, command: str, timeout: int = 300) -> int:
         client = _get_connection(env)
         _, stdout, stderr = client.exec_command(command, timeout=timeout)
 
-        # Stream output in real-time
-        for line in stdout:
-            print(line, end="")
-        for line in stderr:
-            print(line, end="")
+        # Collect output and render as markdown codeblock
+        out_text = stdout.read().decode("utf-8", errors="replace")
+        err_text = stderr.read().decode("utf-8", errors="replace")
+        combined = (out_text + err_text).rstrip()
+        if combined:
+            renderer = MarkdownRenderer(use_colors=True)
+            renderer.codeblock("log", combined)
 
         exit_code = stdout.channel.recv_exit_status()
         return exit_code
@@ -128,5 +132,12 @@ def _ssh_exec_subprocess(env: Environment, command: str) -> int:
     opts = env.ssh_opts
     escaped = command.replace("'", "'\\''")
     full_cmd = f"ssh {opts} {target} '{escaped}'"
-    result = subprocess.run(full_cmd, shell=True)
+    result = subprocess.run(
+        full_cmd, shell=True, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    output = (result.stdout or "").rstrip()
+    if output:
+        renderer = MarkdownRenderer(use_colors=True)
+        renderer.codeblock("log", output)
     return result.returncode

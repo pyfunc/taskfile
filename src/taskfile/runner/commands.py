@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 import time
 from pathlib import Path
 
 from rich.console import Console
+
+from clickmd import MarkdownRenderer
 
 from taskfile.models import Task
 from taskfile.runner.ssh import is_remote_command, is_local_command, strip_local_prefix, wrap_ssh, run_embedded_ssh
@@ -52,11 +53,18 @@ def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
     return None
 
 
+def _render_output(output: str, task: Task) -> None:
+    """Render command output as a markdown codeblock using clickmd."""
+    if not output or not output.strip() or task.silent:
+        return
+    renderer = MarkdownRenderer(use_colors=True)
+    renderer.codeblock("log", output.rstrip())
+
+
 def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") -> int:
     """Run a shell command with capture, timeout, and interrupt handling."""
     try:
         env = {**os.environ, **runner.variables}
-        capture = task.register is not None
         timeout = task.timeout if task.timeout > 0 else None
         result = subprocess.run(
             cmd_str,
@@ -64,14 +72,14 @@ def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") ->
             cwd=task.working_dir,
             env=env,
             text=True,
-            stdout=subprocess.PIPE if capture else None,
-            stderr=None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             timeout=timeout,
         )
-        if capture and result.stdout:
-            if not task.silent:
-                sys.stdout.write(result.stdout)
-            runner.variables[task.register] = result.stdout.strip()
+        output = result.stdout or ""
+        if task.register and output:
+            runner.variables[task.register] = output.strip()
+        _render_output(output, task)
         return result.returncode
     except subprocess.TimeoutExpired:
         console.print(f"  [red]⏱ {label} timed out after {task.timeout}s[/]")

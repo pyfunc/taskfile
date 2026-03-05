@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from taskfile.compose import resolve_variables as _compose_resolve_variables
+from taskfile.compose import load_env_file, resolve_variables as _compose_resolve_variables
 from taskfile.models import Environment, Platform, Task, TaskfileConfig
 from taskfile.parser import load_taskfile
 
@@ -32,6 +32,7 @@ class TaskResolver:
         self.platform_name = platform_name or config.default_platform
         self.var_overrides = var_overrides or {}
 
+        self._load_dotenv()
         self.env = self._resolve_environment()
         self.platform = self._resolve_platform()
         self.variables = self._resolve_variables()
@@ -47,6 +48,22 @@ class TaskResolver:
         """Create a resolver by loading a Taskfile from disk."""
         config = load_taskfile(taskfile_path)
         return cls(config, env_name, platform_name, var_overrides)
+
+    # ─── .env file loading ───
+
+    def _load_dotenv(self) -> None:
+        """Auto-load .env file from the Taskfile directory into os.environ.
+
+        Values from .env do NOT overwrite existing os.environ entries,
+        so explicit exports always take precedence.
+        """
+        taskfile_dir = Path(self.config.source_path).parent if self.config.source_path else Path.cwd()
+        for candidate in (".env", ".env.local"):
+            env_path = taskfile_dir / candidate
+            if env_path.is_file():
+                dotenv = load_env_file(env_path)
+                for key, value in dotenv.items():
+                    os.environ.setdefault(key, value)
 
     # ─── Environment / platform resolution ───
 

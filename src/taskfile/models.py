@@ -250,6 +250,7 @@ class TaskfileConfig:
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     default_env: str = "local"
     default_platform: str | None = None
+    source_path: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TaskfileConfig:

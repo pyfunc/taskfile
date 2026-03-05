@@ -214,6 +214,7 @@ def load_taskfile(path: str | Path | None = None) -> TaskfileConfig:
     raw = _resolve_includes(raw, filepath.parent)
 
     config = TaskfileConfig.from_dict(raw)
+    config.source_path = str(filepath.resolve())
     return config
 
 
