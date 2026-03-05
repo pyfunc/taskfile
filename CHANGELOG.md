@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.3.16] - 2026-03-05
+
+### Docs
+- Update comparisons/taskfile-vs-ansible.md
+- Update examples/include-split/README.md
+
 ## [0.3.15] - 2026-03-05
 
 ### Docs
