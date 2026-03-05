@@ -11,6 +11,7 @@ _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 _TEMPLATE_NAMES = [
     "minimal", "web", "podman", "full", "codereview", "multiplatform", "publish",
+    "kubernetes", "terraform", "iot",
 ]
 
 

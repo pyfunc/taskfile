@@ -1,0 +1,131 @@
+version: "1"
+name: webapp-functions
+description: "Embedded functions demo — Python/shell/Node callable from tasks via @fn"
+
+variables:
+  APP_NAME: myapp
+  IMAGE: ghcr.io/myorg/myapp
+  TAG: latest
+  SLACK_WEBHOOK: ${SLACK_WEBHOOK:-}
+  DEPLOY_ENV: ${DEPLOY_ENV:-staging}
+
+environments:
+  local:
+    container_runtime: docker
+  staging:
+    ssh_host: staging.example.com
+    ssh_user: deploy
+
+functions:
+  # ─── Inline shell function ─────────────────────────────
+  check-port:
+    lang: shell
+    desc: Check if a TCP port is open
+    code: |
+      PORT=${1:-8080}
+      nc -z localhost $PORT && echo "Port $PORT is open" || echo "Port $PORT is closed"
+
+  # ─── Inline Python function ────────────────────────────
+  notify:
+    lang: python
+    desc: Send Slack notification (uses SLACK_WEBHOOK env)
+    code: |
+      import os, json, urllib.request
+      webhook = os.environ.get("SLACK_WEBHOOK", "")
+      if not webhook:
+          print("SLACK_WEBHOOK not set — skipping notification")
+      else:
+          msg = os.environ.get("FN_ARGS", "Deploy complete")
+          data = json.dumps({"text": f":rocket: {msg}"}).encode()
+          req = urllib.request.Request(webhook, data=data,
+                headers={"Content-Type": "application/json"})
+          urllib.request.urlopen(req)
+          print(f"Notified: {msg}")
+
+  # ─── Python function from file ─────────────────────────
+  generate-report:
+    lang: python
+    desc: Generate deployment report JSON
+    file: scripts/report.py
+
+  # ─── Shell function from file ──────────────────────────
+  health-check:
+    lang: shell
+    desc: Health check with retries
+    file: scripts/health.sh
+
+  # ─── Node.js inline function ───────────────────────────
+  render-config:
+    lang: node
+    desc: Render config template with env vars
+    code: |
+      const app = process.env.APP_NAME || 'myapp';
+      const env = process.env.DEPLOY_ENV || 'staging';
+      const config = { app, env, timestamp: new Date().toISOString() };
+      console.log(JSON.stringify(config, null, 2));
+
+  # ─── Binary tool ───────────────────────────────────────
+  lint-yaml:
+    lang: binary
+    desc: Lint YAML files with yamllint
+    file: yamllint
+
+tasks:
+  build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  test:
+    desc: Run tests
+    tags: [ci, test]
+    cmds:
+      - pytest tests/ -v
+
+  deploy:
+    desc: Deploy and notify
+    deps: [build, test]
+    tags: [ci, deploy]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+      - "@fn notify Deployed ${APP_NAME}:${TAG} to ${DEPLOY_ENV}"
+      - "@fn health-check"
+
+  config:
+    desc: Generate and show config
+    cmds:
+      - "@fn render-config"
+
+  report:
+    desc: Generate deployment report
+    cmds:
+      - "@fn generate-report"
+
+  status:
+    desc: Check service port
+    cmds:
+      - "@fn check-port 8080"
+
+  inline-python:
+    desc: "Demo: inline Python via @python prefix"
+    cmds:
+      - "@python import os; print(f'App: {os.environ.get(\"APP_NAME\", \"unknown\")}')"
+      - "@python import json; print(json.dumps({'status': 'ok'}))"
+
+  full-deploy:
+    desc: Full deploy pipeline with retries and timeout
+    deps: [build, test]
+    retries: 2
+    retry_delay: 5
+    timeout: 300
+    tags: [ci, deploy, release]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+      - "@fn health-check"
+      - "@fn notify Release ${APP_NAME}:${TAG} complete"
+
+  capture-version:
+    desc: "Demo: register captures stdout into variable"
+    register: APP_VERSION
+    cmds:
+      - echo "1.2.3"

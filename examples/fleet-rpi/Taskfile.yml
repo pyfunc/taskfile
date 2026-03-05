@@ -82,6 +82,9 @@ tasks:
 
   deploy-kiosk:
     desc: Deploy to single device (or use -G for group)
+    tags: [deploy]
+    retries: 1
+    retry_delay: 5
     cmds:
       - "@remote podman pull ${IMAGE}:${TAG}"
       - "@remote podman stop ${APP_NAME} 2>/dev/null || true"
@@ -129,6 +132,8 @@ tasks:
 
   provision:
     desc: First-time RPi setup (install Podman, enable linger)
+    tags: [setup]
+    timeout: 600
     cmds:
       - "@remote sudo apt-get update && sudo apt-get install -y podman"
       - "@remote sudo loginctl enable-linger pi"

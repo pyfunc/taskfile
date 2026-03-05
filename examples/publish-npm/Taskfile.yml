@@ -1,19 +1,61 @@
 version: "1"
 name: my-npm-package
-description: Node.js package → npm registry publishing pipeline
+description: Node.js package → npm + GitHub Package Registry publishing pipeline
 
 variables:
   PACKAGE_NAME: "@myorg/my-npm-package"
   VERSION: "0.1.0"
+  
+  # Tokens from environment
+  NPM_TOKEN: ${NPM_TOKEN:-}
+  GPR_TOKEN: ${GPR_TOKEN:-${GITHUB_TOKEN:-}}
+  GITHUB_ORG: ${GITHUB_ORG:-myorg}
+
+environments:
+  local:
+    desc: Local development
+    env_file: .env.local
+
+  prod:
+    desc: Production npm registry
+    env_file: .env.prod
 
 tasks:
 
+  # ─── Setup & Auth ────────────────────────────────────────────────
+  init:
+    desc: Create .env.local with token placeholders
+    cmds:
+      - |
+        if [ ! -f .env.local ]; then
+          cat > .env.local << 'EOF'
+        # NPM Publishing Configuration
+        NPM_TOKEN=           # Get from https://www.npmjs.com/settings/tokens
+        GITHUB_TOKEN=        # Get from https://github.com/settings/tokens
+        GITHUB_ORG=myorg
+        EOF
+          echo "✅ Created .env.local"
+        fi
+
+  auth-verify:
+    desc: Verify npm authentication
+    cmds:
+      - npm whoami
+      - echo "✅ npm auth verified"
+
+  # ─── Quality ─────────────────────────────────────────────────────
   lint:
-    desc: Run ESLint
+    desc: Run ESLint (continue on errors)
     cmds:
       - npm ci
       - npm run lint
-    ignore_errors: true
+    continue_on_error: true
+
+  type-check:
+    desc: TypeScript type checking
+    cmds:
+      - npx tsc --noEmit
+      - echo "✅ Type check passed"
 
   test:
     desc: Run tests (vitest/jest)
@@ -21,42 +63,120 @@ tasks:
       - npm ci
       - npm test
 
+  # ─── Build ───────────────────────────────────────────────────────
   build:
     desc: Build TypeScript → JavaScript
-    deps: [test]
+    deps: [test, lint]
     cmds:
       - npm run build
       - npm pack --dry-run
+      - echo "✅ Build complete"
 
-  publish:
+  # ─── npm Registry ───────────────────────────────────────────────
+  publish-npm:
     desc: Publish to npm registry
+    env: [prod]
     deps: [build]
     cmds:
+      - |
+        if [ -z "$NPM_TOKEN" ]; then
+          echo "❌ NPM_TOKEN not set. Run: taskfile run init"
+          exit 1
+        fi
+      - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
       - npm publish --access public
+      - rm -f .npmrc
+      - echo "✅ Published to npm: ${PACKAGE_NAME}@${VERSION}"
 
-  publish-beta:
+  publish-npm-beta:
     desc: Publish beta version with dist-tag
+    env: [prod]
     deps: [build]
     cmds:
+      - |
+        if [ -z "$NPM_TOKEN" ]; then
+          echo "❌ NPM_TOKEN not set"
+          exit 1
+        fi
+      - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
       - npm publish --tag beta --access public
+      - rm -f .npmrc
+      - echo "✅ Published beta to npm"
 
-  release:
-    desc: Tag + build + publish
-    deps: [lint, test]
+  # ─── GitHub Package Registry ────────────────────────────────────
+  publish-gpr:
+    desc: Publish to GitHub Package Registry
+    env: [prod]
+    deps: [build]
+    cmds:
+      - |
+        if [ -z "$GPR_TOKEN" ]; then
+          echo "❌ GPR_TOKEN not set"
+          exit 1
+        fi
+      - npm config set @${GITHUB_ORG}:registry https://npm.pkg.github.com
+      - echo "//npm.pkg.github.com/:_authToken=${GPR_TOKEN}" > .npmrc
+      - npm publish --registry https://npm.pkg.github.com
+      - rm -f .npmrc
+      - echo "✅ Published to GitHub Package Registry"
+
+  # ─── Multi-Registry ─────────────────────────────────────────────
+  publish-all:
+    desc: Publish to npm + GitHub Package Registry (parallel)
+    env: [prod]
+    deps: [build]
     parallel: true
     cmds:
-      - npm version ${VERSION} --no-git-tag-version
-      - npm run build
-      - npm publish --access public
-      - git tag -a v${VERSION} -m "Release v${VERSION}"
-      - git push origin v${VERSION}
+      - taskfile run publish-npm
+      - taskfile run publish-gpr
+
+  # ─── GitHub Releases ─────────────────────────────────────────────
+  release-github:
+    desc: Create GitHub Release with tarball
+    env: [prod]
+    deps: [build]
+    cmds:
+      - tar -czf ${PACKAGE_NAME}-${VERSION}.tgz dist/ package.json README.md
+      - gh release create "v${VERSION}" ${PACKAGE_NAME}-${VERSION}.tgz --title "v${VERSION}"
+      - rm -f ${PACKAGE_NAME}-${VERSION}.tgz
+      - echo "✅ GitHub Release created"
 
   verify:
-    desc: Check published package
+    desc: Check published package on npm
     cmds:
       - npm info ${PACKAGE_NAME}@${VERSION}
 
+  # ─── Version ─────────────────────────────────────────────────────
+  bump-patch:
+    desc: Bump patch version
+    cmds:
+      - npm version patch --no-git-tag-version
+
+  bump-minor:
+    desc: Bump minor version
+    cmds:
+      - npm version minor --no-git-tag-version
+
+  bump-major:
+    desc: Bump major version
+    cmds:
+      - npm version major --no-git-tag-version
+
+  # ─── Release ───────────────────────────────────────────────────────
+  release:
+    desc: "Full release: version + tag + build + publish"
+    env: [prod]
+    deps: [lint, test, type-check]
+    parallel: true
+    cmds:
+      - npm version ${VERSION}
+      - npm run build
+      - npm publish --access public
+      - git push origin v${VERSION}
+      - echo "✅ Released ${PACKAGE_NAME}@${VERSION}"
+
+  # ─── Cleanup ─────────────────────────────────────────────────────
   clean:
     desc: Remove build artifacts
     cmds:
-      - rm -rf dist/ node_modules/ *.tgz
+      - rm -rf dist/ node_modules/ *.tgz .npmrc

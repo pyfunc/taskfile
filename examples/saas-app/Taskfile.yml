@@ -48,11 +48,13 @@ pipeline:
 tasks:
   lint:
     desc: Lint code
+    tags: [ci, quality]
     cmds:
       - ruff check .
 
   test:
     desc: Run tests
+    tags: [ci, quality]
     cmds:
       - pytest -v
 
@@ -70,6 +72,10 @@ tasks:
   deploy:
     desc: Deploy to target environment
     env: [staging, prod]
+    tags: [deploy]
+    retries: 2
+    retry_delay: 10
+    timeout: 300
     cmds:
       - "@remote podman pull ${REGISTRY}/saas-app:${TAG}"
       - "@remote systemctl --user restart saas-app"

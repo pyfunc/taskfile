@@ -1,0 +1,45 @@
+version: "1"
+name: import-cicd-demo
+description: "Demonstrates `taskfile import` — converting CI/CD configs into Taskfile.yml"
+
+variables:
+  IMAGE: ghcr.io/myorg/myapp
+  TAG: latest
+
+tasks:
+  import-github:
+    desc: "Import GitHub Actions workflow → Taskfile"
+    cmds:
+      - taskfile import sources/ci.yml --type github-actions -o imported-github.yml --force
+      - echo "✅ Generated imported-github.yml from GitHub Actions"
+
+  import-gitlab:
+    desc: "Import GitLab CI config → Taskfile"
+    cmds:
+      - taskfile import sources/.gitlab-ci.yml --type gitlab-ci -o imported-gitlab.yml --force
+      - echo "✅ Generated imported-gitlab.yml from GitLab CI"
+
+  import-makefile:
+    desc: "Import Makefile → Taskfile"
+    cmds:
+      - taskfile import sources/Makefile --type makefile -o imported-makefile.yml --force
+      - echo "✅ Generated imported-makefile.yml from Makefile"
+
+  import-shell:
+    desc: "Import shell script → Taskfile"
+    cmds:
+      - taskfile import sources/deploy.sh --type shell -o imported-shell.yml --force
+      - echo "✅ Generated imported-shell.yml from deploy.sh"
+
+  import-all:
+    desc: Import all source formats
+    deps: [import-github, import-gitlab, import-makefile, import-shell]
+    parallel: true
+    cmds:
+      - echo "✅ All imports complete"
+
+  clean:
+    desc: Remove generated files
+    cmds:
+      - rm -f imported-*.yml
+      - echo "✅ Cleaned"

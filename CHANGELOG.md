@@ -1,5 +1,84 @@
 ## [Unreleased]
 
+### Features
+
+- **Embedded functions** — `functions` section in Taskfile.yml with Python/shell/Node/binary support
+- **`@fn` prefix** — call embedded functions from task commands: `@fn notify arg1`
+- **`@python` prefix** — run inline Python from task commands: `@python print('hello')`
+- **`retries` + `retry_delay`** — auto-retry failed commands (Ansible-inspired)
+- **`timeout`** — command timeout in seconds, returns exit code 124 on timeout
+- **`tags`** — selective task execution with `--tags` CLI flag
+- **`register`** — capture command stdout into a variable for chaining
+- **`taskfile import`** — convert GitHub Actions, GitLab CI, Makefile, shell scripts, Dockerfile INTO Taskfile.yml
+
+### Docs
+
+- Add `comparisons/taskfile-vs-ansible.md` — full Ansible comparison with migration guide
+- Update `comparisons/README.md` — add new features to feature matrix
+- Update `examples/README.md` — add functions-embed and import-cicd examples
+- Update main `README.md` — new features, 24 examples, import command, functions reference
+
+### Examples
+
+- Add `examples/functions-embed/` — demonstrates functions, @fn, @python, retries, tags, register
+- Add `examples/import-cicd/` — demonstrates `taskfile import` from 4 CI/CD formats
+- Update `examples/saas-app/` — add retries, tags, timeout to deploy task
+- Update `examples/fleet-rpi/` — add tags, retries, timeout to deploy/provision tasks
+- Fix `examples/publish-cargo/` — quote YAML desc with colons
+- Fix `examples/publish-npm/` — quote YAML desc with colons
+
+### Core
+
+- Add `Function` dataclass to `models.py`
+- Add `functions` field to `TaskfileConfig`
+- Add `retries`, `retry_delay`, `timeout`, `tags`, `register` fields to `Task`
+- Add `_run_function`, `_run_inline_python`, `_exec_function_*` methods to runner
+- Add retry logic to `_execute_commands`
+- Add timeout support to `run_command` via `subprocess.TimeoutExpired`
+- Add register/capture support to `run_command`
+- Add `--tags` option to `run` CLI command
+- Add `taskfile import` CLI command
+- Add `src/taskfile/importer.py` — import module (5 formats)
+
+### Tests
+
+- Expand E2E tests: 283 → 320 tests
+- Add `TestFunctionsEmbedExample` — 12 tests for functions example
+- Add `TestImportCICDExample` — 3 tests for import example
+- Add `TestImporterModule` — 7 tests for importer module
+- Add `TestAnsibleInspiredFeatures` — 10 tests for retries/timeout/tags/register/functions
+- Add `TestCLIImportCommand` — 3 tests for import CLI
+- Add `TestCLITagsFlag` — 3 tests for --tags flag
+
+## [0.3.18] - 2026-03-05
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update comparisons/README.md
+- Update comparisons/taskfile-vs-ansible.md
+- Update examples/README.md
+- Update examples/functions-embed/README.md
+- Update examples/import-cicd/README.md
+- Update examples/publish-desktop/README.md
+- Update examples/publish-mobile/README.md
+
+### Test
+- Update tests/test_e2e_examples.py
+
+### Other
+- Update examples/fleet-rpi/Taskfile.yml
+- Update examples/functions-embed/Taskfile.yml
+- Update examples/functions-embed/scripts/health.sh
+- Update examples/functions-embed/scripts/report.py
+- Update examples/import-cicd/Taskfile.yml
+- Update examples/import-cicd/sources/.gitlab-ci.yml
+- Update examples/import-cicd/sources/Makefile
+- Update examples/import-cicd/sources/ci.yml
+- Update examples/import-cicd/sources/deploy.sh
+- Update examples/publish-cargo/Taskfile.yml
+- ... and 7 more files
+
 ## [0.3.17] - 2026-03-05
 
 ## [0.3.16] - 2026-03-05

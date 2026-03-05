@@ -1,0 +1,68 @@
+version: "1"
+name: my-infra
+description: "Terraform IaC with multi-environment state management"
+
+default_env: dev
+
+variables:
+  PROJECT: my-infra
+  AWS_REGION: eu-central-1
+
+environments:
+  dev:
+    variables:
+      TF_WORKSPACE: dev
+      TF_VAR_FILE: envs/dev.tfvars
+
+  staging:
+    variables:
+      TF_WORKSPACE: staging
+      TF_VAR_FILE: envs/staging.tfvars
+
+  prod:
+    variables:
+      TF_WORKSPACE: prod
+      TF_VAR_FILE: envs/prod.tfvars
+
+tasks:
+  init:
+    desc: Initialize Terraform
+    cmds:
+      - terraform init -backend-config=envs/${TF_WORKSPACE}-backend.hcl
+
+  plan:
+    desc: Plan infrastructure changes
+    deps: [init]
+    cmds:
+      - terraform workspace select ${TF_WORKSPACE} || terraform workspace new ${TF_WORKSPACE}
+      - terraform plan -var-file=${TF_VAR_FILE} -out=tfplan
+
+  apply:
+    desc: Apply infrastructure changes
+    deps: [plan]
+    cmds:
+      - terraform apply tfplan
+
+  destroy:
+    desc: Destroy infrastructure (caution!)
+    cmds:
+      - terraform workspace select ${TF_WORKSPACE}
+      - terraform destroy -var-file=${TF_VAR_FILE}
+
+  validate:
+    desc: Validate Terraform configuration
+    cmds:
+      - terraform fmt -check -recursive
+      - terraform validate
+
+  output:
+    desc: Show Terraform outputs
+    cmds:
+      - terraform workspace select ${TF_WORKSPACE}
+      - terraform output
+
+  state:
+    desc: Show Terraform state
+    cmds:
+      - terraform workspace select ${TF_WORKSPACE}
+      - terraform state list

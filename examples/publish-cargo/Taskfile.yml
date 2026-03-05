@@ -1,35 +1,72 @@
 version: "1"
 name: my-rust-crate
-description: Rust crate → crates.io publishing pipeline
+description: Rust crate → crates.io + GitHub releases publishing pipeline
 
 variables:
-  CRATE_NAME: my-rust-crate
-  VERSION: "0.1.0"
+  CRATE_NAME: ${CRATE_NAME:-my-rust-crate}
+  VERSION: ${VERSION:-0.1.0}
+  
+  # Tokens from environment
+  CARGO_TOKEN: ${CARGO_TOKEN:-}
+  GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+
+environments:
+  local:
+    desc: Local development
+    env_file: .env.local
+  
+  prod:
+    desc: Production crates.io
+    env_file: .env.prod
 
 tasks:
 
+  # ─── Setup ───────────────────────────────────────────────────────
+  init:
+    desc: Initialize project and create .env
+    cmds:
+      - |
+        if [ ! -f .env.local ]; then
+          cat > .env.local << 'EOF'
+        # Cargo Publishing Configuration
+        CARGO_TOKEN=         # Get from https://crates.io/settings/tokens
+        GITHUB_TOKEN=        # Get from https://github.com/settings/tokens
+        EOF
+          echo "✅ Created .env.local"
+        fi
+      - cargo check
+
+  # ─── Quality ─────────────────────────────────────────────────────
   fmt:
     desc: Check formatting (rustfmt)
     cmds:
       - cargo fmt --check
-    ignore_errors: true
+    continue_on_error: true
 
   clippy:
     desc: Run Clippy linter
     cmds:
       - cargo clippy -- -D warnings
-    ignore_errors: true
+    continue_on_error: true
 
   test:
     desc: Run tests
     cmds:
       - cargo test --verbose
 
+  audit:
+    desc: Security audit with cargo-audit
+    cmds:
+      - cargo audit
+      - echo "✅ Security audit passed"
+
+  # ─── Build ───────────────────────────────────────────────────────
   build:
     desc: Build release binary
-    deps: [test]
+    deps: [test, clippy, fmt]
     cmds:
       - cargo build --release
+      - echo "✅ Release build complete"
 
   build-cross:
     desc: Cross-compile for Linux, macOS, Windows
@@ -37,30 +74,101 @@ tasks:
       - cargo build --release --target x86_64-unknown-linux-gnu
       - cargo build --release --target x86_64-apple-darwin
       - cargo build --release --target x86_64-pc-windows-gnu
+      - echo "✅ Cross-compilation complete"
 
-  publish:
-    desc: Publish to crates.io (with dry-run first)
+  # ─── crates.io Publishing ─────────────────────────────────────────
+  publish-crates:
+    desc: Publish to crates.io (with auth check)
+    env: [prod]
     deps: [build]
     cmds:
+      - |
+        if [ -z "$CARGO_TOKEN" ]; then
+          echo "❌ CARGO_TOKEN not set"
+          exit 1
+        fi
+      - cargo login "$CARGO_TOKEN"
       - cargo publish --dry-run
       - cargo publish
+      - echo "✅ Published to crates.io: ${CRATE_NAME}@${VERSION}"
 
+  publish-crates-dry:
+    desc: Dry run publish
+    cmds:
+      - cargo publish --dry-run
+
+  # ─── GitHub Releases ─────────────────────────────────────────────
+  release-github:
+    desc: Create GitHub Release with cross-platform binaries
+    env: [prod]
+    deps: [build-cross]
+    cmds:
+      - |
+        # Create release archives
+        tar -czf ${CRATE_NAME}-${VERSION}-linux-x64.tar.gz -C target/x86_64-unknown-linux-gnu/release ${CRATE_NAME}
+        tar -czf ${CRATE_NAME}-${VERSION}-macos-x64.tar.gz -C target/x86_64-apple-darwin/release ${CRATE_NAME}
+        zip -j ${CRATE_NAME}-${VERSION}-windows-x64.zip target/x86_64-pc-windows-gnu/release/${CRATE_NAME}.exe
+      - |
+        gh release create "v${VERSION}" \
+          ${CRATE_NAME}-${VERSION}-linux-x64.tar.gz \
+          ${CRATE_NAME}-${VERSION}-macos-x64.tar.gz \
+          ${CRATE_NAME}-${VERSION}-windows-x64.zip \
+          --title "${CRATE_NAME} v${VERSION}" \
+          --generate-notes
+      - rm -f ${CRATE_NAME}-${VERSION}-*.tar.gz ${CRATE_NAME}-${VERSION}-*.zip
+      - echo "✅ GitHub Release created"
+
+  # ─── Multi-Registry ─────────────────────────────────────────────
+  publish-all:
+    desc: Publish to crates.io + GitHub Releases
+    env: [prod]
+    deps: [build, build-cross]
+    cmds:
+      - taskfile run publish-crates
+      - taskfile run release-github
+      - echo "✅ Published to all registries!"
+
+  # ─── Documentation ─────────────────────────────────────────────────
+  doc:
+    desc: Generate documentation
+    cmds:
+      - cargo doc --no-deps
+      - echo "✅ Docs generated in target/doc/"
+
+  # ─── Version ─────────────────────────────────────────────────────
+  version:
+    desc: Show current version
+    cmds:
+      - grep '^version' Cargo.toml | head -1
+
+  bump:
+    desc: Bump version (requires cargo-bump)
+    cmds:
+      - cargo bump ${BUMP_TYPE:-patch}
+      - echo "✅ Version bumped"
+
+  # ─── Release ───────────────────────────────────────────────────────
   release:
-    desc: Tag + test + publish
+    desc: "Full release: quality + publish + tag"
+    env: [prod]
     deps: [fmt, clippy, test]
     parallel: true
     cmds:
       - cargo publish --dry-run
-      - git tag -a v${VERSION} -m "Release v${VERSION}"
-      - git push origin v${VERSION}
+      - git tag -a "v${VERSION}" -m "Release v${VERSION}"
+      - git push origin "v${VERSION}"
       - cargo publish
+      - echo "✅ Released ${CRATE_NAME}@${VERSION}"
 
   verify:
     desc: Search crates.io for published crate
     cmds:
       - cargo search ${CRATE_NAME}
 
+  # ─── Cleanup ─────────────────────────────────────────────────────
   clean:
     desc: Remove build artifacts
     cmds:
       - cargo clean
+      - rm -f *.tar.gz *.zip
+      - echo "✅ Cleaned"

@@ -110,6 +110,14 @@ class TaskfileRunner:
         """Execute a single command, locally or via SSH."""
         expanded = self.expand_variables(cmd)
 
+        # @fn prefix — call embedded function
+        if expanded.strip().startswith("@fn "):
+            return self._run_function(expanded, task)
+
+        # @python prefix — run inline Python expression
+        if expanded.strip().startswith("@python "):
+            return self._run_inline_python(expanded, task)
+
         # Determine if command should run via SSH
         is_remote = self._is_remote_command(expanded)
 
@@ -130,16 +138,26 @@ class TaskfileRunner:
 
         try:
             env = {**os.environ, **self.variables}
+            capture = task.register is not None
+            timeout = task.timeout if task.timeout > 0 else None
             result = subprocess.run(
                 actual_cmd,
                 shell=True,
                 cwd=task.working_dir,
                 env=env,
                 text=True,
-                stdout=None,  # inherit stdout
-                stderr=None,  # inherit stderr
+                stdout=subprocess.PIPE if capture else None,
+                stderr=None,
+                timeout=timeout,
             )
+            if capture and result.stdout:
+                if not task.silent:
+                    sys.stdout.write(result.stdout)
+                self.variables[task.register] = result.stdout.strip()
             return result.returncode
+        except subprocess.TimeoutExpired:
+            console.print(f"  [red]⏱ Command timed out after {task.timeout}s[/]")
+            return 124
         except KeyboardInterrupt:
             console.print("\n[yellow]⚠ Interrupted[/]")
             return 130
@@ -178,6 +196,113 @@ class TaskfileRunner:
         except KeyboardInterrupt:
             console.print("\n[yellow]⚠ Interrupted[/]")
             return 130
+
+    def _run_function(self, cmd: str, task: Task) -> int:
+        """Execute an embedded function defined in the functions section.
+
+        Syntax: @fn <function_name> [args...]
+        Functions are defined in the `functions` section of Taskfile.yml.
+        """
+        parts = cmd.strip()[4:].split(None, 1)  # strip "@fn "
+        fn_name = parts[0] if parts else ""
+        fn_args = parts[1] if len(parts) > 1 else ""
+
+        fn = self.config.functions.get(fn_name)
+        if fn is None:
+            console.print(f"  [red]✗ Unknown function: {fn_name}[/]")
+            available = ", ".join(sorted(self.config.functions.keys()))
+            if available:
+                console.print(f"  [dim]Available functions: {available}[/]")
+            return 1
+
+        if not task.silent:
+            console.print(f"  [cyan]→ @fn {fn_name}[/] {fn_args}")
+
+        if self.dry_run:
+            console.print("  [dim](dry run — skipped)[/]")
+            return 0
+
+        env = {**os.environ, **self.variables, "FN_ARGS": fn_args}
+
+        if fn.lang == "python":
+            return self._exec_function_python(fn, fn_args, env, task)
+        elif fn.lang == "node":
+            return self._exec_function_node(fn, fn_args, env, task)
+        elif fn.lang == "binary":
+            return self._exec_function_binary(fn, fn_args, env, task)
+        else:
+            # Default: shell
+            return self._exec_function_shell(fn, fn_args, env, task)
+
+    def _exec_function_shell(self, fn, fn_args: str, env: dict, task: Task) -> int:
+        """Execute a shell function (inline code or file)."""
+        if fn.file:
+            actual_cmd = f"bash {fn.file} {fn_args}".strip()
+        elif fn.code:
+            actual_cmd = fn.code
+        else:
+            return 0
+        result = subprocess.run(actual_cmd, shell=True, env=env, cwd=task.working_dir, text=True)
+        return result.returncode
+
+    def _exec_function_python(self, fn, fn_args: str, env: dict, task: Task) -> int:
+        """Execute a Python function (inline code or file)."""
+        if fn.file:
+            entry = f" -c \"import runpy; runpy.run_path('{fn.file}')\"" if not fn.function else f" {fn.file}"
+            if fn.function:
+                actual_cmd = f"python -c \"import importlib.util, sys; spec=importlib.util.spec_from_file_location('m','{fn.file}'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); m.{fn.function}({repr(fn_args)})\""
+            else:
+                actual_cmd = f"python {fn.file} {fn_args}".strip()
+        elif fn.code:
+            # Write inline code to temp and execute
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
+                tmp.write(fn.code)
+                tmp_path = tmp.name
+            actual_cmd = f"python {tmp_path} {fn_args}".strip()
+        else:
+            return 0
+        result = subprocess.run(actual_cmd, shell=True, env=env, cwd=task.working_dir, text=True)
+        return result.returncode
+
+    def _exec_function_node(self, fn, fn_args: str, env: dict, task: Task) -> int:
+        """Execute a Node.js function (inline code or file)."""
+        if fn.file:
+            actual_cmd = f"node {fn.file} {fn_args}".strip()
+        elif fn.code:
+            actual_cmd = f"node -e {repr(fn.code)}"
+        else:
+            return 0
+        result = subprocess.run(actual_cmd, shell=True, env=env, cwd=task.working_dir, text=True)
+        return result.returncode
+
+    def _exec_function_binary(self, fn, fn_args: str, env: dict, task: Task) -> int:
+        """Execute a binary/executable function."""
+        if fn.file:
+            actual_cmd = f"{fn.file} {fn_args}".strip()
+        else:
+            return 0
+        result = subprocess.run(actual_cmd, shell=True, env=env, cwd=task.working_dir, text=True)
+        return result.returncode
+
+    def _run_inline_python(self, cmd: str, task: Task) -> int:
+        """Execute inline Python code.
+
+        Syntax: @python <python_expression_or_statement>
+        Variables are available as env vars and via os.environ.
+        """
+        code = cmd.strip()[8:]  # strip "@python "
+        if not task.silent:
+            console.print(f"  [cyan]→ @python[/] {code[:80]}{'...' if len(code) > 80 else ''}")
+        if self.dry_run:
+            console.print("  [dim](dry run — skipped)[/]")
+            return 0
+        env = {**os.environ, **self.variables}
+        result = subprocess.run(
+            f"python -c {repr(code)}",
+            shell=True, env=env, cwd=task.working_dir, text=True,
+        )
+        return result.returncode
 
     def check_condition(self, task: Task) -> bool:
         """Check if task condition is met."""
@@ -270,9 +395,24 @@ class TaskfileRunner:
         return True
 
     def _execute_commands(self, task: Task, task_name: str, start: float) -> bool:
-        """Execute all commands in a task. Returns False if any failed (and not ignored)."""
+        """Execute all commands in a task. Returns False if any failed (and not ignored).
+
+        Supports retries (Ansible-inspired): when task.retries > 0, failed commands
+        are retried up to task.retries times with task.retry_delay seconds between.
+        """
         for cmd in task.commands:
             returncode = self.run_command(cmd, task)
+            # Retry logic
+            if returncode != 0 and task.retries > 0:
+                for attempt in range(1, task.retries + 1):
+                    console.print(
+                        f"  [yellow]↻ Retry {attempt}/{task.retries} "
+                        f"(waiting {task.retry_delay}s)[/]"
+                    )
+                    time.sleep(task.retry_delay)
+                    returncode = self.run_command(cmd, task)
+                    if returncode == 0:
+                        break
             if returncode != 0:
                 if task.ignore_errors:
                     console.print(f"  [yellow]⚠ Command failed (ignored)[/]")

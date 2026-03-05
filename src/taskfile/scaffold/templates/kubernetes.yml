@@ -1,0 +1,75 @@
+version: "1"
+name: my-k8s-app
+description: "Kubernetes deployment with Helm, multi-cluster support"
+
+default_env: local
+
+variables:
+  APP_NAME: my-k8s-app
+  IMAGE: ghcr.io/myorg/my-k8s-app
+  TAG: latest
+  NAMESPACE: default
+  HELM_CHART: ./helm/my-k8s-app
+
+environments:
+  local:
+    container_runtime: docker
+    variables:
+      CONTEXT: minikube
+      NAMESPACE: dev
+
+  staging:
+    container_runtime: docker
+    variables:
+      CONTEXT: staging-cluster
+      NAMESPACE: staging
+
+  prod:
+    container_runtime: docker
+    variables:
+      CONTEXT: prod-cluster
+      NAMESPACE: production
+
+tasks:
+  build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push to container registry
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  deploy:
+    desc: Deploy via Helm
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - helm upgrade --install ${APP_NAME} ${HELM_CHART}
+        --namespace ${NAMESPACE}
+        --set image.repository=${IMAGE}
+        --set image.tag=${TAG}
+        --wait --timeout 5m
+
+  status:
+    desc: Check deployment status
+    cmds:
+      - kubectl --context ${CONTEXT} -n ${NAMESPACE} get pods -l app=${APP_NAME}
+      - kubectl --context ${CONTEXT} -n ${NAMESPACE} rollout status deployment/${APP_NAME}
+
+  logs:
+    desc: View pod logs
+    cmds:
+      - kubectl --context ${CONTEXT} -n ${NAMESPACE} logs -l app=${APP_NAME} -f
+
+  rollback:
+    desc: Rollback last deployment
+    cmds:
+      - helm --kube-context ${CONTEXT} -n ${NAMESPACE} rollback ${APP_NAME}
+
+  port-forward:
+    desc: Port forward to local
+    env: [local]
+    cmds:
+      - kubectl --context ${CONTEXT} -n ${NAMESPACE} port-forward svc/${APP_NAME} 8080:80

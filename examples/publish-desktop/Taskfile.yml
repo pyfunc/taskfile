@@ -1,0 +1,225 @@
+version: "1"
+name: desktop-electron-app
+description: Desktop app publishing (macOS, Windows, Linux) via Electron
+
+variables:
+  APP_NAME: ${APP_NAME:-MyDesktopApp}
+  VERSION: ${VERSION:-1.0.0}
+  
+  # Publishing tokens
+  APPLE_ID: ${APPLE_ID:-}
+  APPLE_APP_PASSWORD: ${APPLE_APP_PASSWORD:-}
+  WINDOWS_CERT: ${WINDOWS_CERT:-}
+  GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+  
+  # Distribution
+  GH_RELEASES: ${GH_RELEASES:-true}
+  SNAP_STORE: ${SNAP_STORE:-false}
+  FLATHUB: ${FLATHUB:-false}
+
+environments:
+  local:
+    desc: Local development
+    env_file: .env.local
+  
+  prod:
+    desc: Production code signing and distribution
+    env_file: .env.prod
+
+platforms:
+  macos:
+    desc: macOS app (x64 + arm64 universal)
+    variables:
+      TARGET: mac
+      EXT: dmg
+  
+  windows:
+    desc: Windows app (exe + msi)
+    variables:
+      TARGET: win
+      EXT: exe
+  
+  linux:
+    desc: Linux app (AppImage + deb + snap)
+    variables:
+      TARGET: linux
+      EXT: AppImage
+
+tasks:
+  # ─── Setup ───────────────────────────────────────────────────────
+  init:
+    desc: Initialize project and create .env
+    cmds:
+      - |
+        if [ ! -f .env.local ]; then
+          cat > .env.local << 'EOF'
+        # Desktop App Publishing Configuration
+        
+        # Apple Developer (for macOS notarization)
+        APPLE_ID=           # your@email.com
+        APPLE_APP_PASSWORD= # app-specific password
+        TEAM_ID=            # Apple Developer Team ID
+        
+        # Windows Certificate
+        WINDOWS_CERT=       # Path to .pfx or base64
+        WINDOWS_CERT_PASS=  # Certificate password
+        
+        # GitHub
+        GITHUB_TOKEN=       # For GitHub Releases
+        
+        # Distribution flags
+        GH_RELEASES=true
+        SNAP_STORE=false
+        FLATHUB=false
+        EOF
+          echo "✅ Created .env.local"
+        fi
+      - npm install
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm ci
+
+  # ─── Development ─────────────────────────────────────────────────
+  dev:
+    desc: Start development mode
+    cmds:
+      - npm run dev
+
+  test:
+    desc: Run tests
+    cmds:
+      - npm test
+
+  lint:
+    desc: Lint code
+    cmds:
+      - npm run lint
+    continue_on_error: true
+
+  # ─── Build ───────────────────────────────────────────────────────
+  build-macos:
+    desc: Build macOS app (requires macOS)
+    platform: [macos]
+    deps: [test, lint]
+    cmds:
+      - npm run build:mac
+      - echo "✅ macOS app built: dist/${APP_NAME}-${VERSION}.dmg"
+
+  build-windows:
+    desc: Build Windows app
+    platform: [windows]
+    deps: [test, lint]
+    cmds:
+      - npm run build:win
+      - echo "✅ Windows app built: dist/${APP_NAME}-${VERSION}.exe"
+
+  build-linux:
+    desc: Build Linux app
+    platform: [linux]
+    deps: [test, lint]
+    cmds:
+      - npm run build:linux
+      - echo "✅ Linux app built: dist/${APP_NAME}-${VERSION}.AppImage"
+
+  build-all:
+    desc: Build all platforms (on CI with appropriate runners)
+    deps: [test, lint]
+    cmds:
+      - npm run build:mac || echo "⚠️ macOS build skipped (requires macOS)"
+      - npm run build:win
+      - npm run build:linux
+      - echo "✅ All platforms built"
+
+  # ─── Code Signing ────────────────────────────────────────────────
+  sign-macos:
+    desc: Sign and notarize macOS app (requires macOS + Apple ID)
+    platform: [macos]
+    condition: "test -n '${APPLE_ID}'"
+    cmds:
+      - |
+        # Electron Builder handles signing if env vars are set
+        export CSC_LINK=""
+        export CSC_KEY_PASSWORD=""
+        npm run build:mac -- --publish never
+        echo "✅ macOS app signed and notarized"
+
+  sign-windows:
+    desc: Sign Windows app (requires Windows cert)
+    platform: [windows]
+    condition: "test -n '${WINDOWS_CERT}'"
+    cmds:
+      - |
+        if [ -n "$WINDOWS_CERT" ]; then
+          export CSC_LINK="$WINDOWS_CERT"
+          export CSC_KEY_PASSWORD="$WINDOWS_CERT_PASS"
+        fi
+        npm run build:win -- --publish never
+        echo "✅ Windows app signed"
+
+  # ─── Distribution ──────────────────────────────────────────────────
+  release-github:
+    desc: Publish to GitHub Releases
+    env: [prod]
+    deps: [build-all]
+    condition: "test '${GH_RELEASES}' = 'true'"
+    cmds:
+      - |
+        gh release create "v${VERSION}" \
+          dist/*.dmg dist/*.exe dist/*.AppImage dist/*.deb dist/*.snap \
+          --title "${APP_NAME} v${VERSION}" \
+          --notes "Desktop app release v${VERSION}"
+      - echo "✅ Published to GitHub Releases"
+
+  release-snap:
+    desc: Publish to Snap Store
+    env: [prod]
+    platform: [linux]
+    condition: "test '${SNAP_STORE}' = 'true'"
+    cmds:
+      - snapcraft upload dist/*.snap --release stable
+      - echo "✅ Published to Snap Store"
+
+  release-flathub:
+    desc: Publish to Flathub (Flatpak)
+    env: [prod]
+    platform: [linux]
+    condition: "test '${FLATHUB}' = 'true'"
+    cmds:
+      - |
+        # Build and publish flatpak
+        flatpak-builder --repo=repo flatpak-build ${APP_NAME}.yml
+        flatpak build-bundle repo ${APP_NAME}.flatpak ${APP_NAME}
+        # Submit to Flathub via PR
+      - echo "✅ Flatpak ready for Flathub submission"
+
+  # ─── Publish All ───────────────────────────────────────────────────
+  publish-all:
+    desc: Build, sign, and publish to all channels
+    env: [prod]
+    deps: [build-all, sign-macos, sign-windows]
+    cmds:
+      - taskfile run release-github
+      - |
+        if [ "${SNAP_STORE}" = "true" ]; then
+          taskfile run release-snap
+        fi
+      - |
+        if [ "${FLATHUB}" = "true" ]; then
+          taskfile run release-flathub
+        fi
+      - echo "✅ Published to all channels!"
+
+  # ─── Update (Auto-updater) ───────────────────────────────────────
+  update-check:
+    desc: Check for updates (dev test)
+    cmds:
+      - npm run update-check
+
+  # ─── Cleanup ─────────────────────────────────────────────────────
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf dist/ node_modules/
+      - echo "✅ Cleaned"

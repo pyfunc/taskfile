@@ -1,0 +1,274 @@
+version: "1"
+name: mobile-flutter-app
+description: Mobile app publishing (iOS App Store + Google Play Store)
+
+variables:
+  APP_NAME: ${APP_NAME:-MyMobileApp}
+  VERSION: ${VERSION:-1.0.0}
+  BUILD_NUMBER: ${BUILD_NUMBER:-1}
+  
+  # Publishing credentials
+  APPLE_ID: ${APPLE_ID:-}
+  APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+  FASTLANE_PASSWORD: ${FASTLANE_PASSWORD:-}
+  
+  PLAYSTORE_JSON: ${PLAYSTORE_JSON:-}
+  FIREBASE_TOKEN: ${FIREBASE_TOKEN:-}
+  
+  # Distribution channels
+  APP_STORE: ${APP_STORE:-true}
+  PLAY_STORE: ${PLAY_STORE:-true}
+  TESTFLIGHT: ${TESTFLIGHT:-true}
+  FIREBASE_DIST: ${FIREBASE_DIST:-false}
+
+environments:
+  local:
+    desc: Local development
+    env_file: .env.local
+  
+  staging:
+    desc: Internal testing (TestFlight + Internal Track)
+    env_file: .env.staging
+  
+  prod:
+    desc: Production (App Store + Play Store)
+    env_file: .env.prod
+
+platforms:
+  ios:
+    desc: iOS app (iPhone + iPad)
+    variables:
+      PLATFORM: ios
+      BUNDLE_ID: com.example.${APP_NAME}
+  
+  android:
+    desc: Android app (APK + AAB)
+    variables:
+      PLATFORM: android
+      BUNDLE_ID: com.example.${APP_NAME,,}
+
+tasks:
+  # ─── Setup ───────────────────────────────────────────────────────
+  init:
+    desc: Initialize Flutter project and create .env files
+    cmds:
+      - |
+        if [ ! -f .env.local ]; then
+          cat > .env.local << 'EOF'
+        # Mobile App Publishing Configuration
+        
+        # iOS / Apple Developer
+        APPLE_ID=your@email.com
+        APPLE_TEAM_ID=ABCDEF1234
+        FASTLANE_PASSWORD=your-apple-password
+        
+        # Android / Google Play
+        PLAYSTORE_JSON=path/to/play-store-key.json
+        
+        # Firebase (optional, for distribution)
+        FIREBASE_TOKEN=your-firebase-token
+        
+        # Distribution channels
+        APP_STORE=true
+        PLAY_STORE=true
+        TESTFLIGHT=true
+        FIREBASE_DIST=false
+        EOF
+          echo "✅ Created .env.local"
+        fi
+      - flutter doctor
+      - echo "✅ Flutter environment checked"
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - flutter pub get
+      - cd ios && pod install
+      - echo "✅ Dependencies installed"
+
+  # ─── Development ─────────────────────────────────────────────────
+  dev:
+    desc: Start development mode
+    cmds:
+      - flutter run
+
+  test:
+    desc: Run tests
+    cmds:
+      - flutter test
+      - echo "✅ Tests passed"
+
+  analyze:
+    desc: Static analysis
+    cmds:
+      - flutter analyze
+      - echo "✅ Analysis passed"
+
+  # ─── Build ───────────────────────────────────────────────────────
+  build-ios:
+    desc: Build iOS app (.ipa)
+    platform: [ios]
+    deps: [test, analyze]
+    cmds:
+      - flutter build ipa --release --build-number=${BUILD_NUMBER}
+      - echo "✅ iOS IPA built: build/ios/ipa/*.ipa"
+
+  build-android-apk:
+    desc: Build Android APK
+    platform: [android]
+    deps: [test, analyze]
+    cmds:
+      - flutter build apk --release --build-number=${BUILD_NUMBER}
+      - echo "✅ Android APK built: build/app/outputs/flutter-apk/*.apk"
+
+  build-android-aab:
+    desc: Build Android App Bundle (.aab for Play Store)
+    platform: [android]
+    deps: [test, analyze]
+    cmds:
+      - flutter build appbundle --release --build-number=${BUILD_NUMBER}
+      - echo "✅ Android AAB built: build/app/outputs/bundle/release/*.aab"
+
+  build-all:
+    desc: Build all mobile artifacts
+    deps: [test, analyze]
+    cmds:
+      - taskfile run build-ios
+      - taskfile run build-android-aab
+      - echo "✅ All mobile artifacts built"
+
+  # ─── Code Signing ────────────────────────────────────────────────
+  setup-ios-cert:
+    desc: Setup iOS certificates (Fastlane match)
+    platform: [ios]
+    cmds:
+      - cd ios && fastlane match development
+      - cd ios && fastlane match appstore
+      - echo "✅ iOS certificates setup"
+
+  setup-android-keystore:
+    desc: Setup Android keystore
+    platform: [android]
+    cmds:
+      - |
+        if [ ! -f android/app/keystore.jks ]; then
+          keytool -genkey -v -keystore android/app/keystore.jks \
+            -alias ${APP_NAME,,} -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=US"
+          echo "✅ Android keystore created"
+        fi
+
+  # ─── Internal Testing ────────────────────────────────────────────
+  deploy-testflight:
+    desc: Upload to TestFlight (internal testing)
+    platform: [ios]
+    env: [staging]
+    condition: "test '${TESTFLIGHT}' = 'true'"
+    cmds:
+      - taskfile run build-ios
+      - cd ios && fastlane beta
+      - echo "✅ Uploaded to TestFlight"
+
+  deploy-play-internal:
+    desc: Upload to Play Store Internal Track
+    platform: [android]
+    env: [staging]
+    condition: "test '${PLAY_STORE}' = 'true'"
+    cmds:
+      - taskfile run build-android-aab
+      - cd android && fastlane internal
+      - echo "✅ Uploaded to Play Store Internal"
+
+  deploy-firebase:
+    desc: Distribute via Firebase App Distribution
+    env: [staging]
+    condition: "test '${FIREBASE_DIST}' = 'true'"
+    cmds:
+      - taskfile run build-android-apk
+      - |
+        firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+          --app "${FIREBASE_APP_ID}" \
+          --groups "testers"
+      - echo "✅ Distributed via Firebase"
+
+  # ─── Production Release ──────────────────────────────────────────
+  release-appstore:
+    desc: Submit to App Store (production)
+    platform: [ios]
+    env: [prod]
+    condition: "test '${APP_STORE}' = 'true'"
+    deps: [build-ios]
+    cmds:
+      - cd ios && fastlane release
+      - echo "✅ Submitted to App Store review"
+
+  release-playstore:
+    desc: Submit to Play Store (production)
+    platform: [android]
+    env: [prod]
+    condition: "test '${PLAY_STORE}' = 'true'"
+    deps: [build-android-aab]
+    cmds:
+      - cd android && fastlane deploy
+      - echo "✅ Submitted to Play Store review"
+
+  release-production:
+    desc: Release to both stores (production)
+    env: [prod]
+    deps: [build-all]
+    cmds:
+      - taskfile run release-appstore
+      - taskfile run release-playstore
+      - echo "✅ Released to App Store and Play Store!"
+
+  # ─── Staging Release (Internal Testing) ──────────────────────────
+  release-staging:
+    desc: Release to internal testing channels
+    env: [staging]
+    deps: [build-all]
+    cmds:
+      - taskfile run deploy-testflight
+      - taskfile run deploy-play-internal
+      - |
+        if [ "${FIREBASE_DIST}" = "true" ]; then
+          taskfile run deploy-firebase
+        fi
+      - echo "✅ Released to staging channels!"
+
+  # ─── Version Management ──────────────────────────────────────────
+  bump-build:
+    desc: Bump build number
+    cmds:
+      - |
+        NEW_BUILD=$((BUILD_NUMBER + 1))
+        echo "New build number: $NEW_BUILD"
+        # Update in code
+        sed -i "s/version: ${VERSION}+${BUILD_NUMBER}/version: ${VERSION}+$NEW_BUILD/" pubspec.yaml
+
+  version:
+    desc: Show current version
+    cmds:
+      - grep "^version:" pubspec.yaml
+
+  # ─── Screenshots & Metadata ────────────────────────────────────
+  screenshots:
+    desc: Generate screenshots (Fastlane screengrab/frameit)
+    cmds:
+      - cd ios && fastlane snapshot
+      - cd android && fastlane screengrab
+      - echo "✅ Screenshots captured"
+
+  metadata:
+    desc: Upload metadata (descriptions, screenshots)
+    cmds:
+      - cd ios && fastlane deliver --skip_binary_upload --skip_metadata=false
+      - cd android && fastlane supply --skip_upload_apk --skip_upload_aab
+      - echo "✅ Metadata uploaded"
+
+  # ─── Cleanup ─────────────────────────────────────────────────────
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - flutter clean
+      - rm -rf build/
+      - echo "✅ Cleaned"

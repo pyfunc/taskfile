@@ -186,8 +186,9 @@ def main(ctx, taskfile_path, env_name, env_group, platform_name, var, dry_run, v
 
 @main.command()
 @click.argument("tasks", nargs=-1, required=True)
+@click.option("--tags", "run_tags", default=None, help="Run only tasks matching these tags (comma-separated)")
 @click.pass_context
-def run(ctx, tasks):
+def run(ctx, tasks, run_tags):
     """Run one or more tasks.
 
     \b
@@ -197,9 +198,11 @@ def run(ctx, tasks):
         taskfile run release --var TAG=v1.2.3
         taskfile run deploy --env prod --dry-run
         taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
+        taskfile run --tags ci build test lint
     """
     opts = ctx.obj
     env_group = opts.get("env_group")
+    tag_filter = [t.strip() for t in run_tags.split(",")] if run_tags else None
 
     try:
         if env_group:
@@ -221,11 +224,30 @@ def run(ctx, tasks):
                 dry_run=opts["dry_run"],
                 verbose=opts["verbose"],
             )
-            success = runner.run(list(tasks))
+            task_list = list(tasks)
+            if tag_filter:
+                task_list = _filter_tasks_by_tags(runner.config, task_list, tag_filter)
+                if not task_list:
+                    console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
+                    sys.exit(0)
+            success = runner.run(task_list)
         sys.exit(0 if success else 1)
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         sys.exit(1)
+
+
+def _filter_tasks_by_tags(config, task_names: list[str], tags: list[str]) -> list[str]:
+    """Filter task names to only those whose tags overlap with the requested tags."""
+    filtered = []
+    for name in task_names:
+        task = config.tasks.get(name)
+        if task and task.tags and any(t in task.tags for t in tags):
+            filtered.append(name)
+        elif task and not task.tags:
+            # Tasks without tags are included when explicit task names given
+            filtered.append(name)
+    return filtered
 
 
 @main.command(name="list")
@@ -243,7 +265,7 @@ def list_tasks(ctx):
 
 
 @main.command()
-@click.option("--template", type=click.Choice(["minimal", "web", "podman", "codereview", "full", "multiplatform", "publish"]), default="full")
+@click.option("--template", type=click.Choice(["minimal", "web", "podman", "codereview", "full", "multiplatform", "publish", "kubernetes", "terraform", "iot"]), default="full")
 @click.option("--force", is_flag=True, help="Overwrite existing Taskfile")
 def init(template, force):
     """Create a new Taskfile.yml in the current directory.
@@ -257,6 +279,9 @@ def init(template, force):
         full           — all features, multi-env example
         multiplatform  — desktop+web × local+prod deployment
         publish        — multi-registry publish (PyPI+npm+Docker+GitHub)
+        kubernetes     — Kubernetes + Helm multi-cluster deployment
+        terraform      — Terraform IaC multi-environment
+        iot            — IoT/edge fleet with rolling/canary/parallel
     """
     outpath = Path("Taskfile.yml")
     if outpath.exists() and not force:
@@ -321,12 +346,60 @@ def info(ctx, task_name):
             console.print(f"  [dim]Parallel:[/] yes (deps run concurrently)")
         if task.ignore_errors:
             console.print(f"  [dim]Ignore errors:[/] yes")
+        if task.retries:
+            console.print(f"  [dim]Retries:[/] {task.retries} (delay: {task.retry_delay}s)")
+        if task.timeout:
+            console.print(f"  [dim]Timeout:[/] {task.timeout}s")
+        if task.tags:
+            console.print(f"  [dim]Tags:[/] {', '.join(task.tags)}")
+        if task.register:
+            console.print(f"  [dim]Register:[/] {task.register}")
 
         console.print(f"\n  [bold]Commands:[/]")
         for cmd in task.commands:
             console.print(f"    → {cmd}")
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
+        console.print(f"[red]Error:[/] {e}")
+        sys.exit(1)
+
+
+@main.command(name="import")
+@click.argument("source", type=click.Path(exists=True))
+@click.option("--type", "source_type", type=click.Choice(["github-actions", "gitlab-ci", "makefile", "shell", "dockerfile"]), default=None, help="Source file type (auto-detected if omitted)")
+@click.option("-o", "--output", "output_path", default="Taskfile.yml", help="Output path (default: Taskfile.yml)")
+@click.option("--force", is_flag=True, help="Overwrite existing output file")
+def import_cmd(source, source_type, output_path, force):
+    """Import CI/CD config, Makefile, or script INTO Taskfile.yml.
+
+    \b
+    Supported sources:
+        github-actions  — .github/workflows/*.yml
+        gitlab-ci       — .gitlab-ci.yml
+        makefile         — Makefile / GNUmakefile
+        shell            — *.sh (functions become tasks)
+        dockerfile       — Dockerfile (stages become tasks)
+
+    \b
+    Examples:
+        taskfile import .github/workflows/ci.yml
+        taskfile import .gitlab-ci.yml --type gitlab-ci
+        taskfile import Makefile -o Taskfile.yml
+        taskfile import deploy.sh --type shell
+    """
+    from taskfile.importer import import_file
+
+    outpath = Path(output_path)
+    if outpath.exists() and not force:
+        console.print(f"[yellow]{outpath} already exists. Use --force to overwrite.[/]")
+        sys.exit(1)
+
+    try:
+        result = import_file(source, source_type)
+        outpath.write_text(result, encoding="utf-8")
+        console.print(f"[green]✓ Imported {source} → {outpath}[/]")
+        console.print("[dim]  Review and customize the generated Taskfile, then run: taskfile list[/]")
+    except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]Error:[/] {e}")
         sys.exit(1)
 

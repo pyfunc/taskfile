@@ -41,6 +41,13 @@ taskfile ≈ Make + Ansible-lite + Dagger orchestration + Fleet management + CI/
 | **VPS setup** | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ✅ |
 | **Registry auth** | ❌ | ❌ | ❌ | ❌ | Manual | ❌ | ✅ |
 | **Platforms matrix** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **`functions` (embed scripts)** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (modules) | ✅ (Python/shell/Node) |
+| **`@fn` / `@python` prefix** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **`retries` + `retry_delay`** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **`timeout`** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **`tags` + `--tags`** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **`register` (capture output)** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **`taskfile import`** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (5 formats) |
 | File-based deps | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
 | Containerized builds | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Idempotent modules | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
@@ -97,6 +104,13 @@ taskfile ≈ Make + Ansible-lite + Dagger orchestration + Fleet management + CI/
 | VPS setup | One-command server provisioning | `taskfile setup <IP>` |
 | Registry auth | Interactive token setup | PyPI, npm, Docker, GitHub, crates.io |
 | Fleet commands | `status`, `repair`, `list`, `deploy` | Monitor edge devices |
+| `functions` section | Embed Python/shell/Node as `@fn` | Reusable multi-lang logic |
+| `@fn` / `@python` prefix | Call functions or inline Python | Replace external scripts |
+| `retries` + `retry_delay` | Auto-retry failed commands | Robust deploys (Ansible-inspired) |
+| `timeout` | Command timeout in seconds | Prevent hung tasks |
+| `tags` + `--tags` | Selective task execution | Run subsets: `--tags ci` |
+| `register` | Capture stdout into variable | Chain command outputs |
+| `taskfile import` | Convert CI/CD → Taskfile.yml | GitHub Actions, GitLab CI, Makefile, shell |
 
 ---
 

@@ -23,6 +23,16 @@ Kompletne przykłady użycia Taskfile dla różnych scenariuszy.
 | [publish-docker/](publish-docker/) | GHCR + Docker Hub | dowolny | Docker image (multi-arch) |
 | [publish-github/](publish-github/) | GitHub Releases | Go (przykład) | binaries + checksums |
 
+### Patterns & Import
+
+| Przykład | Złożoność | Cechy | Kiedy użyć |
+|----------|-----------|-------|------------|
+| [script-extraction/](script-extraction/) | ⭐⭐ | Rozbicie Taskfile na shell/Python skrypty | Złożona logika w skryptach |
+| [ci-generation/](ci-generation/) | ⭐⭐ | `pipeline` → 6 platform CI/CD gen | CI/CD z jednego źródła |
+| [include-split/](include-split/) | ⭐⭐ | `include` — import z innych plików YAML | Duży Taskfile, reużywalne taski |
+| [functions-embed/](functions-embed/) | ⭐⭐⭐ | `functions`, `@fn`, `@python`, retries, tags, register | Embedded multi-lang functions |
+| [import-cicd/](import-cicd/) | ⭐⭐ | `taskfile import` — GitHub Actions, GitLab CI, Makefile, shell → Taskfile | Migracja z CI/CD |
+
 ### Zaawansowane
 
 | Przykład | Złożoność | Cechy | Kiedy użyć |
@@ -110,6 +120,29 @@ taskfile run publish-all       # 5 rejestrów parallel
 cd codereview.pl/
 taskfile run ci-generate
 taskfile --env prod run deploy
+```
+
+### 📝 Rozbijam Taskfile na skrypty?
+```bash
+cd script-extraction/
+taskfile run build            # → ./scripts/build.sh
+taskfile run release --var TAG=v1.0  # → python scripts/release.py
+```
+
+### 🔄 Generuję CI/CD z jednego pliku?
+```bash
+cd ci-generation/
+taskfile ci generate --all    # → 6 platform configs
+taskfile ci preview --target github
+taskfile ci run               # run pipeline locally
+```
+
+### 📦 Rozbijam duży Taskfile na mniejsze pliki?
+```bash
+cd include-split/
+taskfile list                 # tasks from all included files
+taskfile run deploy-prod      # from tasks/deploy.yml (prefixed)
+taskfile run build            # from tasks/build.yml
 ```
 
 ---
@@ -217,6 +250,11 @@ examples/
 ├── cloud-aws/                # ☁️  AWS: Lambda + ECS + S3
 ├── quadlet-podman/           # 🐧 Podman Quadlet → systemd
 │
+│  ─── Patterns & Import ──────────────────────
+├── script-extraction/        # 📝 Taskfile → shell/Python scripts
+├── ci-generation/            # 🔄 pipeline → 6 CI platforms
+├── include-split/            # 📦 include: import from other YAML files
+│
 │  ─── Advanced ─────────────────────────────
 ├── monorepo-microservices/   # 🔧 platforms, condition, dir, stage
 ├── fullstack-deploy/         # 🎯 ALL CLI commands showcase
@@ -255,6 +293,9 @@ examples/
 | `taskfile deploy` (auto strategy) | quadlet-podman, fullstack-deploy |
 | `taskfile setup` (VPS provisioning) | quadlet-podman, fullstack-deploy |
 | `taskfile validate/info/list` | fullstack-deploy |
+| `include` (import from files) | include-split |
+| Script extraction (shell/Python) | script-extraction |
+| SSH embedded (paramiko) | saas-app, fleet-rpi, edge-iot (when `pip install taskfile[ssh]`) |
 
 ---
 

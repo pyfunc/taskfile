@@ -99,6 +99,18 @@ class ComposeConfig:
 
 
 @dataclass
+class Function:
+    """Embedded function callable from tasks via @fn prefix."""
+
+    name: str
+    lang: str = "shell"  # shell | python | node | binary
+    code: str | None = None  # inline code
+    file: str | None = None  # external file path
+    function: str | None = None  # specific function to call (Python)
+    description: str = ""
+
+
+@dataclass
 class Task:
     """Single task definition."""
 
@@ -114,6 +126,11 @@ class Task:
     condition: str | None = None
     stage: str | None = None  # pipeline stage this task belongs to
     parallel: bool = False  # run deps in parallel (concurrent execution)
+    retries: int = 0  # retry count on failure (Ansible-inspired)
+    retry_delay: int = 1  # seconds between retries
+    timeout: int = 0  # command timeout in seconds (0 = no timeout)
+    tags: list[str] = field(default_factory=list)  # tags for selective execution
+    register: str | None = None  # capture stdout into this variable name
 
     def should_run_on(self, env_name: str) -> bool:
         if self.env_filter is None:
@@ -227,6 +244,7 @@ class TaskfileConfig:
     environment_groups: dict[str, EnvironmentGroup] = field(default_factory=dict)
     tasks: dict[str, Task] = field(default_factory=dict)
     platforms: dict[str, Platform] = field(default_factory=dict)
+    functions: dict[str, Function] = field(default_factory=dict)
     compose: ComposeConfig = field(default_factory=ComposeConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     default_env: str = "local"
@@ -250,6 +268,7 @@ class TaskfileConfig:
             data.get("environment_groups", {})
         )
         config.platforms = cls._parse_platforms(data.get("platforms", {}))
+        config.functions = cls._parse_functions(data.get("functions", {}))
         config.tasks = cls._parse_tasks(data.get("tasks", {}))
         config.pipeline = cls._parse_pipeline(data.get("pipeline", {}), config.tasks)
 
@@ -323,12 +342,36 @@ class TaskfileConfig:
         return platforms
 
     @staticmethod
+    def _parse_functions(funcs_section: dict) -> dict[str, Function]:
+        """Parse the functions section."""
+        functions: dict[str, Function] = {}
+        if not isinstance(funcs_section, dict):
+            return functions
+        for fn_name, fn_data in funcs_section.items():
+            if isinstance(fn_data, dict):
+                functions[fn_name] = Function(
+                    name=fn_name,
+                    lang=fn_data.get("lang", "shell"),
+                    code=fn_data.get("code"),
+                    file=fn_data.get("file"),
+                    function=fn_data.get("function"),
+                    description=fn_data.get("desc", fn_data.get("description", "")),
+                )
+            elif isinstance(fn_data, str):
+                # Shorthand: function is just inline code
+                functions[fn_name] = Function(name=fn_name, code=fn_data)
+        return functions
+
+    @staticmethod
     def _parse_tasks(tasks_section: dict) -> dict[str, Task]:
         """Parse all task definitions."""
         tasks: dict[str, Task] = {}
         for task_name, task_data in tasks_section.items():
             if isinstance(task_data, dict):
                 raw_cmds = task_data.get("cmds", task_data.get("commands", []))
+                raw_tags = task_data.get("tags", [])
+                if isinstance(raw_tags, str):
+                    raw_tags = [t.strip() for t in raw_tags.split(",")]
                 tasks[task_name] = Task(
                     name=task_name,
                     description=task_data.get("desc", task_data.get("description", "")),
@@ -342,6 +385,11 @@ class TaskfileConfig:
                     condition=task_data.get("condition", None),
                     stage=task_data.get("stage", None),
                     parallel=task_data.get("parallel", False),
+                    retries=task_data.get("retries", 0),
+                    retry_delay=task_data.get("retry_delay", 1),
+                    timeout=task_data.get("timeout", 0),
+                    tags=raw_tags,
+                    register=task_data.get("register", None),
                 )
             elif isinstance(task_data, list):
                 # Shorthand: task is just a list of commands

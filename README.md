@@ -168,9 +168,26 @@ tasks:
     platform: [web]              # only run for web platform
     condition: "test -f Dockerfile"  # skip if condition fails
     continue_on_error: true      # don't stop on failure
+    retries: 3                   # retry on failure (Ansible-inspired)
+    retry_delay: 10              # seconds between retries
+    timeout: 300                 # abort after 300 seconds
+    tags: [deploy, ci]           # selective execution with --tags
+    register: DEPLOY_OUTPUT      # capture stdout into variable
     cmds:
       - "@remote podman pull ${IMAGE}:${TAG}"
       - "@remote systemctl --user restart ${APP_NAME}"
+      - "@fn notify Deployed ${APP_NAME}"   # call embedded function
+      - "@python print('done')"             # inline Python
+
+# ─── Embedded Functions ───────────────────────────────
+functions:
+  notify:
+    lang: python                 # shell | python | node | binary
+    code: |                      # inline code
+      import os; print(f"Deployed {os.environ['APP_NAME']}")
+  health-check:
+    lang: shell
+    file: scripts/health.sh      # external file
 ```
 
 ### Key Concepts
@@ -180,7 +197,11 @@ tasks:
 - **`environment_groups`** — batch of environments for fleet/group deploy
 - **`tasks`** — commands to execute, with deps, filters, conditions
 - **`variables`** — cascade: global → environment → platform → `--var` CLI overrides
+- **`functions`** — embed Python/shell/Node/binary as callable `@fn` from tasks
 - **`@remote`** prefix — command runs via SSH on the target environment's host
+- **`@fn`** prefix — call an embedded function: `@fn notify arg1`
+- **`@python`** prefix — run inline Python: `@python print('hello')`
+- **`retries`** / **`timeout`** / **`tags`** / **`register`** — Ansible-inspired robustness
 
 ---
 
@@ -207,10 +228,12 @@ Options:
 | Command | Description |
 |---------|-------------|
 | `taskfile run <tasks...>` | Run one or more tasks |
+| `taskfile run <tasks...> --tags ci` | Run only tasks matching tags |
 | `taskfile list` | List tasks, environments, groups, platforms, variables |
-| `taskfile info <task>` | Show detailed info about a task |
+| `taskfile info <task>` | Show detailed info about a task (incl. tags, retries, timeout) |
 | `taskfile validate` | Check Taskfile.yml for errors |
 | `taskfile init [--template T]` | Create Taskfile.yml from template |
+| `taskfile import <file>` | Import CI/CD config, Makefile, or script INTO Taskfile.yml |
 
 ### Deploy & Release
 
@@ -650,8 +673,34 @@ taskfile init --template <name>
 | `codereview` | 3-stage: local(Docker) → staging → prod(Podman Quadlet) |
 | `multiplatform` | Desktop + Web × Local + Prod deployment matrix |
 | `publish` | Multi-registry publishing: PyPI, npm, Docker, GitHub |
+| `kubernetes` | Kubernetes + Helm multi-cluster deployment |
+| `terraform` | Terraform IaC with multi-environment state management |
+| `iot` | IoT/edge fleet with rolling, canary, and parallel strategies |
 
 Templates are stored as plain YAML files and can be customized.
+
+### SSH Embedded (Optional)
+
+For faster, connection-pooled SSH execution without subprocess overhead:
+
+```bash
+pip install taskfile[ssh]
+```
+
+When `paramiko` is installed, `@remote` commands use native Python SSH with connection pooling. Falls back to subprocess `ssh` automatically if paramiko is not available.
+
+### Include — Split Taskfile into Multiple Files
+
+```yaml
+# Taskfile.yml
+include:
+  - path: ./tasks/build.yml
+  - path: ./tasks/deploy.yml
+    prefix: deploy              # tasks become: deploy-local, deploy-prod
+  - ./tasks/test.yml            # string shorthand
+```
+
+Tasks, variables, and environments from included files are merged. Local definitions take precedence.
 
 ---
 
@@ -670,7 +719,7 @@ my-project/
 
 ---
 
-## Examples (19 total)
+## Examples (24 total)
 
 ### Getting Started
 
@@ -708,6 +757,16 @@ my-project/
 | [iac-terraform](examples/iac-terraform/) | `dir` (working_dir), `env_file`, Terraform plan/apply/destroy, `condition` |
 | [cloud-aws](examples/cloud-aws/) | Lambda + ECS + S3, multi-region, `env_file`, `environment_groups` |
 | [quadlet-podman](examples/quadlet-podman/) | `service_manager: quadlet`, `compose` section, `ssh_port: 2222`, `taskfile deploy/setup` |
+
+### Patterns & Import
+
+| Example | Features |
+|---------|----------|
+| [script-extraction](examples/script-extraction/) | Split Taskfile into shell/Python scripts, mixed inline + script tasks |
+| [ci-generation](examples/ci-generation/) | `pipeline` section → 6 CI platforms, stage triggers (`when`), `docker_in_docker` |
+| [include-split](examples/include-split/) | `include` — import tasks/vars/envs from other YAML files, prefix support |
+| [functions-embed](examples/functions-embed/) | `functions` section, `@fn`/`@python` prefix, retries, timeout, tags, register |
+| [import-cicd](examples/import-cicd/) | `taskfile import` — GitHub Actions, GitLab CI, Makefile, shell → Taskfile.yml |
 
 ### Advanced / All Features
 

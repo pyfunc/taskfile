@@ -1,0 +1,85 @@
+version: "1"
+name: iot-fleet
+description: "IoT/edge fleet management with rolling, canary, and parallel strategies"
+
+default_env: local
+
+variables:
+  APP_NAME: iot-gateway
+  IMAGE: ghcr.io/myorg/iot-gateway
+  TAG: latest
+
+environment_defaults:
+  ssh_user: pi
+  ssh_port: 22
+  container_runtime: podman
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+
+  gateway-1:
+    ssh_host: 192.168.1.10
+
+  gateway-2:
+    ssh_host: 192.168.1.11
+
+  gateway-3:
+    ssh_host: 192.168.1.12
+
+environment_groups:
+  all-gateways:
+    members: [gateway-1, gateway-2, gateway-3]
+    strategy: rolling
+    max_parallel: 1
+
+  fast-deploy:
+    members: [gateway-1, gateway-2, gateway-3]
+    strategy: parallel
+    max_parallel: 3
+
+  safe-deploy:
+    members: [gateway-1, gateway-2, gateway-3]
+    strategy: canary
+    canary_count: 1
+
+tasks:
+  build:
+    desc: Build container image
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push to registry
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  deploy:
+    desc: Deploy to device
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"
+
+  status:
+    desc: Check device status
+    cmds:
+      - "@remote systemctl --user status ${APP_NAME}"
+      - "@remote podman ps --filter name=${APP_NAME}"
+
+  logs:
+    desc: View device logs
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME} -n 50"
+
+  health:
+    desc: Health check
+    silent: true
+    cmds:
+      - "@remote curl -sf http://localhost:8080/health"
+
+  reboot:
+    desc: Reboot device
+    cmds:
+      - "@remote sudo reboot"

@@ -1,0 +1,39 @@
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+variables:
+  IMAGE: registry.gitlab.com/myorg/myapp
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+lint:
+  stage: lint
+  script:
+    - pip install ruff
+    - ruff check src/
+    - ruff format --check src/
+
+test:
+  stage: test
+  needs: [lint]
+  script:
+    - pip install -e ".[dev]"
+    - pytest tests/ -v --cov
+
+build:
+  stage: build
+  needs: [test]
+  script:
+    - docker build -t $IMAGE:$CI_COMMIT_SHA .
+    - docker push $IMAGE:$CI_COMMIT_SHA
+
+deploy-staging:
+  stage: deploy
+  needs: [build]
+  script:
+    - ssh deploy@staging.example.com "docker pull $IMAGE:latest"
+    - ssh deploy@staging.example.com "systemctl restart myapp"
+  only:
+    - develop
