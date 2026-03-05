@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from taskfile.models import Environment, Task, TaskfileConfig
+from taskfile.models import Environment, Platform, Task, TaskfileConfig
 from taskfile.parser import load_taskfile, validate_taskfile
 
 console = Console()
@@ -36,12 +36,14 @@ class TaskfileRunner:
         config: TaskfileConfig | None = None,
         taskfile_path: str | Path | None = None,
         env_name: str | None = None,
+        platform_name: str | None = None,
         var_overrides: dict[str, str] | None = None,
         dry_run: bool = False,
         verbose: bool = False,
     ):
         self.config = config or load_taskfile(taskfile_path)
         self.env_name = env_name or self.config.default_env
+        self.platform_name = platform_name or self.config.default_platform
         self.var_overrides = var_overrides or {}
         self.dry_run = dry_run
         self.verbose = verbose
@@ -56,13 +58,27 @@ class TaskfileRunner:
         else:
             self.env = self.config.environments[self.env_name]
 
-        # Resolve all variables
+        # Resolve platform
+        self.platform: Platform | None = None
+        if self.platform_name:
+            if self.platform_name not in self.config.platforms:
+                console.print(
+                    f"[yellow]⚠ Platform '{self.platform_name}' not defined, using defaults[/]"
+                )
+            else:
+                self.platform = self.config.platforms[self.platform_name]
+
+        # Resolve all variables: global → env → platform → CLI overrides
         self.variables = self.env.resolve_variables(self.config.variables)
+        if self.platform:
+            self.variables.update(self.platform.variables)
         self.variables.update(self.var_overrides)
         # Built-in variables
         self.variables.setdefault("ENV", self.env_name)
         self.variables.setdefault("RUNTIME", self.env.container_runtime)
         self.variables.setdefault("COMPOSE", self.env.compose_command)
+        if self.platform_name:
+            self.variables.setdefault("PLATFORM", self.platform_name)
 
     def expand_variables(self, text: str) -> str:
         """Replace {{VAR}} and ${VAR} placeholders with resolved values."""
@@ -163,6 +179,14 @@ class TaskfileRunner:
             self._executed.add(task_name)
             return True
 
+        # Check platform filter
+        if not task.should_run_on_platform(self.platform_name):
+            console.print(
+                f"[yellow]⊘ Skipping '{task_name}' — not configured for platform '{self.platform_name}'[/]"
+            )
+            self._executed.add(task_name)
+            return True
+
         # Check condition
         if not self.check_condition(task):
             console.print(f"[yellow]⊘ Skipping '{task_name}' — condition not met[/]")
@@ -180,6 +204,8 @@ class TaskfileRunner:
         if task.description:
             header.append(f" — {task.description}", style="dim")
         header.append(f" [{self.env_name}]", style="bold cyan")
+        if self.platform_name:
+            header.append(f" [{self.platform_name}]", style="bold magenta")
         console.print(header)
 
         start = time.time()
@@ -231,11 +257,14 @@ class TaskfileRunner:
             env_info = ""
             if task.env_filter:
                 env_info = f" [dim](env: {', '.join(task.env_filter)})[/]"
+            plat_info = ""
+            if task.platform_filter:
+                plat_info = f" [dim](platform: {', '.join(task.platform_filter)})[/]"
             deps_info = ""
             if task.deps:
                 deps_info = f" [dim]← {', '.join(task.deps)}[/]"
             desc = f"  [dim]{task.description}[/]" if task.description else ""
-            console.print(f"  [green]{name:20s}[/]{desc}{env_info}{deps_info}")
+            console.print(f"  [green]{name:20s}[/]{desc}{env_info}{plat_info}{deps_info}")
 
         # Environments
         console.print(f"\n[bold]Environments:[/]")
@@ -244,6 +273,14 @@ class TaskfileRunner:
             remote = f" → {env.ssh_target}" if env.ssh_target else " (local)"
             runtime = f" [{env.container_runtime}]"
             console.print(f"  [cyan]{name:20s}[/]{remote}{runtime}{default}")
+
+        # Platforms
+        if self.config.platforms:
+            console.print(f"\n[bold]Platforms:[/]")
+            for name, plat in sorted(self.config.platforms.items()):
+                default = " [yellow](default)[/]" if name == self.config.default_platform else ""
+                desc = f"  [dim]{plat.description}[/]" if plat.description else ""
+                console.print(f"  [magenta]{name:20s}[/]{desc}{default}")
 
         # Variables
         if self.config.variables:

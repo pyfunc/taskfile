@@ -1,27 +1,30 @@
-# code2llm | 26f 3239L | py:26 | 2026-03-03
-# CC̄=4.2 | critical:10/104 | dups:0 | cycles:1
+# code2llm | 27f 3558L | py:27 | 2026-03-05
+# CC̄=4.3 | critical:13/106 | dups:0 | cycles:1
 
-HEALTH[0]: ok
+HEALTH[1]:
+  🟡 CC    list_tasks CC=17 (limit:15)
 
-REFACTOR[1]:
-  1. break 1 circular dependencies
+REFACTOR[2]:
+  1. split 1 high-CC methods  (CC>15)
+  2. break 1 circular dependencies
 
 COUPLING: no cross-package imports detected
 
 LAYERS:
-  src/                            CC̄=4.2    ←in:0  →out:0
+  src/                            CC̄=4.3    ←in:0  →out:0
+  │ !  models                     307L  7C    8m  CC=11     ←1
+  │ !! runner                     289L  2C   11m  CC=17     ←0
   │ !  quadlet                    264L  0C   17m  CC=10     ←2
-  │ models                     262L  6C    6m  CC=9      ←1
-  │ !  runner                     252L  2C   11m  CC=12     ←0
   │ !  cirunner                   250L  3C    8m  CC=10     ←0
+  │ multiplatform              222L  0C    0m  CC=0.0    ←0
   │ codereview                 207L  0C    0m  CC=0.0    ←0
   │ !  ci                         202L  0C    6m  CC=10     ←0
-  │ main                       191L  0C    7m  CC=8      ←0
+  │ main                       197L  0C    7m  CC=9      ←0
   │ quadlet                    189L  0C    6m  CC=6      ←0
   │ full                       181L  0C    0m  CC=0.0    ←0
   │ !  deploy                     170L  0C    6m  CC=14     ←0
   │ !  compose                    154L  1C    7m  CC=10     ←0
-  │ parser                     106L  2C    3m  CC=9      ←5
+  │ !  parser                     113L  2C    3m  CC=12     ←5
   │ github                     103L  1C    4m  CC=7      ←0
   │ podman                      94L  0C    0m  CC=0.0    ←0
   │ web                         93L  0C    0m  CC=0.0    ←0
@@ -34,34 +37,37 @@ LAYERS:
   │ !  drone                       49L  1C    2m  CC=10     ←0
   │ minimal                     40L  0C    0m  CC=0.0    ←0
   │ __init__                    39L  0C    0m  CC=0.0    ←0
-  │ __init__                    21L  0C    1m  CC=2      ←1
+  │ __init__                    23L  0C    1m  CC=2      ←1
   │ __init__                     6L  0C    0m  CC=0.0    ←0
   │
 
 DUPLICATES[0]: none
 
-FUNCTIONS (CC≥10, 10 of 104):
+FUNCTIONS (CC≥10, 13 of 106):
+   17.0  TaskfileRunner.list_tasks                  18n   1exit  loops+cond  !! split
    14.0  deploy_cmd                                  2n   1exit  
    14.0  GitLabCITarget.generate                    18n   2exit  loops+cond+ret
+   13.0  TaskfileRunner.run_task                    32n   9exit  loops+cond+ret
    13.0  _deploy_quadlet                            10n   1exit  loops+cond
-   12.0  TaskfileRunner.list_tasks                  13n   1exit  loops+cond
-   11.0  TaskfileRunner.run_task                    27n   8exit  loops+cond+ret
+   12.0  validate_taskfile                          17n   2exit  loops+cond+ret
+   11.0  TaskfileConfig.from_dict                   20n   2exit  loops+cond+ret
    10.0  ComposeFile.get_traefik_labels             15n   5exit  loops+cond+ret
-   10.0  PipelineRunner._resolve_stages             12n   2exit  loops+cond+ret
    10.0  compose_to_quadlet                         10n   2exit  loops+cond+ret
+   10.0  TaskfileRunner.__init__                    12n   1exit  cond
+   10.0  PipelineRunner._resolve_stages             12n   2exit  loops+cond+ret
    10.0  ci_generate                                 2n   1exit  
    10.0  DroneCITarget.generate                     10n   2exit  loops+cond+ret
 
   summary:
-    critical(≥10): 10 | high(5-10): 27 | medium(2-5): 42 | low(<2): 25
-    10% CC≥10  36% CC≥5
+    critical(≥10): 13 | high(5-10): 24 | medium(2-5): 44 | low(<2): 25
+    12% CC≥10  35% CC≥5
 
 HOTSPOTS:
   #1  compose_to_quadlet                   fan=18   "calls 18 functions"
-  #2  PipelineRunner.run                   fan=14   "PipelineRunner method, fan-out=14"
-  #3  _deploy_quadlet                      fan=14   "calls 14 functions"
-  #4  TaskfileConfig.from_dict             fan=14   "TaskfileConfig method, fan-out=14"
-  #5  TaskfileRunner.run_task              fan=12   "TaskfileRunner method, fan-out=12"
+  #2  TaskfileConfig.from_dict             fan=16   "TaskfileConfig method, fan-out=16"
+  #3  PipelineRunner.run                   fan=14   "PipelineRunner method, fan-out=14"
+  #4  _deploy_quadlet                      fan=14   "calls 14 functions"
+  #5  TaskfileRunner.run_task              fan=13   "TaskfileRunner method, fan-out=13"
   #6  ci_generate                          fan=12   "calls 12 functions"
   #7  deploy_cmd                           fan=12   "calls 12 functions"
   #8  load_taskfile                        fan=10   "calls 10 functions"
@@ -69,7 +75,7 @@ HOTSPOTS:
   #10 quadlet_generate                     fan=9    "calls 9 functions"
 
 CLASSES:
-  TaskfileRunner                 ████████████████████████  10m  CC̄=5.0   max=12  
+  TaskfileRunner                 ████████████████████████  10m  CC̄=6.2   max=17    !!
   PipelineRunner                 ██████████████             6m  CC̄=5.5   max=10  
   CITarget                       ██████████████             6m  CC̄=1.3   max=3   
   ComposeFile                    █████████                  4m  CC̄=4.2   max=10  
@@ -78,20 +84,28 @@ CLASSES:
   GitLabCITarget                 ████                       2m  CC̄=7.5   max=14  
   JenkinsTarget                  ████                       2m  CC̄=1.5   max=2   
   GiteaActionsTarget             ████                       2m  CC̄=4.5   max=8   
+  Task                           ████                       2m  CC̄=2.5   max=3   
   PipelineConfig                 ████                       2m  CC̄=4.5   max=5   
   TaskRunError                   ██                         1m  CC̄=1.0   max=1   
   PipelineError                  ██                         1m  CC̄=1.0   max=1   
   StageResult                    ██                         1m  CC̄=1.0   max=1   
   MakefileTarget                 ██                         1m  CC̄=7.0   max=7   
   Environment                    ██                         1m  CC̄=2.0   max=2   
-  Task                           ██                         1m  CC̄=2.0   max=2   
-  TaskfileConfig                 ██                         1m  CC̄=9.0   max=9   
+  Platform                       ██                         1m  CC̄=2.0   max=2   
+  TaskfileConfig                 ██                         1m  CC̄=11.0  max=11  
   TaskfileNotFoundError                                     0m  CC̄=0.0   max=0.0 
   TaskfileParseError                                        0m  CC̄=0.0   max=0.0 
   ComposeConfig                                             0m  CC̄=0.0   max=0.0 
   PipelineStage                                             0m  CC̄=0.0   max=0.0 
 
 D:
+  src/taskfile/runner.py:
+    e: TaskRunError,TaskfileRunner
+    TaskRunError  # Raised when a task command fails....
+      __init__(3)  CC=1.0
+        → __init__(3)  CC=1.0
+    TaskfileRunner  # Executes tasks from a Taskfile configuration....
+      __init__(7)  CC=10.0
   src/taskfile/cli/deploy.py:
     e: _run,_ssh,_deploy_local_compose,_deploy_remote_compose,_deploy_quadlet,deploy_cmd
     _run(cmd,label,dry_run)
@@ -104,13 +118,29 @@ D:
     e: GitLabCITarget
     GitLabCITarget
       _tag_var(0)  CC=1.0
-  src/taskfile/runner.py:
-    e: TaskRunError,TaskfileRunner
-    TaskRunError  # Raised when a task command fails....
-      __init__(3)  CC=1.0
-        → __init__(3)  CC=1.0
-    TaskfileRunner  # Executes tasks from a Taskfile configuration....
-      __init__(6)  CC=5.0
+  src/taskfile/parser.py:
+    e: TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile
+    TaskfileNotFoundError  # Raised when no Taskfile is found in the search path....
+    TaskfileParseError  # Raised when Taskfile cannot be parsed....
+    find_taskfile(start_dir)
+    load_taskfile(path)
+    validate_taskfile(config)
+  src/taskfile/models.py:
+    e: Environment,Platform,ComposeConfig,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
+    Environment  # Deployment environment configuration....
+      resolve_variables(1)  CC=2.0
+    Platform  # Target platform configuration (e.g. desktop, web, mobile)....
+      resolve_variables(1)  CC=2.0
+    ComposeConfig  # Compose-based deployment configuration....
+    Task  # Single task definition....
+      should_run_on(1)  CC=2.0
+    PipelineStage  # A stage in the CI/CD pipeline....
+    PipelineConfig  # CI/CD pipeline configuration....
+      from_dict(1)  CC=4.0
+    TaskfileConfig  # Parsed Taskfile configuration....
+      from_dict(1)  CC=11.0
+        → from_dict(1)  CC=11.0
+    _normalize_commands(cmds)
   src/taskfile/compose.py:
     e: ComposeFile,load_env_file,resolve_variables,resolve_dict
     ComposeFile  # Parsed docker-compose.yml with environment resolution....
@@ -118,17 +148,6 @@ D:
     load_env_file(path)
     resolve_variables(text,variables)
     resolve_dict(data,variables)
-  src/taskfile/cirunner.py:
-    e: PipelineError,PipelineRunner,StageResult
-    PipelineError  # Raised when a pipeline stage fails....
-      __init__(2)  CC=1.0
-        → __init__(2)  CC=1.0
-    PipelineRunner  # Runs CI/CD pipeline stages locally using TaskfileRunner.
-
-Th...
-      __init__(5)  CC=2.0
-    StageResult  # Result of running a single pipeline stage....
-      __init__(5)  CC=1.0
   src/taskfile/quadlet.py:
     e: _parse_port,_parse_memory_limit,_parse_cpus_limit,_build_unit_section,_build_container_env,_build_container_ports,_build_container_volumes,_build_container_networks,_build_container_labels,_build_container_podman_args,_build_container_section,_build_service_section,_build_install_section,generate_container_unit,generate_network_unit,generate_volume_unit,compose_to_quadlet
     _parse_port(port_str)
@@ -148,6 +167,17 @@ Th...
     generate_network_unit(network_name)
     generate_volume_unit(volume_name)
     compose_to_quadlet(compose,output_dir,network_name,auto_update,services_filter)
+  src/taskfile/cirunner.py:
+    e: PipelineError,PipelineRunner,StageResult
+    PipelineError  # Raised when a pipeline stage fails....
+      __init__(2)  CC=1.0
+        → __init__(2)  CC=1.0
+    PipelineRunner  # Runs CI/CD pipeline stages locally using TaskfileRunner.
+
+Th...
+      __init__(5)  CC=2.0
+    StageResult  # Result of running a single pipeline stage....
+      __init__(5)  CC=1.0
   src/taskfile/cli/ci.py:
     e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
     ci()
@@ -160,31 +190,10 @@ Th...
     e: DroneCITarget
     DroneCITarget
       _tag_var(0)  CC=1.0
-  src/taskfile/parser.py:
-    e: TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile,validate_taskfile
-    TaskfileNotFoundError  # Raised when no Taskfile is found in the search path....
-    TaskfileParseError  # Raised when Taskfile cannot be parsed....
-    find_taskfile(start_dir)
-    load_taskfile(path)
-    validate_taskfile(config)
-  src/taskfile/models.py:
-    e: Environment,ComposeConfig,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
-    Environment  # Deployment environment configuration....
-      resolve_variables(1)  CC=2.0
-    ComposeConfig  # Compose-based deployment configuration....
-    Task  # Single task definition....
-      should_run_on(1)  CC=2.0
-    PipelineStage  # A stage in the CI/CD pipeline....
-    PipelineConfig  # CI/CD pipeline configuration....
-      from_dict(1)  CC=4.0
-    TaskfileConfig  # Parsed Taskfile configuration....
-      from_dict(1)  CC=9.0
-        → from_dict(1)  CC=9.0
-    _normalize_commands(cmds)
   src/taskfile/cli/main.py:
     e: parse_var,main,run,list_tasks,init,validate,info
     parse_var(ctx,param,value)
-    main(ctx,taskfile_path,env_name,var,dry_run,verbose)
+    main(ctx,taskfile_path,env_name,platform_name,var,dry_run,verbose)
     run(ctx,tasks)
     list_tasks(ctx)
     init(template,force)
@@ -235,5 +244,6 @@ Th...
   src/taskfile/scaffold/minimal.py:
   src/taskfile/scaffold/full.py:
   src/taskfile/scaffold/podman.py:
+  src/taskfile/scaffold/multiplatform.py:
   src/taskfile/scaffold/codereview.py:
   src/taskfile/cli/__init__.py:

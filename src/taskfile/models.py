@@ -57,6 +57,27 @@ class Environment:
 
 
 @dataclass
+class Platform:
+    """Target platform configuration (e.g. desktop, web, mobile)."""
+
+    name: str
+    variables: dict[str, str] = field(default_factory=dict)
+    build_cmd: str | None = None
+    deploy_cmd: str | None = None
+    description: str = ""
+
+    def resolve_variables(self, global_vars: dict[str, str]) -> dict[str, str]:
+        """Merge global variables with platform-specific ones.
+        Platform variables override global ones.
+        """
+        merged = {**global_vars, **self.variables}
+        resolved = {}
+        for key, value in merged.items():
+            resolved[key] = os.environ.get(key, value)
+        return resolved
+
+
+@dataclass
 class ComposeConfig:
     """Compose-based deployment configuration."""
 
@@ -75,6 +96,7 @@ class Task:
     commands: list[str] = field(default_factory=list)
     deps: list[str] = field(default_factory=list)
     env_filter: list[str] | None = None
+    platform_filter: list[str] | None = None
     working_dir: str | None = None
     silent: bool = False
     ignore_errors: bool = False
@@ -85,6 +107,13 @@ class Task:
         if self.env_filter is None:
             return True
         return env_name in self.env_filter
+
+    def should_run_on_platform(self, platform_name: str | None) -> bool:
+        if self.platform_filter is None:
+            return True
+        if platform_name is None:
+            return True
+        return platform_name in self.platform_filter
 
 
 @dataclass
@@ -184,9 +213,11 @@ class TaskfileConfig:
     variables: dict[str, str] = field(default_factory=dict)
     environments: dict[str, Environment] = field(default_factory=dict)
     tasks: dict[str, Task] = field(default_factory=dict)
+    platforms: dict[str, Platform] = field(default_factory=dict)
     compose: ComposeConfig = field(default_factory=ComposeConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     default_env: str = "local"
+    default_platform: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TaskfileConfig:
@@ -231,6 +262,19 @@ class TaskfileConfig:
         if "local" not in config.environments:
             config.environments["local"] = Environment(name="local")
 
+        # Parse platforms
+        for plat_name, plat_data in data.get("platforms", {}).items():
+            if isinstance(plat_data, dict):
+                config.platforms[plat_name] = Platform(
+                    name=plat_name,
+                    variables=plat_data.get("variables", {}),
+                    build_cmd=plat_data.get("build_cmd"),
+                    deploy_cmd=plat_data.get("deploy_cmd"),
+                    description=plat_data.get("desc", plat_data.get("description", "")),
+                )
+
+        config.default_platform = data.get("default_platform", None)
+
         # Parse tasks
         for task_name, task_data in data.get("tasks", {}).items():
             if isinstance(task_data, dict):
@@ -241,6 +285,7 @@ class TaskfileConfig:
                     commands=_normalize_commands(raw_cmds),
                     deps=task_data.get("deps", []),
                     env_filter=task_data.get("env", None),
+                    platform_filter=task_data.get("platform", None),
                     working_dir=task_data.get("dir", None),
                     silent=task_data.get("silent", False),
                     ignore_errors=task_data.get("ignore_errors", False),

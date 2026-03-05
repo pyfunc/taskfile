@@ -1,3 +1,32 @@
+## [0.3.6] - 2026-03-05
+
+### Summary
+
+feat(docs): code analysis engine
+
+### Core
+
+- update src/taskfile/cli/main.py
+- update src/taskfile/models.py
+- update src/taskfile/parser.py
+- update src/taskfile/runner.py
+- update src/taskfile/scaffold/__init__.py
+- update src/taskfile/scaffold/multiplatform.py
+
+### Docs
+
+- docs: update README
+- docs: update context.md
+
+### Other
+
+- update .idea/taskfile.iml
+- config: update Taskfile.yml
+- update project/analysis.toon
+- update project/evolution.toon
+- update project/project.toon
+
+
 ## [0.3.5] - 2026-03-05
 
 ### Summary

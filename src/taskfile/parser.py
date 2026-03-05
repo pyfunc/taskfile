@@ -103,4 +103,11 @@ def validate_taskfile(config: TaskfileConfig) -> list[str]:
                         f"Task '{task_name}' references unknown environment '{env}'"
                     )
 
+        if task.platform_filter:
+            for plat in task.platform_filter:
+                if plat not in config.platforms:
+                    warnings.append(
+                        f"Task '{task_name}' references unknown platform '{plat}'"
+                    )
+
     return warnings
