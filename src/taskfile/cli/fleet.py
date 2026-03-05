@@ -74,6 +74,174 @@ def _ping(host: str) -> bool:
         return False
 
 
+
+def _safe_ssh(env, cmd: str, timeout: int = 10):
+    """Execute SSH command safely, returning None on failure."""
+    try:
+        return _ssh_check(env, cmd, timeout=timeout)
+    except Exception:
+        return None
+
+
+# ─── Device status helpers ────────────────────────────
+
+
+def _parse_device_metrics(stdout: str) -> dict:
+    """Parse pipe-delimited SSH status output into metrics dict."""
+    parts = stdout.strip().split("|")
+    temp_c = int(parts[0].strip()) / 1000 if parts[0].strip().isdigit() else 0
+    return {
+        "temp": f"{temp_c:.0f}°C",
+        "temp_c": temp_c,
+        "ram": f"{parts[1].strip()}%" if len(parts) > 1 and parts[1].strip().isdigit() else "—",
+        "disk": f"{parts[2].strip()}%" if len(parts) > 2 and parts[2].strip().isdigit() else "—",
+        "uptime": parts[3].strip()[:25] if len(parts) > 3 else "—",
+        "containers": parts[4].strip() if len(parts) > 4 and parts[4].strip().isdigit() else "—",
+    }
+
+
+def _check_single_device(name: str, env) -> dict:
+    """Check status of a single remote device via ping + SSH."""
+    host = env.ssh_host
+    row = {"name": name, "host": host, "status": "unknown",
+           "temp": "—", "ram": "—", "disk": "—", "containers": "—", "uptime": "—"}
+
+    if not _ping(host):
+        row["status"] = "down"
+        return row
+
+    try:
+        r = _ssh_check(env,
+            'echo "'
+            '$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)|'
+            '$(free -m 2>/dev/null | awk \'/Mem:/{printf "%.0f", $3/$2*100}\')|'
+            '$(df / --output=pcent 2>/dev/null | tail -1 | tr -d " %")|'
+            '$(uptime -p 2>/dev/null || uptime)|'
+            '$(podman ps -q 2>/dev/null | wc -l)"',
+        )
+        if r.returncode != 0:
+            row["status"] = "ssh_fail"
+            return row
+
+        metrics = _parse_device_metrics(r.stdout)
+        row.update({k: v for k, v in metrics.items() if k != "temp_c"})
+        row["status"] = "hot" if metrics["temp_c"] > 70 else "up"
+    except Exception:
+        row["status"] = "ssh_fail"
+    return row
+
+
+def _build_fleet_table(results: list[dict]) -> "Table":
+    """Build Rich table from fleet status results."""
+    table = Table(title="Fleet Status")
+    table.add_column("Name", style="cyan")
+    table.add_column("IP")
+    table.add_column("Status")
+    table.add_column("Temp")
+    table.add_column("RAM")
+    table.add_column("Disk")
+    table.add_column("Containers", justify="right")
+    table.add_column("Uptime")
+
+    status_map = {"up": "[green]✅ UP[/]", "down": "[red]❌ DOWN[/]",
+                  "ssh_fail": "[red]❌ SSH[/]", "hot": "[yellow]⚠️ HOT[/]"}
+
+    for r in results:
+        s = status_map.get(r["status"], r["status"])
+        if r["status"] in ("down", "ssh_fail"):
+            table.add_row(r["name"], r["host"], s, "—", "—", "—", "—", "—")
+        else:
+            table.add_row(r["name"], r["host"], s, r["temp"], r["ram"],
+                          r["disk"], r["containers"], r["uptime"])
+
+    return table
+
+
+# ─── Repair diagnostic helpers ────────────────────────
+
+
+def _check_disk(env) -> tuple[list[str], list[str]]:
+    """Check disk usage. Returns (problems, fixes)."""
+    problems, fixes = [], []
+    r = _safe_ssh(env, "df / --output=pcent | tail -1 | tr -d ' %'")
+    if r and r.stdout.strip().isdigit():
+        usage = int(r.stdout.strip())
+        if usage > 90:
+            problems.append(f"Disk {usage}% full")
+            fixes.extend(["podman system prune -af",
+                          "sudo journalctl --vacuum-size=50M",
+                          "sudo apt-get clean"])
+        else:
+            console.print(f"  [green]✓[/] Disk: {usage}% used")
+    return problems, fixes
+
+
+def _check_ram(env) -> tuple[list[str], list[str]]:
+    """Check RAM usage. Returns (problems, fixes)."""
+    problems = []
+    r = _safe_ssh(env, "free -m | awk '/Mem:/{printf \"%.0f\", $3/$2*100}'")
+    if r and r.stdout.strip().isdigit():
+        mem = int(r.stdout.strip())
+        if mem > 90:
+            problems.append(f"RAM {mem}% used")
+        else:
+            console.print(f"  [green]✓[/] RAM: {mem}% used")
+    return problems, []
+
+
+def _check_temperature(env) -> tuple[list[str], list[str]]:
+    """Check CPU temperature. Returns (problems, fixes)."""
+    problems, fixes = [], []
+    r = _safe_ssh(env, "cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null")
+    if r and r.stdout.strip().isdigit():
+        temp_c = int(r.stdout.strip()) / 1000
+        if temp_c > 80:
+            problems.append(f"Temperature {temp_c:.0f}°C (throttling!)")
+            fixes.append("Check cooling fan / heatsink")
+        elif temp_c > 70:
+            problems.append(f"Temperature {temp_c:.0f}°C (high)")
+        else:
+            console.print(f"  [green]✓[/] Temperature: {temp_c:.0f}°C")
+    return problems, fixes
+
+
+def _check_podman(env) -> tuple[list[str], list[str]]:
+    """Check podman availability. Returns (problems, fixes)."""
+    r = _safe_ssh(env, "podman --version")
+    if r and r.returncode == 0:
+        console.print(f"  [green]✓[/] Podman: {r.stdout.strip()}")
+        return [], []
+    return ["Podman not working"], ["sudo apt-get install -y podman"]
+
+
+def _check_ntp(env) -> tuple[list[str], list[str]]:
+    """Check NTP synchronization. Returns (problems, fixes)."""
+    r = _safe_ssh(env, "timedatectl show -p NTPSynchronized --value 2>/dev/null")
+    if r and r.stdout.strip() != "yes":
+        return ["NTP not synchronized"], ["sudo timedatectl set-ntp true"]
+    if r:
+        console.print(f"  [green]✓[/] NTP: synchronized")
+    return [], []
+
+
+def _apply_repair_fixes(env, fixes: list[str], auto_fix: bool) -> None:
+    """Apply or display repair fixes."""
+    if not fixes:
+        return
+    if auto_fix or click.confirm("\nAuto-fix?", default=False):
+        for fix in fixes:
+            if fix.startswith("Check") or fix.startswith("ssh-copy-id"):
+                console.print(f"  [dim]→ (manual) {fix}[/]")
+            else:
+                console.print(f"  [blue]→[/] {fix}")
+                _safe_ssh(env, fix)
+        console.print(f"[green]✓ Repair complete — re-run to verify[/]")
+    else:
+        console.print("\n[dim]Manual fixes:[/]")
+        for fix in fixes:
+            console.print(f"  $ {fix}")
+
+
 # ─── CLI group ────────────────────────────────────────
 
 
@@ -118,69 +286,14 @@ def fleet_status_cmd(ctx, group):
 
     console.print(f"[bold]Checking {len(envs)} device(s)...[/]\n")
 
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    def check_one(item):
-        name, env = item
-        host = env.ssh_host
-        row = {"name": name, "host": host, "status": "unknown",
-               "temp": "—", "ram": "—", "disk": "—", "containers": "—", "uptime": "—"}
-
-        if not _ping(host):
-            row["status"] = "down"
-            return row
-
-        try:
-            r = _ssh_check(env,
-                'echo "'
-                '$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)|'
-                '$(free -m 2>/dev/null | awk \'/Mem:/{printf "%.0f", $3/$2*100}\')|'
-                '$(df / --output=pcent 2>/dev/null | tail -1 | tr -d " %")|'
-                '$(uptime -p 2>/dev/null || uptime)|'
-                '$(podman ps -q 2>/dev/null | wc -l)"',
-            )
-            if r.returncode != 0:
-                row["status"] = "ssh_fail"
-                return row
-
-            parts = r.stdout.strip().split("|")
-            temp_c = int(parts[0].strip()) / 1000 if parts[0].strip().isdigit() else 0
-            row["temp"] = f"{temp_c:.0f}°C"
-            row["ram"] = f"{parts[1].strip()}%" if len(parts) > 1 and parts[1].strip().isdigit() else "—"
-            row["disk"] = f"{parts[2].strip()}%" if len(parts) > 2 and parts[2].strip().isdigit() else "—"
-            row["uptime"] = parts[3].strip()[:25] if len(parts) > 3 else "—"
-            row["containers"] = parts[4].strip() if len(parts) > 4 and parts[4].strip().isdigit() else "—"
-            row["status"] = "hot" if temp_c > 70 else "up"
-        except Exception:
-            row["status"] = "ssh_fail"
-        return row
+    from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor(max_workers=min(10, len(envs))) as ex:
-        results = list(ex.map(check_one, envs))
+        results = list(ex.map(lambda item: _check_single_device(*item), envs))
 
     results.sort(key=lambda r: r["name"])
 
-    table = Table(title="Fleet Status")
-    table.add_column("Name", style="cyan")
-    table.add_column("IP")
-    table.add_column("Status")
-    table.add_column("Temp")
-    table.add_column("RAM")
-    table.add_column("Disk")
-    table.add_column("Containers", justify="right")
-    table.add_column("Uptime")
-
-    status_map = {"up": "[green]✅ UP[/]", "down": "[red]❌ DOWN[/]",
-                  "ssh_fail": "[red]❌ SSH[/]", "hot": "[yellow]⚠️ HOT[/]"}
-
-    for r in results:
-        s = status_map.get(r["status"], r["status"])
-        if r["status"] in ("down", "ssh_fail"):
-            table.add_row(r["name"], r["host"], s, "—", "—", "—", "—", "—")
-        else:
-            table.add_row(r["name"], r["host"], s, r["temp"], r["ram"], r["disk"], r["containers"], r["uptime"])
-
-    console.print(table)
+    console.print(_build_fleet_table(results))
     down = sum(1 for r in results if r["status"] in ("down", "ssh_fail"))
     if down:
         console.print(f"\n[yellow]⚠  {down} device(s) unreachable![/]")
@@ -212,7 +325,7 @@ def fleet_repair_cmd(ctx, env_name, auto_fix):
 
     env = config.environments[env_name]
     if not env.is_remote:
-        console.print(f"[red]'{env_name}' is not a remote environment (no ssh_host)[/]")
+        console.print(f"[red]\'{env_name}\' is not a remote environment (no ssh_host)[/]")
         sys.exit(1)
 
     host = env.ssh_host
@@ -239,65 +352,11 @@ def fleet_repair_cmd(ctx, env_name, auto_fix):
         problems.append("SSH timeout")
         fixes.append(f"Check SSH key and connectivity to {host}")
 
-def _safe_ssh(env, cmd: str, timeout: int = 10):
-    """Execute SSH command safely, returning None on failure."""
-    try:
-        return _ssh_check(env, cmd, timeout=timeout)
-    except Exception:
-        return None
-
-
-# ─── fleet repair ─────────────────────────────────────
-
-
-# 3. Disk
-    r = _safe_ssh(env, "df / --output=pcent | tail -1 | tr -d ' %'")
-    if r and r.stdout.strip().isdigit():
-        usage = int(r.stdout.strip())
-        if usage > 90:
-            problems.append(f"Disk {usage}% full")
-            fixes.append("podman system prune -af")
-            fixes.append("sudo journalctl --vacuum-size=50M")
-            fixes.append("sudo apt-get clean")
-        else:
-            console.print(f"  [green]✓[/] Disk: {usage}% used")
-
-    # 4. RAM
-    r = _safe_ssh("free -m | awk '/Mem:/{printf \"%.0f\", $3/$2*100}'")
-    if r and r.stdout.strip().isdigit():
-        mem = int(r.stdout.strip())
-        if mem > 90:
-            problems.append(f"RAM {mem}% used")
-        else:
-            console.print(f"  [green]✓[/] RAM: {mem}% used")
-
-    # 5. Temperature
-    r = _safe_ssh("cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null")
-    if r and r.stdout.strip().isdigit():
-        temp_c = int(r.stdout.strip()) / 1000
-        if temp_c > 80:
-            problems.append(f"Temperature {temp_c:.0f}°C (throttling!)")
-            fixes.append("Check cooling fan / heatsink")
-        elif temp_c > 70:
-            problems.append(f"Temperature {temp_c:.0f}°C (high)")
-        else:
-            console.print(f"  [green]✓[/] Temperature: {temp_c:.0f}°C")
-
-    # 6. Podman
-    r = _safe_ssh("podman --version")
-    if r and r.returncode == 0:
-        console.print(f"  [green]✓[/] Podman: {r.stdout.strip()}")
-    else:
-        problems.append("Podman not working")
-        fixes.append("sudo apt-get install -y podman")
-
-    # 7. NTP
-    r = _safe_ssh("timedatectl show -p NTPSynchronized --value 2>/dev/null")
-    if r and r.stdout.strip() != "yes":
-        problems.append("NTP not synchronized")
-        fixes.append("sudo timedatectl set-ntp true")
-    elif r:
-        console.print(f"  [green]✓[/] NTP: synchronized")
+    # 3–7. System checks
+    for check_fn in (_check_disk, _check_ram, _check_temperature, _check_podman, _check_ntp):
+        p, f = check_fn(env)
+        problems.extend(p)
+        fixes.extend(f)
 
     # Summary
     console.print()
@@ -309,21 +368,7 @@ def _safe_ssh(env, cmd: str, timeout: int = 10):
     for p in problems:
         console.print(f"  [red]❌[/] {p}")
 
-    if not fixes:
-        return
-
-    if auto_fix or click.confirm("\nAuto-fix?", default=False):
-        for fix in fixes:
-            if fix.startswith("Check") or fix.startswith("ssh-copy-id"):
-                console.print(f"  [dim]→ (manual) {fix}[/]")
-            else:
-                console.print(f"  [blue]→[/] {fix}")
-                _safe_ssh(fix)
-        console.print(f"[green]✓ Repair complete — re-run to verify[/]")
-    else:
-        console.print("\n[dim]Manual fixes:[/]")
-        for fix in fixes:
-            console.print(f"  $ {fix}")
+    _apply_repair_fixes(env, fixes, auto_fix)
 
 
 # ─── fleet list ───────────────────────────────────────

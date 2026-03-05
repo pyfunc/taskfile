@@ -14,6 +14,37 @@ from taskfile.parser import (
 )
 
 
+def _print_task_attributes(task) -> None:
+    """Print task metadata attributes (deps, filters, options)."""
+    _ATTR_LABELS = [
+        ("deps", "Dependencies", lambda v: ", ".join(v)),
+        ("env_filter", "Environments", lambda v: ", ".join(v)),
+        ("platform_filter", "Platforms", lambda v: ", ".join(v)),
+        ("condition", "Condition", str),
+        ("parallel", "Parallel", lambda v: "yes (deps run concurrently)"),
+        ("ignore_errors", "Ignore errors", lambda v: "yes"),
+        ("retries", "Retries", lambda v: f"{v} (delay: {task.retry_delay}s)"),
+        ("timeout", "Timeout", lambda v: f"{v}s"),
+        ("tags", "Tags", lambda v: ", ".join(v)),
+        ("register", "Register", str),
+        ("script", "Script", str),
+    ]
+    for attr, label, fmt in _ATTR_LABELS:
+        value = getattr(task, attr, None)
+        if value:
+            console.print(f"  [dim]{label}:[/] {fmt(value)}")
+
+
+def _print_task_body(task) -> None:
+    """Print task script and/or commands."""
+    if task.script:
+        console.print(f"\n  [bold]Script:[/] {task.script}")
+    if task.commands:
+        console.print(f"\n  [bold]Commands:[/]")
+        for cmd in task.commands:
+            console.print(f"    → {cmd}")
+
+
 @main.command()
 @click.argument("task_name")
 @click.pass_context
@@ -30,35 +61,9 @@ def info(ctx, task_name):
         console.print(f"\n[bold green]{task.name}[/]")
         if task.description:
             console.print(f"  {task.description}")
-        if task.deps:
-            console.print(f"  [dim]Dependencies:[/] {', '.join(task.deps)}")
-        if task.env_filter:
-            console.print(f"  [dim]Environments:[/] {', '.join(task.env_filter)}")
-        if task.platform_filter:
-            console.print(f"  [dim]Platforms:[/] {', '.join(task.platform_filter)}")
-        if task.condition:
-            console.print(f"  [dim]Condition:[/] {task.condition}")
-        if task.parallel:
-            console.print(f"  [dim]Parallel:[/] yes (deps run concurrently)")
-        if task.ignore_errors:
-            console.print(f"  [dim]Ignore errors:[/] yes")
-        if task.retries:
-            console.print(f"  [dim]Retries:[/] {task.retries} (delay: {task.retry_delay}s)")
-        if task.timeout:
-            console.print(f"  [dim]Timeout:[/] {task.timeout}s")
-        if task.tags:
-            console.print(f"  [dim]Tags:[/] {', '.join(task.tags)}")
-        if task.register:
-            console.print(f"  [dim]Register:[/] {task.register}")
-        if task.script:
-            console.print(f"  [dim]Script:[/] {task.script}")
 
-        if task.script:
-            console.print(f"\n  [bold]Script:[/] {task.script}")
-        if task.commands:
-            console.print(f"\n  [bold]Commands:[/]")
-            for cmd in task.commands:
-                console.print(f"    → {cmd}")
+        _print_task_attributes(task)
+        _print_task_body(task)
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")

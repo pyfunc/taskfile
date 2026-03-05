@@ -76,37 +76,25 @@ class ProjectDiagnostics:
         ctx = {**os.environ, **env_vars}
 
         for svc_name, svc in services.items():
-            if not isinstance(svc, dict):
+            if isinstance(svc, dict):
+                self._check_service_ports(svc_name, svc, ctx)
+
+    def _check_service_ports(self, svc_name: str, svc: dict, ctx: dict) -> None:
+        """Check ports for a single docker-compose service."""
+        ports = svc.get("ports") or []
+        if not isinstance(ports, list):
+            return
+
+        for port_entry in ports:
+            if not isinstance(port_entry, str):
                 continue
-            ports = svc.get("ports") or []
-            if not isinstance(ports, list):
-                continue
-
-            for port_entry in ports:
-                if not isinstance(port_entry, str):
-                    continue
-                host_port, var_name = _parse_compose_host_port(port_entry)
-                if host_port is None:
-                    continue
-
-                expanded = resolve_variables(str(host_port), ctx)
-                try:
-                    resolved_host_port = int(expanded)
-                except ValueError:
-                    continue
-
-                if _is_port_free(resolved_host_port):
-                    continue
-
-                suggested = _find_free_port_near(resolved_host_port)
-                if suggested is None:
-                    continue
-
-                key = var_name or f"PORT_{svc_name.upper()}"
+            conflict = _resolve_port_conflict(svc_name, port_entry, ctx)
+            if conflict:
+                key, resolved_port, suggested = conflict
                 self.port_fixes[key] = suggested
                 self.issues.append(
                     (
-                        f"Port {resolved_host_port} for service '{svc_name}' is in use (set {key}={suggested})",
+                        f"Port {resolved_port} for service '{svc_name}' is in use (set {key}={suggested})",
                         "warning",
                         True,
                     )
@@ -257,6 +245,34 @@ class ProjectDiagnostics:
             table.add_row(issue, f"{severity_style} {severity}", fix_status)
 
         console.print(table)
+
+
+def _resolve_port_conflict(
+    svc_name: str, port_entry: str, ctx: dict
+) -> tuple[str, int, int] | None:
+    """Check a single port entry for conflicts.
+
+    Returns (env_key, resolved_port, suggested_port) if conflict found, else None.
+    """
+    host_port, var_name = _parse_compose_host_port(port_entry)
+    if host_port is None:
+        return None
+
+    expanded = resolve_variables(str(host_port), ctx)
+    try:
+        resolved_host_port = int(expanded)
+    except ValueError:
+        return None
+
+    if _is_port_free(resolved_host_port):
+        return None
+
+    suggested = _find_free_port_near(resolved_host_port)
+    if suggested is None:
+        return None
+
+    key = var_name or f"PORT_{svc_name.upper()}"
+    return key, resolved_host_port, suggested
 
 
 def _parse_compose_host_port(port_entry: str) -> tuple[str | None, str | None]:
