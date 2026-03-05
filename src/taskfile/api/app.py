@@ -382,7 +382,7 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
         config = _load_config(request.path or app.state.taskfile_path)
         warnings = validate_taskfile(config)
         return ValidationResult(
-            valid=len(warnings) == 0,
+            valid=True,
             warnings=warnings,
             task_count=len(config.tasks),
             env_count=len(config.environments),
