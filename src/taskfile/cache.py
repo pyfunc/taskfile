@@ -69,34 +69,30 @@ class TaskCache:
         
         return hasher.hexdigest()
     
+    def _hash_files(self, paths) -> list[str]:
+        """Compute hashes for an iterable of paths, returning 'path:hash' entries."""
+        entries = []
+        for path in paths:
+            if path.is_file():
+                file_hash = self._compute_file_hash(path)
+                if file_hash:
+                    entries.append(f"{path}:{file_hash}")
+        return entries
+
+    def _collect_pattern_hashes(self, pattern: str) -> list[str]:
+        """Collect file hashes for a single input pattern (glob, file, or dir)."""
+        if '*' in pattern or '?' in pattern:
+            return self._hash_files(Path('.').rglob(pattern))
+        path = Path(pattern)
+        if path.is_dir():
+            return self._hash_files(path.rglob('*'))
+        return self._hash_files([path])
+
     def _get_input_files_hash(self, patterns: list[str]) -> str | None:
         """Compute hash of input files matching patterns."""
-        import fnmatch
-        
         all_hashes = []
-        
         for pattern in patterns:
-            # Handle glob patterns
-            if '*' in pattern or '?' in pattern:
-                base_dir = Path('.')
-                for path in base_dir.rglob(pattern):
-                    if path.is_file():
-                        file_hash = self._compute_file_hash(path)
-                        if file_hash:
-                            all_hashes.append(f"{path}:{file_hash}")
-            else:
-                # Direct file or directory
-                path = Path(pattern)
-                if path.is_file():
-                    file_hash = self._compute_file_hash(path)
-                    if file_hash:
-                        all_hashes.append(f"{path}:{file_hash}")
-                elif path.is_dir():
-                    for file_path in path.rglob('*'):
-                        if file_path.is_file():
-                            file_hash = self._compute_file_hash(file_path)
-                            if file_hash:
-                                all_hashes.append(f"{file_path}:{file_hash}")
+            all_hashes.extend(self._collect_pattern_hashes(pattern))
         
         if not all_hashes:
             return None

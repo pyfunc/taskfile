@@ -21,6 +21,14 @@ class MakefileConverter:
     """Convert between Taskfile and Makefile."""
     
     @staticmethod
+    def _save_target(tasks: dict, name: str | None, commands: list[str]) -> None:
+        """Save accumulated commands for a Makefile target."""
+        if not name or not commands:
+            return
+        existing_deps = tasks.get(name, {}).get('deps', [])
+        tasks[name] = {'commands': commands, 'deps': existing_deps}
+
+    @staticmethod
     def import_makefile(content: str) -> dict:
         """Parse Makefile and extract targets as tasks."""
         tasks = {}
@@ -40,24 +48,14 @@ class MakefileConverter:
             # Target definition
             target_match = re.match(r'^([a-zA-Z_-][a-zA-Z0-9_-]*):(.*)$', line.strip())
             if target_match:
-                # Save previous target
-                if current_target and current_commands:
-                    tasks[current_target] = {
-                        'commands': current_commands,
-                        'deps': [],
-                    }
-                
+                MakefileConverter._save_target(tasks, current_target, current_commands)
                 current_target = target_match.group(1)
-                deps_str = target_match.group(2).strip()
                 current_commands = []
                 
-                # Parse dependencies
+                deps_str = target_match.group(2).strip()
                 if deps_str:
                     deps = [d.strip() for d in deps_str.split()]
-                    if current_target not in tasks:
-                        tasks[current_target] = {'commands': [], 'deps': deps}
-                    else:
-                        tasks[current_target]['deps'] = deps
+                    tasks.setdefault(current_target, {'commands': [], 'deps': []})['deps'] = deps
                 
                 continue
             
@@ -67,12 +65,7 @@ class MakefileConverter:
                 if cmd:
                     current_commands.append(cmd)
         
-        # Save last target
-        if current_target and current_commands:
-            tasks[current_target] = {
-                'commands': current_commands,
-                'deps': tasks.get(current_target, {}).get('deps', []),
-            }
+        MakefileConverter._save_target(tasks, current_target, current_commands)
         
         return {
             'version': '1',

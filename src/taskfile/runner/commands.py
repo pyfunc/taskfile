@@ -38,22 +38,14 @@ def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
     return None
 
 
-def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False) -> int:
-    """Execute a command locally (or a wrapped SSH command). Handles dry-run, capture, timeout."""
-    if not task.silent:
-        prefix = "[magenta]→ SSH[/]" if remote else "[blue]→[/]"
-        console.print(f"  {prefix} {actual_cmd}")
-
-    if runner.dry_run:
-        console.print("  [dim](dry run — skipped)[/]")
-        return 0
-
+def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") -> int:
+    """Run a shell command with capture, timeout, and interrupt handling."""
     try:
         env = {**os.environ, **runner.variables}
         capture = task.register is not None
         timeout = task.timeout if task.timeout > 0 else None
         result = subprocess.run(
-            actual_cmd,
+            cmd_str,
             shell=True,
             cwd=task.working_dir,
             env=env,
@@ -68,11 +60,24 @@ def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False) -> int
             runner.variables[task.register] = result.stdout.strip()
         return result.returncode
     except subprocess.TimeoutExpired:
-        console.print(f"  [red]⏱ Command timed out after {task.timeout}s[/]")
+        console.print(f"  [red]⏱ {label} timed out after {task.timeout}s[/]")
         return 124
     except KeyboardInterrupt:
         console.print("\n[yellow]⚠ Interrupted[/]")
         return 130
+
+
+def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False) -> int:
+    """Execute a command locally (or a wrapped SSH command). Handles dry-run, capture, timeout."""
+    if not task.silent:
+        prefix = "[magenta]→ SSH[/]" if remote else "[blue]→[/]"
+        console.print(f"  {prefix} {actual_cmd}")
+
+    if runner.dry_run:
+        console.print("  [dim](dry run — skipped)[/]")
+        return 0
+
+    return _run_subprocess(runner, actual_cmd, task, label="Command")
 
 
 def run_command(runner, cmd: str, task: Task) -> int:
@@ -112,31 +117,7 @@ def execute_script(runner, task: Task, task_name: str) -> int:
         console.print(f"  [red]✗ Script not found: {resolved}[/]")
         return 1
 
-    env = {**os.environ, **runner.variables}
-    try:
-        timeout = task.timeout if task.timeout > 0 else None
-        capture = task.register is not None
-        result = subprocess.run(
-            f"bash {resolved}",
-            shell=True,
-            cwd=task.working_dir,
-            env=env,
-            text=True,
-            stdout=subprocess.PIPE if capture else None,
-            stderr=None,
-            timeout=timeout,
-        )
-        if capture and result.stdout:
-            if not task.silent:
-                sys.stdout.write(result.stdout)
-            runner.variables[task.register] = result.stdout.strip()
-        return result.returncode
-    except subprocess.TimeoutExpired:
-        console.print(f"  [red]⏱ Script timed out after {task.timeout}s[/]")
-        return 124
-    except KeyboardInterrupt:
-        console.print("\n[yellow]⚠ Interrupted[/]")
-        return 130
+    return _run_subprocess(runner, f"bash {resolved}", task, label="Script")
 
 
 def _run_with_retries(fn, task: Task) -> int:

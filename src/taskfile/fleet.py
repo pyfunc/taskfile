@@ -228,6 +228,22 @@ class DeviceStatus:
     uptime: str = ""
 
 
+def _parse_status_output(ds: DeviceStatus, stdout: str) -> None:
+    """Parse pipe-delimited SSH output into DeviceStatus fields."""
+    parts = stdout.strip().split("|")
+    if parts[0].strip().isdigit():
+        ds.temp_c = int(parts[0].strip()) / 1000
+    if len(parts) > 1 and parts[1].strip().isdigit():
+        ds.ram_pct = int(parts[1].strip())
+    if len(parts) > 2 and parts[2].strip().isdigit():
+        ds.disk_pct = int(parts[2].strip())
+    if len(parts) > 3:
+        ds.uptime = parts[3].strip()[:25]
+    if len(parts) > 4 and parts[4].strip().isdigit():
+        ds.containers = int(parts[4].strip())
+    ds.status = "hot" if ds.temp_c > 70 else "up"
+
+
 def check_device_status(config: FleetConfig, device: Device) -> DeviceStatus:
     """Check the status of a single device via SSH."""
     ds = DeviceStatus(name=device.name, host=device.host)
@@ -250,19 +266,7 @@ def check_device_status(config: FleetConfig, device: Device) -> DeviceStatus:
             ds.status = "ssh_fail"
             return ds
 
-        parts = result.stdout.strip().split("|")
-        if parts[0].strip().isdigit():
-            ds.temp_c = int(parts[0].strip()) / 1000
-        if len(parts) > 1 and parts[1].strip().isdigit():
-            ds.ram_pct = int(parts[1].strip())
-        if len(parts) > 2 and parts[2].strip().isdigit():
-            ds.disk_pct = int(parts[2].strip())
-        if len(parts) > 3:
-            ds.uptime = parts[3].strip()[:25]
-        if len(parts) > 4 and parts[4].strip().isdigit():
-            ds.containers = int(parts[4].strip())
-
-        ds.status = "hot" if ds.temp_c > 70 else "up"
+        _parse_status_output(ds, result.stdout)
         return ds
 
     except Exception:
