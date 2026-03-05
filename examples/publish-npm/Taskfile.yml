@@ -46,6 +46,7 @@ tasks:
   # ─── Quality ─────────────────────────────────────────────────────
   lint:
     desc: Run ESLint (continue on errors)
+    tags: [ci, quality]
     cmds:
       - npm ci
       - npm run lint
@@ -53,12 +54,15 @@ tasks:
 
   type-check:
     desc: TypeScript type checking
+    tags: [ci, quality]
     cmds:
       - npx tsc --noEmit
       - echo "✅ Type check passed"
 
   test:
     desc: Run tests (vitest/jest)
+    tags: [ci, quality]
+    timeout: 120
     cmds:
       - npm ci
       - npm test
@@ -66,6 +70,7 @@ tasks:
   # ─── Build ───────────────────────────────────────────────────────
   build:
     desc: Build TypeScript → JavaScript
+    tags: [ci, build]
     deps: [test, lint]
     cmds:
       - npm run build
@@ -75,8 +80,12 @@ tasks:
   # ─── npm Registry ───────────────────────────────────────────────
   publish-npm:
     desc: Publish to npm registry
+    tags: [release, deploy]
     env: [prod]
     deps: [build]
+    retries: 2
+    retry_delay: 5
+    register: PUBLISH_RESULT
     cmds:
       - |
         if [ -z "$NPM_TOKEN" ]; then
@@ -123,6 +132,7 @@ tasks:
   # ─── Multi-Registry ─────────────────────────────────────────────
   publish-all:
     desc: Publish to npm + GitHub Package Registry (parallel)
+    tags: [release, deploy]
     env: [prod]
     deps: [build]
     parallel: true
@@ -165,9 +175,11 @@ tasks:
   # ─── Release ───────────────────────────────────────────────────────
   release:
     desc: "Full release: version + tag + build + publish"
+    tags: [release, deploy]
     env: [prod]
     deps: [lint, test, type-check]
     parallel: true
+    register: RELEASE_VERSION
     cmds:
       - npm version ${VERSION}
       - npm run build

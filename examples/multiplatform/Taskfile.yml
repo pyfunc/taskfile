@@ -100,18 +100,22 @@ tasks:
 
   lint:
     desc: Run linter
+    tags: [ci, quality]
     cmds:
       - npm run lint
-    ignore_errors: true
+    continue_on_error: true  # New syntax (was ignore_errors)
 
   test:
     desc: Run tests
+    tags: [ci, quality]
+    timeout: 180
     cmds:
       - npm run test
 
   # ─── Build ──────────────────────────────────────
   build:
     desc: Build for current platform
+    tags: [ci, build]
     deps: [install, test]
     cmds:
       - echo "🔨 Building ${APP_NAME} for platform=${PLATFORM} env=${ENV}"
@@ -166,9 +170,13 @@ tasks:
   # ─── Deploy: Web × Prod ────────────────────────
   deploy-web-prod:
     desc: Deploy web app to production server
+    tags: [deploy]
     env: [prod]
     platform: [web]
     deps: [build-web]
+    retries: 2
+    retry_delay: 10
+    timeout: 300
     cmds:
       - docker build -t ${REGISTRY}/${APP_NAME}:${TAG} .
       - docker push ${REGISTRY}/${APP_NAME}:${TAG}

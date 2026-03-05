@@ -6,13 +6,16 @@
 - [x] Update all examples with README files
 - [x] Add Examples section to main README
 - [x] Update examples/README.md with comprehensive guide
-- [ ] Update CHANGELOG with latest changes
-- [ ] Update TODO with current priorities
+- [x] Update CHANGELOG with latest changes
+- [x] Update TODO with current priorities
+- [x] Update documentation for new syntax features
 
 ### Medium Priority
-- [ ] Create comprehensive docs/ guides
-- [ ] Add more validation examples
-- [ ] Document CI/CD generation features
+- [x] Create comprehensive docs/ guides
+- [x] Document CI/CD generation features
+- [x] Add more validation examples
+- [ ] Add embedded functions examples to documentation
+- [ ] Create migration guide from other tools
 
 ### Low Priority
 - [ ] Add more example projects
@@ -29,6 +32,10 @@
 - [x] Created README for multiplatform example
 - [x] Created README for codereview.pl example
 - [x] Updated examples main README
+- [x] Updated main README.md with new syntax features documentation
+- [x] Updated docs/FORMAT.md with new sections and properties
+- [x] Updated docs/USAGE.md with new CLI commands
+- [x] Updated examples to demonstrate new syntax (tags, retries, register, etc.)
 
 ## 🐛 Known Issues
 
@@ -40,5 +47,8 @@
 - VPS deployment simplified (just add VPS_IP to .env)
 - CI/CD generation works for GitHub Actions and GitLab CI
 - Validation supports Docker and Vagrant VM
+- New syntax features fully documented: embedded functions, retries, tags, register, include, pipeline, compose
+- Examples updated to demonstrate new syntax features
+- Documentation now covers all CLI commands and usage patterns
 
 Last updated: 2026-03-05

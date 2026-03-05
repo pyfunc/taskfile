@@ -202,10 +202,148 @@ functions:
 - **`@fn`** prefix — call an embedded function: `@fn notify arg1`
 - **`@python`** prefix — run inline Python: `@python print('hello')`
 - **`retries`** / **`timeout`** / **`tags`** / **`register`** — Ansible-inspired robustness
+- **`include`** — split Taskfile.yml into multiple files for better organization
+- **`pipeline`** — define CI/CD stages for automated generation
+- **`compose`** — Docker Compose integration with override support
 
 ---
 
-## CLI Commands
+## New Syntax Features
+
+### Embedded Functions
+
+Define reusable functions in Python, Shell, Node.js, or binary executables:
+
+```yaml
+functions:
+  notify:
+    lang: python
+    desc: Send Slack notification
+    code: |
+      import os, json, urllib.request
+      webhook = os.environ.get("SLACK_WEBHOOK")
+      msg = os.environ.get("FN_ARGS", "Done")
+      # ... send notification
+
+  health-check:
+    lang: shell
+    file: scripts/health.sh  # External file
+
+tasks:
+  deploy:
+    cmds:
+      - "@fn notify Deployment started"
+      - "@fn health-check"
+```
+
+### Enhanced Task Properties
+
+New Ansible-inspired features for robust automation:
+
+```yaml
+tasks:
+  deploy:
+    desc: Deploy with retry logic
+    retries: 3              # Retry on failure
+    retry_delay: 10         # Seconds between retries
+    timeout: 300            # Abort after 5 minutes
+    tags: [deploy, ci]      # Selective execution
+    register: DEPLOY_ID     # Capture output
+    continue_on_error: true # Don't stop on failure
+    cmds:
+      - "@fn deploy-service"
+      - echo "Deploy ID: {{DEPLOY_ID}}"
+```
+
+Run with tags:
+```bash
+taskfile run --tags deploy  # Only run tasks with 'deploy' tag
+```
+
+### Include — Split Taskfile into Multiple Files
+
+Organize large Taskfiles by splitting them:
+
+```yaml
+# Taskfile.yml
+include:
+  - path: ./tasks/build.yml
+  - path: ./tasks/deploy.yml
+    prefix: deploy    # Tasks become: deploy-local, deploy-prod
+  - ./tasks/test.yml  # String shorthand
+
+variables:
+  APP: myapp
+
+tasks:
+  all:
+    deps: [lint, test, build, deploy-prod]
+```
+
+```yaml
+# tasks/deploy.yml
+environments:
+  prod:
+    ssh_host: prod.example.com
+
+tasks:
+  prod:
+    cmds: ["@remote systemctl restart myapp"]
+```
+
+### Pipeline Section — CI/CD Generation
+
+Define CI/CD stages that generate GitHub Actions, GitLab CI, etc:
+
+```yaml
+pipeline:
+  python_version: "3.12"
+  docker_in_docker: true
+  secrets: [GHCR_TOKEN, DEPLOY_KEY]
+  cache: [~/.cache/pip, node_modules]
+  
+  stages:
+    - name: test
+      tasks: [lint, test]
+      cache: [~/.cache/pip]
+      
+    - name: build
+      tasks: [build, push]
+      docker_in_docker: true
+      
+    - name: deploy
+      tasks: [deploy]
+      env: prod
+      when: manual  # or "branch:main"
+```
+
+Generate CI configs:
+```bash
+taskfile ci generate --target github   # GitHub Actions
+taskfile ci generate --target gitlab   # GitLab CI
+taskfile ci run --stage test          # Run locally
+```
+
+### Compose Section — Docker Compose Integration
+
+Enhanced Docker Compose support with overrides:
+
+```yaml
+compose:
+  file: docker-compose.yml
+  override_files:
+    - docker-compose.override.yml
+    - docker-compose.prod.yml
+  network: proxy
+  auto_update: true
+
+environments:
+  prod:
+    compose_file: docker-compose.prod.yml
+    env_file: .env.prod
+```
+
+---
 
 ### Global Options
 
@@ -234,6 +372,7 @@ Options:
 | `taskfile validate` | Check Taskfile.yml for errors |
 | `taskfile init [--template T]` | Create Taskfile.yml from template |
 | `taskfile import <file>` | Import CI/CD config, Makefile, or script INTO Taskfile.yml |
+| `taskfile export <format>` | Export Taskfile.yml to other formats (GitHub Actions, GitLab CI) |
 
 ### Deploy & Release
 
@@ -521,11 +660,11 @@ This creates a `Taskfile.yml` with tasks for:
 
 ```bash
 # Publish to all registries
-taskfile publish-all --var TAG=v1.0.0
+taskfile run publish-all --var TAG=v1.0.0
 
 # Publish to single registry
-taskfile publish-pypi --var TAG=v1.0.0
-taskfile publish-docker --var TAG=v1.0.0
+taskfile run publish-pypi --var TAG=v1.0.0
+taskfile run publish-docker --var TAG=v1.0.0
 ```
 
 ---
@@ -816,7 +955,7 @@ deploy:
 	taskfile --env prod run deploy
 
 test:
-	taskfile test
+	taskfile run test
 
 .PHONY: deploy test
 ```

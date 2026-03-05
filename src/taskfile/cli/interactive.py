@@ -504,7 +504,7 @@ def env(ctx):
 
         if "setup-env" not in runner.config.tasks:
             console.print("[yellow]⚠ Task 'setup-env' not found in Taskfile.yml[/]")
-            console.print("[dim]  Add setup-env task or use: taskfile setup-hosts[/]")
+            console.print("[dim]  Add setup-env task or use: taskfile setup hosts[/]")
             sys.exit(1)
 
         success = runner.run(["setup-env"])
