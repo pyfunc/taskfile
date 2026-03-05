@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.3.12] - 2026-03-05
+
+### Other
+- Update examples/codereview.pl/.github/workflows/taskfile.yml
+- Update examples/run-all.sh
+
 ## [0.3.11] - 2026-03-05
 
 ### Test

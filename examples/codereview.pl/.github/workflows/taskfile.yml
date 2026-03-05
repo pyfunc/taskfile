@@ -18,6 +18,9 @@ jobs:
     - run: pip install taskfile
     - name: 'Run: test'
       run: taskfile --env local run build --var TAG=${{ github.sha }}
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
   build:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +35,9 @@ jobs:
     - name: 'Run: build'
       run: taskfile --env local run push --var TAG=${{ github.sha }}
     needs: test
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
   generate:
     runs-on: ubuntu-latest
     steps:
@@ -47,6 +53,9 @@ jobs:
         name: generate-artifacts
         path: deploy/quadlet/
     needs: build
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
   deploy:
     runs-on: ubuntu-latest
     steps:
@@ -65,3 +74,6 @@ jobs:
       run: taskfile --env prod run deploy-quick --var TAG=${{ github.sha }}
     needs: generate
     if: github.event_name == 'workflow_dispatch'
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}

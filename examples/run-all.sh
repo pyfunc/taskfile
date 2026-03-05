@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run ALL examples in sequence
-set -e
+# NOTE: No 'set -e' - we handle errors manually to track all results
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -38,7 +38,7 @@ run_example() {
 PASSED=0
 FAILED=0
 
-# Run each example
+# Run each example - don't let one failure stop others
 if run_example "minimal" "run-minimal.sh"; then
     ((PASSED++))
 else
