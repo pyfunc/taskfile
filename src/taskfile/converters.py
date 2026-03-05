@@ -246,74 +246,55 @@ class NpmScriptsConverter:
         return json.dumps(package, indent=2)
 
 
+def _coerce_to_list(value) -> list[str]:
+    """Coerce a YAML value (str or list) to a list of strings."""
+    if isinstance(value, list):
+        return value
+    return [str(value)]
+
+
+def _extract_gitlab_commands(job: dict) -> list[str]:
+    """Extract commands from a GitLab CI job (before_script + script + after_script)."""
+    commands = []
+    for key in ('before_script', 'script', 'after_script'):
+        if key in job:
+            commands.extend(_coerce_to_list(job[key]))
+    return commands
+
+
+def _extract_gitlab_deps(job: dict) -> list[str]:
+    """Extract dependencies from a GitLab CI job (needs or dependencies)."""
+    for key in ('needs', 'dependencies'):
+        if key in job:
+            return _coerce_to_list(job[key])
+    return []
+
+
 class GitLabCIConverter:
     """Convert between Taskfile and GitLab CI."""
     
+    _GLOBAL_KEYS = frozenset({
+        'stages', 'variables', 'cache', 'image', 'services',
+        'before_script', 'after_script', 'default', 'include',
+        'workflow', 'artifacts',
+    })
+
     @staticmethod
     def import_gitlab_ci(content: str) -> dict:
         """Parse GitLab CI YAML and extract jobs as tasks."""
         import yaml
         
         data = yaml.safe_load(content)
-        tasks = {}
-        
         if not data:
             return {'version': '1', 'tasks': {}}
         
-        # Extract jobs (excluding global keys like stages, variables, etc.)
-        global_keys = {'stages', 'variables', 'cache', 'image', 'services', 'before_script', 'after_script', 'default', 'include', 'workflow', 'artifacts'}
-        
+        tasks = {}
         for job_name, job in data.items():
-            if job_name in global_keys:
+            if job_name in GitLabCIConverter._GLOBAL_KEYS or not isinstance(job, dict):
                 continue
-                
-            if not isinstance(job, dict):
-                continue
-            
-            commands = []
-            
-            # Add before_script if present
-            if 'before_script' in job:
-                before_script = job['before_script']
-                if isinstance(before_script, list):
-                    commands.extend(before_script)
-                else:
-                    commands.append(str(before_script))
-            
-            # Add script
-            if 'script' in job:
-                script = job['script']
-                if isinstance(script, list):
-                    commands.extend(script)
-                else:
-                    commands.append(str(script))
-            
-            # Add after_script if present
-            if 'after_script' in job:
-                after_script = job['after_script']
-                if isinstance(after_script, list):
-                    commands.extend(after_script)
-                else:
-                    commands.append(str(after_script))
-            
-            # Handle dependencies via 'needs' or 'dependencies'
-            deps = []
-            if 'needs' in job:
-                needs = job['needs']
-                if isinstance(needs, list):
-                    deps.extend(needs)
-                else:
-                    deps.append(str(needs))
-            elif 'dependencies' in job:
-                dependencies = job['dependencies']
-                if isinstance(dependencies, list):
-                    deps.extend(dependencies)
-                else:
-                    deps.append(str(dependencies))
-            
             tasks[job_name] = {
-                'commands': commands,
-                'deps': deps,
+                'commands': _extract_gitlab_commands(job),
+                'deps': _extract_gitlab_deps(job),
             }
         
         return {

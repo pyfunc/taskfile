@@ -139,6 +139,39 @@ def execute_script(runner, task: Task, task_name: str) -> int:
         return 130
 
 
+def _run_with_retries(fn, task: Task) -> int:
+    """Run fn() and retry on failure according to task.retries/retry_delay."""
+    returncode = fn()
+    if returncode != 0 and task.retries > 0:
+        for attempt in range(1, task.retries + 1):
+            console.print(
+                f"  [yellow]↻ Retry {attempt}/{task.retries} "
+                f"(waiting {task.retry_delay}s)[/]"
+            )
+            time.sleep(task.retry_delay)
+            returncode = fn()
+            if returncode == 0:
+                break
+    return returncode
+
+
+def _handle_failure(
+    returncode: int, task: Task, task_name: str, start: float, label: str
+) -> bool:
+    """Handle a non-zero return code. Returns False if execution should stop."""
+    if returncode == 0:
+        return True
+    if task.ignore_errors:
+        console.print(f"  [yellow]⚠ {label} failed (ignored)[/]")
+        return True
+    elapsed = time.time() - start
+    console.print(
+        f"[red]✗ Task '{task_name}' {label} failed after {elapsed:.1f}s "
+        f"(exit code {returncode})[/]"
+    )
+    return False
+
+
 def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
     """Execute all commands in a task. Returns False if any failed (and not ignored).
 
@@ -150,49 +183,12 @@ def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
     """
     # Execute external script if defined
     if task.script:
-        returncode = execute_script(runner, task, task_name)
-        if returncode != 0 and task.retries > 0:
-            for attempt in range(1, task.retries + 1):
-                console.print(
-                    f"  [yellow]↻ Retry {attempt}/{task.retries} "
-                    f"(waiting {task.retry_delay}s)[/]"
-                )
-                time.sleep(task.retry_delay)
-                returncode = execute_script(runner, task, task_name)
-                if returncode == 0:
-                    break
-        if returncode != 0:
-            if task.ignore_errors:
-                console.print(f"  [yellow]⚠ Script failed (ignored)[/]")
-            else:
-                elapsed = time.time() - start
-                console.print(
-                    f"[red]✗ Task '{task_name}' script failed after {elapsed:.1f}s "
-                    f"(exit code {returncode})[/]"
-                )
-                return False
+        rc = _run_with_retries(lambda: execute_script(runner, task, task_name), task)
+        if not _handle_failure(rc, task, task_name, start, "script"):
+            return False
 
     for cmd in task.commands:
-        returncode = run_command(runner, cmd, task)
-        # Retry logic
-        if returncode != 0 and task.retries > 0:
-            for attempt in range(1, task.retries + 1):
-                console.print(
-                    f"  [yellow]↻ Retry {attempt}/{task.retries} "
-                    f"(waiting {task.retry_delay}s)[/]"
-                )
-                time.sleep(task.retry_delay)
-                returncode = run_command(runner, cmd, task)
-                if returncode == 0:
-                    break
-        if returncode != 0:
-            if task.ignore_errors:
-                console.print(f"  [yellow]⚠ Command failed (ignored)[/]")
-            else:
-                elapsed = time.time() - start
-                console.print(
-                    f"[red]✗ Task '{task_name}' failed after {elapsed:.1f}s "
-                    f"(exit code {returncode})[/]"
-                )
-                return False
+        rc = _run_with_retries(lambda cmd=cmd: run_command(runner, cmd, task), task)
+        if not _handle_failure(rc, task, task_name, start, "command"):
+            return False
     return True

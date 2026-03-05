@@ -270,9 +270,56 @@ class TaskfileRunner:
         self._executed.add(task_name)
         return True
 
+    def _run_tasks_plain(self, task_names: list[str]) -> bool:
+        """Run tasks sequentially without progress bar (for script-based tasks)."""
+        from taskfile.notifications import notify_task_complete
+        import time
+
+        for name in task_names:
+            task_start = time.time()
+            if not self.run_task(name):
+                return False
+
+            task_duration = time.time() - task_start
+            if task_duration > 10:
+                notify_task_complete(name, True, task_duration)
+        return True
+
+    def _run_tasks_with_progress(self, task_names: list[str]) -> bool:
+        """Run tasks with Rich progress bar."""
+        from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+        from taskfile.notifications import notify_task_complete
+        import time
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TimeElapsedColumn(),
+            console=console,
+            transient=True,
+        ) as progress:
+            for name in task_names:
+                task = self.config.tasks.get(name)
+                desc = f"Running {name}..."
+                if task and task.description:
+                    desc = f"{name} — {task.description}"
+
+                progress_task = progress.add_task(desc, total=None)
+                task_start = time.time()
+
+                if not self.run_task(name):
+                    progress.update(progress_task, completed=True)
+                    return False
+
+                progress.update(progress_task, completed=True)
+
+                task_duration = time.time() - task_start
+                if task_duration > 10:
+                    notify_task_complete(name, True, task_duration)
+        return True
+
     def run(self, task_names: list[str]) -> bool:
         """Run multiple tasks in order. Returns True if all succeed."""
-        from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
         from taskfile.notifications import notify_task_complete
         import time
 
@@ -281,55 +328,16 @@ class TaskfileRunner:
         for w in warnings:
             console.print(f"[yellow]⚠ {w}[/]")
 
-        success = True
         start_time = time.time()
         try:
-            # Rich Progress uses live rendering; for interactive scripts (read/select)
-            # it can make stdin prompts appear to "hang". Disable progress when any
-            # selected task is script-based.
             has_script_task = any(
                 (self.config.tasks.get(n) is not None and self.config.tasks[n].script)
                 for n in task_names
             )
-
             if has_script_task:
-                for name in task_names:
-                    task_start = time.time()
-                    if not self.run_task(name):
-                        success = False
-                        break
-
-                    task_duration = time.time() - task_start
-                    if task_duration > 10:
-                        notify_task_complete(name, True, task_duration)
+                success = self._run_tasks_plain(task_names)
             else:
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    TimeElapsedColumn(),
-                    console=console,
-                    transient=True,
-                ) as progress:
-                    for name in task_names:
-                        task = self.config.tasks.get(name)
-                        desc = f"Running {name}..."
-                        if task and task.description:
-                            desc = f"{name} — {task.description}"
-
-                        progress_task = progress.add_task(desc, total=None)
-                        task_start = time.time()
-
-                        if not self.run_task(name):
-                            success = False
-                            progress.update(progress_task, completed=True)
-                            break
-
-                        progress.update(progress_task, completed=True)
-
-                        # Notification for long-running tasks (>10s)
-                        task_duration = time.time() - task_start
-                        if task_duration > 10:
-                            notify_task_complete(name, True, task_duration)
+                success = self._run_tasks_with_progress(task_names)
         finally:
             if self.use_embedded_ssh:
                 ssh_close_all()
