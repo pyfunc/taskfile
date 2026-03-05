@@ -2,6 +2,8 @@
 import sys
 import subprocess
 from pathlib import Path
+from typing import Any
+
 import click
 from taskfile.parser import load_taskfile, TaskfileNotFoundError, TaskfileParseError
 from taskfile.cli.main import main, console
@@ -146,22 +148,82 @@ def _print_deploy_header(config, env_name: str, env, compose_path: str, env_file
     console.print()
 
 
-def _execute_deploy_strategy(
-    env, env_name: str, env_file_path: str | None,
-    config, compose_path: str, var_overrides: dict, dry_run: bool
-) -> None:
-    """Select and execute the appropriate deploy strategy."""
+class DeployStrategy:
+    """Pure data class representing selected deploy strategy."""
+
+    def __init__(
+        self,
+        strategy: str,  # 'local_compose', 'remote_compose', 'quadlet', 'unknown'
+        env: Any,
+        env_name: str,
+        env_file_path: str | None,
+        config: Any,
+        compose_path: str,
+        var_overrides: dict,
+        dry_run: bool,
+    ):
+        self.strategy = strategy
+        self.env = env
+        self.env_name = env_name
+        self.env_file_path = env_file_path
+        self.config = config
+        self.compose_path = compose_path
+        self.var_overrides = var_overrides
+        self.dry_run = dry_run
+
+
+def _select_deploy_strategy(
+    env: Any,
+    env_name: str,
+    env_file_path: str | None,
+    config: Any,
+    compose_path: str,
+    var_overrides: dict,
+    dry_run: bool,
+) -> DeployStrategy:
+    """Pure function to select deploy strategy based on environment config.
+
+    Returns DeployStrategy without executing any deployment actions.
+    Pipeline purity: this function has no side effects.
+    """
+    strategy = "unknown"
     if env.service_manager == "compose" and not env.ssh_host:
-        _deploy_local_compose(env, env_file_path, dry_run)
+        strategy = "local_compose"
+    elif env.service_manager == "compose" and env.ssh_host:
+        strategy = "remote_compose"
+    elif env.service_manager == "quadlet":
+        strategy = "quadlet"
+
+    return DeployStrategy(
+        strategy=strategy,
+        env=env,
+        env_name=env_name,
+        env_file_path=env_file_path,
+        config=config,
+        compose_path=compose_path,
+        var_overrides=var_overrides,
+        dry_run=dry_run,
+    )
+
+
+def _execute_deploy_strategy(strategy: DeployStrategy) -> None:
+    """Execute the selected deploy strategy."""
+    if strategy.strategy == "local_compose":
+        _deploy_local_compose(strategy.env, strategy.env_file_path, strategy.dry_run)
         return
-    if env.service_manager == "compose" and env.ssh_host:
-        _deploy_remote_compose(env, env_name, env_file_path, config, dry_run)
+    if strategy.strategy == "remote_compose":
+        _deploy_remote_compose(
+            strategy.env, strategy.env_name, strategy.env_file_path, strategy.config, strategy.dry_run
+        )
         return
-    if env.service_manager == "quadlet":
-        _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run)
+    if strategy.strategy == "quadlet":
+        _deploy_quadlet(
+            strategy.env, strategy.env_name, strategy.env_file_path,
+            strategy.compose_path, strategy.var_overrides, strategy.dry_run
+        )
         return
 
-    console.print(f"[red]Unknown service_manager: {env.service_manager}[/]")
+    console.print(f"[red]Unknown service_manager: {strategy.env.service_manager}[/]")
     sys.exit(1)
 
 
@@ -194,7 +256,10 @@ def deploy_cmd(ctx, compose_override):
             _resolve_deploy_config(ctx, compose_override)
 
         _print_deploy_header(config, env_name, env, compose_path, env_file_path)
-        _execute_deploy_strategy(env, env_name, env_file_path, config, compose_path, var_overrides, dry_run)
+        strategy = _select_deploy_strategy(
+            env, env_name, env_file_path, config, compose_path, var_overrides, dry_run
+        )
+        _execute_deploy_strategy(strategy)
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")

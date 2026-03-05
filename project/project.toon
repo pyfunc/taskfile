@@ -1,6 +1,9 @@
-# taskfile | 36f 4947L | python:36
+# taskfile | 47f 8392L | python:47
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[36]:
+M[47]:
+  tests/test_provisioner.py,268
+  tests/test_release.py,261
+  tests/test_setup.py,189
   src/taskfile/__init__.py,34
   src/taskfile/cigen/__init__.py,48
   src/taskfile/cigen/base.py,54
@@ -11,16 +14,22 @@ M[36]:
   src/taskfile/cigen/jenkins.py,46
   src/taskfile/cigen/makefile.py,42
   src/taskfile/cirunner.py,204
-  src/taskfile/cli/__init__.py,5
+  src/taskfile/cli/__init__.py,8
   src/taskfile/cli/ci.py,171
-  src/taskfile/cli/deploy.py,170
+  src/taskfile/cli/deploy.py,227
+  src/taskfile/cli/health.py,51
   src/taskfile/cli/main.py,165
   src/taskfile/cli/quadlet.py,154
+  src/taskfile/cli/release.py,265
+  src/taskfile/cli/setup.py,343
   src/taskfile/compose.py,127
+  src/taskfile/health.py,348
+  src/taskfile/landing.py,326
   src/taskfile/models.py,283
   src/taskfile/parser.py,106
-  src/taskfile/quadlet.py,241
-  src/taskfile/runner.py,269
+  src/taskfile/provisioner.py,237
+  src/taskfile/quadlet.py,254
+  src/taskfile/runner.py,278
   src/taskfile/scaffold/__init__.py,20
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
@@ -32,12 +41,37 @@ M[36]:
   tests/test_cigen.py,262
   tests/test_cli.py,124
   tests/test_compose.py,43
+  tests/test_health.py,166
+  tests/test_landing.py,197
   tests/test_models.py,233
   tests/test_parser.py,38
   tests/test_quadlet.py,104
   tests/test_runner.py,71
   tests/test_scaffold.py,88
 D:
+  tests/test_provisioner.py:
+    i: pytest,pathlib.Path,taskfile.provisioner.{ProvisionConfig,VPSProvisioner,provision_vps},unittest.mock.{MagicMock,patch}
+    e: TestProvisionConfig,TestVPSProvisioner,TestVPSProvisionerSteps,TestProvisionVPS
+    TestProvisionConfig: test_basic_config(0),test_custom_email_and_version(0)  # Tests for ProvisionConfig dataclass.
+    TestVPSProvisioner: test_init(0),test_ssh_method(0),test_check_command_exists(0),test_check_command_not_exists(0),test_is_provisioned_true(0)  # Tests for VPSProvisioner class.
+    TestVPSProvisionerSteps: test_system_update(0),test_install_podman_already_installed(0),test_install_podman_new_install(0),test_setup_firewall(0),test_create_deploy_user(0)  # Tests for individual provisioning steps.
+    TestProvisionVPS: test_provision_vps_success(0),test_provision_vps_already_provisioned(0),test_provision_vps_dry_run(0)  # Tests for the convenience function.
+  tests/test_release.py:
+    i: pytest,subprocess,click.testing.CliRunner,pathlib.Path,taskfile.cli.main,unittest.mock.{MagicMock,patch}
+    e: TestGetCurrentTag,TestGetPreviousTag,TestRunCommand,TestReleaseCommand,TestRollbackCommand,TestReleasePlanDisplay
+    TestGetCurrentTag: test_get_current_tag_success(0),test_get_current_tag_none(0),test_get_current_tag_exception(0)  # Tests for tag detection.
+    TestGetPreviousTag: test_get_previous_tag_success(0),test_get_previous_tag_none(0)  # Tests for previous tag detection.
+    TestRunCommand: test_run_command_success(0),test_run_command_failure(0),test_run_command_timeout(0),test_run_command_dry_run(0)  # Tests for command execution helper.
+    TestReleaseCommand: test_release_help(0),test_release_no_tag(0),test_release_with_tag(0)  # Tests for release CLI command.
+    TestRollbackCommand: test_rollback_help(0),test_rollback_no_previous_tag(0),test_rollback_with_target(0),test_rollback_dry_run(0)  # Tests for rollback CLI command.
+  tests/test_setup.py:
+    i: pytest,sys,click.testing.CliRunner,pathlib.Path,taskfile.cli.setup.{SetupConfig,_validate_ip,_validate_ssh_key},unittest.mock.{MagicMock,patch}
+    e: TestValidateIp,TestValidateSshKey,TestSetupConfig,TestProvisionSshKey,TestTestSshConnection,TestDeployApplication,TestPrintSummary
+    TestValidateIp: test_valid_ipv4(0),test_invalid_ipv4(0),test_edge_cases(0)  # Tests for IP validation.
+    TestValidateSshKey: test_valid_key_exists(1),test_invalid_key_not_exists(1),test_tilde_expansion(2)  # Tests for SSH key validation.
+    TestSetupConfig: test_basic_config(0)  # Tests for SetupConfig dataclass.
+    TestProvisionSshKey: test_provision_ssh_key_success(1),test_provision_ssh_key_failure(0)  # Tests for SSH key provisioning step.
+    TestTestSshConnection: test_ssh_connection_success(0),test_ssh_connection_failure(0)  # Tests for SSH connection testing.
   src/taskfile/cigen/__init__.py:
     i: pathlib.Path,taskfile.cigen.base.{CITarget,TARGETS,console},taskfile.models.TaskfileConfig
     e: generate_ci,generate_all_ci,list_targets,preview_ci
@@ -92,8 +126,9 @@ D:
     ci_preview(ctx;target)
     ci_targets()
   src/taskfile/cli/deploy.py:
-    i: sys,subprocess,click,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
-    e: deploy_cmd
+    i: sys,subprocess,click,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile},typing.Any
+    e: DeployStrategy,deploy_cmd
+    DeployStrategy: __init__(7)  # Pure data class representing selected...
     _run(cmd:str;label:str;dry_run:bool)
     _ssh(cmd:str;label:str;env:any;env_name:str;dry_run:bool)
     _deploy_local_compose(env;env_file_path;dry_run)
@@ -102,6 +137,10 @@ D:
     _quadlet_step2_upload(env;env_name;dry_run)
     _quadlet_step3_reload_and_pull(env;env_name;compose;dry_run)
     _quadlet_step4_restart_and_cleanup(env;env_name;compose;dry_run)
+  src/taskfile/cli/health.py:
+    i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.health.{health_check_all,print_health_report,run_health_checks},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError},typing.TYPE_CHECKING
+    e: health_cmd
+    health_cmd(ctx;domain;ssh_host;ssh_user;ssh_key;no_ssh)
   src/taskfile/cli/main.py:
     i: sys,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile},taskfile.runner.TaskfileRunner
     e: parse_var,main,run,list_tasks,init,validate,info
@@ -121,6 +160,26 @@ D:
     _get_upload_files(quadlet_dir:str)->list[Path]
     _run_upload_commands(env:Environment;files:list[Path];dry_run:bool)->None
     quadlet_upload(ctx;quadlet_dir)
+  src/taskfile/cli/release.py:
+    i: subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.cli.main,taskfile.cli.main.console,taskfile.health.health_check_all,typing.TYPE_CHECKING
+    e: release,rollback
+    _run_command(cmd:Any;description:str;dry_run:bool=False)->bool
+    _get_current_tag()->str | None
+    _get_previous_tag()->str | None
+    release(ctx;tag_version;skip_desktop;skip_landing;skip_health;dry_run;...+1)
+    rollback(ctx;target_tag;domain;dry_run)
+  src/taskfile/cli/setup.py:
+    i: os,re,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
+    e: SetupConfig,setup
+    SetupConfig: __init__(7)  # Configuration collected during setup...
+    _validate_ip(ip:str)->bool
+    _validate_ssh_key(path:str)->bool
+    _collect_interactive_setup(ip:Any)->SetupConfig
+    _write_env_files(config:SetupConfig)->None
+    _provision_ssh_key(config:SetupConfig;dry_run:bool=False)->bool
+    _test_ssh_connection(config:SetupConfig;dry_run:bool=False)->bool
+    _provision_vps(config:SetupConfig;dry_run:bool=False)->bool
+    _is_vps_ready(config:SetupConfig)->bool
   src/taskfile/compose.py:
     i: os,re,yaml,pathlib.Path,typing.Any
     e: VAR_PATTERN,load_env_file,resolve_variables,resolve_dict,ComposeFile
@@ -128,6 +187,24 @@ D:
     load_env_file(path:Any)->dict[str, str]
     resolve_variables(text:str;variables:dict[str;str])->str
     resolve_dict(data:Any;variables:dict[str;str])->Any
+  src/taskfile/health.py:
+    i: subprocess,sys,time,dataclasses.{dataclass,field},typing.TYPE_CHECKING,urllib.error.{HTTPError,URLError},urllib.request.{Request,urlopen}
+    e: HealthCheckResult,HealthReport,check_http_endpoint,check_ssh_service,check_traefik_dashboard,run_health_checks,print_health_report,health_check_all
+    HealthCheckResult:   # Result of a single health check.
+    HealthReport: healthy_count(0),unhealthy_count(0)  # Aggregated health check report.
+    check_http_endpoint(name:str;url:str;expected_status:int=200;timeout:int=10;retries:int=1)->HealthCheckResult
+    check_ssh_service(name:str;host:str;user:str;ssh_key:Any=None;port:int=22;timeout:int=10)->HealthCheckResult
+    check_traefik_dashboard(host:str;user:str;ssh_key:Any=None)->HealthCheckResult
+    run_health_checks(domain:str;ssh_host:Any=None;ssh_user:str='deploy';ssh_key:Any=None;check_web:bool=True;check_landing:bool=True;...+1)->HealthReport
+    print_health_report(report:HealthReport)->None
+    health_check_all(domain:str;ssh_host:Any=None;ssh_user:str='deploy';ssh_key:Any=None;exit_on_error:bool=True)->bool
+  src/taskfile/landing.py:
+    i: pathlib.Path,rich.console.Console,typing.TYPE_CHECKING
+    e: LANDING_TEMPLATE,generate_landing_page,build_landing_page,create_landing_nginx_config,create_landing_compose_service
+    generate_landing_page(app_name:str;tag:str;domain:str;release_date:str='today';year:str='2026';github_repo:str='')->str
+    build_landing_page(output_dir:Any;app_name:str;tag:str;domain:str;release_date:str='today';year:str='2026';...+1)->Path
+    create_landing_nginx_config(domain:str;landing_dir:str;releases_dir:str)->str
+    create_landing_compose_service(domain:str;landing_port:int=8080;traefik_enabled:bool=True)->dict
   src/taskfile/models.py:
     i: os,dataclasses.{dataclass,field},typing.Any
     e: Environment,Platform,ComposeConfig,Task,PipelineStage,PipelineConfig,TaskfileConfig
@@ -150,22 +227,29 @@ D:
     _validate_task_env_filter(config:TaskfileConfig;task_name:str;task)->list[str]
     _validate_task_platform_filter(config:TaskfileConfig;task_name:str;task)->list[str]
     validate_taskfile(config:TaskfileConfig)->list[str]
+  src/taskfile/provisioner.py:
+    i: subprocess,sys,dataclasses.dataclass,pathlib.Path,rich.console.Console,typing.TYPE_CHECKING
+    e: ProvisionConfig,VPSProvisioner,provision_vps
+    ProvisionConfig:   # Configuration for VPS provisioning.
+    VPSProvisioner: __init__(1),_ssh(2),_check_command(1),provision(1),_system_update(0)  # Idempotent VPS provisioner using SSH.
+    provision_vps(ip:str;ssh_key:str;ssh_user:str='deploy';domain:Any=None;ports:Any=None;dry_run:bool=False)->bool
   src/taskfile/quadlet.py:
-    i: re,pathlib.Path,rich.console.Console,taskfile.compose.ComposeFile,typing.Any
-    e: generate_container_unit,generate_network_unit,generate_volume_unit,compose_to_quadlet
+    i: re,pathlib.Path,rich.console.Console,taskfile.compose.ComposeFile,typing.{Any,NotRequired,TypedDict}
+    e: ServiceConfig,generate_container_unit,generate_network_unit,generate_volume_unit,compose_to_quadlet
+    ServiceConfig:   # Type definition for a docker-compose...
     _parse_port(port_str:str)->tuple[str, str]
     _parse_memory_limit(deploy:dict)->str | None
     _parse_cpus_limit(deploy:dict)->str | None
-    _build_unit_section(service_name:str;service:dict)->list[str]
-    _build_container_env(service:dict;lines:list[str])->None
-    _build_container_ports(service:dict;lines:list[str])->None
-    _build_container_volumes(service:dict;lines:list[str])->None
-    _build_container_networks(service:dict;network_name:str;lines:list[str])->None
+    _build_unit_section(service_name:str;service:ServiceConfig)->list[str]
+    _build_container_env(service:ServiceConfig;lines:list[str])->None
+    _build_container_ports(service:ServiceConfig;lines:list[str])->None
+    _build_container_volumes(service:ServiceConfig;lines:list[str])->None
+    _build_container_networks(service:ServiceConfig;network_name:str;lines:list[str])->None
   src/taskfile/runner.py:
     i: os,subprocess,sys,time,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.models.{Environment,Platform}
     e: TaskRunError,TaskfileRunner
     TaskRunError: __init__(3)  # Raised when a task command fails.
-    TaskfileRunner: __init__(7),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1)  # Executes tasks from a Taskfile config...
+    TaskfileRunner: __init__(7),_init_environment(0),_init_platform(0),_init_variables(0),expand_variables(1)  # Executes tasks from a Taskfile config...
   src/taskfile/scaffold/__init__.py:
     i: taskfile.scaffold
     e: TEMPLATES,generate_taskfile
@@ -184,6 +268,21 @@ D:
     i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
     e: TestComposeFile
     TestComposeFile: test_load_compose(1),test_service_names(1)
+  tests/test_health.py:
+    i: pytest,taskfile.health.{HealthCheckResult,HealthReport,check_http_endpoint,check_ssh_service,run_health_checks},unittest.mock.{MagicMock,patch},urllib.error.{HTTPError,URLError}
+    e: TestCheckHttpEndpoint,TestCheckSshService,TestHealthReport,TestRunHealthChecks
+    TestCheckHttpEndpoint: test_healthy_endpoint(0),test_unhealthy_wrong_status(0),test_unhealthy_http_error(0),test_unhealthy_url_error(0),test_expected_404_is_healthy(0)  # Tests for HTTP endpoint health checking.
+    TestCheckSshService: test_ssh_healthy(0),test_ssh_unhealthy(0),test_ssh_timeout(0)  # Tests for SSH service health checking.
+    TestHealthReport: test_healthy_count(0),test_empty_report(0)  # Tests for HealthReport data class.
+    TestRunHealthChecks: test_run_checks_all_healthy(0),test_run_checks_no_ssh(0),test_run_checks_unhealthy_overall(0)  # Tests for comprehensive health check...
+  tests/test_landing.py:
+    i: pytest,pathlib.Path,taskfile.landing.{LANDING_TEMPLATE,build_landing_page,create_landing_compose_service,create_landing_nginx_config,generate_landing_page}
+    e: TestGenerateLandingPage,TestBuildLandingPage,TestCreateLandingNginxConfig,TestCreateLandingComposeService,TestLandingTemplate
+    TestGenerateLandingPage: test_basic_generation(0),test_download_links(0),test_web_app_link(0),test_custom_github_repo(0),test_default_github_repo(0)  # Tests for landing page HTML generation.
+    TestBuildLandingPage: test_build_creates_directory(1),test_build_creates_index_html(1),test_build_overwrites_existing(1)  # Tests for landing page file creation.
+    TestCreateLandingNginxConfig: test_basic_config(0),test_listening_directive(0)  # Tests for nginx configuration generat...
+    TestCreateLandingComposeService: test_basic_service(0),test_volumes_mounting(0),test_traefik_labels_enabled(0),test_traefik_labels_disabled(0)  # Tests for docker-compose service gene...
+    TestLandingTemplate: test_template_contains_placeholders(0),test_template_is_valid_html(0)  # Tests for the landing page template i...
   tests/test_models.py:
     i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
     e: TestEnvironment,TestTask,TestTaskfileConfig,TestEnvFile,TestResolveVariables,TestPipelineConfig

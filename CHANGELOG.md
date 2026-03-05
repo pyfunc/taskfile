@@ -1,3 +1,78 @@
+## [Unreleased]
+
+## [0.3.10] - 2026-03-05
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update TODO.md
+- Update examples/README.md
+- Update examples/codereview.pl/README.md
+- Update examples/minimal/README.md
+- Update examples/multiplatform/README.md
+- Update examples/saas-app/README.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/test_health.py
+- Update tests/test_landing.py
+- Update tests/test_models.py
+- Update tests/test_provisioner.py
+- Update tests/test_quadlet.py
+- Update tests/test_release.py
+- Update tests/test_runner.py
+- Update tests/test_scaffold.py
+- Update tests/test_setup.py
+
+### Other
+- Update examples/codereview.pl/Taskfile.yml
+- Update examples/multiplatform/Taskfile.yml
+- Update project.sh
+- Update project/analysis.toon
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/compact_flow.mmd
+- Update project/compact_flow.png
+- Update project/dashboard.html
+- Update project/evolution.toon
+- ... and 6 more files
+
+## [0.4.0] - 2026-03-05
+
+### Summary
+
+feat(examples): comprehensive documentation update with CI/CD generation and deployment validation
+
+### Features
+
+- examples: add README.md to minimal/ with quick start guide
+- examples: add README.md to saas-app/ with staging/prod workflow
+- examples: add README.md to multiplatform/ with validation examples
+- examples: add README.md to codereview.pl/ with CI/CD generation docs
+- examples: add ci-generate task for GitHub Actions and GitLab CI
+- examples: add validate-deploy task for Docker validation
+- examples: add validate-vm task for Vagrant VM validation
+- examples: add preflight checks for prerequisites
+- examples: add init task for auto-generating .env files
+- examples: add env-check task for configuration validation
+- examples: add deploy-all task for SaaS + Desktop deployment
+- examples: add VPS auto-configuration via VPS_IP variable
+
+### Docs
+
+- docs: update examples/README.md with comprehensive guide
+- docs: update main README.md with Examples section
+- docs: add task table to examples README
+- docs: document CI/CD generation workflow
+- docs: document deployment validation options
+
+### Other
+
+- build: update all examples Taskfile.yml files
+- examples: add ssh-key-setup task
+- examples: add vps-setup and vps-setup-check tasks
+
 ## [0.3.9] - 2026-03-05
 
 ### Summary

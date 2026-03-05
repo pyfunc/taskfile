@@ -69,6 +69,48 @@ class TestTask:
         assert task.should_run_on("prod") is True
         assert task.should_run_on("local") is False
 
+    def test_parallel_default_false(self):
+        task = Task(name="t")
+        assert task.parallel is False
+
+    def test_parallel_from_dict(self):
+        data = {
+            "tasks": {
+                "pub": {
+                    "cmds": ["echo"],
+                    "parallel": True,
+                    "deps": ["a", "b"],
+                },
+            },
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert config.tasks["pub"].parallel is True
+
+    def test_continue_on_error_alias(self):
+        """Test that continue_on_error maps to ignore_errors."""
+        data = {
+            "tasks": {
+                "pub": {
+                    "cmds": ["echo"],
+                    "continue_on_error": True,
+                },
+            },
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert config.tasks["pub"].ignore_errors is True
+
+    def test_condition_field(self):
+        data = {
+            "tasks": {
+                "pub": {
+                    "cmds": ["echo"],
+                    "condition": "test -f pyproject.toml",
+                },
+            },
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert config.tasks["pub"].condition == "test -f pyproject.toml"
+
 class TestTaskfileConfig:
     def test_from_dict_minimal(self):
         data = {

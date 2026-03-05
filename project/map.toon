@@ -1,6 +1,6 @@
-# taskfile | 27f 3776L | python:27
+# taskfile | 33f 5797L | python:33
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[27]:
+M[33]:
   src/taskfile/__init__.py,39
   src/taskfile/cigen/__init__.py,58
   src/taskfile/cigen/base.py,67
@@ -11,16 +11,22 @@ M[27]:
   src/taskfile/cigen/jenkins.py,54
   src/taskfile/cigen/makefile.py,53
   src/taskfile/cirunner.py,262
-  src/taskfile/cli/__init__.py,6
+  src/taskfile/cli/__init__.py,9
   src/taskfile/cli/ci.py,202
-  src/taskfile/cli/deploy.py,209
+  src/taskfile/cli/deploy.py,274
+  src/taskfile/cli/health.py,70
   src/taskfile/cli/main.py,197
   src/taskfile/cli/quadlet.py,189
+  src/taskfile/cli/release.py,327
+  src/taskfile/cli/setup.py,435
   src/taskfile/compose.py,165
+  src/taskfile/health.py,425
+  src/taskfile/landing.py,365
   src/taskfile/models.py,329
   src/taskfile/parser.py,143
-  src/taskfile/quadlet.py,293
-  src/taskfile/runner.py,328
+  src/taskfile/provisioner.py,308
+  src/taskfile/quadlet.py,309
+  src/taskfile/runner.py,335
   src/taskfile/scaffold/__init__.py,23
   src/taskfile/scaffold/codereview.py,207
   src/taskfile/scaffold/full.py,181
@@ -29,10 +35,37 @@ M[27]:
   src/taskfile/scaffold/podman.py,94
   src/taskfile/scaffold/web.py,93
 D:
-  src/taskfile/runner.py:
-    e: TaskRunError,TaskfileRunner
-    TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
-    TaskfileRunner: __init__(7),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_execute_commands(3),_print_task_header(2),run_task(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration...
+  src/taskfile/cli/release.py:
+    e: _run_command,_get_current_tag,_get_previous_tag,release,rollback
+    _run_command(cmd;description;dry_run)
+    _get_current_tag()
+    _get_previous_tag()
+    release(ctx;tag_version;skip_desktop;skip_landing;skip_health;dry_run;force)
+    rollback(ctx;target_tag;domain;dry_run)
+  src/taskfile/cli/setup.py:
+    e: SetupConfig,_validate_ip,_validate_ssh_key,_collect_interactive_setup,_write_env_files,_provision_ssh_key,_test_ssh_connection,_provision_vps,_is_vps_ready,_deploy_application,_print_summary,setup
+    SetupConfig: __init__(7)  # Configuration collected during setup process...
+    _validate_ip(ip)
+    _validate_ssh_key(path)
+    _collect_interactive_setup(ip)
+    _write_env_files(config)
+    _provision_ssh_key(config;dry_run)
+    _test_ssh_connection(config;dry_run)
+    _provision_vps(config;dry_run)
+    _is_vps_ready(config)
+    _deploy_application(config;dry_run)
+    _print_summary(config)
+    setup(ip;ssh_key;user;domain;ports;dry_run;skip_provision;skip_deploy)
+  src/taskfile/health.py:
+    e: HealthCheckResult,HealthReport,check_http_endpoint,check_ssh_service,check_traefik_dashboard,run_health_checks,print_health_report,health_check_all
+    HealthCheckResult:  # Result of a single health check...
+    HealthReport:  # Aggregated health check report...
+    check_http_endpoint(name;url;expected_status;timeout;retries)
+    check_ssh_service(name;host;user;ssh_key;port;timeout)
+    check_traefik_dashboard(host;user;ssh_key)
+    run_health_checks(domain;ssh_host;ssh_user;ssh_key;check_web;check_landing;check_api;api_path;verbose)
+    print_health_report(report)
+    health_check_all(domain;ssh_host;ssh_user;ssh_key;exit_on_error)
   src/taskfile/cli/ci.py:
     e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
     ci()
@@ -47,8 +80,21 @@ D:
     load_env_file(path)
     resolve_variables(text;variables)
     resolve_dict(data;variables)
+  src/taskfile/cli/health.py:
+    e: health_cmd
+    health_cmd(ctx;domain;ssh_host;ssh_user;ssh_key;no_ssh)
+  src/taskfile/cli/main.py:
+    e: parse_var,main,run,list_tasks,init,validate,info
+    parse_var(ctx;param;value)
+    main(ctx;taskfile_path;env_name;platform_name;var;dry_run;verbose)
+    run(ctx;tasks)
+    list_tasks(ctx)
+    init(template;force)
+    validate(ctx)
+    info(ctx;task_name)
   src/taskfile/quadlet.py:
-    e: _parse_port,_parse_memory_limit,_parse_cpus_limit,_build_unit_section,_build_container_env,_build_container_ports,_build_container_volumes,_build_container_networks,_build_container_labels,_build_container_podman_args,_build_container_section,_build_service_section,_build_install_section,generate_container_unit,generate_network_unit,generate_volume_unit,_collect_named_volumes,_generate_network_file,_generate_container_files,_generate_volume_files,compose_to_quadlet
+    e: ServiceConfig,_parse_port,_parse_memory_limit,_parse_cpus_limit,_build_unit_section,_build_container_env,_build_container_ports,_build_container_volumes,_build_container_networks,_build_container_labels,_build_container_podman_args,_build_container_section,_build_service_section,_build_install_section,generate_container_unit,generate_network_unit,generate_volume_unit,_collect_named_volumes,_generate_network_file,_generate_container_files,_generate_volume_files,compose_to_quadlet
+    ServiceConfig(TypedDict):  # Type definition for a docker-compose service configuration...
     _parse_port(port_str)
     _parse_memory_limit(deploy)
     _parse_cpus_limit(deploy)
@@ -70,15 +116,6 @@ D:
     _generate_container_files(outdir;compose;network_name;auto_update;services_filter)
     _generate_volume_files(outdir;named_volumes)
     compose_to_quadlet(compose;output_dir;network_name;auto_update;services_filter)
-  src/taskfile/cli/main.py:
-    e: parse_var,main,run,list_tasks,init,validate,info
-    parse_var(ctx;param;value)
-    main(ctx;taskfile_path;env_name;platform_name;var;dry_run;verbose)
-    run(ctx;tasks)
-    list_tasks(ctx)
-    init(template;force)
-    validate(ctx)
-    info(ctx;task_name)
   src/taskfile/cirunner.py:
     e: PipelineError,PipelineRunner,StageResult
     PipelineError(Exception): __init__(2)  # Raised when a pipeline stage fails...
@@ -89,6 +126,10 @@ Th...
   src/taskfile/cigen/gitea.py:
     e: GiteaActionsTarget
     GiteaActionsTarget(CITarget): _tag_var(0),generate(0)
+  src/taskfile/runner.py:
+    e: TaskRunError,TaskfileRunner
+    TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
+    TaskfileRunner: __init__(7),_init_environment(0),_init_platform(0),_init_variables(0),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_execute_commands(3),_print_task_header(2),run_task(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration...
   src/taskfile/cigen/makefile.py:
     e: MakefileTarget
     MakefileTarget(CITarget): generate(0)
@@ -116,7 +157,8 @@ Th...
     _run_upload_commands(env;files;dry_run)
     quadlet_upload(ctx;quadlet_dir)
   src/taskfile/cli/deploy.py:
-    e: _run,_ssh,_deploy_local_compose,_deploy_remote_compose,_quadlet_step1_generate,_quadlet_step2_upload,_quadlet_step3_reload_and_pull,_quadlet_step4_restart_and_cleanup,_deploy_quadlet,_resolve_deploy_config,_print_deploy_header,_execute_deploy_strategy,deploy_cmd
+    e: DeployStrategy,_run,_ssh,_deploy_local_compose,_deploy_remote_compose,_quadlet_step1_generate,_quadlet_step2_upload,_quadlet_step3_reload_and_pull,_quadlet_step4_restart_and_cleanup,_deploy_quadlet,_resolve_deploy_config,_print_deploy_header,_select_deploy_strategy,_execute_deploy_strategy,deploy_cmd
+    DeployStrategy: __init__(8)  # Pure data class representing selected deploy strategy...
     _run(cmd;label;dry_run)
     _ssh(cmd;label;env;env_name;dry_run)
     _deploy_local_compose(env;env_file_path;dry_run)
@@ -128,7 +170,8 @@ Th...
     _deploy_quadlet(env;env_name;env_file_path;compose_path;var_overrides;dry_run)
     _resolve_deploy_config(ctx;compose_override)
     _print_deploy_header(config;env_name;env;compose_path;env_file_path)
-    _execute_deploy_strategy(env;env_name;env_file_path;config;compose_path;var_overrides;dry_run)
+    _select_deploy_strategy(env;env_name;env_file_path;config;compose_path;var_overrides;dry_run)
+    _execute_deploy_strategy(strategy)
     deploy_cmd(ctx;compose_override)
   src/taskfile/models.py:
     e: Environment,Platform,ComposeConfig,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
@@ -140,6 +183,11 @@ Th...
     PipelineConfig: from_dict(1),infer_from_tasks(1)  # CI/CD pipeline configuration...
     TaskfileConfig: from_dict(1),_parse_compose(0),_parse_environments(0),_parse_platforms(0),_parse_tasks(0),_parse_pipeline(1)  # Parsed Taskfile configuration...
     _normalize_commands(cmds)
+  src/taskfile/provisioner.py:
+    e: ProvisionConfig,VPSProvisioner,provision_vps
+    ProvisionConfig:  # Configuration for VPS provisioning...
+    VPSProvisioner: __init__(1),_ssh(2),_check_command(1),provision(1),_system_update(0),_install_podman(0),_setup_firewall(0),_create_deploy_user(0),_setup_traefik(0),_setup_tls(0),is_provisioned(0)  # Idempotent VPS provisioner using SSH...
+    provision_vps(ip;ssh_key;ssh_user;domain;ports;dry_run)
   src/taskfile/cigen/gitlab.py:
     e: GitLabCITarget
     GitLabCITarget(CITarget): _tag_var(0),_build_base_doc(0),_build_job(1),_apply_dind(3),_apply_when_rules(3),_apply_ssh_setup(2),_apply_artifacts(3),generate(0)
@@ -158,6 +206,12 @@ Th...
     generate_all_ci(config;project_dir;targets)
     list_targets()
     preview_ci(config;target)
+  src/taskfile/landing.py:
+    e: generate_landing_page,build_landing_page,create_landing_nginx_config,create_landing_compose_service
+    generate_landing_page(app_name;tag;domain;release_date;year;github_repo)
+    build_landing_page(output_dir;app_name;tag;domain;release_date;year;github_repo)
+    create_landing_nginx_config(domain;landing_dir;releases_dir)
+    create_landing_compose_service(domain;landing_port;traefik_enabled)
   src/taskfile/scaffold/__init__.py:
     e: generate_taskfile
     generate_taskfile(template)
@@ -165,10 +219,10 @@ Th...
     e: JenkinsTarget
     JenkinsTarget(CITarget): _tag_var(0),generate(0)
   src/taskfile/__init__.py:
-  src/taskfile/scaffold/web.py:
   src/taskfile/scaffold/minimal.py:
-  src/taskfile/scaffold/full.py:
+  src/taskfile/scaffold/web.py:
   src/taskfile/scaffold/podman.py:
+  src/taskfile/scaffold/full.py:
   src/taskfile/scaffold/multiplatform.py:
   src/taskfile/scaffold/codereview.py:
   src/taskfile/cli/__init__.py:

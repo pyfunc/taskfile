@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from rich.console import Console
@@ -49,36 +50,43 @@ class TaskfileRunner:
         self.verbose = verbose
         self._executed: set[str] = set()
 
-        # Resolve environment
+        self.env = self._init_environment()
+        self.platform = self._init_platform()
+        self.variables = self._init_variables()
+
+    def _init_environment(self) -> Environment:
+        """Initialize and validate environment configuration."""
         if self.env_name not in self.config.environments:
             console.print(
                 f"[yellow]⚠ Environment '{self.env_name}' not defined, using defaults[/]"
             )
-            self.env = Environment(name=self.env_name)
-        else:
-            self.env = self.config.environments[self.env_name]
+            return Environment(name=self.env_name)
+        return self.config.environments[self.env_name]
 
-        # Resolve platform
-        self.platform: Platform | None = None
-        if self.platform_name:
-            if self.platform_name not in self.config.platforms:
-                console.print(
-                    f"[yellow]⚠ Platform '{self.platform_name}' not defined, using defaults[/]"
-                )
-            else:
-                self.platform = self.config.platforms[self.platform_name]
+    def _init_platform(self) -> Platform | None:
+        """Initialize and validate platform configuration."""
+        if not self.platform_name:
+            return None
+        if self.platform_name not in self.config.platforms:
+            console.print(
+                f"[yellow]⚠ Platform '{self.platform_name}' not defined, using defaults[/]"
+            )
+            return None
+        return self.config.platforms[self.platform_name]
 
-        # Resolve all variables: global → env → platform → CLI overrides
-        self.variables = self.env.resolve_variables(self.config.variables)
+    def _init_variables(self) -> dict[str, str]:
+        """Resolve all variables: global → env → platform → CLI overrides."""
+        variables = self.env.resolve_variables(self.config.variables)
         if self.platform:
-            self.variables.update(self.platform.variables)
-        self.variables.update(self.var_overrides)
+            variables.update(self.platform.variables)
+        variables.update(self.var_overrides)
         # Built-in variables
-        self.variables.setdefault("ENV", self.env_name)
-        self.variables.setdefault("RUNTIME", self.env.container_runtime)
-        self.variables.setdefault("COMPOSE", self.env.compose_command)
+        variables.setdefault("ENV", self.env_name)
+        variables.setdefault("RUNTIME", self.env.container_runtime)
+        variables.setdefault("COMPOSE", self.env.compose_command)
         if self.platform_name:
-            self.variables.setdefault("PLATFORM", self.platform_name)
+            variables.setdefault("PLATFORM", self.platform_name)
+        return variables
 
     def expand_variables(self, text: str) -> str:
         """Replace {{VAR}} and ${VAR} placeholders with resolved values."""
@@ -194,11 +202,48 @@ class TaskfileRunner:
         return False
 
     def _run_dependencies(self, task: Task, task_name: str) -> bool:
-        """Run all task dependencies. Returns False if any failed."""
+        """Run all task dependencies. Returns False if any failed.
+
+        When task.parallel is True, dependencies are executed concurrently.
+        """
+        if not task.deps:
+            return True
+
+        if task.parallel and len(task.deps) > 1:
+            return self._run_dependencies_parallel(task, task_name)
+
         for dep in task.deps:
             if not self.run_task(dep):
                 console.print(f"[red]✗ Dependency '{dep}' failed for '{task_name}'[/]")
                 return False
+        return True
+
+    def _run_dependencies_parallel(self, task: Task, task_name: str) -> bool:
+        """Run task dependencies concurrently. Returns False if any failed."""
+        console.print(f"  [dim]⇶ Running {len(task.deps)} deps in parallel[/]")
+        failed: list[str] = []
+
+        with ThreadPoolExecutor(max_workers=len(task.deps)) as executor:
+            futures = {
+                executor.submit(self.run_task, dep): dep
+                for dep in task.deps
+                if dep not in self._executed
+            }
+            for future in as_completed(futures):
+                dep = futures[future]
+                try:
+                    if not future.result():
+                        failed.append(dep)
+                except Exception as exc:
+                    console.print(f"[red]✗ Dependency '{dep}' raised: {exc}[/]")
+                    failed.append(dep)
+
+        if failed:
+            if task.ignore_errors:
+                console.print(f"  [yellow]⚠ {len(failed)} dep(s) failed (ignored): {', '.join(failed)}[/]")
+                return True
+            console.print(f"[red]✗ Dependencies failed for '{task_name}': {', '.join(failed)}[/]")
+            return False
         return True
 
     def _execute_commands(self, task: Task, task_name: str, start: float) -> bool:

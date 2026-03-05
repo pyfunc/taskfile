@@ -3,20 +3,40 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-05T08:55:30Z'
+  analyzed_at: '2026-03-05T09:41:04Z'
   tool: code2llm
   stats:
-    files: 19
-    lines: 4911
-    functions: 149
-    classes: 22
+    files: 25
+    lines: 8345
+    functions: 194
+    classes: 29
 health:
-  cc_avg: 3.4
-  critical_count: 2
+  cc_avg: 3.7
+  critical_count: 7
   critical_limit: 10
   duplicates: 0
   cycles: 1
   alerts:
+  - type: cc_exceeded
+    target: release
+    value: 31
+    limit: 15
+    severity: critical
+  - type: high_fan_out
+    target: setup
+    value: 19
+    limit: 10
+    severity: error
+  - type: high_fan_out
+    target: release
+    value: 15
+    limit: 10
+    severity: error
+  - type: cc_exceeded
+    target: setup
+    value: 18
+    limit: 15
+    severity: warning
   - type: high_fan_out
     target: PipelineRunner.run
     value: 14
@@ -25,6 +45,16 @@ health:
   - type: high_fan_out
     target: ci_generate
     value: 12
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: rollback
+    value: 12
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: _collect_interactive_setup
+    value: 11
     limit: 10
     severity: warning
   - type: high_fan_out
@@ -37,7 +67,74 @@ health:
     value: 10
     limit: 10
     severity: warning
+  - type: high_fan_out
+    target: deploy_cmd
+    value: 10
+    limit: 10
+    severity: warning
 modules:
+- path: src/taskfile/cli/release.py
+  lines: 327
+  classes: 0
+  methods: 5
+  cc_max: 31
+  inbound_deps: 0
+  exports:
+  - name: release
+    type: function
+    cc: 31
+    flag: split
+    fan_out: 15
+  - name: rollback
+    type: function
+    cc: 11
+    fan_out: 12
+- path: src/taskfile/cli/setup.py
+  lines: 435
+  classes: 1
+  methods: 12
+  cc_max: 18
+  inbound_deps: 0
+  exports:
+  - name: SetupConfig
+    type: class
+    cc_avg: 1.0
+  - name: setup
+    type: function
+    cc: 18
+    flag: split
+    fan_out: 19
+- path: src/taskfile/health.py
+  lines: 425
+  classes: 2
+  methods: 6
+  cc_max: 11
+  inbound_deps: 2
+  exports:
+  - name: HealthCheckResult
+    type: class
+    cc_avg: 0.0
+  - name: HealthReport
+    type: class
+    cc_avg: 0.0
+  - name: check_http_endpoint
+    type: function
+    cc: 11
+  - name: check_ssh_service
+    type: function
+    cc: 6
+  - name: check_traefik_dashboard
+    type: function
+    cc: 5
+  - name: run_health_checks
+    type: function
+    cc: 11
+  - name: print_health_report
+    type: function
+    cc: 5
+  - name: health_check_all
+    type: function
+    cc: 3
 - path: src/taskfile/cli/ci.py
   lines: 202
   classes: 0
@@ -64,22 +161,16 @@ modules:
   - name: ci_targets
     type: function
     cc: 2
-- path: src/taskfile/runner.py
-  lines: 328
-  classes: 2
-  methods: 21
-  cc_max: 10
+- path: src/taskfile/cli/health.py
+  lines: 70
+  classes: 0
+  methods: 1
+  cc_max: 9
   inbound_deps: 0
   exports:
-  - name: TaskRunError
-    type: class
-    cc_avg: 1.0
-  - name: TaskfileRunner
-    type: class
-    cc_avg: 3.8
-    methods:
-    - name: __init__
-      cc: 10
+  - name: health_cmd
+    type: function
+    cc: 9
 - path: src/taskfile/cli/main.py
   lines: 197
   classes: 0
@@ -129,12 +220,15 @@ modules:
     type: function
     cc: 6
 - path: src/taskfile/quadlet.py
-  lines: 293
-  classes: 0
+  lines: 309
+  classes: 1
   methods: 21
   cc_max: 9
   inbound_deps: 2
   exports:
+  - name: ServiceConfig
+    type: class
+    cc_avg: 0.0
   - name: generate_container_unit
     type: function
     cc: 1
@@ -197,16 +291,33 @@ modules:
   - name: MakefileTarget
     type: class
     cc_avg: 7.0
+- path: src/taskfile/runner.py
+  lines: 335
+  classes: 2
+  methods: 24
+  cc_max: 7
+  inbound_deps: 0
+  exports:
+  - name: TaskRunError
+    type: class
+    cc_avg: 1.0
+  - name: TaskfileRunner
+    type: class
+    cc_avg: 3.4
 - path: src/taskfile/cli/deploy.py
-  lines: 209
-  classes: 0
-  methods: 13
+  lines: 274
+  classes: 1
+  methods: 15
   cc_max: 6
   inbound_deps: 0
   exports:
+  - name: DeployStrategy
+    type: class
+    cc_avg: 1.0
   - name: deploy_cmd
     type: function
     cc: 4
+    fan_out: 10
 - path: src/taskfile/cli/quadlet.py
   lines: 189
   classes: 0
@@ -256,7 +367,7 @@ modules:
   classes: 2
   methods: 8
   cc_max: 6
-  inbound_deps: 5
+  inbound_deps: 7
   exports:
   - name: TaskfileNotFoundError
     type: class
@@ -284,6 +395,22 @@ modules:
   - name: GitLabCITarget
     type: class
     cc_avg: 2.6
+- path: src/taskfile/provisioner.py
+  lines: 308
+  classes: 2
+  methods: 12
+  cc_max: 5
+  inbound_deps: 0
+  exports:
+  - name: ProvisionConfig
+    type: class
+    cc_avg: 0.0
+  - name: VPSProvisioner
+    type: class
+    cc_avg: 2.8
+  - name: provision_vps
+    type: function
+    cc: 4
 - path: src/taskfile/cigen/drone.py
   lines: 63
   classes: 1
@@ -336,6 +463,25 @@ modules:
   - name: JenkinsTarget
     type: class
     cc_avg: 1.5
+- path: src/taskfile/landing.py
+  lines: 365
+  classes: 0
+  methods: 4
+  cc_max: 2
+  inbound_deps: 1
+  exports:
+  - name: generate_landing_page
+    type: function
+    cc: 2
+  - name: build_landing_page
+    type: function
+    cc: 1
+  - name: create_landing_nginx_config
+    type: function
+    cc: 1
+  - name: create_landing_compose_service
+    type: function
+    cc: 2
 - path: src/taskfile/scaffold/__init__.py
   lines: 23
   classes: 0
@@ -353,7 +499,7 @@ modules:
   cc_max: 0
   inbound_deps: 0
 - path: src/taskfile/cli/__init__.py
-  lines: 6
+  lines: 9
   classes: 0
   methods: 0
   cc_max: 0
@@ -395,6 +541,18 @@ modules:
   cc_max: 0
   inbound_deps: 0
 hotspots:
+- name: setup
+  fan_out: 19
+  note: 'One-command VPS setup: SSH key → provision → deploy.
+
+
+    IP can be provided as argu'
+- name: release
+  fan_out: 15
+  note: 'Full release — build all, deploy all, update landing.
+
+
+    Orchestrates the complete'
 - name: PipelineRunner.run
   fan_out: 14
   note: "Run pipeline stages in order.\n\nArgs:\n    stage_filter: Only run these\
@@ -403,6 +561,15 @@ hotspots:
   fan_out: 12
   note: "Generate CI/CD config files from Taskfile.yml pipeline section.\n\n\b\nExamples:\n\
     \   "
+- name: rollback
+  fan_out: 12
+  note: 'Rollback to previous version.
+
+
+    Deploys the previous (or specified) version of th'
+- name: _collect_interactive_setup
+  fan_out: 11
+  note: Collect setup configuration through interactive prompts.
 - name: load_taskfile
   fan_out: 10
   note: "Load and parse a Taskfile.\n\nArgs:\n    path: Explicit path to Taskfile.\
@@ -411,14 +578,34 @@ hotspots:
   fan_out: 10
   note: "Parse a .env file into a dict.\n\nSupports:\n    KEY=value\n    KEY=\"quoted\
     \ value\"\n "
+- name: deploy_cmd
+  fan_out: 10
+  note: 'Full deploy pipeline: build → push → generate Quadlet → upload → restart.
+
+
+    Reads'
 refactoring:
   priorities:
+  - action: Split release (CC=31 → target CC<10)
+    impact: high
+    effort: low
+    module: release.py
+  - action: Split setup (CC=18 → target CC<10)
+    impact: medium
+    effort: low
+    module: setup.py
   - action: 'Break circular dependency: src.taskfile.compose.resolve_dict'
     impact: medium
     effort: low
+  - action: Reduce setup fan-out (currently 19)
+    impact: medium
+    effort: medium
+  - action: Reduce release fan-out (currently 15)
+    impact: medium
+    effort: medium
 evolution:
 - date: '2026-03-05'
-  cc_avg: 3.4
-  critical: 2
-  lines: 4911
+  cc_avg: 3.7
+  critical: 7
+  lines: 8345
   note: Automated analysis

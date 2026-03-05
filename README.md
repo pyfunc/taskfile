@@ -35,6 +35,31 @@ Without `taskfile`, you maintain separate configs for each. With `taskfile`:
 
 One compose file, `.env` files for differences, automatic Quadlet generation.
 
+## Examples
+
+| Example | Complexity | Features |
+|---------|------------|----------|
+| [minimal](examples/minimal/) | ⭐ Basic | test, build, run - no environments |
+| [saas-app](examples/saas-app/) | ⭐⭐ Simple | local/staging/prod with pipeline |
+| [multiplatform](examples/multiplatform/) | ⭐⭐⭐ Medium | Web + Desktop, CI/CD generation, validation |
+| [codereview.pl](examples/codereview.pl/) | ⭐⭐⭐⭐ Full | 6 CI platforms, Quadlet, docker-compose |
+
+### Quick Example Usage
+
+```bash
+# Choose an example
+cd examples/multiplatform
+
+# Initialize (creates .env)
+taskfile run init
+
+# Validate deployment
+taskfile run validate-deploy
+
+# Deploy everything
+taskfile --env prod run deploy-all
+```
+
 ## Install
 
 [![PyPI](https://img.shields.io/pypi/v/taskfile.svg)](https://pypi.org/project/taskfile/)

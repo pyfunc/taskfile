@@ -16,14 +16,14 @@ from taskfile.quadlet import generate_container_unit, compose_to_quadlet, genera
 
 
 class TestScaffold:
-    @pytest.mark.parametrize("template", ["minimal", "web", "podman", "codereview", "full"])
+    @pytest.mark.parametrize("template", ["minimal", "web", "podman", "codereview", "full", "publish"])
     def test_generate_valid_yaml(self, template):
         content = generate_taskfile(template)
         data = yaml.safe_load(content)
         assert isinstance(data, dict)
         assert "tasks" in data
 
-    @pytest.mark.parametrize("template", ["minimal", "web", "podman", "codereview", "full"])
+    @pytest.mark.parametrize("template", ["minimal", "web", "podman", "codereview", "full", "publish"])
     def test_generated_config_parses(self, template):
         content = generate_taskfile(template)
         data = yaml.safe_load(content)

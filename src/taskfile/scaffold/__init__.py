@@ -6,6 +6,7 @@ from taskfile.scaffold.podman import TEMPLATE as podman
 from taskfile.scaffold.full import TEMPLATE as full
 from taskfile.scaffold.codereview import TEMPLATE as codereview
 from taskfile.scaffold.multiplatform import TEMPLATE as multiplatform
+from taskfile.scaffold.publish import TEMPLATE as publish
 
 TEMPLATES = {
     "minimal": minimal,
@@ -14,6 +15,7 @@ TEMPLATES = {
     "full": full,
     "codereview": codereview,
     "multiplatform": multiplatform,
+    "publish": publish,
 }
 
 def generate_taskfile(template: str = "full") -> str:

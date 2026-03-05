@@ -9,10 +9,112 @@ from taskfile.parser import load_taskfile, validate_taskfile, TaskfileNotFoundEr
 from taskfile.runner import TaskfileRunner
 from taskfile.scaffold import generate_taskfile
 from taskfile.compose import ComposeFile, load_env_file, resolve_variables
-from taskfile.quadlet import generate_container_unit, compose_to_quadlet, generate_network_unit
+from taskfile.quadlet import (
+    generate_container_unit,
+    compose_to_quadlet,
+    generate_network_unit,
+    ServiceConfig,
+    _build_unit_section,
+    _build_container_section,
+)
 
 
 # ─── Model Tests ─────────────────────────────────────
+
+
+class TestServiceConfig:
+    """Tests for ServiceConfig TypedDict."""
+
+    def test_service_config_creation(self):
+        """Test creating ServiceConfig TypedDict."""
+        service: ServiceConfig = {
+            "image": "nginx:latest",
+            "container_name": "web",
+            "ports": ["80:80", "443:443"],
+            "environment": {"NODE_ENV": "production"},
+            "volumes": ["./data:/data"],
+            "networks": ["proxy"],
+            "labels": {"traefik.enable": "true"},
+            "restart": "always",
+        }
+
+        assert service["image"] == "nginx:latest"
+        assert service["ports"] == ["80:80", "443:443"]
+        assert service["restart"] == "always"
+
+    def test_service_config_with_list_environment(self):
+        """Test ServiceConfig with environment as list."""
+        service: ServiceConfig = {
+            "image": "app:latest",
+            "environment": ["KEY1=value1", "KEY2=value2"],
+        }
+
+        assert isinstance(service["environment"], list)
+        assert "KEY1=value1" in service["environment"]
+
+    def test_service_config_optional_fields(self):
+        """Test ServiceConfig with minimal fields."""
+        service: ServiceConfig = {
+            "image": "minimal:latest",
+        }
+
+        # Optional fields should not be required
+        assert "image" in service
+        assert "ports" not in service
+        assert "environment" not in service
+
+    def test_service_config_with_deploy(self):
+        """Test ServiceConfig with deploy resources."""
+        service: ServiceConfig = {
+            "image": "app:latest",
+            "deploy": {
+                "resources": {
+                    "limits": {
+                        "memory": "128m",
+                        "cpus": "0.5",
+                    }
+                }
+            },
+        }
+
+        assert service["deploy"]["resources"]["limits"]["memory"] == "128m"
+        assert service["deploy"]["resources"]["limits"]["cpus"] == "0.5"
+
+    def test_build_unit_section_with_service_config(self):
+        """Test _build_unit_section accepts ServiceConfig."""
+        service: ServiceConfig = {
+            "image": "test:latest",
+            "depends_on": ["db", "redis"],
+        }
+
+        result = _build_unit_section("app", service)
+
+        assert "[Unit]" in result
+        assert "After=db.service" in result
+        assert "Requires=db.service" in result
+        assert "After=redis.service" in result
+
+    def test_build_container_section_with_service_config(self):
+        """Test _build_container_section accepts ServiceConfig."""
+        service: ServiceConfig = {
+            "image": "nginx:alpine",
+            "container_name": "web",
+            "ports": ["80:80"],
+            "environment": {"ENV": "prod"},
+            "networks": ["proxy"],
+            "restart": "unless-stopped",
+        }
+
+        result = _build_container_section("web", service, "proxy", auto_update=True)
+
+        # Check all sections are present
+        assert "\\n[Container]" in result
+        assert "Image=nginx:alpine" in result
+        assert "ContainerName=web" in result
+        assert "AutoUpdate=registry" in result
+        assert "PublishPort=80:80" in result
+        assert "Environment=ENV=prod" in result
+        assert "Network=proxy.network" in result
 
 
 class TestQuadletGenerator:

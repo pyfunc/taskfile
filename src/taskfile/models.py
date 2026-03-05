@@ -102,6 +102,7 @@ class Task:
     ignore_errors: bool = False
     condition: str | None = None
     stage: str | None = None  # pipeline stage this task belongs to
+    parallel: bool = False  # run deps in parallel (concurrent execution)
 
     def should_run_on(self, env_name: str) -> bool:
         if self.env_filter is None:
@@ -307,9 +308,10 @@ class TaskfileConfig:
                     platform_filter=task_data.get("platform", None),
                     working_dir=task_data.get("dir", None),
                     silent=task_data.get("silent", False),
-                    ignore_errors=task_data.get("ignore_errors", False),
+                    ignore_errors=task_data.get("ignore_errors", task_data.get("continue_on_error", False)),
                     condition=task_data.get("condition", None),
                     stage=task_data.get("stage", None),
+                    parallel=task_data.get("parallel", False),
                 )
             elif isinstance(task_data, list):
                 # Shorthand: task is just a list of commands

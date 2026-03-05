@@ -12,6 +12,11 @@ variables:
   REGISTRY: ghcr.io/softreck
   TAG: latest
   COMPOSE_FILE: docker-compose.yml
+  
+  # VPS Configuration - auto-configured from .env
+  VPS_IP: ${VPS_IP:-vps.codereview.pl}
+  VPS_USER: ${VPS_USER:-deploy}
+  VPS_SSH_KEY: ${VPS_SSH_KEY:-~/.ssh/id_ed25519}
 
 environments:
   local:
@@ -21,9 +26,12 @@ environments:
     env_file: .env.local
 
   prod:
-    ssh_host: vps.codereview.pl
-    ssh_user: deploy
-    ssh_key: ~/.ssh/id_ed25519
+    desc: Production VPS (configured from VPS_IP env var)
+    # SSH auto-configured from VPS_IP, VPS_USER, VPS_SSH_KEY variables
+    # Just set: echo "VPS_IP=your.vps.ip" > .env
+    ssh_host: ${VPS_IP}
+    ssh_user: ${VPS_USER:-deploy}
+    ssh_key: ${VPS_SSH_KEY:-~/.ssh/id_ed25519}
     container_runtime: podman
     service_manager: quadlet
     compose_file: docker-compose.yml

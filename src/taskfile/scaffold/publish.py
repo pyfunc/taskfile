@@ -1,0 +1,280 @@
+TEMPLATE = """\
+version: "1"
+name: my-app
+description: >
+  Multi-registry package publishing + multi-platform app distribution.
+  One release command deploys everywhere.
+
+default_env: local
+default_platform: lib
+
+variables:
+  APP_NAME: my-app
+  ORG: my-org
+  TAG: latest
+  REGISTRY_DOCKER: docker.io/${ORG}
+  REGISTRY_GHCR: ghcr.io/${ORG}
+  DOMAIN: my-app.example.com
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    env_file: .env.local
+    variables:
+      DOMAIN: localhost
+
+  staging:
+    ssh_host: ${STAGING_IP}
+    ssh_user: deploy
+    container_runtime: podman
+    env_file: .env.staging
+    variables:
+      DOMAIN: staging.my-app.example.com
+
+  prod:
+    ssh_host: ${VPS_IP}
+    ssh_user: deploy
+    ssh_key: ${VPS_SSH_KEY:-~/.ssh/id_ed25519}
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod
+    variables:
+      DOMAIN: my-app.example.com
+
+platforms:
+  lib:
+    desc: Library/package (PyPI, npm, crates.io)
+    variables:
+      BUILD_DIR: dist/lib
+
+  web:
+    desc: SaaS web application (Docker container)
+    variables:
+      BUILD_DIR: dist/web
+      WEB_PORT: "3000"
+
+  desktop:
+    desc: Desktop application (Electron/Tauri)
+    variables:
+      BUILD_DIR: dist/desktop
+
+  mobile:
+    desc: Mobile application (Flutter/React Native)
+    variables:
+      BUILD_DIR: dist/mobile
+
+  landing:
+    desc: Static landing page with downloads
+    variables:
+      BUILD_DIR: dist/landing
+
+tasks:
+
+  # ─── Preflight ──────────────────────────────────
+  preflight:
+    desc: Check all publishing prerequisites
+    cmds:
+      - echo "Checking publish prerequisites..."
+      - python3 -m build --version || echo "python-build missing"
+      - twine --version || echo "twine missing (pip install twine)"
+      - npm --version || echo "npm missing"
+      - docker --version || echo "docker missing"
+      - gh --version || echo "gh CLI missing"
+      - echo "Preflight done"
+
+  # ─── Version bump ───────────────────────────────
+  version-bump:
+    desc: Bump version across all package manifests
+    cmds:
+      - echo "Bumping to ${TAG}..."
+      - sed -i "s/^version = .*/version = \\"${TAG}\\"/" pyproject.toml
+      - npm version ${TAG} --no-git-tag-version 2>/dev/null || true
+      - echo "Version ${TAG} set in all manifests"
+
+  # ─── Python → PyPI ──────────────────────────────
+  build-pypi:
+    desc: Build Python package
+    platform: [lib]
+    condition: test -f pyproject.toml
+    cmds:
+      - python3 -m build --outdir dist/pypi/
+      - echo "Python package built"
+
+  publish-pypi:
+    desc: Publish to PyPI
+    platform: [lib]
+    env: [prod]
+    deps: [build-pypi]
+    condition: test -f pyproject.toml
+    cmds:
+      - twine upload dist/pypi/* --non-interactive
+      - echo "Published to PyPI"
+
+  publish-pypi-test:
+    desc: Publish to TestPyPI (dry run)
+    platform: [lib]
+    env: [staging]
+    deps: [build-pypi]
+    condition: test -f pyproject.toml
+    cmds:
+      - twine upload --repository testpypi dist/pypi/* --non-interactive
+      - echo "Published to TestPyPI"
+
+  # ─── Node.js → npm ─────────────────────────────
+  build-npm:
+    desc: Build npm package
+    platform: [lib]
+    condition: test -f package.json
+    cmds:
+      - npm run build:lib 2>/dev/null || echo "No npm build step"
+      - echo "npm package ready"
+
+  publish-npm:
+    desc: Publish to npm registry
+    platform: [lib]
+    env: [prod]
+    deps: [build-npm]
+    condition: test -f package.json
+    cmds:
+      - npm publish --access public
+      - echo "Published to npm"
+
+  # ─── All registries at once ─────────────────────
+  publish-all-registries:
+    desc: Publish to ALL package registries (parallel)
+    platform: [lib]
+    env: [prod]
+    parallel: true
+    ignore_errors: true
+    deps: [publish-pypi, publish-npm]
+    cmds:
+      - echo "Published to all configured registries"
+
+  # ─── Container images ──────────────────────────
+  build-container:
+    desc: Build multi-arch container image
+    platform: [web]
+    cmds:
+      - |
+        docker buildx build \\
+          --platform linux/amd64,linux/arm64 \\
+          -t ${REGISTRY_GHCR}/${APP_NAME}:${TAG} \\
+          -t ${REGISTRY_GHCR}/${APP_NAME}:latest \\
+          --push .
+      - echo "Container pushed to GHCR"
+
+  # ─── Desktop builds ────────────────────────────
+  build-desktop:
+    desc: Build desktop app for current OS
+    platform: [desktop]
+    cmds:
+      - echo "Building desktop ${APP_NAME}:${TAG}..."
+      - |
+        if [ -f src-tauri/tauri.conf.json ]; then
+          cargo tauri build
+        elif [ -f electron-builder.yml ]; then
+          npx electron-builder --linux
+        fi
+      - echo "Desktop builds done"
+
+  publish-github-releases:
+    desc: Upload desktop binaries to GitHub Releases
+    platform: [desktop]
+    env: [prod]
+    deps: [build-desktop]
+    cmds:
+      - |
+        gh release view ${TAG} 2>/dev/null || \\
+          gh release create ${TAG} \\
+            --title "Release ${TAG}" \\
+            --generate-notes
+      - |
+        gh release upload ${TAG} \\
+          ${BUILD_DIR}/* \\
+          --clobber 2>/dev/null || true
+      - echo "GitHub Releases updated"
+
+  # ─── Landing page ──────────────────────────────
+  build-landing:
+    desc: Generate landing page with download links
+    platform: [landing]
+    cmds:
+      - mkdir -p dist/landing
+      - echo "Landing page generated"
+
+  deploy-landing:
+    desc: Deploy landing page to VPS
+    platform: [landing]
+    env: [prod]
+    deps: [build-landing]
+    cmds:
+      - scp -r dist/landing/* ${SSH_USER}@${SSH_HOST}:/var/www/${APP_NAME}/
+      - "@remote nginx -t && systemctl reload nginx"
+      - echo "Landing deployed"
+
+  # ─── Web deploy ────────────────────────────────
+  deploy-web:
+    desc: Deploy SaaS to production VPS
+    platform: [web]
+    env: [prod]
+    deps: [build-container]
+    cmds:
+      - "@remote podman pull ${REGISTRY_GHCR}/${APP_NAME}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"
+      - echo "SaaS deployed"
+
+  # ─── Master release ────────────────────────────
+  release:
+    desc: "Full release: bump version → build → publish everywhere"
+    cmds:
+      - echo "Releasing ${APP_NAME}:${TAG}"
+      - taskfile run version-bump
+      - git add -A
+      - git commit -m "Release ${TAG}" --allow-empty
+      - git tag -a ${TAG} -m "Release ${TAG}"
+      - git push origin main --tags
+      - taskfile --env prod --platform lib run publish-all-registries
+      - taskfile --env prod --platform web run build-container
+      - taskfile --env prod --platform desktop run publish-github-releases
+      - taskfile --env prod --platform web run deploy-web
+      - taskfile --env prod --platform landing run deploy-landing
+      - taskfile --env prod run health-check
+      - echo "Release ${TAG} complete"
+
+  # ─── Health check ───────────────────────────────
+  health-check:
+    desc: Verify all published artifacts
+    env: [prod]
+    cmds:
+      - echo "Checking published artifacts..."
+      - curl -sf https://${DOMAIN}/ > /dev/null && echo "Landing OK" || echo "Landing FAIL"
+      - curl -sf https://app.${DOMAIN}/health > /dev/null && echo "Web app OK" || echo "Web app FAIL"
+      - echo "Health check done"
+
+  # ─── Selective publish ──────────────────────────
+  publish-registries-only:
+    desc: Publish only package registries (no desktop/mobile)
+    cmds:
+      - taskfile --env prod --platform lib run publish-all-registries
+      - taskfile --env prod --platform web run build-container
+
+  publish-desktop-only:
+    desc: Build and publish only desktop apps
+    cmds:
+      - taskfile --env prod --platform desktop run publish-github-releases
+
+pipeline:
+  stages:
+    - name: test
+      tasks: [preflight]
+    - name: publish
+      tasks: [publish-all-registries]
+      env: prod
+      when: tag
+    - name: deploy
+      tasks: [deploy-web, deploy-landing]
+      env: prod
+      when: tag
+      docker_in_docker: true
+"""

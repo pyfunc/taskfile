@@ -9,13 +9,29 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from rich.console import Console
 
 from taskfile.compose import ComposeFile
 
 console = Console()
+
+
+class ServiceConfig(TypedDict):
+    """Type definition for a docker-compose service configuration."""
+
+    image: NotRequired[str]
+    container_name: NotRequired[str]
+    environment: NotRequired[dict[str, Any] | list[str]]
+    env_file: NotRequired[str | list[str]]
+    ports: NotRequired[list[str]]
+    volumes: NotRequired[list[str | dict[str, Any]]]
+    networks: NotRequired[list[str] | dict[str, Any]]
+    labels: NotRequired[dict[str, str] | list[str]]
+    depends_on: NotRequired[list[str] | dict[str, Any]]
+    restart: NotRequired[str]
+    deploy: NotRequired[dict[str, Any]]
 
 
 def _parse_port(port_str: str) -> tuple[str, str]:
@@ -42,7 +58,7 @@ def _parse_cpus_limit(deploy: dict) -> str | None:
         return None
 
 
-def _build_unit_section(service_name: str, service: dict) -> list[str]:
+def _build_unit_section(service_name: str, service: ServiceConfig) -> list[str]:
     lines = ["[Unit]", f"Description={service_name} container"]
     depends = service.get("depends_on", [])
     if isinstance(depends, dict):
@@ -51,7 +67,7 @@ def _build_unit_section(service_name: str, service: dict) -> list[str]:
         lines.extend([f"After={dep}.service", f"Requires={dep}.service"])
     return lines
 
-def _build_container_env(service: dict, lines: list[str]) -> None:
+def _build_container_env(service: ServiceConfig, lines: list[str]) -> None:
     env = service.get("environment", {})
     if isinstance(env, list):
         for item in env:
@@ -66,12 +82,12 @@ def _build_container_env(service: dict, lines: list[str]) -> None:
     for ef in env_files:
         lines.append(f"EnvironmentFile={ef}")
 
-def _build_container_ports(service: dict, lines: list[str]) -> None:
+def _build_container_ports(service: ServiceConfig, lines: list[str]) -> None:
     for port in service.get("ports", []):
         host_port, container_port = _parse_port(str(port))
         lines.append(f"PublishPort={host_port}:{container_port}")
 
-def _build_container_volumes(service: dict, lines: list[str]) -> None:
+def _build_container_volumes(service: ServiceConfig, lines: list[str]) -> None:
     for vol in service.get("volumes", []):
         if isinstance(vol, str):
             src = vol.split(":")[0]
@@ -90,7 +106,7 @@ def _build_container_volumes(service: dict, lines: list[str]) -> None:
             ro = ":ro" if vol.get("read_only") else ""
             lines.append(f"Volume={src}:{tgt}{ro}")
 
-def _build_container_networks(service: dict, network_name: str, lines: list[str]) -> None:
+def _build_container_networks(service: ServiceConfig, network_name: str, lines: list[str]) -> None:
     networks = service.get("networks", [])
     if isinstance(networks, list):
         if networks:
@@ -107,7 +123,7 @@ def _build_container_networks(service: dict, network_name: str, lines: list[str]
     else:
         lines.append(f"Network={network_name}.network")
 
-def _build_container_labels(service: dict, lines: list[str]) -> None:
+def _build_container_labels(service: ServiceConfig, lines: list[str]) -> None:
     labels = service.get("labels", {})
     if isinstance(labels, list):
         for item in labels:
@@ -116,7 +132,7 @@ def _build_container_labels(service: dict, lines: list[str]) -> None:
         for key, value in labels.items():
             lines.append(f"Label={key}={value}")
 
-def _build_container_podman_args(service: dict, lines: list[str]) -> None:
+def _build_container_podman_args(service: ServiceConfig, lines: list[str]) -> None:
     deploy = service.get("deploy", {})
     memory = _parse_memory_limit(deploy)
     podman_args = []
@@ -128,7 +144,7 @@ def _build_container_podman_args(service: dict, lines: list[str]) -> None:
     if podman_args:
         lines.append(f"PodmanArgs={' '.join(podman_args)}")
 
-def _build_container_section(service_name: str, service: dict, network_name: str, auto_update: bool) -> list[str]:
+def _build_container_section(service_name: str, service: ServiceConfig, network_name: str, auto_update: bool) -> list[str]:
     lines = ["\\n[Container]"]
     image = service.get("image", "")
     if image:
@@ -146,7 +162,7 @@ def _build_container_section(service_name: str, service: dict, network_name: str
 
     return lines
 
-def _build_service_section(service: dict) -> list[str]:
+def _build_service_section(service: ServiceConfig) -> list[str]:
     lines = ["\\n[Service]"]
     restart = service.get("restart", "always")
     if restart == "unless-stopped":
@@ -159,7 +175,7 @@ def _build_install_section() -> list[str]:
 
 def generate_container_unit(
     service_name: str,
-    service: dict,
+    service: ServiceConfig,
     network_name: str = "proxy",
     auto_update: bool = True,
 ) -> str:
@@ -199,7 +215,7 @@ VolumeName={volume_name}
 """
 
 
-def _collect_named_volumes(service: dict) -> set[str]:
+def _collect_named_volumes(service: ServiceConfig) -> set[str]:
     """Extract named volume references from a service definition."""
     named = set()
     for vol in service.get("volumes", []):

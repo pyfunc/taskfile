@@ -109,7 +109,7 @@ def list_tasks(ctx):
 
 
 @main.command()
-@click.option("--template", type=click.Choice(["minimal", "web", "podman", "codereview", "full", "multiplatform"]), default="full")
+@click.option("--template", type=click.Choice(["minimal", "web", "podman", "codereview", "full", "multiplatform", "publish"]), default="full")
 @click.option("--force", is_flag=True, help="Overwrite existing Taskfile")
 def init(template, force):
     """Create a new Taskfile.yml in the current directory.
@@ -122,6 +122,7 @@ def init(template, force):
         codereview     — 3-stage: local(docker) → prod(podman quadlet)
         full           — all features, multi-env example
         multiplatform  — desktop+web × local+prod deployment
+        publish        — multi-registry publish (PyPI+npm+Docker+GitHub)
     """
     outpath = Path("Taskfile.yml")
     if outpath.exists() and not force:

@@ -1,26 +1,26 @@
-# taskfile/flow | 149 func | 12 pipelines | 5 hub-types | 2026-03-05
+# taskfile/flow | 194 func | 12 pipelines | 6 hub-types | 2026-03-05
 
 PIPELINES[12] (IO:12):
   Src [IO]: ctx → str | None
               → deploy_cmd(ctx, compose_override)       CC=4    IO ▶
-              → _execute_deploy_strategy(env, env_name:str, env_file_path:str | None, config, compose_path:str, var_overrides:dict, dry_run:bool) → None CC=6    IO
+              → _execute_deploy_strategy(strategy:DeployStrategy) → None CC=4    IO
               → _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run) CC=1    pure
               → _quadlet_step1_generate(env, compose_path, env_file_path, var_overrides, dry_run) CC=2    IO
               → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None) → list[Path] CC=1    IO
               → _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None) → tuple[list[Path], set[str]] CC=4    IO
-              → generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str CC=1    pure
-              → _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str] CC=4    mutation
-              → _build_container_podman_args(service:dict, lines:list[str]) → None CC=4    mutation
+              → generate_container_unit(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → str CC=1    pure
+              → _build_container_section(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → list[str] CC=4    mutation
+              → _build_container_podman_args(service:ServiceConfig, lines:list[str]) → None CC=4    mutation
               → _parse_cpus_limit(deploy:dict) → str | None CC=2    pure ■
-              PURITY: 3/10 pure  BOTTLENECK: _execute_deploy_strategy(CC=6)
+              PURITY: 3/10 pure  BOTTLENECK: deploy_cmd(CC=4)
 
   Src [IO]: ctx → str | None
               → quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services) CC=6    IO ▶
               → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None) → list[Path] CC=1    IO
               → _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None) → tuple[list[Path], set[str]] CC=4    IO
-              → generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str CC=1    pure
-              → _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str] CC=4    mutation
-              → _build_container_podman_args(service:dict, lines:list[str]) → None CC=4    mutation
+              → generate_container_unit(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → str CC=1    pure
+              → _build_container_section(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → list[str] CC=4    mutation
+              → _build_container_podman_args(service:ServiceConfig, lines:list[str]) → None CC=4    mutation
               → _parse_cpus_limit(deploy:dict) → str | None CC=2    pure ■
               PURITY: 2/7 pure  BOTTLENECK: quadlet_generate(CC=6)
 
@@ -32,6 +32,20 @@ PIPELINES[12] (IO:12):
               → _wrap_ssh(cmd:str) → str                CC=1    pure
               → _strip_remote_prefix(cmd:str) → str     CC=3    pure ■
               PURITY: 2/6 pure  BOTTLENECK: run_command(CC=7)
+
+  Src [IO]: ctx → HealthCheckResult
+              → release(ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, force) CC=31   IO  !! ▶
+              → health_check_all(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool) → bool CC=3    pure
+              → run_health_checks(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool) → HealthReport CC=11   mutation
+              → check_traefik_dashboard(host:str, user:str, ssh_key:str | None) → HealthCheckResult CC=5    pure ■
+              PURITY: 2/4 pure  BOTTLENECK: release(CC=31)
+
+  Src [IO]: ctx → HealthCheckResult
+              → rollback(ctx, target_tag, domain, dry_run) CC=11   IO ▶
+              → health_check_all(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool) → bool CC=3    pure
+              → run_health_checks(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool) → HealthReport CC=11   mutation
+              → check_traefik_dashboard(host:str, user:str, ssh_key:str | None) → HealthCheckResult CC=5    pure ■
+              PURITY: 2/4 pure  BOTTLENECK: rollback(CC=11)
 
   Src [IO]: ? → str
               → generate() → str                        CC=2    pure ▶
@@ -54,17 +68,17 @@ PIPELINES[12] (IO:12):
               → _tag_var() → str                        CC=1    pure ■
               PURITY: 3/4 pure  BOTTLENECK: generate(CC=7)
 
+  Src [IO]: TaskfileConfig | None → Path
+              → __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool) CC=5    mutation ▶
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
+              PURITY: 1/3 pure  BOTTLENECK: find_taskfile(CC=6)
+
   Src [IO]: str | Path → str
               → __init__(compose_path:str | Path, env_file:str | Path | None, extra_vars:dict[str, str] | None) CC=5    IO ▶
               → resolve_dict(data:Any, variables:dict[str, str]) → Any CC=6    pure
               → resolve_variables(text:str, variables:dict[str, str]) → str CC=2    pure ■
               PURITY: 2/3 pure  BOTTLENECK: resolve_dict(CC=6)
-
-  Src [IO]: TaskfileConfig | None → Path
-              → __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool) CC=10   IO ▶
-              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
-              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
-              PURITY: 1/3 pure  BOTTLENECK: __init__(CC=10)
 
   Src [IO]: list[str] | None → bool
               → run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool CC=8    IO ▶
@@ -72,30 +86,23 @@ PIPELINES[12] (IO:12):
               → _should_skip_stage(stage:PipelineStage, stage_filter:list[str] | None, skip_set:set[str]) → bool CC=6    IO ■
               PURITY: 0/3 pure  BOTTLENECK: run(CC=8)
 
-  Src [IO]: ctx → Path
-              → ci_generate(ctx, targets, gen_all, output_dir) CC=10   IO ▶
-              → generate_all_ci(config:TaskfileConfig, project_dir:str | Path, targets:list[str] | None) → list[Path] CC=3    mutation
-              → generate_ci(config:TaskfileConfig, target:str, project_dir:str | Path) → Path CC=2    IO ■
-              PURITY: 0/3 pure  BOTTLENECK: ci_generate(CC=10)
-
-  Src [IO]: ctx → Path
-              → ci_run(ctx, stages, skip_stages, stop_at) CC=6    IO ▶
-              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
-              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
-              PURITY: 1/3 pure  BOTTLENECK: ci_run(CC=6)
-
-  Src [IO]: ctx → Path
-              → ci_list(ctx)                            CC=3    IO ▶
-              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
-              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
-              PURITY: 1/3 pure  BOTTLENECK: find_taskfile(CC=6)
+  Src [IO]: ? → tuple[int, str, str]
+              → _install_podman() → bool                CC=4    IO ▶
+              → _check_command(cmd:str) → bool          CC=1    pure
+              → _ssh(cmd:str, timeout:int) → tuple[int, str, str] CC=1    pure ■
+              PURITY: 2/3 pure  BOTTLENECK: _install_podman(CC=4)
 
 
 TRANSFORMS (fan-out ≥10):
+  setup(ip:str | None, ssh_key:str, user:str, domain:str | None, ports:str, dry_run:bool, skip_provision:bool, skip_deploy:bool) fan=19   fan=19
+  release(ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, force) fan=15   fan=15
   run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool fan=14   PIPELINE:PipelineRunner.entry
   ci_generate(ctx, targets, gen_all, output_dir)          fan=12   fan=12
+  rollback(ctx, target_tag, domain, dry_run)              fan=12   fan=12
+  _collect_interactive_setup(ip:str | None) → SetupConfig fan=11   fan=11
   load_taskfile(path:str | Path | None) → TaskfileConfig  fan=10   fan=10
   load_env_file(path:str | Path) → dict[str, str]         fan=10   fan=10
+  deploy_cmd(ctx, compose_override)                       fan=10   fan=10
 
 CONTRACTS:
   Pipeline: Src
@@ -104,8 +111,8 @@ CONTRACTS:
       OUT: None
       SIDE-EFFECT: IO(print, print)
 
-    _execute_deploy_strategy(env, env_name:str, env_file_path:str | None, config, compose_path:str, var_overrides:dict, dry_run:bool) → None
-      IN:  env, env_name:str, env_file_path:str | None, config, compose_path:str, var_overrides:dict, dry_run:bool
+    _execute_deploy_strategy(strategy:DeployStrategy) → None
+      IN:  strategy:DeployStrategy
       OUT: None
       SIDE-EFFECT: IO(print)
 
@@ -128,17 +135,17 @@ CONTRACTS:
       OUT: tuple[list[Path], set[str]]
       SIDE-EFFECT: IO(write_text, print)
 
-    generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str
-      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+    generate_container_unit(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → str
+      IN:  service_name:str, service:ServiceConfig, network_name:str, auto_update:bool
       OUT: str
 
-    _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str]
-      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+    _build_container_section(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → list[str]
+      IN:  service_name:str, service:ServiceConfig, network_name:str, auto_update:bool
       OUT: list[str]
       SIDE-EFFECT: pure
 
-    _build_container_podman_args(service:dict, lines:list[str]) → None
-      IN:  service:dict, lines:list[str]
+    _build_container_podman_args(service:ServiceConfig, lines:list[str]) → None
+      IN:  service:ServiceConfig, lines:list[str]
       OUT: None
       SIDE-EFFECT: pure
 
@@ -162,17 +169,17 @@ CONTRACTS:
       OUT: tuple[list[Path], set[str]]
       SIDE-EFFECT: IO(write_text, print)
 
-    generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str
-      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+    generate_container_unit(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → str
+      IN:  service_name:str, service:ServiceConfig, network_name:str, auto_update:bool
       OUT: str
 
-    _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str]
-      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+    _build_container_section(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool) → list[str]
+      IN:  service_name:str, service:ServiceConfig, network_name:str, auto_update:bool
       OUT: list[str]
       SIDE-EFFECT: pure
 
-    _build_container_podman_args(service:dict, lines:list[str]) → None
-      IN:  service:dict, lines:list[str]
+    _build_container_podman_args(service:ServiceConfig, lines:list[str]) → None
+      IN:  service:ServiceConfig, lines:list[str]
       OUT: None
       SIDE-EFFECT: pure
 
@@ -208,6 +215,51 @@ CONTRACTS:
     _strip_remote_prefix(cmd:str) → str
       IN:  cmd:str
       OUT: str
+
+  Pipeline: Src
+    release(ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, force)
+      IN:  ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, force
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+      SMELL: CC=31 → split
+
+    health_check_all(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool) → bool
+      IN:  domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool
+      OUT: bool
+      INVARIANT: raises on invalid input
+
+    run_health_checks(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool) → HealthReport
+      IN:  domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool
+      OUT: HealthReport
+      SIDE-EFFECT: pure
+      INVARIANT: raises on invalid input
+
+    check_traefik_dashboard(host:str, user:str, ssh_key:str | None) → HealthCheckResult
+      IN:  host:str, user:str, ssh_key:str | None
+      OUT: HealthCheckResult
+      INVARIANT: raises on invalid input
+
+  Pipeline: Src
+    rollback(ctx, target_tag, domain, dry_run)
+      IN:  ctx, target_tag, domain, dry_run
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    health_check_all(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool) → bool
+      IN:  domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, exit_on_error:bool
+      OUT: bool
+      INVARIANT: raises on invalid input
+
+    run_health_checks(domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool) → HealthReport
+      IN:  domain:str, ssh_host:str | None, ssh_user:str, ssh_key:str | None, check_web:bool, check_landing:bool, check_api:bool, api_path:str, verbose:bool
+      OUT: HealthReport
+      SIDE-EFFECT: pure
+      INVARIANT: raises on invalid input
+
+    check_traefik_dashboard(host:str, user:str, ssh_key:str | None) → HealthCheckResult
+      IN:  host:str, user:str, ssh_key:str | None
+      OUT: HealthCheckResult
+      INVARIANT: raises on invalid input
 
   Pipeline: Src
     generate() → str
@@ -262,6 +314,21 @@ CONTRACTS:
       OUT: str
 
   Pipeline: Src
+    __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool)
+      IN:  config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool
+      OUT: None
+      SIDE-EFFECT: mutates self.config, self.env_name, self.platform_name
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+  Pipeline: Src
     __init__(compose_path:str | Path, env_file:str | Path | None, extra_vars:dict[str, str] | None)
       IN:  compose_path:str | Path, env_file:str | Path | None, extra_vars:dict[str, str] | None
       OUT: None
@@ -276,21 +343,6 @@ CONTRACTS:
       IN:  text:str, variables:dict[str, str]
       OUT: str
       INVARIANT: all entities exist in analysis
-
-  Pipeline: Src
-    __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool)
-      IN:  config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool
-      OUT: None
-      SIDE-EFFECT: IO(print, print); mutates self.config, self.env_name, self.platform_name
-
-    load_taskfile(path:str | Path | None) → TaskfileConfig
-      IN:  path:str | Path | None
-      OUT: TaskfileConfig
-      SIDE-EFFECT: IO(open)
-
-    find_taskfile(start_dir:str | Path | None) → Path
-      IN:  start_dir:str | Path | None
-      OUT: Path
 
   Pipeline: Src
     run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool
@@ -310,101 +362,72 @@ CONTRACTS:
       SIDE-EFFECT: IO(print, print)
 
   Pipeline: Src
-    ci_generate(ctx, targets, gen_all, output_dir)
-      IN:  ctx, targets, gen_all, output_dir
-      OUT: None
+    _install_podman() → bool
+      IN:  ()
+      OUT: bool
       SIDE-EFFECT: IO(print, print, print)
 
-    generate_all_ci(config:TaskfileConfig, project_dir:str | Path, targets:list[str] | None) → list[Path]
-      IN:  config:TaskfileConfig, project_dir:str | Path, targets:list[str] | None
-      OUT: list[Path]
-      SIDE-EFFECT: pure
+    _check_command(cmd:str) → bool
+      IN:  cmd:str
+      OUT: bool
+      INVARIANT: raises on invalid input
 
-    generate_ci(config:TaskfileConfig, target:str, project_dir:str | Path) → Path
-      IN:  config:TaskfileConfig, target:str, project_dir:str | Path
-      OUT: Path
-      SIDE-EFFECT: IO(write, print)
-
-  Pipeline: Src
-    ci_run(ctx, stages, skip_stages, stop_at)
-      IN:  ctx, stages, skip_stages, stop_at
-      OUT: None
-      SIDE-EFFECT: IO(print)
-
-    load_taskfile(path:str | Path | None) → TaskfileConfig
-      IN:  path:str | Path | None
-      OUT: TaskfileConfig
-      SIDE-EFFECT: IO(open)
-
-    find_taskfile(start_dir:str | Path | None) → Path
-      IN:  start_dir:str | Path | None
-      OUT: Path
-
-  Pipeline: Src
-    ci_list(ctx)
-      IN:  ctx
-      OUT: None
-      SIDE-EFFECT: IO(print)
-
-    load_taskfile(path:str | Path | None) → TaskfileConfig
-      IN:  path:str | Path | None
-      OUT: TaskfileConfig
-      SIDE-EFFECT: IO(open)
-
-    find_taskfile(start_dir:str | Path | None) → Path
-      IN:  start_dir:str | Path | None
-      OUT: Path
+    _ssh(cmd:str, timeout:int) → tuple[int, str, str]
+      IN:  cmd:str, timeout:int
+      OUT: tuple[int, str, str]
 
 
-DATA_TYPES (by cross-function usage) [137 annotated, 0 inferred / 149 functions]:
-  str                  consumed:51  produced:26   !! HUB-TYPE → split interface
-  dict                 consumed:25  produced:4    !! HUB-TYPE → split interface
-  bool                 consumed:14  produced:11   !! HUB-TYPE → split interface
+DATA_TYPES (by cross-function usage) [179 annotated, 0 inferred / 194 functions]:
+  str                  consumed:99  produced:28   !! HUB-TYPE → split interface
+  bool                 consumed:31  produced:30   !! HUB-TYPE → split interface
+  str | None           consumed:22  produced:4    !! HUB-TYPE → split interface
   list[str]            consumed:8   produced:12 
+  dict                 consumed:15  produced:5    !! HUB-TYPE → split interface
   TaskfileConfig       consumed:11  produced:2    !! HUB-TYPE → split interface
-  str | None           consumed:11  produced:2    !! HUB-TYPE → split interface
-  dict[str, str]       consumed:4   produced:7  
+  dict[str, str]       consumed:4   produced:8  
+  ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
+  int                  consumed:8   produced:1    input-heavy (read-only flow)
   list[str] | None     consumed:8   produced:0    input-heavy (read-only flow)
-  Path                 consumed:3   produced:4  
+  SetupConfig          consumed:7   produced:1    input-heavy (read-only flow)
+  Path                 consumed:3   produced:5  
+  str | Path           consumed:7   produced:0    input-heavy (read-only flow)
   Task                 consumed:6   produced:0    input-heavy (read-only flow)
-  str | Path           consumed:6   produced:0    input-heavy (read-only flow)
   list[Path]           consumed:1   produced:4  
   str | Path | None    consumed:4   produced:0    narrow scope
-  dict[str, Task]      consumed:2   produced:1    narrow scope
   float                consumed:3   produced:0    narrow scope
-  dict[str, str] | None consumed:3   produced:0    narrow scope
-  PipelineStage        consumed:3   produced:0    narrow scope
   set[str]             consumed:2   produced:1    narrow scope
-  PipelineConfig       consumed:0   produced:2    narrow scope
-  int                  consumed:1   produced:1    narrow scope
+  dict[str, Task]      consumed:2   produced:1    narrow scope
+  HealthCheckResult    consumed:0   produced:3    narrow scope
 
   HUB TYPES (consumed ≥10):
-    str → 51 consumers → split into:
+    str → 99 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    dict → 25 consumers → split into:
+    bool → 31 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
+    str | None → 22 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
+    dict → 15 consumers → split into:
       - replace with typed alternatives (dataclass/TypedDict)
-    bool → 14 consumers → split into:
-      - (analyze consumers to suggest sub-interfaces)
     TaskfileConfig → 11 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    str | None → 11 consumers → split into:
+    ServiceConfig → 11 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
 
 SIDE_EFFECTS:
-  IO:        load_taskfile, load_env_file, ComposeFile.__init__, _generate_network_file, _generate_container_files, _generate_volume_files, compose_to_quadlet, TaskfileRunner.__init__, TaskfileRunner.run_command, TaskfileRunner._get_task_or_fail
-  Mutation:  _validate_task_dependencies, _validate_task_env_filter, _validate_task_platform_filter, validate_taskfile, _build_unit_section, _build_container_env, _build_container_ports, _build_container_volumes, _build_container_networks, _build_container_labels
-  Pure:      find_taskfile, _validate_tasks_exist, _validate_task_commands, resolve_variables, resolve_dict, ComposeFile.get_service, ComposeFile._labels_list_to_dict, ComposeFile._filter_traefik_labels, ComposeFile.get_traefik_labels, ComposeFile.service_names
+  IO:        build_landing_page, TaskfileRunner._init_environment, TaskfileRunner._init_platform, TaskfileRunner.run_command, TaskfileRunner._get_task_or_fail, TaskfileRunner._should_skip_task, TaskfileRunner._run_dependencies, TaskfileRunner._execute_commands, TaskfileRunner._print_task_header, TaskfileRunner.run_task
+  Mutation:  TaskRunError.__init__, TaskfileRunner.__init__, TaskfileRunner._init_variables, _validate_task_dependencies, _validate_task_env_filter, _validate_task_platform_filter, validate_taskfile, PipelineError.__init__, PipelineRunner.__init__, PipelineRunner._resolve_stages
+  Pure:      generate_landing_page, create_landing_nginx_config, create_landing_compose_service, TaskfileRunner.expand_variables, TaskfileRunner._is_remote_command, TaskfileRunner._strip_remote_prefix, TaskfileRunner._wrap_ssh, TaskfileRunner.check_condition, TaskfileRunner.list_tasks, find_taskfile
 
   PIPELINE PURITY:
     Src             █░░░ 30% pure
     Src             █░░░ 28% pure
     Src             █░░░ 33% pure
+    Src             ██░░ 50% pure
+    Src             ██░░ 50% pure
     Src             ████ 100% pure
     Src             ████ 100% pure
     Src             ███░ 75% pure
+    Src             █░░░ 33% pure
     Src             ██░░ 66% pure
-    Src             █░░░ 33% pure
     Src             ░░░░ 0% pure
-    Src             ░░░░ 0% pure
-    Src             █░░░ 33% pure
-    Src             █░░░ 33% pure
+    Src             ██░░ 66% pure

@@ -4,30 +4,42 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 149
-- **Total Classes**: 22
-- **Modules**: 27
-- **Entry Points**: 94
+- **Total Functions**: 194
+- **Total Classes**: 29
+- **Modules**: 33
+- **Entry Points**: 117
 
 ## Architecture by Module
 
-### src.taskfile.quadlet
-- **Functions**: 21
-- **File**: `quadlet.py`
-
 ### src.taskfile.runner
-- **Functions**: 21
+- **Functions**: 24
 - **Classes**: 2
 - **File**: `runner.py`
 
+### src.taskfile.quadlet
+- **Functions**: 21
+- **Classes**: 1
+- **File**: `quadlet.py`
+
 ### src.taskfile.cli.deploy
-- **Functions**: 13
+- **Functions**: 15
+- **Classes**: 1
 - **File**: `deploy.py`
 
 ### src.taskfile.models
 - **Functions**: 13
 - **Classes**: 7
 - **File**: `models.py`
+
+### src.taskfile.provisioner
+- **Functions**: 12
+- **Classes**: 2
+- **File**: `provisioner.py`
+
+### src.taskfile.cli.setup
+- **Functions**: 12
+- **Classes**: 1
+- **File**: `setup.py`
 
 ### src.taskfile.compose
 - **Functions**: 9
@@ -58,18 +70,31 @@
 - **Functions**: 7
 - **File**: `main.py`
 
-### src.taskfile.cli.ci
+### src.taskfile.health
 - **Functions**: 6
-- **File**: `ci.py`
+- **Classes**: 2
+- **File**: `health.py`
 
 ### src.taskfile.cli.quadlet
 - **Functions**: 6
 - **File**: `quadlet.py`
 
+### src.taskfile.cli.ci
+- **Functions**: 6
+- **File**: `ci.py`
+
+### src.taskfile.cli.release
+- **Functions**: 5
+- **File**: `release.py`
+
 ### src.taskfile.cigen.drone
 - **Functions**: 5
 - **Classes**: 1
 - **File**: `drone.py`
+
+### src.taskfile.landing
+- **Functions**: 4
+- **File**: `landing.py`
 
 ### src.taskfile.cigen
 - **Functions**: 4
@@ -80,28 +105,17 @@
 - **Classes**: 1
 - **File**: `github.py`
 
-### src.taskfile.cigen.jenkins
-- **Functions**: 2
-- **Classes**: 1
-- **File**: `jenkins.py`
-
-### src.taskfile.cigen.gitea
-- **Functions**: 2
-- **Classes**: 1
-- **File**: `gitea.py`
-
-### src.taskfile.scaffold
-- **Functions**: 1
-- **File**: `__init__.py`
-
-### src.taskfile.cigen.makefile
-- **Functions**: 1
-- **Classes**: 1
-- **File**: `makefile.py`
-
 ## Key Entry Points
 
 Main execution flows into the system:
+
+### src.taskfile.cli.release.release
+> Full release — build all, deploy all, update landing.
+
+Orchestrates the complete release pipeline:
+1. Create git tag (if specified)
+2. Build desktop a
+- **Calls**: main.command, click.option, click.option, click.option, click.option, click.option, click.option, console.print
 
 ### src.taskfile.cli.ci.ci_generate
 > Generate CI/CD config files from Taskfile.yml pipeline section.
@@ -111,6 +125,27 @@ Examples:
     taskfile ci generate --target github
     taskfile ci generate --targe
 - **Calls**: ci.command, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, console.print, None.join, console.print
+
+### src.taskfile.cli.setup.setup
+> One-command VPS setup: SSH key → provision → deploy.
+
+IP can be provided as argument or interactively.
+
+
+Examples:
+    taskfile setup 123.45.67.89
+  
+- **Calls**: main.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
+
+### src.taskfile.cli.release.rollback
+> Rollback to previous version.
+
+Deploys the previous (or specified) version of the web application.
+
+
+Examples:
+    taskfile rollback              # R
+- **Calls**: main.command, click.option, click.option, click.option, console.print, src.taskfile.cli.release._run_command, src.taskfile.parser.load_taskfile, src.taskfile.cli.release._get_previous_tag
 
 ### src.taskfile.cirunner.PipelineRunner.run
 > Run pipeline stages in order.
@@ -148,6 +183,17 @@ Examples:
 > Parse raw YAML dict into TaskfileConfig.
 - **Calls**: cls, cls._parse_compose, cls._parse_environments, cls._parse_platforms, cls._parse_tasks, cls._parse_pipeline, data.get, data.get
 
+### src.taskfile.cli.health.health_cmd
+> Check health of deployed services.
+
+Verifies web app, landing page, and infrastructure are responding.
+
+
+Examples:
+    taskfile --env prod health
+   
+- **Calls**: main.command, click.option, click.option, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, console.print
+
 ### src.taskfile.cli.ci.ci_run
 > Run CI/CD pipeline stages locally.
 
@@ -169,15 +215,12 @@ Uses environment settings from Taskfile.yml for SSH connection
 and remote quadlet directory.
 - **Calls**: quadlet.command, click.option, opts.get, opts.get, src.taskfile.parser.load_taskfile, src.taskfile.cli.quadlet._get_upload_env, src.taskfile.cli.quadlet._get_upload_files, src.taskfile.cli.quadlet._run_upload_commands
 
-### src.taskfile.runner.TaskfileRunner.__init__
-- **Calls**: set, self.env.resolve_variables, self.variables.update, self.variables.setdefault, self.variables.setdefault, self.variables.setdefault, src.taskfile.parser.load_taskfile, console.print
-
 ### src.taskfile.cli.deploy.deploy_cmd
 > Full deploy pipeline: build → push → generate Quadlet → upload → restart.
 
 Reads environment config from Taskfile.yml and performs the correct
 deploy 
-- **Calls**: main.command, click.option, ctx.obj.get, ctx.obj.get, src.taskfile.cli.deploy._resolve_deploy_config, src.taskfile.cli.deploy._print_deploy_header, src.taskfile.cli.deploy._execute_deploy_strategy, console.print
+- **Calls**: main.command, click.option, ctx.obj.get, ctx.obj.get, src.taskfile.cli.deploy._resolve_deploy_config, src.taskfile.cli.deploy._print_deploy_header, src.taskfile.cli.deploy._select_deploy_strategy, src.taskfile.cli.deploy._execute_deploy_strategy
 
 ### src.taskfile.cli.main.init
 > Create a new Taskfile.yml in the current directory.
@@ -229,6 +272,10 @@ Init project:
 > Print available pipeline stages.
 - **Calls**: console.print, enumerate, console.print, console.print, console.print, console.print, None.join, console.print
 
+### src.taskfile.provisioner.VPSProvisioner._setup_firewall
+> Configure UFW firewall.
+- **Calls**: self._ssh, self._check_command, self._ssh, self._ssh, console.print, console.print, None.join, map
+
 ### src.taskfile.cli.main.run
 > Run one or more tasks.
 
@@ -248,94 +295,79 @@ Examples:
 > Parse all platform definitions.
 - **Calls**: plat_section.items, isinstance, Platform, plat_data.get, plat_data.get, plat_data.get, plat_data.get, plat_data.get
 
-### src.taskfile.runner.TaskfileRunner.run_command
-> Execute a single command, locally or via SSH.
-- **Calls**: self.expand_variables, self._is_remote_command, self._wrap_ssh, console.print, console.print, subprocess.run, console.print
-
-### src.taskfile.runner.TaskfileRunner._list_tasks_section
-> Print task list with filters and dependencies.
-- **Calls**: console.print, sorted, self.config.tasks.items, console.print, None.join, None.join, None.join
-
-### src.taskfile.cli.ci.ci_list
-> List pipeline stages defined in Taskfile.yml.
-- **Calls**: ci.command, src.taskfile.parser.load_taskfile, PipelineRunner, runner.list_stages, opts.get, console.print, sys.exit
-
-### src.taskfile.models.TaskfileConfig._parse_compose
-> Parse the compose section of Taskfile.
-- **Calls**: ComposeConfig, isinstance, ComposeConfig, compose_data.get, compose_data.get, compose_data.get, compose_data.get
-
-### src.taskfile.compose.ComposeFile.get_traefik_labels
-> Extract Traefik labels from a service.
-- **Calls**: self.get_service, service.get, isinstance, self._labels_list_to_dict, isinstance, self._filter_traefik_labels
+### src.taskfile.runner.TaskfileRunner._init_variables
+> Resolve all variables: global → env → platform → CLI overrides.
+- **Calls**: self.env.resolve_variables, variables.update, variables.setdefault, variables.setdefault, variables.setdefault, variables.update, variables.setdefault
 
 ## Process Flows
 
 Key execution flows identified:
 
-### Flow 1: ci_generate
+### Flow 1: release
+```
+release [src.taskfile.cli.release]
+```
+
+### Flow 2: ci_generate
 ```
 ci_generate [src.taskfile.cli.ci]
   └─ →> load_taskfile
       └─> find_taskfile
 ```
 
-### Flow 2: run
+### Flow 3: setup
+```
+setup [src.taskfile.cli.setup]
+```
+
+### Flow 4: rollback
+```
+rollback [src.taskfile.cli.release]
+```
+
+### Flow 5: run
 ```
 run [src.taskfile.cirunner.PipelineRunner]
 ```
 
-### Flow 3: from_dict
+### Flow 6: from_dict
 ```
 from_dict [src.taskfile.models.PipelineConfig]
 ```
 
-### Flow 4: quadlet_generate
+### Flow 7: quadlet_generate
 ```
 quadlet_generate [src.taskfile.cli.quadlet]
 ```
 
-### Flow 5: _parse_tasks
+### Flow 8: _parse_tasks
 ```
 _parse_tasks [src.taskfile.models.TaskfileConfig]
 ```
 
-### Flow 6: info
+### Flow 9: info
 ```
 info [src.taskfile.cli.main]
   └─ →> load_taskfile
       └─> find_taskfile
 ```
 
-### Flow 7: generate
+### Flow 10: generate
 ```
 generate [src.taskfile.cigen.makefile.MakefileTarget]
-```
-
-### Flow 8: ci_run
-```
-ci_run [src.taskfile.cli.ci]
-  └─ →> load_taskfile
-      └─> find_taskfile
-```
-
-### Flow 9: _parse_environments
-```
-_parse_environments [src.taskfile.models.TaskfileConfig]
-```
-
-### Flow 10: quadlet_upload
-```
-quadlet_upload [src.taskfile.cli.quadlet]
-  └─ →> load_taskfile
-      └─> find_taskfile
 ```
 
 ## Key Classes
 
 ### src.taskfile.runner.TaskfileRunner
 > Executes tasks from a Taskfile configuration.
-- **Methods**: 20
-- **Key Methods**: src.taskfile.runner.TaskfileRunner.__init__, src.taskfile.runner.TaskfileRunner.expand_variables, src.taskfile.runner.TaskfileRunner.run_command, src.taskfile.runner.TaskfileRunner._is_remote_command, src.taskfile.runner.TaskfileRunner._strip_remote_prefix, src.taskfile.runner.TaskfileRunner._wrap_ssh, src.taskfile.runner.TaskfileRunner.check_condition, src.taskfile.runner.TaskfileRunner._get_task_or_fail, src.taskfile.runner.TaskfileRunner._should_skip_task, src.taskfile.runner.TaskfileRunner._run_dependencies
+- **Methods**: 23
+- **Key Methods**: src.taskfile.runner.TaskfileRunner.__init__, src.taskfile.runner.TaskfileRunner._init_environment, src.taskfile.runner.TaskfileRunner._init_platform, src.taskfile.runner.TaskfileRunner._init_variables, src.taskfile.runner.TaskfileRunner.expand_variables, src.taskfile.runner.TaskfileRunner.run_command, src.taskfile.runner.TaskfileRunner._is_remote_command, src.taskfile.runner.TaskfileRunner._strip_remote_prefix, src.taskfile.runner.TaskfileRunner._wrap_ssh, src.taskfile.runner.TaskfileRunner.check_condition
+
+### src.taskfile.provisioner.VPSProvisioner
+> Idempotent VPS provisioner using SSH.
+- **Methods**: 11
+- **Key Methods**: src.taskfile.provisioner.VPSProvisioner.__init__, src.taskfile.provisioner.VPSProvisioner._ssh, src.taskfile.provisioner.VPSProvisioner._check_command, src.taskfile.provisioner.VPSProvisioner.provision, src.taskfile.provisioner.VPSProvisioner._system_update, src.taskfile.provisioner.VPSProvisioner._install_podman, src.taskfile.provisioner.VPSProvisioner._setup_firewall, src.taskfile.provisioner.VPSProvisioner._create_deploy_user, src.taskfile.provisioner.VPSProvisioner._setup_traefik, src.taskfile.provisioner.VPSProvisioner._setup_tls
 
 ### src.taskfile.compose.ComposeFile
 > Parsed docker-compose.yml with environment resolution.
@@ -379,6 +411,11 @@ The pipeline is just an ordered list of st
 - **Methods**: 4
 - **Key Methods**: src.taskfile.models.Environment.ssh_target, src.taskfile.models.Environment.ssh_opts, src.taskfile.models.Environment.is_remote, src.taskfile.models.Environment.resolve_variables
 
+### src.taskfile.health.HealthReport
+> Aggregated health check report.
+- **Methods**: 2
+- **Key Methods**: src.taskfile.health.HealthReport.healthy_count, src.taskfile.health.HealthReport.unhealthy_count
+
 ### src.taskfile.cigen.jenkins.JenkinsTarget
 - **Methods**: 2
 - **Key Methods**: src.taskfile.cigen.jenkins.JenkinsTarget._tag_var, src.taskfile.cigen.jenkins.JenkinsTarget.generate
@@ -416,25 +453,15 @@ The pipeline is just an ordered list of st
 - **Methods**: 1
 - **Key Methods**: src.taskfile.cirunner.StageResult.__init__
 
-### src.taskfile.cigen.makefile.MakefileTarget
+### src.taskfile.cli.setup.SetupConfig
+> Configuration collected during setup process.
 - **Methods**: 1
-- **Key Methods**: src.taskfile.cigen.makefile.MakefileTarget.generate
-- **Inherits**: CITarget
+- **Key Methods**: src.taskfile.cli.setup.SetupConfig.__init__
 
-### src.taskfile.models.Platform
-> Target platform configuration (e.g. desktop, web, mobile).
+### src.taskfile.cli.deploy.DeployStrategy
+> Pure data class representing selected deploy strategy.
 - **Methods**: 1
-- **Key Methods**: src.taskfile.models.Platform.resolve_variables
-
-### src.taskfile.parser.TaskfileNotFoundError
-> Raised when no Taskfile is found in the search path.
-- **Methods**: 0
-- **Inherits**: Exception
-
-### src.taskfile.parser.TaskfileParseError
-> Raised when Taskfile cannot be parsed.
-- **Methods**: 0
-- **Inherits**: Exception
+- **Key Methods**: src.taskfile.cli.deploy.DeployStrategy.__init__
 
 ## Data Transformation Functions
 
@@ -462,16 +489,13 @@ Key functions that process and transform data:
 > Validate a TaskfileConfig and return list of warnings.
 - **Output to**: warnings.extend, config.tasks.items, src.taskfile.parser._validate_tasks_exist, warnings.extend, warnings.extend
 
-### src.taskfile.quadlet._parse_port
-> Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
-- **Output to**: None.split, len, str
+### src.taskfile.cli.setup._validate_ip
+> Validate IP address format.
+- **Output to**: bool, re.match
 
-### src.taskfile.quadlet._parse_memory_limit
-> Extract memory limit from deploy.resources.limits.memory.
-
-### src.taskfile.quadlet._parse_cpus_limit
-> Extract CPU limit from deploy.resources.limits.cpus.
-- **Output to**: str
+### src.taskfile.cli.setup._validate_ssh_key
+> Check if SSH key file exists.
+- **Output to**: os.path.expanduser, None.is_file, Path
 
 ### src.taskfile.cli.main.parse_var
 > Parse --var KEY=VALUE pairs into a dict.
@@ -501,6 +525,17 @@ Key functions that process and transform data:
 > Parse pipeline section and infer stages from tasks if needed.
 - **Output to**: isinstance, pipeline.infer_from_tasks, PipelineConfig.from_dict, PipelineConfig
 
+### src.taskfile.quadlet._parse_port
+> Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
+- **Output to**: None.split, len, str
+
+### src.taskfile.quadlet._parse_memory_limit
+> Extract memory limit from deploy.resources.limits.memory.
+
+### src.taskfile.quadlet._parse_cpus_limit
+> Extract CPU limit from deploy.resources.limits.cpus.
+- **Output to**: str
+
 ## Behavioral Patterns
 
 ### recursion_resolve_dict
@@ -512,16 +547,23 @@ Key functions that process and transform data:
 
 Functions exposed as public API (no underscore prefix):
 
+- `src.taskfile.cli.release.release` - 43 calls
 - `src.taskfile.cli.ci.ci_generate` - 41 calls
+- `src.taskfile.cli.setup.setup` - 33 calls
+- `src.taskfile.cli.release.rollback` - 30 calls
 - `src.taskfile.cirunner.PipelineRunner.run` - 28 calls
 - `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
+- `src.taskfile.health.check_http_endpoint` - 23 calls
 - `src.taskfile.cli.quadlet.quadlet_generate` - 19 calls
 - `src.taskfile.cli.main.info` - 18 calls
 - `src.taskfile.cigen.makefile.MakefileTarget.generate` - 18 calls
 - `src.taskfile.models.TaskfileConfig.from_dict` - 18 calls
+- `src.taskfile.cli.health.health_cmd` - 17 calls
 - `src.taskfile.cli.ci.ci_run` - 17 calls
 - `src.taskfile.cli.quadlet.quadlet_upload` - 15 calls
-- `src.taskfile.cli.deploy.deploy_cmd` - 12 calls
+- `src.taskfile.health.print_health_report` - 14 calls
+- `src.taskfile.health.run_health_checks` - 13 calls
+- `src.taskfile.cli.deploy.deploy_cmd` - 13 calls
 - `src.taskfile.cli.main.init` - 12 calls
 - `src.taskfile.cli.main.validate` - 12 calls
 - `src.taskfile.parser.load_taskfile` - 11 calls
@@ -529,29 +571,22 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.ci.ci_preview` - 11 calls
 - `src.taskfile.cli.main.main` - 11 calls
 - `src.taskfile.compose.load_env_file` - 10 calls
+- `src.taskfile.health.check_ssh_service` - 10 calls
 - `src.taskfile.runner.TaskfileRunner.run_task` - 9 calls
+- `src.taskfile.landing.generate_landing_page` - 8 calls
 - `src.taskfile.compose.resolve_variables` - 8 calls
-- `src.taskfile.quadlet.compose_to_quadlet` - 8 calls
 - `src.taskfile.cirunner.PipelineRunner.list_stages` - 8 calls
+- `src.taskfile.health.check_traefik_dashboard` - 8 calls
 - `src.taskfile.cli.main.run` - 8 calls
 - `src.taskfile.cigen.gitlab.GitLabCITarget.generate` - 8 calls
-- `src.taskfile.compose.resolve_dict` - 7 calls
+- `src.taskfile.quadlet.compose_to_quadlet` - 8 calls
 - `src.taskfile.runner.TaskfileRunner.run_command` - 7 calls
+- `src.taskfile.compose.resolve_dict` - 7 calls
 - `src.taskfile.cli.ci.ci_list` - 7 calls
+- `src.taskfile.runner.TaskfileRunner.expand_variables` - 6 calls
 - `src.taskfile.parser.find_taskfile` - 6 calls
 - `src.taskfile.compose.ComposeFile.get_traefik_labels` - 6 calls
-- `src.taskfile.runner.TaskfileRunner.expand_variables` - 6 calls
-- `src.taskfile.cli.ci.ci_targets` - 6 calls
-- `src.taskfile.cli.main.list_tasks` - 6 calls
-- `src.taskfile.cigen.generate_ci` - 6 calls
-- `src.taskfile.models.PipelineConfig.infer_from_tasks` - 6 calls
-- `src.taskfile.quadlet.generate_container_unit` - 5 calls
-- `src.taskfile.runner.TaskfileRunner.list_tasks` - 5 calls
-- `src.taskfile.cigen.drone.DroneCITarget.generate` - 5 calls
-- `src.taskfile.cigen.jenkins.JenkinsTarget.generate` - 5 calls
-- `src.taskfile.cigen.preview_ci` - 5 calls
-- `src.taskfile.cigen.base.CITarget.write` - 4 calls
-- `src.taskfile.cli.main.parse_var` - 4 calls
+- `src.taskfile.provisioner.VPSProvisioner.provision` - 6 calls
 
 ## System Interactions
 
@@ -559,9 +594,17 @@ How components interact:
 
 ```mermaid
 graph TD
+    release --> command
+    release --> option
     ci_generate --> command
     ci_generate --> option
     ci_generate --> load_taskfile
+    setup --> command
+    setup --> argument
+    setup --> option
+    rollback --> command
+    rollback --> option
+    rollback --> print
     run --> _resolve_stages
     run --> _print_pipeline_head
     run --> time
@@ -581,14 +624,6 @@ graph TD
     info --> argument
     info --> load_taskfile
     info --> print
-    generate --> sorted
-    generate --> join
-    generate --> items
-    generate --> replace
-    generate --> append
-    from_dict --> _parse_compose
-    from_dict --> _parse_environments
-    from_dict --> _parse_platforms
 ```
 
 ## Reverse Engineering Guidelines

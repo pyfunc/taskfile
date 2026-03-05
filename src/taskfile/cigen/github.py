@@ -66,16 +66,27 @@ class GitHubActionsTarget(CITarget):
         elif stage.when == "tag":
             job["if"] = "startsWith(github.ref, 'refs/tags/')"
 
+    def _has_tag_stages(self) -> bool:
+        """Check if any stage is triggered by tags."""
+        return any(s.when == "tag" for s in self.pipeline.stages)
+
+    def _build_on_triggers(self, branches: list[str]) -> dict:
+        """Build the 'on' triggers section."""
+        triggers: dict = {
+            "push": {"branches": branches},
+            "workflow_dispatch": {},
+        }
+        if self._has_tag_stages():
+            triggers["push"]["tags"] = ["v*"]
+        return triggers
+
     def generate(self) -> str:
         p = self.pipeline
         branches = p.branches or ["main"]
 
         workflow: dict = {
             "name": self.config.name or "Taskfile Pipeline",
-            "on": {
-                "push": {"branches": branches},
-                "workflow_dispatch": {},
-            },
+            "on": self._build_on_triggers(branches),
             "jobs": {},
         }
 
