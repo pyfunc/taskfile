@@ -51,10 +51,30 @@ class TaskResolver:
     # ─── Environment / platform resolution ───
 
     def _resolve_environment(self) -> Environment:
-        """Resolve environment, returning defaults if not defined."""
+        """Resolve environment, returning defaults if not defined.
+
+        Also expands ${VAR:-default} patterns in string fields (ssh_host, ssh_user, etc.)
+        so environment configs can reference OS environment variables.
+        """
         if self.env_name in self.config.environments:
-            return self.config.environments[self.env_name]
-        return Environment(name=self.env_name)
+            env = self.config.environments[self.env_name]
+        else:
+            env = Environment(name=self.env_name)
+        self._resolve_env_fields(env)
+        return env
+
+    @staticmethod
+    def _resolve_env_fields(env: Environment) -> None:
+        """Expand ${VAR:-default} in environment string fields using os.environ."""
+        ctx = dict(os.environ)
+        for field_name in (
+            "ssh_host", "ssh_user", "ssh_key",
+            "compose_command", "container_runtime", "service_manager",
+            "env_file", "compose_file", "quadlet_dir", "quadlet_remote_dir",
+        ):
+            value = getattr(env, field_name, None)
+            if isinstance(value, str) and ("${" in value or "$" in value):
+                setattr(env, field_name, _compose_resolve_variables(value, ctx))
 
     def _resolve_platform(self) -> Platform | None:
         """Resolve platform, returning None if not defined."""
