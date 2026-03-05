@@ -265,6 +265,66 @@ def _validate_task_platform_filter(config: TaskfileConfig, task_name: str, task)
     return warnings
 
 
+def _validate_task_script_files(config: TaskfileConfig, task_name: str, task) -> list[str]:
+    """Check that script files referenced by tasks actually exist on disk."""
+    if not task.script:
+        return []
+    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
+    script_path = Path(task.script)
+    if script_path.is_absolute():
+        resolved = script_path
+    else:
+        resolved = taskfile_dir / script_path
+    if not resolved.exists():
+        return [f"Task '{task_name}' references missing script: {task.script} (looked in {taskfile_dir})"]
+    return []
+
+
+def _validate_circular_dependencies(config: TaskfileConfig) -> list[str]:
+    """Detect circular dependencies between tasks."""
+    warnings = []
+
+    def _visit(name: str, path: list[str], visited: set[str]) -> str | None:
+        if name in visited:
+            cycle = " → ".join(path + [name])
+            return f"Circular dependency detected: {cycle}"
+        task = config.tasks.get(name)
+        if task is None:
+            return None
+        visited.add(name)
+        for dep in task.deps:
+            result = _visit(dep, path + [name], visited.copy())
+            if result:
+                return result
+        return None
+
+    for task_name in config.tasks:
+        result = _visit(task_name, [], set())
+        if result and result not in warnings:
+            warnings.append(result)
+    return warnings
+
+
+def _validate_referenced_files(config: TaskfileConfig) -> list[str]:
+    """Check that compose files and env files referenced in environments exist."""
+    warnings = []
+    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
+    for env_name, env in config.environments.items():
+        if env.env_file:
+            env_file_path = taskfile_dir / env.env_file
+            if not env_file_path.exists():
+                warnings.append(
+                    f"Environment '{env_name}' references missing env_file: {env.env_file}"
+                )
+        if env.compose_file and env.compose_file != "docker-compose.yml":
+            compose_path = taskfile_dir / env.compose_file
+            if not compose_path.exists():
+                warnings.append(
+                    f"Environment '{env_name}' references missing compose_file: {env.compose_file}"
+                )
+    return warnings
+
+
 def validate_taskfile(config: TaskfileConfig) -> list[str]:
     """Validate a TaskfileConfig and return list of warnings."""
     warnings = []
@@ -276,5 +336,9 @@ def validate_taskfile(config: TaskfileConfig) -> list[str]:
         warnings.extend(_validate_task_dependencies(config, task_name, task))
         warnings.extend(_validate_task_env_filter(config, task_name, task))
         warnings.extend(_validate_task_platform_filter(config, task_name, task))
+        warnings.extend(_validate_task_script_files(config, task_name, task))
+
+    warnings.extend(_validate_circular_dependencies(config))
+    warnings.extend(_validate_referenced_files(config))
 
     return warnings

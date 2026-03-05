@@ -80,8 +80,8 @@ class ProjectDiagnostics:
         except Exception:
             return
         
-        # Get variables from Taskfile
-        variables = taskfile_data.get("variables", {})
+        # Get variables from Taskfile (TaskfileConfig is a dataclass)
+        variables = taskfile_data.variables or {}
         if not variables:
             return
         
@@ -89,22 +89,18 @@ class ProjectDiagnostics:
         required_vars = set()
         for var_name, var_value in variables.items():
             if isinstance(var_value, str):
-                # Check for ${VAR} references in variable values
-                import re
                 refs = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}', var_value)
                 required_vars.update(refs)
         
         # Also check environments section for SSH config variables
-        environments = taskfile_data.get("environments", {})
-        for env_name, env_config in environments.items():
-            if isinstance(env_config, dict):
-                for key in ["ssh_host", "ssh_user", "ssh_key"]:
-                    value = env_config.get(key, "")
-                    if isinstance(value, str) and value.startswith("${"):
-                        import re
-                        m = re.match(r'\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)', value)
-                        if m:
-                            required_vars.add(m.group("var"))
+        environments = taskfile_data.environments or {}
+        for env_name, env_obj in environments.items():
+            for field_name in ("ssh_host", "ssh_user", "ssh_key"):
+                value = getattr(env_obj, field_name, None) or ""
+                if isinstance(value, str) and value.startswith("${"):
+                    m = re.match(r'\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)', value)
+                    if m:
+                        required_vars.add(m.group("var"))
         
         # Check each .env file for missing variables
         for env_file in [".env", ".env.local", ".env.prod", ".env.staging"]:
@@ -191,6 +187,41 @@ class ProjectDiagnostics:
         keys = list(ssh_dir.glob("id_*"))
         if not keys:
             self.issues.append(("No SSH keys found (~/.ssh/id_*)", "warning", False))
+
+    def check_dependent_files(self) -> None:
+        """Check that all files referenced in Taskfile (scripts, env_files) exist."""
+        try:
+            taskfile_path = find_taskfile()
+            config = load_taskfile(taskfile_path)
+        except Exception:
+            return
+
+        taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
+
+        # Check script files
+        for task_name, task in config.tasks.items():
+            if not task.script:
+                continue
+            script_path = taskfile_dir / task.script
+            if not script_path.exists():
+                self.issues.append(
+                    (f"Task '{task_name}' script not found: {task.script}", "error", False)
+                )
+
+        # Check env_file references in environments
+        for env_name, env in config.environments.items():
+            if env.env_file:
+                env_file_path = taskfile_dir / env.env_file
+                if not env_file_path.exists():
+                    self.issues.append(
+                        (f"Environment '{env_name}' env_file not found: {env.env_file}", "warning", False)
+                    )
+
+        # Check circular dependencies
+        from taskfile.parser import validate_taskfile
+        for warning in validate_taskfile(config):
+            if "Circular dependency" in warning:
+                self.issues.append((warning, "error", False))
 
     def check_git(self) -> None:
         """Check if in git repo."""

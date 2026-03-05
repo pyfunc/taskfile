@@ -346,9 +346,18 @@ def list_tasks(ctx):
 
 
 @main.command()
+@click.option("--files", "check_files", is_flag=True, help="Check all dependent files (scripts, env, compose)")
+@click.option("--deps", "show_deps", is_flag=True, help="Show dependency tree for all tasks")
 @click.pass_context
-def validate(ctx):
-    """Validate the Taskfile without running anything."""
+def validate(ctx, check_files, show_deps):
+    """Validate the Taskfile without running anything.
+
+    \b
+    Examples:
+        taskfile validate              # Basic validation
+        taskfile validate --files      # Check all referenced files exist
+        taskfile validate --deps       # Show dependency tree
+    """
     opts = ctx.obj
     try:
         config = load_taskfile(opts["taskfile_path"])
@@ -360,15 +369,101 @@ def validate(ctx):
             console.print(f"\n[yellow]{len(warnings)} warning(s) found[/]")
         else:
             console.print("[green]✓ Taskfile is valid[/]")
-            console.print(
-                f"  {len(config.tasks)} tasks, "
-                f"{len(config.environments)} environments"
-            )
+
+        # Summary
+        script_tasks = [n for n, t in config.tasks.items() if t.script]
+        cmd_tasks = [n for n, t in config.tasks.items() if t.commands]
+        dep_tasks = [n for n, t in config.tasks.items() if t.deps]
+        console.print(
+            f"  [dim]{len(config.tasks)} tasks[/] "
+            f"({len(cmd_tasks)} with commands, {len(script_tasks)} with scripts), "
+            f"[dim]{len(config.environments)} environments[/]"
+        )
+        if dep_tasks:
+            console.print(f"  [dim]{len(dep_tasks)} tasks have dependencies[/]")
+
+        # --files: detailed file checks
+        if check_files:
+            _validate_dependent_files(config)
+
+        # --deps: show dependency tree
+        if show_deps:
+            _print_dependency_tree(config)
+
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         if isinstance(e, TaskfileNotFoundError):
             _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
+
+
+def _validate_dependent_files(config) -> None:
+    """Check all files referenced by the Taskfile and report status."""
+    from pathlib import Path as _Path
+
+    taskfile_dir = _Path(config.source_path).parent if config.source_path else _Path.cwd()
+    console.print("\n[bold]📁 Dependent files:[/]")
+    all_ok = True
+
+    # Check script files
+    for name, task in sorted(config.tasks.items()):
+        if not task.script:
+            continue
+        script_path = taskfile_dir / task.script
+        if script_path.exists():
+            console.print(f"  [green]✓[/] {task.script} [dim](task: {name})[/]")
+        else:
+            console.print(f"  [red]✗[/] {task.script} [dim](task: {name})[/] [red]— not found[/]")
+            all_ok = False
+
+    # Check env files referenced in environments
+    for env_name, env in sorted(config.environments.items()):
+        if env.env_file:
+            p = taskfile_dir / env.env_file
+            if p.exists():
+                console.print(f"  [green]✓[/] {env.env_file} [dim](env: {env_name})[/]")
+            else:
+                console.print(f"  [red]✗[/] {env.env_file} [dim](env: {env_name})[/] [red]— not found[/]")
+                all_ok = False
+
+    # Check common project files
+    for common_file in ("docker-compose.yml", "Dockerfile", ".env", ".gitignore"):
+        p = taskfile_dir / common_file
+        if p.exists():
+            console.print(f"  [green]✓[/] {common_file}")
+        else:
+            console.print(f"  [dim]·[/] {common_file} [dim]— not present[/]")
+
+    if all_ok:
+        console.print("[green]  All referenced files found.[/]")
+
+
+def _print_dependency_tree(config) -> None:
+    """Print dependency tree for all tasks."""
+    console.print("\n[bold]🌳 Dependency tree:[/]")
+    for name, task in sorted(config.tasks.items()):
+        if not task.deps:
+            console.print(f"  [green]{name}[/]")
+        else:
+            dep_str = " → ".join(task.deps)
+            console.print(f"  [green]{name}[/] [dim]← {dep_str}[/]")
+            # Show transitive deps
+            visited = set()
+            _print_transitive_deps(config, task.deps, visited, depth=2)
+
+
+def _print_transitive_deps(config, deps: list, visited: set, depth: int) -> None:
+    """Recursively print transitive dependencies."""
+    for dep_name in deps:
+        if dep_name in visited:
+            continue
+        visited.add(dep_name)
+        dep_task = config.tasks.get(dep_name)
+        if dep_task and dep_task.deps:
+            indent = "  " * depth
+            sub_deps = " → ".join(dep_task.deps)
+            console.print(f"{indent}[dim]└─ {dep_name} ← {sub_deps}[/]")
+            _print_transitive_deps(config, dep_task.deps, visited, depth + 1)
 
 
 @main.command(name="import")

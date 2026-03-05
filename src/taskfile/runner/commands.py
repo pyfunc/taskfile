@@ -136,13 +136,33 @@ def execute_script(runner, task: Task, task_name: str) -> int:
         console.print("  [dim](dry run — skipped)[/]")
         return 0
 
-    # Resolve relative to working_dir or cwd
+    # Resolve relative to Taskfile directory (source_path), then working_dir, then cwd
     resolved = Path(script_path)
-    if not resolved.is_absolute() and task.working_dir:
-        resolved = Path(task.working_dir) / resolved
+    if not resolved.is_absolute():
+        taskfile_dir = (
+            Path(runner.config.source_path).parent
+            if runner.config.source_path
+            else Path.cwd()
+        )
+        candidate = taskfile_dir / resolved
+        if candidate.exists():
+            resolved = candidate
+        elif task.working_dir:
+            resolved = Path(task.working_dir) / resolved
 
     if not resolved.exists():
-        console.print(f"  [red]✗ Script not found: {resolved}[/]")
+        console.print(f"  [red]✗ Script not found: {resolved.resolve()}[/]")
+        # Hint: show nearby scripts
+        search_dir = (
+            Path(runner.config.source_path).parent
+            if runner.config.source_path
+            else Path.cwd()
+        )
+        nearby = sorted(search_dir.rglob("*.sh"))[:5]
+        if nearby:
+            console.print(f"  [dim]Available scripts in {search_dir}:[/]")
+            for p in nearby:
+                console.print(f"    [dim]{p.relative_to(search_dir)}[/]")
         return 1
 
     return _run_subprocess(runner, f"bash {resolved}", task, label="Script")
