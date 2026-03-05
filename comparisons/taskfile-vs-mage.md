@@ -9,7 +9,7 @@
 | Cross-compilation | ✅ | ⚠️ |
 | **YAML simplicity** | ❌ | ✅ |
 | **Environments** | ❌ | ✅ |
-| **SSH remote execution** | ❌ | ✅ (`@remote`) |
+| **`@local`/`@remote` execution** | ❌ | ✅ |
 | **Fleet management** | ❌ | ✅ |
 | **Registry authentication** | ❌ | ✅ |
 | **Quadlet generation** | ❌ | ✅ |

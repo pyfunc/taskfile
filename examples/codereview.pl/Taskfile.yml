@@ -83,56 +83,32 @@ tasks:
   build:
     desc: Build all images
     cmds:
-      - docker compose --env-file .env.local build
+      - ${COMPOSE} build
 
   build-app:
     desc: Build single service (--var SVC=app)
     cmds:
-      - docker compose --env-file .env.local build ${SVC}
+      - ${COMPOSE} build ${SVC}
 
   push:
     desc: Build and push all images to registry
     deps: [build]
     cmds:
-      - docker compose --env-file .env.local push app api
+      - ${COMPOSE} push app api
       - echo "📦 Pushed ${REGISTRY}/codereview-app:${TAG}"
       - echo "📦 Pushed ${REGISTRY}/codereview-api:${TAG}"
 
-  # ─── Local development ───────────────────────────
+  # ─── Development & Operations ──────────────────────
   dev:
     desc: Start full local environment
     env: [local]
     cmds:
-      - docker compose --env-file .env.local up -d --build
+      - ${COMPOSE} up -d --build
       - echo ""
       - "echo '✅ codereview.pl running locally:'"
       - "echo '   App:       http://codereview.localhost'"
       - "echo '   API:       http://api.codereview.localhost'"
       - "echo '   Traefik:   http://localhost:8080'"
-
-  dev-down:
-    desc: Stop local environment
-    env: [local]
-    cmds:
-      - docker compose --env-file .env.local down
-
-  dev-logs:
-    desc: Follow local logs (--var SVC=app for single service)
-    env: [local]
-    cmds:
-      - docker compose --env-file .env.local logs -f ${SVC:-}
-
-  dev-restart:
-    desc: Restart a service locally (--var SVC=app)
-    env: [local]
-    cmds:
-      - docker compose --env-file .env.local restart ${SVC:-}
-
-  dev-ps:
-    desc: Show running local services
-    env: [local]
-    cmds:
-      - docker compose --env-file .env.local ps
 
   # ─── Quadlet generation ──────────────────────────
   #
@@ -197,29 +173,33 @@ tasks:
       - "@remote systemctl --user daemon-reload"
       - echo "✅ Quadlet files synced"
 
-  # ─── Production operations ───────────────────────
+  # ─── Operations (local + prod) ─────────────────────
   status:
-    desc: Show production service status
-    env: [prod]
+    desc: Show service status
+    env: [local, prod]
     cmds:
+      - "@local ${COMPOSE} ps"
       - "@remote podman ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'"
 
   logs:
-    desc: View production logs (--var SVC=app)
-    env: [prod]
+    desc: View logs (--var SVC=app)
+    env: [local, prod]
     cmds:
+      - "@local ${COMPOSE} logs -f ${SVC:-}"
       - "@remote journalctl --user -u ${SVC:-app} -f --no-pager -n 100"
 
   restart:
-    desc: Restart production service (--var SVC=app)
-    env: [prod]
+    desc: Restart service (--var SVC=app)
+    env: [local, prod]
     cmds:
+      - "@local ${COMPOSE} restart ${SVC:-}"
       - "@remote systemctl --user restart ${SVC:-app}"
 
   stop:
-    desc: Stop production service (--var SVC=app)
-    env: [prod]
+    desc: Stop service (--var SVC=app)
+    env: [local, prod]
     cmds:
+      - "@local ${COMPOSE} down"
       - "@remote systemctl --user stop ${SVC:-app}"
 
   ram:
@@ -257,7 +237,7 @@ tasks:
       - echo "🚀 Releasing codereview.pl ${TAG}"
       - git tag -a ${TAG} -m "Release ${TAG}"
       - git push origin ${TAG}
-      - docker compose --env-file .env.local build
-      - docker compose --env-file .env.local push app api
+      - ${COMPOSE} build
+      - ${COMPOSE} push app api
       - echo "📦 Released ${TAG} — deploy with:"
       - echo "   taskfile --env prod run deploy-quick --var TAG=${TAG}"

@@ -20,6 +20,31 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.46] - 2026-03-05
+
+### Docs
+- Update comparisons/README.md
+- Update comparisons/taskfile-vs-dagger.md
+- Update comparisons/taskfile-vs-go-task.md
+- Update comparisons/taskfile-vs-just.md
+- Update comparisons/taskfile-vs-mage.md
+- Update comparisons/taskfile-vs-make.md
+- Update examples/README.md
+- Update examples/codereview.pl/README.md
+
+### Other
+- Update examples/Taskfile.softreck.yml
+- Update examples/codereview.pl/Makefile
+- Update examples/codereview.pl/Taskfile.yml
+- Update examples/edge-iot/Taskfile.yml
+- Update examples/fleet-rpi/Taskfile.yml
+- Update examples/fullstack-deploy/Taskfile.yml
+- Update examples/minimal/Taskfile.yml
+- Update examples/monorepo-microservices/Taskfile.yml
+- Update examples/multiplatform/Taskfile.yml
+- Update examples/quadlet-podman/Taskfile.yml
+- ... and 1 more files
+
 ## [0.3.45] - 2026-03-05
 
 ## [0.3.44] - 2026-03-05

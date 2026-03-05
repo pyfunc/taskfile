@@ -198,10 +198,10 @@ tasks:
     desc: Run gateway simulator locally
     env: [local]
     cmds:
-      - docker compose up -d --build
+      - ${COMPOSE} up -d --build
 
-  dev-stop:
-    desc: Stop local simulator
+  stop:
+    desc: Stop local services
     env: [local]
     cmds:
-      - docker compose down
+      - ${COMPOSE} down

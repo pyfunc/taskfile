@@ -41,14 +41,14 @@ tasks:
     desc: Run locally with Docker Compose
     env: [local]
     cmds:
-      - docker compose up -d --build
-      - docker compose logs -f
+      - ${COMPOSE} up -d --build
+      - ${COMPOSE} logs -f
 
-  dev-stop:
-    desc: Stop local dev
+  stop:
+    desc: Stop local services
     env: [local]
     cmds:
-      - docker compose down
+      - ${COMPOSE} down
 
   # ─── Build + push ──────────────────────────────────
 
@@ -96,8 +96,8 @@ tasks:
     desc: Deploy locally with docker compose
     env: [local]
     cmds:
-      - docker compose pull
-      - docker compose up -d
+      - ${COMPOSE} pull
+      - ${COMPOSE} up -d
 
   deploy-prod:
     desc: Full prod deploy — build → push → quadlet → restart

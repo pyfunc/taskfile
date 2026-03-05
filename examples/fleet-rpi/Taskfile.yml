@@ -78,7 +78,7 @@ tasks:
     desc: Run kiosk locally (x86)
     env: [local]
     cmds:
-      - docker compose up -d --build
+      - ${COMPOSE} up -d --build
 
   deploy-kiosk:
     desc: Deploy to single device (or use -G for group)

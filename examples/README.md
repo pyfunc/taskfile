@@ -327,7 +327,57 @@ tasks:
         fi
 ```
 
-### 2. Skrypty shell → `scripts/`
+### 2. `@local`/`@remote` zamiast if-else i duplikatów
+
+```yaml
+# ❌ Osobne taski: logs + logs-remote
+logs:
+  env: [local]
+  cmds: [docker compose logs -f]
+logs-remote:
+  env: [prod]
+  cmds: ["@remote podman logs app -f"]
+```
+
+```yaml
+# ✅ Jeden task z @local/@remote
+logs:
+  env: [local, prod]
+  cmds:
+    - "@local ${COMPOSE} logs -f"
+    - "@remote podman logs app -f"
+```
+
+Patrz: [saas-app/](saas-app/), [codereview.pl/](codereview.pl/)
+
+### 3. `${COMPOSE}` zamiast hardcoded `docker compose --env-file`
+
+```yaml
+# ❌ Powtórzenie w każdym tasku
+dev:
+  cmds: [docker compose --env-file .env.local up -d]
+logs:
+  cmds: [docker compose --env-file .env.local logs -f]
+status:
+  cmds: [docker compose --env-file .env.local ps]
+```
+
+```yaml
+# ✅ ${COMPOSE} automatycznie używa compose_command + env_file z environment
+environments:
+  local:
+    compose_command: docker compose
+    env_file: .env.local
+tasks:
+  dev:
+    cmds: [${COMPOSE} up -d]
+  logs:
+    cmds: [${COMPOSE} logs -f]
+```
+
+Patrz: [codereview.pl/](codereview.pl/), [saas-app/](saas-app/)
+
+### 4. Skrypty shell → `scripts/`
 
 Gdy task wymaga ifów, pętli, error handling — wyciągnij do pliku:
 
@@ -340,7 +390,7 @@ ci-generate:
 
 Patrz: [multiplatform/scripts/](multiplatform/scripts/)
 
-### 3. `environment_defaults` zamiast kopiowania
+### 5. `environment_defaults` zamiast kopiowania
 
 ```yaml
 # ✅ DRY — 2 linie na urządzenie
@@ -358,7 +408,7 @@ environments:
 
 Patrz: [fleet-rpi/](fleet-rpi/)
 
-### 4. Nie deklaruj `environments` bez potrzeby
+### 6. Nie deklaruj `environments` bez potrzeby
 
 ```yaml
 # ✅ Publish pipeline nie potrzebuje environments
@@ -376,7 +426,7 @@ tasks:
 
 Patrz: [publish-pypi/](publish-pypi/), [publish-cargo/](publish-cargo/), [publish-npm/](publish-npm/)
 
-### 5. `deps` + `parallel` zamiast powtarzania komend
+### 7. `deps` + `parallel` zamiast powtarzania komend
 
 ```yaml
 # ✅ Compose tasks via deps

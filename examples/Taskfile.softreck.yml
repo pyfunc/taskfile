@@ -44,20 +44,20 @@ tasks:
     desc: Start all apps locally with Traefik
     env: [local]
     cmds:
-      - docker compose up -d --build
+      - ${COMPOSE} up -d --build
       - echo "✅ Apps running — check Traefik dashboard at http://localhost:8080"
 
-  dev-stop:
-    desc: Stop local environment
+  stop:
+    desc: Stop local services
     env: [local]
     cmds:
-      - docker compose down
+      - ${COMPOSE} down
 
-  dev-logs:
-    desc: Follow local logs
+  logs:
+    desc: View logs
     env: [local]
     cmds:
-      - docker compose logs -f
+      - ${COMPOSE} logs -f
 
   # ─── Production deploy ────────────────────────
   deploy-app:

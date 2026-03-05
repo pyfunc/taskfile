@@ -244,7 +244,7 @@ tasks:
     desc: Start all services locally
     env: [local]
     cmds:
-      - docker compose up -d --build
+      - ${COMPOSE} up -d --build
 
   deploy-staging:
     desc: Deploy all services to staging
@@ -276,7 +276,7 @@ tasks:
     desc: Tail logs for a service (set --platform)
     silent: true
     cmds:
-      - docker compose logs -f --tail=100
+      - ${COMPOSE} logs -f --tail=100
 
   db-migrate:
     desc: Run database migrations
@@ -293,5 +293,5 @@ tasks:
   clean:
     desc: Remove all build artifacts and containers
     cmds:
-      - docker compose down -v --remove-orphans
+      - ${COMPOSE} down -v --remove-orphans
       - docker system prune -f

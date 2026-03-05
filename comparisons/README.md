@@ -27,7 +27,7 @@ taskfile ≈ Make + Ansible-lite + Dagger orchestration + Fleet management + CI/
 | Variables | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Environments** | ❌ | ❌ | ❌ | ❌ | ❌ | Manual | ✅ |
 | **Environment groups** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| **SSH `@remote` execution** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **`@local`/`@remote` prefix** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **SSH embedded (paramiko)** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **Fleet management** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (100+) | ✅ (<50) |
 | **`pipeline` section** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
@@ -88,7 +88,7 @@ taskfile ≈ Make + Ansible-lite + Dagger orchestration + Fleet management + CI/
 
 | Feature | Description | Use Case |
 |---------|-------------|----------|
-| `@remote` prefix | SSH execution on target environment | Deploy to remote servers |
+| `@local`/`@remote` prefix | Auto-route commands: local or SSH | One task for all environments |
 | SSH embedded (paramiko) | Native Python SSH — no subprocess | Faster, connection pooling |
 | `environments` + `environment_defaults` | Multi-env config abstraction | local / staging / prod |
 | `environment_groups` | Fleet deploy with strategies | rolling / canary / parallel |
@@ -104,6 +104,7 @@ taskfile ≈ Make + Ansible-lite + Dagger orchestration + Fleet management + CI/
 | VPS setup | One-command server provisioning | `taskfile setup <IP>` |
 | Registry auth | Interactive token setup | PyPI, npm, Docker, GitHub, crates.io |
 | Fleet commands | `status`, `repair`, `list`, `deploy` | Monitor edge devices |
+| `${COMPOSE}` macro | Auto-builds `compose_command + env_file` | DRY compose commands |
 | `functions` section | Embed Python/shell/Node as `@fn` | Reusable multi-lang logic |
 | `@fn` / `@python` prefix | Call functions or inline Python | Replace external scripts |
 | `retries` + `retry_delay` | Auto-retry failed commands | Robust deploys (Ansible-inspired) |

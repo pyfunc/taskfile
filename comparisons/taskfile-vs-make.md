@@ -9,7 +9,7 @@
 | Cross-compilation | ✅ | ❌ |
 | **YAML syntax** | ❌ | ✅ |
 | **Environments** | ❌ | ✅ |
-| **SSH remote execution** | ❌ | ✅ (`@remote`) |
+| **`@local`/`@remote` execution** | ❌ | ✅ |
 | **Fleet management** | ❌ | ✅ |
 | **Registry authentication** | ❌ | ✅ |
 | **Quadlet generation** | ❌ | ✅ |
@@ -179,7 +179,7 @@ deploy-prod:
 ```
 
 ```yaml
-# Taskfile.yml - Clean environment abstraction
+# Taskfile.yml - One task, all environments
 environments:
   local:
     container_runtime: docker
@@ -198,7 +198,9 @@ environments:
 
 tasks:
   deploy:
+    env: [local, staging, prod]
     cmds:
+      - "@local ${COMPOSE} up -d"
       - "@remote podman pull ${IMAGE}:${TAG}"
       - "@remote systemctl --user restart ${APP}"
 ```

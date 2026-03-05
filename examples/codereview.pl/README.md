@@ -58,9 +58,6 @@ taskfile --env prod run deploy
 | Task | Opis |
 |------|------|
 | `dev` | Start lokalnie (Docker Compose) |
-| `dev-down` | Stop lokalne |
-| `dev-logs` | Logi lokalne |
-| `dev-restart` | Restart usługi |
 
 ### Build & Push
 
@@ -80,15 +77,16 @@ taskfile --env prod run deploy
 | `deploy-service` | Deploy jednej usługi |
 | `upload-quadlets` | Tylko upload plików Quadlet |
 
-### Operations
+### Operations (local + prod)
 
 | Task | Opis |
 |------|------|
-| `status` | Status serwera produkcyjnego |
-| `logs` | Logi produkcyjne (`--var SVC=app`) |
-| `restart` | Restart usługi |
-| `ram` | Użycie RAM na serwerze |
-| `cleanup` | Wyczyść nieużywane obrazy |
+| `status` | Status serwisów (`@local`/`@remote`) |
+| `logs` | Logi (`--var SVC=app`, `@local`/`@remote`) |
+| `restart` | Restart usługi (`@local`/`@remote`) |
+| `stop` | Stop serwisów (`@local`/`@remote`) |
+| `ram` | Użycie RAM na serwerze (prod) |
+| `cleanup` | Wyczyść nieużywane obrazy (prod) |
 
 ### Setup
 
@@ -139,8 +137,8 @@ taskfile quadlet generate \
 ### 1. Lokalny development
 ```bash
 taskfile run dev          # Start
-taskfile run dev-logs     # Logi
-taskfile run dev-down     # Stop
+taskfile run logs         # Logi
+taskfile run stop         # Stop
 ```
 
 ### 2. Build & Test

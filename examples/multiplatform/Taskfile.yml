@@ -158,7 +158,7 @@ tasks:
     env: [local]
     platform: [web]
     cmds:
-      - docker compose --env-file .env.local up -d --build
+      - ${COMPOSE} up -d --build
       - echo ""
       - "echo '✅ Web app running:'"
       - "echo '   http://${DOMAIN}'"
@@ -187,37 +187,26 @@ tasks:
   # ─── Operations ─────────────────────────────────
   status:
     desc: Check service status
-    env: [prod]
+    env: [local, prod]
     platform: [web]
     cmds:
+      - "@local ${COMPOSE} ps"
       - "@remote podman ps --filter name=${APP_NAME}"
 
   logs:
     desc: View logs
-    env: [local]
+    env: [local, prod]
     platform: [web]
     cmds:
-      - docker compose logs -f
-
-  logs-remote:
-    desc: View remote logs
-    env: [prod]
-    platform: [web]
-    cmds:
+      - "@local ${COMPOSE} logs -f"
       - "@remote journalctl --user -u ${APP_NAME} -f --no-pager -n 100"
 
   stop:
-    desc: Stop local services
-    env: [local]
+    desc: Stop services
+    env: [local, prod]
     platform: [web]
     cmds:
-      - docker compose down
-
-  stop-remote:
-    desc: Stop remote service
-    env: [prod]
-    platform: [web]
-    cmds:
+      - "@local ${COMPOSE} down"
       - "@remote systemctl --user stop ${APP_NAME}"
 
   # ─── Cleanup ────────────────────────────────────
@@ -230,7 +219,6 @@ tasks:
   cleanup-remote:
     desc: Clean unused images on server
     env: [prod]
-    platform: [web]
     cmds:
       - "@remote podman image prune -af"
       - "@remote podman volume prune -f"

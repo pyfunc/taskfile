@@ -9,7 +9,7 @@
 | Parallel execution | ✅ | ✅ |
 | Cross-platform | ✅ | ✅ |
 | **Environments** | ❌ | ✅ |
-| **SSH remote execution** | ❌ | ✅ (`@remote`) |
+| **`@local`/`@remote` execution** | ❌ | ✅ |
 | **Fleet management** | ❌ | ✅ (`-G` groups) |
 | **Registry authentication** | ❌ | ✅ (`auth setup`) |
 | **Quadlet generation** | ❌ | ✅ |

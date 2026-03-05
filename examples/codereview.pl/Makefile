@@ -36,28 +36,13 @@ deploy-service: ## Deploy single service (--var SVC=app)
 dev: ## Start full local environment
 	taskfile --env $(ENV) run dev --var TAG=$(TAG)
 
-.PHONY: dev-down
-dev-down: ## Stop local environment
-	taskfile --env $(ENV) run dev-down --var TAG=$(TAG)
-
-.PHONY: dev-logs
-dev-logs: ## Follow local logs (--var SVC=app for single service)
-	taskfile --env $(ENV) run dev-logs --var TAG=$(TAG)
-
-.PHONY: dev-ps
-dev-ps: ## Show running local services
-	taskfile --env $(ENV) run dev-ps --var TAG=$(TAG)
-
-.PHONY: dev-restart
-dev-restart: ## Restart a service locally (--var SVC=app)
-	taskfile --env $(ENV) run dev-restart --var TAG=$(TAG)
 
 .PHONY: generate
 generate: ## Generate Quadlet files from docker-compose.yml + .env.prod
 	taskfile --env $(ENV) run generate --var TAG=$(TAG)
 
 .PHONY: logs
-logs: ## View production logs (--var SVC=app)
+logs: ## View logs (--var SVC=app, works local+prod)
 	taskfile --env $(ENV) run logs --var TAG=$(TAG)
 
 .PHONY: push
@@ -73,7 +58,7 @@ release: ## Tagged release — build, push, deploy with version tag
 	taskfile --env $(ENV) run release --var TAG=$(TAG)
 
 .PHONY: restart
-restart: ## Restart production service (--var SVC=app)
+restart: ## Restart service (--var SVC=app, works local+prod)
 	taskfile --env $(ENV) run restart --var TAG=$(TAG)
 
 .PHONY: setup-server
@@ -81,11 +66,11 @@ setup-server: ## First-time production server setup
 	taskfile --env $(ENV) run setup-server --var TAG=$(TAG)
 
 .PHONY: status
-status: ## Show production service status
+status: ## Show service status (works local+prod)
 	taskfile --env $(ENV) run status --var TAG=$(TAG)
 
 .PHONY: stop
-stop: ## Stop production service (--var SVC=app)
+stop: ## Stop services (works local+prod)
 	taskfile --env $(ENV) run stop --var TAG=$(TAG)
 
 .PHONY: upload-quadlets

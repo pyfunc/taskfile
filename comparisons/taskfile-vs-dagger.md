@@ -8,7 +8,7 @@
 | Build graphs | ✅ | ❌ |
 | Reproducible builds | ✅ | ⚠️ |
 | **Multi-env deploy** | ⚠️ | ✅ |
-| **SSH execution** | ❌ | ✅ (`@remote`) |
+| **`@local`/`@remote` execution** | ❌ | ✅ |
 | **Fleet management** | ❌ | ✅ |
 | **Registry authentication** | Manual | ✅ (interactive) |
 | **Quadlet generation** | ❌ | ✅ |

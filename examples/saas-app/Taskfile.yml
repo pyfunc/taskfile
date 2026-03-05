@@ -62,12 +62,12 @@ tasks:
     desc: Build images
     deps: [test]
     cmds:
-      - docker compose build
+      - ${COMPOSE} build
 
   push:
     desc: Push to registry
     cmds:
-      - docker compose push
+      - ${COMPOSE} push
 
   deploy:
     desc: Deploy to target environment
@@ -85,11 +85,19 @@ tasks:
     desc: Start local dev
     env: [local]
     cmds:
-      - docker compose --env-file .env.local up -d --build
+      - ${COMPOSE} up -d --build
+
+  logs:
+    desc: View logs
+    env: [local, staging, prod]
+    cmds:
+      - "@local ${COMPOSE} logs -f"
+      - "@remote journalctl --user -u saas-app -f --no-pager -n 100"
 
   status:
-    desc: Check remote status
-    env: [staging, prod]
+    desc: Check service status
+    env: [local, staging, prod]
     cmds:
+      - "@local ${COMPOSE} ps"
       - "@remote podman ps"
       - "@remote free -h"

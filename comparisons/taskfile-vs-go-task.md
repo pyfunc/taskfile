@@ -10,7 +10,7 @@
 | Cross-platform | ✅ | ✅ |
 | **Environments** | ❌ | ✅ |
 | **Environment groups** | ❌ | ✅ |
-| **SSH remote execution** | ❌ | ✅ (`@remote`) |
+| **`@local`/`@remote` execution** | ❌ | ✅ |
 | **Fleet management** | ❌ | ✅ (`fleet status`, `fleet repair`) |
 | **Multi-registry publish** | ❌ | ✅ |
 | **Quadlet generation** | ❌ | ✅ |
