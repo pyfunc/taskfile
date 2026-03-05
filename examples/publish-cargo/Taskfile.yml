@@ -1,22 +1,15 @@
 version: "1"
 name: my-rust-crate
-description: >
-  Rust crate → crates.io publishing pipeline.
-  Clippy, test, build, publish.
+description: Rust crate → crates.io publishing pipeline
 
 variables:
   CRATE_NAME: my-rust-crate
   VERSION: "0.1.0"
 
-environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
-
 tasks:
 
   fmt:
-    desc: Format code with rustfmt
+    desc: Check formatting (rustfmt)
     cmds:
       - cargo fmt --check
     ignore_errors: true
@@ -37,44 +30,23 @@ tasks:
     deps: [test]
     cmds:
       - cargo build --release
-      - echo "📦 Built → target/release/${CRATE_NAME}"
 
-  build-all-targets:
-    desc: Build for Linux, macOS, Windows
+  build-cross:
+    desc: Cross-compile for Linux, macOS, Windows
     cmds:
       - cargo build --release --target x86_64-unknown-linux-gnu
       - cargo build --release --target x86_64-apple-darwin
       - cargo build --release --target x86_64-pc-windows-gnu
-      - echo "✅ Built for 3 platforms"
-
-  doc:
-    desc: Generate docs
-    cmds:
-      - cargo doc --no-deps --open
-
-  publish-dry:
-    desc: Dry-run publish (verify metadata)
-    deps: [test]
-    cmds:
-      - cargo publish --dry-run
-      - echo "✅ Dry run OK — ready to publish"
 
   publish:
-    desc: Publish to crates.io
-    deps: [publish-dry]
+    desc: Publish to crates.io (with dry-run first)
+    deps: [build]
     cmds:
+      - cargo publish --dry-run
       - cargo publish
-      - echo "✅ Published ${CRATE_NAME} v${VERSION} to crates.io"
-      - echo "   https://crates.io/crates/${CRATE_NAME}"
-
-  verify:
-    desc: Verify crate is available on crates.io
-    cmds:
-      - cargo search ${CRATE_NAME}
-      - echo "✅ ${CRATE_NAME} is live on crates.io"
 
   release:
-    desc: Full release — fmt, test, tag, publish
+    desc: Tag + test + publish
     deps: [fmt, clippy, test]
     parallel: true
     cmds:
@@ -82,10 +54,13 @@ tasks:
       - git tag -a v${VERSION} -m "Release v${VERSION}"
       - git push origin v${VERSION}
       - cargo publish
-      - echo "🚀 Released ${CRATE_NAME} v${VERSION}"
+
+  verify:
+    desc: Search crates.io for published crate
+    cmds:
+      - cargo search ${CRATE_NAME}
 
   clean:
     desc: Remove build artifacts
     cmds:
       - cargo clean
-      - echo "🧹 Cleaned"

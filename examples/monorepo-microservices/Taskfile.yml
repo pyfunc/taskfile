@@ -1,0 +1,297 @@
+version: "1"
+name: platform
+description: "Microservices monorepo: platforms, condition, dir, stage, silent, compose overrides"
+
+default_env: local
+default_platform: web
+
+variables:
+  PROJECT: platform
+  REGISTRY: ghcr.io/myorg
+  TAG: latest
+  COMPOSE_FILE: docker-compose.yml
+
+# ─── Platforms ────────────────────────────────────────
+# Each platform has its own build/deploy commands and variables.
+
+platforms:
+  web:
+    desc: Web frontend (Next.js)
+    variables:
+      PORT: "3000"
+      BUILD_DIR: services/web
+    build_cmd: npm run build
+    deploy_cmd: docker compose up -d web
+
+  api:
+    desc: REST API (FastAPI)
+    variables:
+      PORT: "8000"
+      BUILD_DIR: services/api
+    build_cmd: python -m build
+    deploy_cmd: docker compose up -d api
+
+  worker:
+    desc: Background worker (Celery)
+    variables:
+      PORT: "0"
+      BUILD_DIR: services/worker
+    build_cmd: python -m build
+    deploy_cmd: docker compose up -d worker
+
+  mobile-bff:
+    desc: Mobile Backend-for-Frontend (Go)
+    variables:
+      PORT: "8080"
+      BUILD_DIR: services/mobile-bff
+    build_cmd: go build -o bin/bff .
+    deploy_cmd: docker compose up -d mobile-bff
+
+# ─── Environments ────────────────────────────────────
+
+compose:
+  file: docker-compose.yml
+  override_files:
+    - docker-compose.override.yml
+  network: proxy
+  auto_update: true
+
+environment_defaults:
+  container_runtime: docker
+
+environments:
+  local:
+    compose_command: docker compose
+    env_file: .env.local
+    compose_file: docker-compose.yml
+
+  staging:
+    ssh_host: staging.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    env_file: .env.staging
+    compose_file: docker-compose.yml
+    variables:
+      DOMAIN: staging.example.com
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod
+    quadlet_dir: deploy/quadlet
+    variables:
+      DOMAIN: example.com
+
+# ─── Pipeline ────────────────────────────────────────
+
+pipeline:
+  runner_image: ubuntu-latest
+  docker_in_docker: true
+  secrets: [GHCR_TOKEN, DEPLOY_KEY]
+  stages:
+    - name: lint
+      tasks: [lint-all]
+    - name: test
+      tasks: [test-all]
+    - name: build
+      tasks: [build-all, push-all]
+      docker_in_docker: true
+    - name: deploy
+      tasks: [deploy-all]
+      env: staging
+      when: "branch:main"
+
+# ─── Tasks ────────────────────────────────────────────
+
+tasks:
+
+  # ─── Per-service tasks (using `dir` for working directory) ──
+
+  lint-web:
+    desc: Lint web frontend
+    dir: services/web
+    stage: lint
+    cmds:
+      - npm ci
+      - npm run lint
+    ignore_errors: true
+
+  lint-api:
+    desc: Lint API
+    dir: services/api
+    stage: lint
+    cmds:
+      - ruff check src/
+    ignore_errors: true
+
+  lint-worker:
+    desc: Lint worker
+    dir: services/worker
+    stage: lint
+    cmds:
+      - ruff check src/
+    ignore_errors: true
+
+  lint-bff:
+    desc: Lint BFF (Go)
+    dir: services/mobile-bff
+    stage: lint
+    cmds:
+      - golangci-lint run ./...
+    ignore_errors: true
+
+  test-web:
+    desc: Test web frontend
+    dir: services/web
+    stage: test
+    cmds:
+      - npm ci
+      - npm test
+
+  test-api:
+    desc: Test API
+    dir: services/api
+    stage: test
+    condition: "test -f services/api/pyproject.toml"
+    cmds:
+      - pip install -e ".[dev]"
+      - pytest tests/ -v
+
+  test-worker:
+    desc: Test worker
+    dir: services/worker
+    stage: test
+    condition: "test -f services/worker/pyproject.toml"
+    cmds:
+      - pip install -e ".[dev]"
+      - pytest tests/ -v
+
+  test-bff:
+    desc: Test BFF
+    dir: services/mobile-bff
+    stage: test
+    cmds:
+      - go test ./... -v
+
+  # ─── Build images ──────────────────────────────────
+
+  build-web:
+    desc: Build web image
+    stage: build
+    platform: [web]
+    cmds:
+      - docker build -t ${REGISTRY}/${PROJECT}-web:${TAG} services/web/
+
+  build-api:
+    desc: Build API image
+    stage: build
+    platform: [api]
+    cmds:
+      - docker build -t ${REGISTRY}/${PROJECT}-api:${TAG} services/api/
+
+  build-worker:
+    desc: Build worker image
+    stage: build
+    platform: [worker]
+    cmds:
+      - docker build -t ${REGISTRY}/${PROJECT}-worker:${TAG} services/worker/
+
+  build-bff:
+    desc: Build BFF image
+    stage: build
+    platform: [mobile-bff]
+    cmds:
+      - docker build -t ${REGISTRY}/${PROJECT}-bff:${TAG} services/mobile-bff/
+
+  # ─── Aggregate tasks ───────────────────────────────
+
+  lint-all:
+    desc: Lint all services (parallel)
+    deps: [lint-web, lint-api, lint-worker, lint-bff]
+    parallel: true
+    cmds:
+      - echo "All linters done"
+
+  test-all:
+    desc: Test all services (parallel)
+    deps: [test-web, test-api, test-worker, test-bff]
+    parallel: true
+    cmds:
+      - echo "All tests done"
+
+  build-all:
+    desc: Build all images (parallel)
+    deps: [build-web, build-api, build-worker, build-bff]
+    parallel: true
+    cmds:
+      - echo "All images built"
+
+  push-all:
+    desc: Push all images to GHCR
+    deps: [build-all]
+    cmds:
+      - docker push ${REGISTRY}/${PROJECT}-web:${TAG}
+      - docker push ${REGISTRY}/${PROJECT}-api:${TAG}
+      - docker push ${REGISTRY}/${PROJECT}-worker:${TAG}
+      - docker push ${REGISTRY}/${PROJECT}-bff:${TAG}
+
+  # ─── Deploy ─────────────────────────────────────────
+
+  deploy-local:
+    desc: Start all services locally
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+
+  deploy-staging:
+    desc: Deploy all services to staging
+    env: [staging]
+    deps: [push-all]
+    cmds:
+      - "@remote docker compose pull"
+      - "@remote docker compose up -d"
+
+  deploy-prod:
+    desc: Deploy to production (Quadlet)
+    env: [prod]
+    deps: [push-all]
+    cmds:
+      - taskfile quadlet generate
+      - taskfile quadlet upload --env prod
+      - "@remote systemctl --user daemon-reload"
+      - "@remote systemctl --user restart ${PROJECT}-api ${PROJECT}-web ${PROJECT}-worker ${PROJECT}-bff"
+
+  deploy-all:
+    desc: Deploy to current environment
+    cmds:
+      - echo "Use: taskfile --env staging run deploy-staging"
+      - echo "  or: taskfile --env prod run deploy-prod"
+
+  # ─── Ops ────────────────────────────────────────────
+
+  logs:
+    desc: Tail logs for a service (set --platform)
+    silent: true
+    cmds:
+      - docker compose logs -f --tail=100
+
+  db-migrate:
+    desc: Run database migrations
+    dir: services/api
+    cmds:
+      - alembic upgrade head
+
+  db-rollback:
+    desc: Rollback last migration
+    dir: services/api
+    cmds:
+      - alembic downgrade -1
+
+  clean:
+    desc: Remove all build artifacts and containers
+    cmds:
+      - docker compose down -v --remove-orphans
+      - docker system prune -f

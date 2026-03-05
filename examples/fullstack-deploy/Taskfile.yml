@@ -1,0 +1,213 @@
+version: "1"
+name: fullstack-app
+description: "Fullstack: compose overrides, env_file, deploy command, setup command, release command"
+
+variables:
+  APP_NAME: fullstack-app
+  IMAGE: ghcr.io/myorg/fullstack-app
+  TAG: latest
+  DOMAIN: app.example.com
+
+compose:
+  file: docker-compose.yml
+  override_files:
+    - docker-compose.override.yml
+  network: proxy
+  auto_update: true
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    env_file: .env.local
+    compose_file: docker-compose.yml
+
+  staging:
+    ssh_host: staging.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: docker
+    compose_command: docker compose
+    service_manager: compose
+    env_file: .env.staging
+    compose_file: docker-compose.yml
+    variables:
+      DOMAIN: staging.example.com
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod
+    compose_file: docker-compose.yml
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+    variables:
+      DOMAIN: app.example.com
+
+# ─── Pipeline ─────────────────────────────────────────
+
+pipeline:
+  python_version: "3.12"
+  runner_image: ubuntu-latest
+  docker_in_docker: true
+  secrets: [GHCR_TOKEN, DEPLOY_SSH_KEY]
+  cache: [~/.cache/pip, node_modules]
+  artifacts: [dist/, coverage/]
+  branches: [main]
+
+  stages:
+    - name: test
+      tasks: [lint, test]
+      cache: [~/.cache/pip]
+
+    - name: build
+      tasks: [build, push]
+      docker_in_docker: true
+      artifacts: [dist/]
+
+    - name: deploy-staging
+      tasks: [deploy-staging]
+      env: staging
+      when: "branch:main"
+
+    - name: deploy-prod
+      tasks: [deploy-prod]
+      env: prod
+      when: manual
+
+# ─── Tasks ────────────────────────────────────────────
+
+tasks:
+
+  lint:
+    desc: Run linters
+    stage: test
+    cmds:
+      - ruff check src/
+      - npm --prefix frontend run lint
+    ignore_errors: true
+
+  test:
+    desc: Run backend + frontend tests
+    stage: test
+    cmds:
+      - pytest tests/ -v --cov=src/
+      - npm --prefix frontend test
+
+  build:
+    desc: Build Docker image
+    stage: build
+    deps: [test]
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push to GHCR
+    stage: build
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  # ─── Deploy (uses `taskfile deploy` auto-strategy) ──
+
+  deploy-local:
+    desc: "Local: docker compose up"
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+
+  deploy-staging:
+    desc: "Staging: remote docker compose"
+    env: [staging]
+    cmds:
+      - "@remote docker compose pull"
+      - "@remote docker compose up -d"
+
+  deploy-prod:
+    desc: "Prod: Quadlet deploy"
+    env: [prod]
+    cmds:
+      - taskfile quadlet generate
+      - taskfile quadlet upload --env prod
+      - "@remote systemctl --user daemon-reload"
+      - "@remote systemctl --user restart ${APP_NAME}"
+
+  # ─── Built-in commands showcase ─────────────────────
+
+  init-project:
+    desc: "Demo: taskfile init --template full"
+    cmds:
+      - echo "Run: taskfile init --template full"
+      - echo "Templates: minimal, web, podman, codereview, full, multiplatform, publish"
+
+  validate-config:
+    desc: "Demo: taskfile validate"
+    cmds:
+      - taskfile validate
+
+  show-info:
+    desc: "Demo: taskfile info <task>"
+    cmds:
+      - taskfile info build
+      - taskfile info deploy-prod
+
+  generate-ci:
+    desc: Generate CI for all platforms
+    cmds:
+      - taskfile ci generate --all
+
+  run-pipeline:
+    desc: Run full CI pipeline locally
+    cmds:
+      - taskfile ci run
+
+  preview-ci:
+    desc: Preview GitHub Actions config
+    cmds:
+      - taskfile ci preview --target github
+
+  list-tasks:
+    desc: List all available tasks
+    cmds:
+      - taskfile list
+
+  dry-run-deploy:
+    desc: "Preview deploy without executing"
+    cmds:
+      - taskfile --env prod --dry-run run deploy-prod
+
+  # ─── Ops ────────────────────────────────────────────
+
+  logs-staging:
+    desc: View staging logs
+    env: [staging]
+    cmds:
+      - "@remote docker compose logs -f --tail=100"
+
+  logs-prod:
+    desc: View prod logs
+    env: [prod]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME} -f --lines=100"
+
+  health:
+    desc: Check app health
+    silent: true
+    cmds:
+      - curl -sf https://${DOMAIN}/health && echo "OK" || echo "FAIL"
+
+  rollback-staging:
+    desc: Rollback staging
+    env: [staging]
+    cmds:
+      - "@remote docker compose down"
+      - "@remote docker compose up -d"
+
+  clean:
+    desc: Remove all artifacts
+    cmds:
+      - rm -rf dist/ deploy/quadlet/ coverage/
+      - docker rmi ${IMAGE}:${TAG} 2>/dev/null || true

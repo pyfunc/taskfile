@@ -670,7 +670,7 @@ my-project/
 
 ---
 
-## Examples
+## Examples (19 total)
 
 ### Getting Started
 
@@ -681,33 +681,274 @@ my-project/
 | [multiplatform](examples/multiplatform/) | ⭐⭐⭐ | Web + Desktop, CI/CD generation |
 | [codereview.pl](examples/codereview.pl/) | ⭐⭐⭐⭐ | 6 CI platforms, Quadlet, docker-compose |
 
-### Publishing (one registry per example)
+### Publishing
 
-| Example | Registry | Language | Artifact |
-|---------|----------|----------|----------|
-| [publish-pypi](examples/publish-pypi/) | PyPI | Python | wheel + sdist |
-| [publish-npm](examples/publish-npm/) | npm | Node.js / TypeScript | npm package |
-| [publish-cargo](examples/publish-cargo/) | crates.io | Rust | crate |
-| [publish-docker](examples/publish-docker/) | GHCR + Docker Hub | any | Docker image (multi-arch) |
-| [publish-github](examples/publish-github/) | GitHub Releases | Go (example) | binaries + checksums |
+| Example | Registry | Language |
+|---------|----------|----------|
+| [publish-pypi](examples/publish-pypi/) | PyPI | Python |
+| [publish-npm](examples/publish-npm/) | npm | Node.js / TypeScript |
+| [publish-cargo](examples/publish-cargo/) | crates.io | Rust |
+| [publish-docker](examples/publish-docker/) | GHCR + Docker Hub | any (multi-arch) |
+| [publish-github](examples/publish-github/) | GitHub Releases | Go (binaries + checksums) |
+| [multi-artifact](examples/multi-artifact/) | 5 registries | Python + Rust + Node.js + Docker |
 
-### Advanced
+### Fleet & IoT
 
-| Example | Complexity | Features |
-|---------|------------|----------|
-| [fleet-rpi](examples/fleet-rpi/) | ⭐⭐⭐⭐ | 6 Raspberry Pi, 3 groups, rolling/canary deploy |
-| [multi-artifact](examples/multi-artifact/) | ⭐⭐⭐⭐⭐ | Python + Rust + Node.js + Docker → 5 registries |
+| Example | Features |
+|---------|----------|
+| [fleet-rpi](examples/fleet-rpi/) | 6 RPi, `environment_defaults`, rolling/canary groups |
+| [edge-iot](examples/edge-iot/) | IoT gateways, `ssh_port: 2200`, all 3 group strategies, `condition` |
+
+### Infrastructure & Cloud
+
+| Example | Features |
+|---------|----------|
+| [ci-pipeline](examples/ci-pipeline/) | `pipeline` section, `stage` field, `taskfile ci generate/run/preview`, `condition`, `silent` |
+| [kubernetes-deploy](examples/kubernetes-deploy/) | Helm, multi-cluster (staging + prod-eu + prod-us), canary groups |
+| [iac-terraform](examples/iac-terraform/) | `dir` (working_dir), `env_file`, Terraform plan/apply/destroy, `condition` |
+| [cloud-aws](examples/cloud-aws/) | Lambda + ECS + S3, multi-region, `env_file`, `environment_groups` |
+| [quadlet-podman](examples/quadlet-podman/) | `service_manager: quadlet`, `compose` section, `ssh_port: 2222`, `taskfile deploy/setup` |
+
+### Advanced / All Features
+
+| Example | Features |
+|---------|----------|
+| [monorepo-microservices](examples/monorepo-microservices/) | `platforms`, `build_cmd`/`deploy_cmd`, `condition`, `dir`, `stage`, `platform` filter |
+| [fullstack-deploy](examples/fullstack-deploy/) | **ALL CLI commands**: deploy, setup, release, init, validate, info, ci, --dry-run |
 
 ```bash
-# Fleet management
-cd examples/fleet-rpi
-taskfile fleet status
-taskfile -G all-kiosks run deploy-kiosk --var TAG=v2.0
+# CI pipeline — generate + run locally
+cd examples/ci-pipeline
+taskfile ci generate --target github
+taskfile ci run --stage test
 
-# Multi-artifact monorepo
-cd examples/multi-artifact
-taskfile run test-all       # 3 languages in parallel
-taskfile run publish-all    # 5 registries in parallel
+# Kubernetes — multi-cluster canary
+cd examples/kubernetes-deploy
+taskfile -G all-prod run helm-deploy --var TAG=v1.0.0
+
+# Terraform — multi-env IaC
+cd examples/iac-terraform
+taskfile --env staging run plan
+taskfile --env staging run apply
+
+# IoT fleet — all 3 strategies
+cd examples/edge-iot
+taskfile -G warehouse run deploy --var TAG=v2.0   # canary
+taskfile -G factory run deploy --var TAG=v2.0     # parallel
+
+# AWS — Lambda + ECS multi-region
+cd examples/cloud-aws
+taskfile --env prod-eu run ecs-deploy lambda-deploy --var TAG=v1.0.0
+```
+
+---
+
+## Integration with Other Tools
+
+Taskfile is designed to **complement** existing tools, not replace them all. Here's how to integrate with popular alternatives:
+
+### Taskfile + Make
+
+Use `Makefile` as a thin wrapper for teams that expect `make`:
+
+```makefile
+# Makefile — delegates to taskfile
+deploy:
+	taskfile --env prod run deploy
+
+test:
+	taskfile run test
+
+.PHONY: deploy test
+```
+
+Or use taskfile alongside Make — each handles what it does best:
+- **Make** — C/C++ compilation, file-based dependency graphs
+- **Taskfile** — multi-environment deploys, fleet management, registry auth
+
+### Taskfile + Just (casey/just)
+
+Similar philosophy (command runner), different strengths:
+- **Just** — simple per-project recipes, no environments
+- **Taskfile** — environments, groups, fleet, `@remote`, registry auth
+
+Migration: each Just recipe maps to a Taskfile task. Add `environments` for multi-host.
+
+### Taskfile + Task (go-task.dev)
+
+Both use YAML, but Taskfile adds:
+- `environments` / `environment_groups` / `@remote` SSH
+- `taskfile fleet`, `taskfile auth`, `taskfile quadlet`
+- Publishing pipelines with registry integration
+
+They can coexist — use `Taskfile.yml` for deploy, `Taskfile.dist.yml` for go-task.
+
+### Taskfile + Dagger
+
+Complementary:
+- **Dagger** — containerized CI pipelines (build graph in code)
+- **Taskfile** — orchestration layer that calls Dagger
+
+```yaml
+tasks:
+  build:
+    cmds:
+      - dagger call build --source=.
+  deploy:
+    deps: [build]
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP}"
+```
+
+### Taskfile + Ansible
+
+For fleet management at scale:
+- **Ansible** — 100+ hosts, complex inventories, roles, idempotent modules
+- **Taskfile** — small fleets (<50), simple SSH commands, `environment_groups`
+
+For hybrid: use Ansible for provisioning, Taskfile for daily operations:
+
+```yaml
+tasks:
+  provision:
+    cmds:
+      - ansible-playbook -i inventory.yml setup.yml
+  deploy:
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP}"
+```
+
+---
+
+## Best Practices: Code vs Configuration
+
+### Keep Taskfile.yml declarative
+
+Taskfile.yml is **configuration** — it should declare *what* to do, not *how*:
+
+```yaml
+# ✅ Good — declarative, short commands
+tasks:
+  build:
+    deps: [test]
+    cmds:
+      - cargo build --release
+
+  deploy:
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP}"
+```
+
+```yaml
+# ❌ Bad — logic embedded in YAML
+tasks:
+  deploy:
+    cmds:
+      - |
+        if [ "$ENV" = "prod" ]; then
+          ssh deploy@prod "podman pull $IMAGE"
+          ssh deploy@prod "systemctl restart $APP"
+        elif [ "$ENV" = "staging" ]; then
+          ...
+        fi
+```
+
+### Extract shell logic to scripts
+
+When a task needs conditionals, loops, or error handling — put it in `scripts/`:
+
+```yaml
+# ✅ Taskfile calls script
+tasks:
+  validate:
+    cmds:
+      - ./scripts/validate-deploy.sh ${APP_NAME} ${TAG}
+```
+
+```bash
+# scripts/validate-deploy.sh — testable, lintable, reusable
+#!/usr/bin/env bash
+set -euo pipefail
+docker build -t "$1-validate:$2" .
+docker run -d --name "$1-validate" -p 9999:3000 "$1-validate:$2"
+curl -sf http://localhost:9999/health || exit 1
+```
+
+### Use environment_defaults to reduce duplication
+
+```yaml
+# ✅ DRY — shared config in defaults
+environment_defaults:
+  ssh_user: pi
+  ssh_key: ~/.ssh/fleet_ed25519
+  container_runtime: podman
+
+environments:
+  node-1:
+    ssh_host: 192.168.1.10
+  node-2:
+    ssh_host: 192.168.1.11
+```
+
+```yaml
+# ❌ WET — repeated on every environment
+environments:
+  node-1:
+    ssh_host: 192.168.1.10
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+  node-2:
+    ssh_host: 192.168.1.11
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+```
+
+### Only declare environments you actually use
+
+```yaml
+# ✅ No environments needed for a simple publish pipeline
+version: "1"
+name: my-lib
+variables:
+  VERSION: "1.0.0"
+tasks:
+  test:
+    cmds: [cargo test]
+  publish:
+    deps: [test]
+    cmds: [cargo publish]
+```
+
+```yaml
+# ❌ Unnecessary boilerplate
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+# ^ Never used — the tasks don't reference Docker Compose
+```
+
+### Use `deps` + `parallel` instead of repeating commands
+
+```yaml
+# ✅ Compose via deps
+test-all:
+  deps: [py-test, rs-test, js-test]
+  parallel: true
+
+# ❌ Duplicating commands from other tasks
+test-all:
+  cmds:
+    - cd packages/python && pytest
+    - cd packages/rust && cargo test
+    - cd packages/node && npm test
 ```
 
 ---

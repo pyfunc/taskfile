@@ -2,57 +2,29 @@
 
 Publikacja crate'a Rust na crates.io za pomocą Taskfile.
 
-## Struktura projektu
-
-```
-publish-cargo/
-├── Taskfile.yml      # Pipeline: fmt → clippy → test → publish
-├── Cargo.toml        # Metadata crate'a
-├── src/
-│   └── lib.rs
-├── tests/
-│   └── integration.rs
-└── README.md
-```
-
-## Pipeline
+## Taskfile.yml — 67 linii
 
 ```
 fmt ────┐
-clippy ─┤── (parallel) ── build ── publish-dry ── publish
+clippy ─┤── (parallel) ── build ── publish (dry-run + publish)
 test ───┘
 ```
+
+**Brak sekcji `environments`** — nie potrzebna dla pipeline publikacji.
 
 ## Użycie
 
 ```bash
-# Konfiguracja tokenu crates.io
-taskfile auth setup --registry crates
+taskfile auth setup --registry crates  # jednorazowo
 
-# Formatowanie + lint
-taskfile run fmt
-taskfile run clippy
-
-# Testy
-taskfile run test
-
-# Build release
-taskfile run build
-
-# Dry-run publish (sprawdzenie metadanych)
-taskfile run publish-dry
-
-# Publikacja na crates.io
-taskfile run publish --var VERSION=1.0.0
-
-# Build dla wielu platform
-taskfile run build-all-targets
-
-# Pełny release
-taskfile run release --var VERSION=1.0.0
-
-# Weryfikacja
-taskfile run verify
+taskfile run fmt                       # cargo fmt --check
+taskfile run clippy                    # cargo clippy
+taskfile run test                      # cargo test
+taskfile run build                     # cargo build --release
+taskfile run build-cross               # Linux + macOS + Windows
+taskfile run publish --var VERSION=1.0.0  # dry-run + publish
+taskfile run release --var VERSION=1.0.0  # tag + test + publish
+taskfile run verify                    # cargo search
 ```
 
 ## Wymagane tokeny
@@ -61,9 +33,6 @@ taskfile run verify
 |---------|---------------|
 | `CARGO_TOKEN` | https://crates.io/settings/tokens |
 
-Token zapisz w `.env`:
+```bash
+taskfile auth setup --registry crates
 ```
-CARGO_TOKEN=cio_abc123...
-```
-
-Lub użyj `taskfile auth setup --registry crates`.

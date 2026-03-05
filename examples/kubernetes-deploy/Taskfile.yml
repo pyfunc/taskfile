@@ -1,0 +1,206 @@
+version: "1"
+name: k8s-app
+description: "Kubernetes deploy: Helm + multi-cluster + staging/prod + canary"
+
+variables:
+  APP_NAME: k8s-app
+  IMAGE: ghcr.io/myorg/k8s-app
+  TAG: latest
+  CHART_DIR: helm/k8s-app
+  NAMESPACE: default
+  REPLICAS: "2"
+
+environment_defaults:
+  container_runtime: docker
+
+environments:
+  local:
+    compose_command: docker compose
+    variables:
+      KUBECONFIG: ~/.kube/config
+      CONTEXT: minikube
+      NAMESPACE: dev
+
+  staging:
+    variables:
+      KUBECONFIG: ~/.kube/config-staging
+      CONTEXT: staging-cluster
+      NAMESPACE: staging
+      REPLICAS: "2"
+      DOMAIN: staging.example.com
+      INGRESS_CLASS: nginx
+
+  prod-eu:
+    variables:
+      KUBECONFIG: ~/.kube/config-prod-eu
+      CONTEXT: prod-eu-west-1
+      NAMESPACE: production
+      REPLICAS: "5"
+      DOMAIN: eu.example.com
+      INGRESS_CLASS: nginx
+
+  prod-us:
+    variables:
+      KUBECONFIG: ~/.kube/config-prod-us
+      CONTEXT: prod-us-east-1
+      NAMESPACE: production
+      REPLICAS: "5"
+      DOMAIN: us.example.com
+      INGRESS_CLASS: nginx
+
+environment_groups:
+  all-prod:
+    members: [prod-eu, prod-us]
+    strategy: canary
+    canary_count: 1
+
+  global:
+    members: [staging, prod-eu, prod-us]
+    strategy: rolling
+    max_parallel: 1
+
+pipeline:
+  secrets: [GHCR_TOKEN, KUBECONFIG_STAGING, KUBECONFIG_PROD]
+  stages:
+    - name: test
+      tasks: [lint, test]
+    - name: build
+      tasks: [build, push]
+      docker_in_docker: true
+    - name: deploy-staging
+      tasks: [helm-deploy]
+      env: staging
+      when: "branch:main"
+    - name: deploy-prod
+      tasks: [helm-deploy]
+      env: prod-eu
+      when: manual
+
+tasks:
+
+  lint:
+    desc: Lint code + Helm chart
+    stage: test
+    cmds:
+      - ruff check src/
+      - helm lint ${CHART_DIR}
+      - helm template ${APP_NAME} ${CHART_DIR} --values ${CHART_DIR}/values.yaml | kubectl apply --dry-run=client -f -
+    ignore_errors: true
+
+  test:
+    desc: Run tests
+    stage: test
+    cmds:
+      - pytest tests/ -v
+
+  build:
+    desc: Build Docker image
+    stage: build
+    deps: [test]
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push to GHCR
+    stage: build
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  helm-deploy:
+    desc: Deploy via Helm to target cluster
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - >-
+        helm upgrade --install ${APP_NAME} ${CHART_DIR}
+        --namespace ${NAMESPACE} --create-namespace
+        --set image.repository=${IMAGE}
+        --set image.tag=${TAG}
+        --set replicaCount=${REPLICAS}
+        --set ingress.host=${DOMAIN}
+        --set ingress.className=${INGRESS_CLASS}
+        --values ${CHART_DIR}/values.yaml
+        --wait --timeout 5m
+
+  helm-diff:
+    desc: Preview changes before deploy (requires helm-diff plugin)
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - >-
+        helm diff upgrade ${APP_NAME} ${CHART_DIR}
+        --namespace ${NAMESPACE}
+        --set image.repository=${IMAGE}
+        --set image.tag=${TAG}
+        --set replicaCount=${REPLICAS}
+
+  helm-rollback:
+    desc: Rollback to previous Helm revision
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - helm rollback ${APP_NAME} --namespace ${NAMESPACE} --wait
+
+  helm-history:
+    desc: Show Helm release history
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - helm history ${APP_NAME} --namespace ${NAMESPACE}
+
+  k8s-status:
+    desc: Show deployment status (pods, services, ingress)
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - kubectl -n ${NAMESPACE} get pods -l app=${APP_NAME}
+      - kubectl -n ${NAMESPACE} get svc -l app=${APP_NAME}
+      - kubectl -n ${NAMESPACE} get ingress -l app=${APP_NAME}
+
+  k8s-logs:
+    desc: Tail logs from pods
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - kubectl -n ${NAMESPACE} logs -l app=${APP_NAME} --tail=100 -f
+
+  k8s-exec:
+    desc: Open shell in running pod
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - kubectl -n ${NAMESPACE} exec -it deploy/${APP_NAME} -- /bin/sh
+
+  k8s-scale:
+    desc: Scale deployment (use --var REPLICAS=N)
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - kubectl -n ${NAMESPACE} scale deploy/${APP_NAME} --replicas=${REPLICAS}
+
+  k8s-restart:
+    desc: Rolling restart all pods
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - kubectl -n ${NAMESPACE} rollout restart deploy/${APP_NAME}
+      - kubectl -n ${NAMESPACE} rollout status deploy/${APP_NAME} --timeout=5m
+
+  dev:
+    desc: Run locally with minikube
+    env: [local]
+    cmds:
+      - minikube start --driver=docker
+      - eval $(minikube docker-env)
+      - docker build -t ${IMAGE}:${TAG} .
+      - helm upgrade --install ${APP_NAME} ${CHART_DIR} --namespace ${NAMESPACE} --create-namespace --set image.pullPolicy=Never
+
+  dev-tunnel:
+    desc: Expose minikube service locally
+    env: [local]
+    cmds:
+      - minikube service ${APP_NAME} -n ${NAMESPACE}
+
+  promote:
+    desc: Build + push then deploy staging, then prod canary
+    deps: [build, push]
+    cmds:
+      - echo "Deploy staging then promote to prod with -G all-prod"
+
+  clean:
+    desc: Uninstall Helm release
+    cmds:
+      - kubectl config use-context ${CONTEXT}
+      - helm uninstall ${APP_NAME} --namespace ${NAMESPACE}

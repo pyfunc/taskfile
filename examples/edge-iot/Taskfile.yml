@@ -1,0 +1,207 @@
+version: "1"
+name: iot-gateway
+description: "Edge IoT: sensor gateways, non-standard SSH ports, all 3 group strategies"
+
+default_env: local
+
+variables:
+  APP_NAME: iot-gateway
+  IMAGE: ghcr.io/myorg/iot-gateway
+  TAG: latest
+  MQTT_BROKER: mqtt.example.com
+  MQTT_PORT: "1883"
+
+# ─── Defaults ─────────────────────────────────────────
+# All gateways share SSH config, custom port 2200, Podman runtime.
+
+environment_defaults:
+  ssh_user: edge
+  ssh_key: ~/.ssh/iot_ed25519
+  ssh_port: 2200
+  container_runtime: podman
+  variables:
+    MQTT_BROKER: mqtt.example.com
+    MQTT_PORT: "1883"
+    LOG_LEVEL: info
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    env_file: .env.local
+
+  gw-factory-1:
+    ssh_host: 10.0.1.10
+    env_file: .env.factory
+    variables:
+      GATEWAY_ID: factory-1
+      GATEWAY_TYPE: industrial
+      SENSOR_PROTOCOL: modbus
+      LOG_LEVEL: debug
+
+  gw-factory-2:
+    ssh_host: 10.0.1.11
+    env_file: .env.factory
+    variables:
+      GATEWAY_ID: factory-2
+      GATEWAY_TYPE: industrial
+      SENSOR_PROTOCOL: modbus
+
+  gw-warehouse-1:
+    ssh_host: 10.0.2.10
+    env_file: .env.warehouse
+    variables:
+      GATEWAY_ID: warehouse-1
+      GATEWAY_TYPE: storage
+      SENSOR_PROTOCOL: mqtt
+
+  gw-warehouse-2:
+    ssh_host: 10.0.2.11
+    env_file: .env.warehouse
+    variables:
+      GATEWAY_ID: warehouse-2
+      GATEWAY_TYPE: storage
+      SENSOR_PROTOCOL: mqtt
+
+  gw-office-1:
+    ssh_host: 10.0.3.10
+    env_file: .env.office
+    variables:
+      GATEWAY_ID: office-1
+      GATEWAY_TYPE: environment
+      SENSOR_PROTOCOL: zigbee
+
+# ─── Groups ───────────────────────────────────────────
+# Three different strategies for different risk profiles.
+
+environment_groups:
+  # Rolling: update 2 at a time, all gateways
+  all-gateways:
+    members: [gw-factory-1, gw-factory-2, gw-warehouse-1, gw-warehouse-2, gw-office-1]
+    strategy: rolling
+    max_parallel: 2
+
+  # Parallel: factory gateways updated simultaneously (downtime window)
+  factory:
+    members: [gw-factory-1, gw-factory-2]
+    strategy: parallel
+
+  # Canary: test on 1 warehouse gateway first, then the rest
+  warehouse:
+    members: [gw-warehouse-1, gw-warehouse-2]
+    strategy: canary
+    canary_count: 1
+
+  # Critical: factory only during maintenance window
+  critical:
+    members: [gw-factory-1, gw-factory-2]
+    strategy: rolling
+    max_parallel: 1
+
+tasks:
+
+  # ─── Build ──────────────────────────────────────────
+
+  build:
+    desc: Build ARM64 gateway image
+    cmds:
+      - docker buildx build --platform linux/arm64 -t ${IMAGE}:${TAG} --push .
+
+  # ─── Deploy ─────────────────────────────────────────
+
+  deploy:
+    desc: Deploy gateway app to device
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote podman stop ${APP_NAME} 2>/dev/null || true"
+      - "@remote podman rm ${APP_NAME} 2>/dev/null || true"
+      - >-
+        @remote podman run -d --name ${APP_NAME} --restart=always
+        --network=host
+        -e GATEWAY_ID=${GATEWAY_ID}
+        -e GATEWAY_TYPE=${GATEWAY_TYPE}
+        -e SENSOR_PROTOCOL=${SENSOR_PROTOCOL}
+        -e MQTT_BROKER=${MQTT_BROKER}
+        -e MQTT_PORT=${MQTT_PORT}
+        -e LOG_LEVEL=${LOG_LEVEL}
+        ${IMAGE}:${TAG}
+
+  restart:
+    desc: Restart gateway container
+    cmds:
+      - "@remote podman restart ${APP_NAME}"
+
+  # ─── Monitoring ─────────────────────────────────────
+
+  status:
+    desc: Gateway status (container + system)
+    cmds:
+      - "@remote podman ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Created}}'"
+      - "@remote free -h | head -2"
+      - "@remote df -h / | tail -1"
+      - "@remote uptime"
+
+  logs:
+    desc: View gateway logs
+    cmds:
+      - "@remote podman logs -f --tail 200 ${APP_NAME}"
+
+  sensor-check:
+    desc: Verify sensor connectivity
+    cmds:
+      - "@remote podman exec ${APP_NAME} /app/check-sensors.sh"
+    ignore_errors: true
+
+  mqtt-test:
+    desc: Test MQTT connection from gateway
+    cmds:
+      - "@remote podman exec ${APP_NAME} mosquitto_pub -h ${MQTT_BROKER} -p ${MQTT_PORT} -t test/${GATEWAY_ID}/ping -m 'pong'"
+    condition: "test '${SENSOR_PROTOCOL}' = 'mqtt'"
+
+  # ─── Maintenance ────────────────────────────────────
+
+  update-os:
+    desc: Update OS packages on gateway
+    cmds:
+      - "@remote sudo apt-get update -qq && sudo apt-get upgrade -y -qq"
+
+  cleanup:
+    desc: Free disk space (prune images, logs)
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote sudo journalctl --vacuum-size=20M"
+
+  reboot:
+    desc: Reboot gateway device
+    cmds:
+      - "@remote sudo reboot"
+
+  # ─── Provisioning ──────────────────────────────────
+
+  provision:
+    desc: First-time gateway setup
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman"
+      - "@remote sudo loginctl enable-linger edge"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+
+  configure-firewall:
+    desc: Configure firewall for IoT protocols
+    cmds:
+      - "@remote sudo ufw allow ${MQTT_PORT}/tcp comment 'MQTT'"
+      - "@remote sudo ufw allow 2200/tcp comment 'SSH'"
+      - "@remote sudo ufw enable"
+
+  # ─── Local dev ──────────────────────────────────────
+
+  dev:
+    desc: Run gateway simulator locally
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+
+  dev-stop:
+    desc: Stop local simulator
+    env: [local]
+    cmds:
+      - docker compose down

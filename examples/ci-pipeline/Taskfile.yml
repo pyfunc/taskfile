@@ -1,0 +1,139 @@
+version: "1"
+name: my-api
+description: "CI/CD pipeline: stages, ci generate/run, auto-infer from task stage fields"
+
+variables:
+  APP_NAME: my-api
+  IMAGE: ghcr.io/myorg/my-api
+  TAG: latest
+  DOMAIN: api.example.com
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    env_file: .env.local
+
+  staging:
+    ssh_host: staging.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: docker
+    env_file: .env.staging
+    variables:
+      DOMAIN: staging.example.com
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    env_file: .env.prod
+
+pipeline:
+  python_version: "3.12"
+  runner_image: ubuntu-latest
+  branches: [main, develop]
+  secrets: [GHCR_TOKEN, DEPLOY_KEY]
+  cache: [~/.cache/pip, node_modules]
+  artifacts: [dist/, coverage/]
+
+  stages:
+    - name: lint
+      tasks: [lint, security-scan]
+
+    - name: test
+      tasks: [test, test-integration]
+      artifacts: [coverage/]
+      cache: [~/.cache/pip]
+
+    - name: build
+      tasks: [build, push]
+      docker_in_docker: true
+
+    - name: deploy-staging
+      tasks: [deploy-staging]
+      env: staging
+      when: "branch:develop"
+
+    - name: deploy-prod
+      tasks: [deploy-prod]
+      env: prod
+      when: manual
+
+tasks:
+
+  lint:
+    desc: Run linters (ruff + mypy)
+    stage: lint
+    cmds:
+      - ruff check src/
+      - mypy src/ --strict
+    ignore_errors: true
+
+  security-scan:
+    desc: Scan dependencies for vulnerabilities
+    stage: lint
+    cmds:
+      - pip-audit
+      - bandit -r src/
+    ignore_errors: true
+
+  test:
+    desc: Run unit tests
+    stage: test
+    cmds:
+      - pytest tests/unit/ -v --cov=src/ --cov-report=html:coverage/
+
+  test-integration:
+    desc: Run integration tests (requires Docker)
+    stage: test
+    condition: "docker info >/dev/null 2>&1"
+    cmds:
+      - docker compose -f docker-compose.test.yml up -d
+      - pytest tests/integration/ -v
+      - docker compose -f docker-compose.test.yml down
+
+  build:
+    desc: Build Docker image
+    stage: build
+    deps: [test]
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push image to GHCR
+    stage: build
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  deploy-staging:
+    desc: Deploy to staging (auto on develop branch)
+    stage: deploy-staging
+    env: [staging]
+    cmds:
+      - "@remote docker pull ${IMAGE}:${TAG}"
+      - "@remote docker compose -f docker-compose.yml pull"
+      - "@remote docker compose -f docker-compose.yml up -d"
+
+  deploy-prod:
+    desc: Deploy to production (manual approval)
+    stage: deploy-prod
+    env: [prod]
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"
+
+  rollback:
+    desc: Rollback to previous version
+    env: [prod, staging]
+    cmds:
+      - "@remote docker compose -f docker-compose.yml down"
+      - "@remote docker compose -f docker-compose.yml up -d --no-build"
+
+  health-check:
+    desc: Verify deployment health
+    silent: true
+    cmds:
+      - curl -sf https://${DOMAIN}/health || exit 1

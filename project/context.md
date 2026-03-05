@@ -6,7 +6,7 @@
 - **Analysis Mode**: static
 - **Total Functions**: 247
 - **Total Classes**: 35
-- **Modules**: 37
+- **Modules**: 38
 - **Entry Points**: 139
 
 ## Architecture by Module
@@ -603,8 +603,8 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.fleet.print_fleet_status` - 16 calls
 - `src.taskfile.cli.setup.setup` - 16 calls
 - `src.taskfile.cli.release.release` - 16 calls
-- `src.taskfile.cli.auth.auth_verify` - 15 calls
 - `src.taskfile.fleet.deploy_to_device` - 15 calls
+- `src.taskfile.cli.auth.auth_verify` - 15 calls
 - `src.taskfile.cli.quadlet.quadlet_upload` - 15 calls
 - `src.taskfile.health.print_health_report` - 14 calls
 - `src.taskfile.cli.fleet.fleet_list_cmd` - 14 calls

@@ -1,5 +1,36 @@
 ## [Unreleased]
 
+## [0.3.14] - 2026-03-05
+
+### Docs
+- Update README.md
+- Update comparisons/README.md
+- Update comparisons/taskfile-vs-ansible.md
+- Update comparisons/taskfile-vs-dagger.md
+- Update comparisons/taskfile-vs-go-task.md
+- Update comparisons/taskfile-vs-just.md
+- Update comparisons/taskfile-vs-mage.md
+- Update comparisons/taskfile-vs-make.md
+- Update examples/README.md
+- Update examples/ci-pipeline/README.md
+- ... and 14 more files
+
+### Test
+- Update tests/test_e2e_examples.py
+
+### Other
+- Update examples/ci-pipeline/Taskfile.yml
+- Update examples/cloud-aws/Taskfile.yml
+- Update examples/edge-iot/Taskfile.yml
+- Update examples/fleet-rpi/Taskfile.yml
+- Update examples/fullstack-deploy/Taskfile.yml
+- Update examples/iac-terraform/Taskfile.yml
+- Update examples/kubernetes-deploy/Taskfile.yml
+- Update examples/monorepo-microservices/Taskfile.yml
+- Update examples/multi-artifact/Taskfile.yml
+- Update examples/multiplatform/Taskfile.yml
+- ... and 21 more files
+
 ## [0.3.13] - 2026-03-05
 
 ## [0.3.12] - 2026-03-05

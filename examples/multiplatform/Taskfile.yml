@@ -247,154 +247,22 @@ tasks:
       - taskfile --env prod --platform desktop run deploy-desktop-prod
       - echo "📦 Released ${APP_NAME}:${TAG} on all platforms"
 
-  # ─── CI/CD Generation ────────────────────────────────────
+  # ─── CI/CD & Validation ─────────────────────────────────
+  # Shell logic lives in scripts/ — Taskfile stays declarative.
+
   ci-generate:
-    desc: Generate CI/CD pipeline files (GitHub Actions, GitLab CI, etc.)
+    desc: Generate GitHub Actions + GitLab CI configs
     cmds:
-      - echo "🔧 Generating CI/CD configuration files..."
-      - mkdir -p .github/workflows
-      - |
-        # Generate GitHub Actions workflow
-        cat > .github/workflows/deploy.yml << 'EOF'
-        name: Deploy
-        on:
-          push:
-            branches: [main]
-          workflow_dispatch:
-        
-        jobs:
-          deploy:
-            runs-on: ubuntu-latest
-            steps:
-              - uses: actions/checkout@v4
-              - name: Setup Taskfile
-                run: pip install taskfile
-              - name: Deploy to production
-                run: taskfile --env prod --platform web run deploy
-                env:
-                  VPS_IP: ${{ secrets.VPS_IP }}
-                  VPS_USER: ${{ secrets.VPS_USER }}
-                  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-        EOF
-      - |
-        # Generate GitLab CI configuration
-        cat > .gitlab-ci.yml << 'EOF'
-        stages:
-          - build
-          - deploy
-        
-        variables:
-          VPS_IP: $VPS_IP
-          VPS_USER: $VPS_USER
-        
-        build:
-          stage: build
-          script:
-            - pip install taskfile
-            - taskfile run build-web
-          artifacts:
-            paths:
-              - dist/
-        
-        deploy:
-          stage: deploy
-          script:
-            - taskfile --env prod --platform web run deploy
-          only:
-            - main
-        EOF
-      - echo "✅ CI/CD files generated:"
-      - echo "   .github/workflows/deploy.yml  (GitHub Actions)"
-      - echo "   .gitlab-ci.yml                (GitLab CI)"
+      - ./scripts/ci-generate.sh
 
-  # ─── Deployment Validation ────────────────────────────────────
   validate-deploy:
-    desc: Validate deployment in isolated Docker environment
+    desc: Validate deployment in isolated Docker container
     cmds:
-      - echo "🧪 Validating deployment in Docker..."
-      - |
-        # Build test image
-        docker build -t ${APP_NAME}-validate:${TAG} -f Dockerfile .
-      - |
-        # Run container and test health
-        docker run -d --name ${APP_NAME}-validate \
-          -p 9999:3000 \
-          ${APP_NAME}-validate:${TAG}
-      - echo "⏳ Waiting for container to start..."
-      - sleep 5
-      - |
-        # Health check
-        if curl -sf http://localhost:9999/health; then
-          echo "✅ Health check passed"
-        else
-          echo "❌ Health check failed"
-          docker logs ${APP_NAME}-validate
-          docker stop ${APP_NAME}-validate
-          docker rm ${APP_NAME}-validate
-          exit 1
-        fi
-      - docker stop ${APP_NAME}-validate
-      - docker rm ${APP_NAME}-validate
-      - echo "✅ Deployment validation passed"
+      - ./scripts/validate-deploy.sh ${APP_NAME} ${TAG}
 
-  validate-vm:
-    desc: Validate deployment in VM using Vagrant (requires Vagrant)
-    cmds:
-      - echo "🖥️  Validating deployment in Vagrant VM..."
-      - |
-        if ! command -v vagrant &>/dev/null; then
-          echo "❌ Vagrant not installed. Install from: https://www.vagrantup.com/"
-          exit 1
-        fi
-      - |
-        # Create Vagrantfile if not exists
-        if [ ! -f Vagrantfile ]; then
-          cat > Vagrantfile << 'EOF'
-        Vagrant.configure("2") do |config|
-          config.vm.box = "ubuntu/jammy64"
-          config.vm.network "forwarded_port", guest: 3000, host: 9999
-          config.vm.provision "shell", inline: <<-SHELL
-            apt-get update
-            apt-get install -y podman
-          SHELL
-        end
-        EOF
-        fi
-      - vagrant up
-      - |
-        # Deploy to VM
-        export VPS_IP=127.0.0.1
-        export VPS_USER=vagrant
-        export VPS_SSH_KEY=.vagrant/machines/default/virtualbox/private_key
-        taskfile --env prod run deploy-web-prod
-      - echo "✅ VM validation complete. Test at: http://localhost:9999"
-
-  # ─── Validation Matrix ────────────────────────────────────
-  validate-all:
-    desc: Run all validation checks (Docker + health checks)
-    cmds:
-      - echo "🔍 Running comprehensive validation..."
-      - taskfile run validate-deploy
-      - taskfile run test
-      - echo "✅ All validations passed!"
-
-  # ─── Preflight Checks ────────────────────────────────────
   preflight:
-    desc: Check prerequisites before deployment
+    desc: Check prerequisites (Docker, SSH, .env)
     cmds:
-      - echo "🔍 Checking prerequisites..."
-      - docker --version || (echo "❌ Docker required"; exit 1)
-      - docker compose version || (echo "❌ Docker Compose required"; exit 1)
-      - |
-        if command -v ssh &>/dev/null; then
-          echo "✅ SSH client available"
-        else
-          echo "⚠️  SSH client not found (needed for VPS deploy)"
-        fi
-      - |
-        if [ -f .env ]; then
-          echo "✅ .env file exists"
-        else
-          echo "⚠️  .env file missing - run: taskfile run init"
-        fi
-      - echo "✅ Preflight checks complete"
+      - docker --version
+      - docker compose version
+      - test -f .env || echo "⚠️  .env missing — run: taskfile run init"

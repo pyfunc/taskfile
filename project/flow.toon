@@ -424,17 +424,17 @@ DATA_TYPES (by cross-function usage) [220 annotated, 0 inferred / 247 functions]
   TaskfileConfig       consumed:12  produced:3    !! HUB-TYPE → split interface
   dict[str, str]       consumed:4   produced:9  
   FleetConfig          consumed:10  produced:2    !! HUB-TYPE → split interface
-  ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
   Path                 consumed:5   produced:6  
+  ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
   SetupConfig          consumed:8   produced:2  
   list[str] | None     consumed:9   produced:0    input-heavy (read-only flow)
-  str | Path           consumed:7   produced:0    input-heavy (read-only flow)
   str | Path | None    consumed:7   produced:0    input-heavy (read-only flow)
+  str | Path           consumed:7   produced:0    input-heavy (read-only flow)
   Task                 consumed:7   produced:0    input-heavy (read-only flow)
   list[Path]           consumed:1   produced:4  
   dict[str, str] | None consumed:4   produced:0    narrow scope
   Device               consumed:2   produced:1    narrow scope
-  PipelineStage        consumed:3   produced:0    narrow scope
+  HealthCheckResult    consumed:0   produced:3    narrow scope
 
   HUB TYPES (consumed ≥10):
     str → 127 consumers → split into:
@@ -458,8 +458,8 @@ DATA_TYPES (by cross-function usage) [220 annotated, 0 inferred / 247 functions]
 
 SIDE_EFFECTS:
   IO:        build_landing_page, TaskfileRunner._init_environment, TaskfileRunner._init_platform, TaskfileRunner.run_command, TaskfileRunner._get_task_or_fail, TaskfileRunner._should_skip_task, TaskfileRunner._run_dependencies, TaskfileRunner._run_dependencies_parallel, TaskfileRunner._execute_commands, TaskfileRunner._print_task_header
-  Mutation:  TaskRunError.__init__, TaskfileRunner.__init__, TaskfileRunner._init_config, TaskfileRunner._init_variables, _validate_task_dependencies, _validate_task_env_filter, _validate_task_platform_filter, validate_taskfile, VPSProvisioner.__init__, run_health_checks
-  Pure:      generate_landing_page, create_landing_nginx_config, create_landing_compose_service, TaskfileRunner.expand_variables, TaskfileRunner._is_remote_command, TaskfileRunner._strip_remote_prefix, TaskfileRunner._wrap_ssh, TaskfileRunner.check_condition, TaskfileRunner.list_tasks, find_taskfile
+  Mutation:  TaskRunError.__init__, TaskfileRunner.__init__, TaskfileRunner._init_config, TaskfileRunner._init_variables, VPSProvisioner.__init__, _validate_task_dependencies, _validate_task_env_filter, _validate_task_platform_filter, validate_taskfile, PipelineError.__init__
+  Pure:      generate_landing_page, create_landing_nginx_config, create_landing_compose_service, TaskfileRunner.expand_variables, TaskfileRunner._is_remote_command, TaskfileRunner._strip_remote_prefix, TaskfileRunner._wrap_ssh, TaskfileRunner.check_condition, TaskfileRunner.list_tasks, VPSProvisioner._ssh
 
   PIPELINE PURITY:
     Src             █░░░ 30% pure

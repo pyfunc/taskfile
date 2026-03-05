@@ -1,37 +1,24 @@
 version: "1"
 name: my-npm-package
-description: >
-  Node.js package → npm registry publishing pipeline.
-  Lint, test, build, pack, publish.
+description: Node.js package → npm registry publishing pipeline
 
 variables:
   PACKAGE_NAME: "@myorg/my-npm-package"
   VERSION: "0.1.0"
-  NPM_REGISTRY: https://registry.npmjs.org
-
-environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
 
 tasks:
 
-  install:
-    desc: Install dependencies
-    cmds:
-      - npm ci
-
   lint:
     desc: Run ESLint
-    deps: [install]
     cmds:
+      - npm ci
       - npm run lint
     ignore_errors: true
 
   test:
     desc: Run tests (vitest/jest)
-    deps: [install]
     cmds:
+      - npm ci
       - npm test
 
   build:
@@ -39,38 +26,23 @@ tasks:
     deps: [test]
     cmds:
       - npm run build
-      - echo "📦 Built → dist/"
-
-  pack:
-    desc: Create tarball (dry run before publish)
-    deps: [build]
-    cmds:
       - npm pack --dry-run
-      - echo "✅ Package looks good"
 
   publish:
     desc: Publish to npm registry
-    deps: [pack]
+    deps: [build]
     cmds:
       - npm publish --access public
-      - echo "✅ Published ${PACKAGE_NAME}@${VERSION} to npm"
 
   publish-beta:
     desc: Publish beta version with dist-tag
     deps: [build]
     cmds:
       - npm publish --tag beta --access public
-      - echo "✅ Published ${PACKAGE_NAME}@${VERSION}-beta to npm (beta tag)"
-
-  verify:
-    desc: Verify package installs from npm
-    cmds:
-      - npm info ${PACKAGE_NAME}@${VERSION}
-      - echo "✅ ${PACKAGE_NAME}@${VERSION} is live on npm"
 
   release:
-    desc: Full release — test, build, tag, publish
-    deps: [test, lint]
+    desc: Tag + build + publish
+    deps: [lint, test]
     parallel: true
     cmds:
       - npm version ${VERSION} --no-git-tag-version
@@ -78,16 +50,13 @@ tasks:
       - npm publish --access public
       - git tag -a v${VERSION} -m "Release v${VERSION}"
       - git push origin v${VERSION}
-      - echo "🚀 Released ${PACKAGE_NAME}@${VERSION}"
 
-  deprecate:
-    desc: Deprecate a version on npm
+  verify:
+    desc: Check published package
     cmds:
-      - npm deprecate ${PACKAGE_NAME}@${VERSION} "Deprecated — use latest"
-      - echo "⚠️  ${PACKAGE_NAME}@${VERSION} marked as deprecated"
+      - npm info ${PACKAGE_NAME}@${VERSION}
 
   clean:
     desc: Remove build artifacts
     cmds:
       - rm -rf dist/ node_modules/ *.tgz
-      - echo "🧹 Cleaned"

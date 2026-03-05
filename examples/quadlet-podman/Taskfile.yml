@@ -1,0 +1,159 @@
+version: "1"
+name: webapp
+description: "Podman Quadlet deploy: compose → .container files → systemd, low-RAM VPS"
+
+variables:
+  APP_NAME: webapp
+  IMAGE: ghcr.io/myorg/webapp
+  TAG: latest
+  DOMAIN: app.example.com
+
+compose:
+  file: docker-compose.yml
+  override_files:
+    - docker-compose.prod.yml
+  network: proxy
+  auto_update: true
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    env_file: .env.local
+
+  prod:
+    ssh_host: vps.example.com
+    ssh_user: deploy
+    ssh_port: 2222
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod
+    compose_file: docker-compose.yml
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+
+tasks:
+
+  # ─── Local dev ──────────────────────────────────────
+
+  dev:
+    desc: Run locally with Docker Compose
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+      - docker compose logs -f
+
+  dev-stop:
+    desc: Stop local dev
+    env: [local]
+    cmds:
+      - docker compose down
+
+  # ─── Build + push ──────────────────────────────────
+
+  build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push image to GHCR
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  # ─── Quadlet workflow ───────────────────────────────
+  # 1. Generate .container files from docker-compose.yml
+  # 2. Upload to remote VPS
+  # 3. Reload systemd + restart services
+
+  quadlet-generate:
+    desc: Generate Quadlet .container files from docker-compose.yml
+    env: [prod]
+    cmds:
+      - mkdir -p deploy/quadlet
+      - taskfile quadlet generate
+      - ls -la deploy/quadlet/
+
+  quadlet-upload:
+    desc: Upload Quadlet files to VPS
+    env: [prod]
+    cmds:
+      - taskfile quadlet upload --env prod
+
+  quadlet-restart:
+    desc: Reload systemd and restart services on VPS
+    env: [prod]
+    cmds:
+      - "@remote systemctl --user daemon-reload"
+      - "@remote systemctl --user restart ${APP_NAME}"
+      - "@remote systemctl --user status ${APP_NAME}"
+
+  # ─── Full deploy ────────────────────────────────────
+
+  deploy-local:
+    desc: Deploy locally with docker compose
+    env: [local]
+    cmds:
+      - docker compose pull
+      - docker compose up -d
+
+  deploy-prod:
+    desc: Full prod deploy — build → push → quadlet → restart
+    env: [prod]
+    deps: [push]
+    cmds:
+      - taskfile quadlet generate
+      - taskfile quadlet upload --env prod
+      - "@remote systemctl --user daemon-reload"
+      - "@remote systemctl --user restart ${APP_NAME}"
+
+  deploy:
+    desc: Auto-select deploy strategy (use `taskfile deploy`)
+    cmds:
+      - echo "Use: taskfile --env local deploy OR taskfile --env prod deploy"
+
+  # ─── VPS setup ──────────────────────────────────────
+
+  setup-vps:
+    desc: One-command VPS setup (use `taskfile setup <IP>`)
+    cmds:
+      - echo "Run: taskfile setup ${SSH_HOST} --domain ${DOMAIN}"
+      - echo "This will: SSH key → install Podman → enable linger → deploy"
+
+  provision:
+    desc: Install Podman + Traefik on fresh VPS
+    env: [prod]
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman podman-compose"
+      - "@remote sudo loginctl enable-linger deploy"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+      - "@remote podman network create proxy 2>/dev/null || true"
+
+  # ─── Monitoring ─────────────────────────────────────
+
+  logs:
+    desc: View app logs on VPS
+    env: [prod]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME} -f --lines=100"
+
+  status:
+    desc: Check service status on VPS
+    env: [prod]
+    cmds:
+      - "@remote systemctl --user status ${APP_NAME}"
+      - "@remote podman ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+
+  health:
+    desc: Check app health endpoint
+    silent: true
+    cmds:
+      - curl -sf https://${DOMAIN}/health && echo "OK" || echo "FAIL"
+
+  clean:
+    desc: Remove local build artifacts + quadlet files
+    cmds:
+      - rm -rf deploy/quadlet/
+      - docker rmi ${IMAGE}:${TAG} 2>/dev/null || true

@@ -1,0 +1,177 @@
+version: "1"
+name: infra
+description: "Terraform IaC: multi-env (dev/staging/prod), plan/apply/destroy, state management"
+
+variables:
+  PROJECT: my-infra
+  TF_DIR: terraform
+  TF_STATE_BUCKET: myorg-terraform-state
+  AWS_REGION: eu-west-1
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      TF_WORKSPACE: dev
+      AWS_REGION: eu-west-1
+      INSTANCE_TYPE: t3.small
+      INSTANCE_COUNT: "1"
+      DOMAIN: dev.example.com
+
+  staging:
+    env_file: .env.staging
+    variables:
+      TF_WORKSPACE: staging
+      AWS_REGION: eu-west-1
+      INSTANCE_TYPE: t3.medium
+      INSTANCE_COUNT: "2"
+      DOMAIN: staging.example.com
+
+  prod:
+    env_file: .env.prod
+    variables:
+      TF_WORKSPACE: prod
+      AWS_REGION: eu-west-1
+      INSTANCE_TYPE: t3.large
+      INSTANCE_COUNT: "3"
+      DOMAIN: example.com
+
+  prod-us:
+    env_file: .env.prod-us
+    variables:
+      TF_WORKSPACE: prod-us
+      AWS_REGION: us-east-1
+      INSTANCE_TYPE: t3.large
+      INSTANCE_COUNT: "3"
+      DOMAIN: us.example.com
+
+environment_groups:
+  all-prod:
+    members: [prod, prod-us]
+    strategy: rolling
+    max_parallel: 1
+
+tasks:
+
+  init:
+    desc: Initialize Terraform backend + providers
+    dir: ${TF_DIR}
+    cmds:
+      - >-
+        terraform init
+        -backend-config="bucket=${TF_STATE_BUCKET}"
+        -backend-config="key=${PROJECT}/${TF_WORKSPACE}/terraform.tfstate"
+        -backend-config="region=${AWS_REGION}"
+
+  workspace:
+    desc: Select or create Terraform workspace
+    dir: ${TF_DIR}
+    deps: [init]
+    cmds:
+      - terraform workspace select ${TF_WORKSPACE} || terraform workspace new ${TF_WORKSPACE}
+
+  validate:
+    desc: Validate Terraform config
+    dir: ${TF_DIR}
+    deps: [workspace]
+    cmds:
+      - terraform validate
+      - terraform fmt -check -recursive
+
+  plan:
+    desc: Generate execution plan
+    dir: ${TF_DIR}
+    deps: [workspace]
+    cmds:
+      - >-
+        terraform plan
+        -var="region=${AWS_REGION}"
+        -var="instance_type=${INSTANCE_TYPE}"
+        -var="instance_count=${INSTANCE_COUNT}"
+        -var="domain=${DOMAIN}"
+        -out=tfplan
+
+  apply:
+    desc: Apply infrastructure changes
+    dir: ${TF_DIR}
+    deps: [plan]
+    cmds:
+      - terraform apply tfplan
+
+  destroy:
+    desc: Destroy all infrastructure (use with caution!)
+    dir: ${TF_DIR}
+    deps: [workspace]
+    cmds:
+      - >-
+        terraform destroy
+        -var="region=${AWS_REGION}"
+        -var="instance_type=${INSTANCE_TYPE}"
+        -var="instance_count=${INSTANCE_COUNT}"
+        -var="domain=${DOMAIN}"
+        -auto-approve
+
+  output:
+    desc: Show Terraform outputs
+    dir: ${TF_DIR}
+    cmds:
+      - terraform output -json
+
+  state-list:
+    desc: List all resources in state
+    dir: ${TF_DIR}
+    cmds:
+      - terraform state list
+
+  cost:
+    desc: Estimate cost (requires infracost)
+    dir: ${TF_DIR}
+    condition: "command -v infracost >/dev/null 2>&1"
+    cmds:
+      - infracost breakdown --path . --terraform-var-file=vars/${TF_WORKSPACE}.tfvars
+
+  lint:
+    desc: Lint Terraform (tflint + checkov)
+    dir: ${TF_DIR}
+    cmds:
+      - terraform fmt -check -recursive
+      - tflint --recursive
+    ignore_errors: true
+
+  security:
+    desc: Security scan (checkov + tfsec)
+    dir: ${TF_DIR}
+    cmds:
+      - checkov -d .
+      - tfsec .
+    ignore_errors: true
+
+  ci-plan:
+    desc: CI-safe plan (no interactive prompts)
+    stage: plan
+    dir: ${TF_DIR}
+    deps: [validate, lint]
+    parallel: true
+    cmds:
+      - terraform workspace select ${TF_WORKSPACE} || terraform workspace new ${TF_WORKSPACE}
+      - >-
+        terraform plan -input=false
+        -var="region=${AWS_REGION}"
+        -var="instance_type=${INSTANCE_TYPE}"
+        -var="instance_count=${INSTANCE_COUNT}"
+        -var="domain=${DOMAIN}"
+        -out=tfplan
+
+  ci-apply:
+    desc: CI-safe apply (no interactive prompts)
+    stage: apply
+    dir: ${TF_DIR}
+    cmds:
+      - terraform apply -input=false -auto-approve tfplan
+
+  clean:
+    desc: Remove local state + plan files
+    dir: ${TF_DIR}
+    cmds:
+      - rm -f tfplan terraform.tfstate.backup
+      - rm -rf .terraform/

@@ -115,17 +115,22 @@ taskfile --env kiosk-parking run deploy-kiosk --var TAG=v2.1.0
 
 ## Jak to działa
 
-### 1. Każdy RPi = environment w Taskfile.yml
+### 1. `environment_defaults` eliminuje duplikację
 
 ```yaml
+# Wspólne ustawienia dla wszystkich RPi
+environment_defaults:
+  ssh_user: pi
+  ssh_key: ~/.ssh/fleet_ed25519
+  container_runtime: podman
+  variables:
+    KIOSK_DISPLAY: ":0"
+
+# Każdy RPi definiuje tylko to, co unikalne
 environments:
   kiosk-lobby:
     ssh_host: 192.168.1.10
-    ssh_user: pi
-    ssh_key: ~/.ssh/fleet_ed25519
-    container_runtime: podman
-    variables:
-      KIOSK_ID: lobby
+    variables: { KIOSK_ID: lobby }
 ```
 
 ### 2. Grupy definiują strategię deploy
@@ -134,7 +139,7 @@ environments:
 environment_groups:
   all-kiosks:
     members: [kiosk-lobby, kiosk-cafe, ...]
-    strategy: rolling     # 2 naraz
+    strategy: rolling
     max_parallel: 2
 ```
 
@@ -142,9 +147,9 @@ environment_groups:
 
 ```bash
 taskfile -G all-kiosks run deploy-kiosk
-# → deploy-kiosk na kiosk-lobby + kiosk-cafe (batch 1)
-# → deploy-kiosk na kiosk-entrance-north + kiosk-entrance-south (batch 2)
-# → deploy-kiosk na kiosk-food-court + kiosk-parking (batch 3)
+# → batch 1: kiosk-lobby + kiosk-cafe
+# → batch 2: kiosk-entrance-north + kiosk-entrance-south
+# → batch 3: kiosk-food-court + kiosk-parking
 ```
 
 ## Wymagania

@@ -1,8 +1,6 @@
 version: "1"
 name: my-docker-app
-description: >
-  Docker image → GHCR + Docker Hub publishing pipeline.
-  Multi-arch build (amd64 + arm64), push to two registries.
+description: Docker image → GHCR + Docker Hub (multi-arch)
 
 variables:
   APP_NAME: my-docker-app
@@ -12,10 +10,6 @@ variables:
   PLATFORMS: linux/amd64,linux/arm64
 
 environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
-
   prod:
     ssh_host: prod.example.com
     ssh_user: deploy
@@ -24,34 +18,18 @@ environments:
 
 tasks:
 
-  lint-dockerfile:
-    desc: Lint Dockerfile with hadolint
-    cmds:
-      - docker run --rm -i hadolint/hadolint < Dockerfile
-    ignore_errors: true
-
-  test:
-    desc: Run tests inside container
-    cmds:
-      - docker compose run --rm app pytest -v
-
   build:
-    desc: Build image for local arch
+    desc: Build image (local arch)
     cmds:
       - docker build -t ${APP_NAME}:${TAG} .
-      - echo "✅ Built ${APP_NAME}:${TAG}"
 
   build-multiarch:
-    desc: Build multi-arch image (amd64 + arm64)
+    desc: Build + push multi-arch (amd64 + arm64)
     cmds:
       - docker buildx create --use --name multiarch 2>/dev/null || true
       - >-
-        docker buildx build
-        --platform ${PLATFORMS}
-        -t ${GHCR_IMAGE}:${TAG}
-        -t ${DOCKERHUB_IMAGE}:${TAG}
-        --push .
-      - echo "✅ Multi-arch image pushed to GHCR + Docker Hub"
+        docker buildx build --platform ${PLATFORMS}
+        -t ${GHCR_IMAGE}:${TAG} -t ${DOCKERHUB_IMAGE}:${TAG} --push .
 
   push-ghcr:
     desc: Push to GitHub Container Registry
@@ -59,7 +37,6 @@ tasks:
     cmds:
       - docker tag ${APP_NAME}:${TAG} ${GHCR_IMAGE}:${TAG}
       - docker push ${GHCR_IMAGE}:${TAG}
-      - echo "✅ Pushed ${GHCR_IMAGE}:${TAG}"
 
   push-dockerhub:
     desc: Push to Docker Hub
@@ -67,49 +44,32 @@ tasks:
     cmds:
       - docker tag ${APP_NAME}:${TAG} ${DOCKERHUB_IMAGE}:${TAG}
       - docker push ${DOCKERHUB_IMAGE}:${TAG}
-      - echo "✅ Pushed ${DOCKERHUB_IMAGE}:${TAG}"
 
   push-all:
-    desc: Push to both registries
+    desc: Push to both registries (parallel)
     deps: [push-ghcr, push-dockerhub]
     parallel: true
     cmds:
-      - echo "✅ Pushed to GHCR + Docker Hub"
+      - echo "Pushed to GHCR + Docker Hub"
 
   deploy:
-    desc: Pull and restart on production server
+    desc: Pull + restart on production
     env: [prod]
     cmds:
       - "@remote podman pull ${GHCR_IMAGE}:${TAG}"
       - "@remote podman stop ${APP_NAME} 2>/dev/null || true"
       - "@remote podman rm ${APP_NAME} 2>/dev/null || true"
       - "@remote podman run -d --name ${APP_NAME} --restart=always -p 8080:8080 ${GHCR_IMAGE}:${TAG}"
-      - echo "✅ Deployed ${APP_NAME}:${TAG} to prod"
-
-  login-ghcr:
-    desc: Login to GHCR
-    cmds:
-      - echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
-      - echo "✅ Logged in to ghcr.io"
-
-  login-dockerhub:
-    desc: Login to Docker Hub
-    cmds:
-      - echo ${DOCKER_TOKEN} | docker login -u ${DOCKER_USER} --password-stdin
-      - echo "✅ Logged in to Docker Hub"
 
   release:
-    desc: Full release — build multi-arch, push, deploy
+    desc: Tag + build multi-arch + push
     cmds:
       - git tag -a v${TAG} -m "Release v${TAG}"
       - git push origin v${TAG}
+      - docker buildx create --use --name multiarch 2>/dev/null || true
       - >-
-        docker buildx build
-        --platform ${PLATFORMS}
-        -t ${GHCR_IMAGE}:${TAG}
-        -t ${DOCKERHUB_IMAGE}:${TAG}
-        --push .
-      - echo "🚀 Released ${APP_NAME}:${TAG} to GHCR + Docker Hub"
+        docker buildx build --platform ${PLATFORMS}
+        -t ${GHCR_IMAGE}:${TAG} -t ${DOCKERHUB_IMAGE}:${TAG} --push .
 
   scan:
     desc: Scan image for vulnerabilities
@@ -119,8 +79,7 @@ tasks:
     ignore_errors: true
 
   clean:
-    desc: Remove local images and build cache
+    desc: Remove images and build cache
     cmds:
       - docker rmi ${APP_NAME}:${TAG} ${GHCR_IMAGE}:${TAG} ${DOCKERHUB_IMAGE}:${TAG} 2>/dev/null || true
       - docker buildx prune -f
-      - echo "🧹 Cleaned"

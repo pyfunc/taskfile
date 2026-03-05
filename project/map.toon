@@ -1,7 +1,8 @@
-# taskfile | 37f 7477L | python:37
+# taskfile | 38f 7483L | python:38
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[37]:
+M[38]:
   src/taskfile/__init__.py,39
+  src/taskfile/__main__.py,6
   src/taskfile/cigen/__init__.py,58
   src/taskfile/cigen/base.py,67
   src/taskfile/cigen/drone.py,63
@@ -280,6 +281,7 @@ Th...
     e: JenkinsTarget
     JenkinsTarget(CITarget): _tag_var(0),generate(0)
   src/taskfile/__init__.py:
+  src/taskfile/__main__.py:
   src/taskfile/scaffold/web.py:
   src/taskfile/scaffold/minimal.py:
   src/taskfile/scaffold/publish.py:

@@ -2,52 +2,26 @@
 
 Publikacja paczki Python na PyPI za pomocą Taskfile.
 
-## Struktura projektu
-
-```
-publish-pypi/
-├── Taskfile.yml          # Pipeline: lint → test → build → publish
-├── pyproject.toml        # Metadata paczki
-├── src/
-│   └── my_python_lib/
-│       └── __init__.py
-├── tests/
-│   └── test_lib.py
-└── README.md
-```
-
-## Pipeline
+## Taskfile.yml — 63 linie
 
 ```
 lint ──┐
-       ├── (parallel) ── build ── check ── publish
+       ├── (parallel) ── build (+ twine check) ── publish
 test ──┘
 ```
+
+**Brak sekcji `environments`** — nie jest potrzebna dla prostego pipeline publikacji.
 
 ## Użycie
 
 ```bash
-# Konfiguracja tokenu PyPI
-taskfile auth setup --registry pypi
+taskfile auth setup --registry pypi  # jednorazowo
 
-# Testy + lint
-taskfile run test
-taskfile run lint
-
-# Build wheel + sdist
-taskfile run build
-
-# Publikacja na TestPyPI (bezpieczne testowanie)
-taskfile run publish-testpypi
-
-# Publikacja na PyPI (produkcja)
-taskfile run publish
-
-# Pełny release: tag + build + publish
-taskfile run release --var VERSION=1.0.0
-
-# Weryfikacja — czy paczka się instaluje
-taskfile run verify --var VERSION=1.0.0
+taskfile run test                    # pytest + coverage
+taskfile run build                   # wheel + sdist + twine check
+taskfile run publish                 # upload do PyPI
+taskfile run release --var VERSION=1.0.0  # tag + build + publish
+taskfile run verify --var VERSION=1.0.0   # sprawdź czy się instaluje
 ```
 
 ## Wymagane tokeny
@@ -56,9 +30,6 @@ taskfile run verify --var VERSION=1.0.0
 |---------|---------------|
 | `PYPI_TOKEN` | https://pypi.org/manage/account/token/ |
 
-Token zapisz w `.env`:
+```bash
+taskfile auth setup --registry pypi
 ```
-PYPI_TOKEN=pypi-AgEIcH...
-```
-
-Lub użyj `taskfile auth setup --registry pypi`.

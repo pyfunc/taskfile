@@ -3,11 +3,11 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-05T10:37:09Z'
+  analyzed_at: '2026-03-05T11:25:37Z'
   tool: code2llm
   stats:
     files: 28
-    lines: 10743
+    lines: 11213
     functions: 247
     classes: 35
 health:
@@ -608,6 +608,12 @@ modules:
   methods: 0
   cc_max: 0
   inbound_deps: 0
+- path: src/taskfile/__main__.py
+  lines: 6
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
 - path: src/taskfile/cli/__init__.py
   lines: 11
   classes: 0
@@ -727,5 +733,5 @@ evolution:
 - date: '2026-03-05'
   cc_avg: 3.9
   critical: 12
-  lines: 10743
+  lines: 11213
   note: Automated analysis

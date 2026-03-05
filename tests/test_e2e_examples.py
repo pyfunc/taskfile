@@ -254,7 +254,6 @@ class TestMultiplatformExample:
         config = load_taskfile(multi_path / "Taskfile.yml")
 
         assert "validate-deploy" in config.tasks
-        assert "validate-vm" in config.tasks
         assert "preflight" in config.tasks
 
 

@@ -1,65 +1,32 @@
 # Publish GitHub — GitHub Releases
 
-Publikacja binarek CLI na GitHub Releases za pomocą Taskfile.
+Publikacja cross-compiled Go binarek na GitHub Releases.
 
-## Struktura projektu
-
-```
-publish-github/
-├── Taskfile.yml      # Pipeline: build → checksum → release → upload
-├── go.mod            # Go module (przykład z Go CLI)
-├── main.go
-└── README.md
-```
-
-## Pipeline
+## Taskfile.yml — 75 linii
 
 ```
-build-linux ────┐
-build-linux-arm ┤
-build-macos ────┤── (parallel) ── checksum ── create-release ── upload-assets ── publish
-build-windows ──┘
+build-linux ──┐
+build-macos ──┤── (parallel) ── build-all (+ checksums) ── release (gh release create)
+build-windows ┘
 ```
+
+**Brak sekcji `environments`** — nie potrzebna. Jedno polecenie `release` robi: tag → build all → checksums → `gh release create` z assets.
 
 ## Użycie
 
 ```bash
-# Konfiguracja tokenu GitHub
-taskfile auth setup --registry github
+gh auth login                            # jednorazowo
 
-# Testy
-taskfile run test
-
-# Build dla jednej platformy
-taskfile run build-linux --var VERSION=1.0.0
-
-# Build dla wszystkich platform (parallel)
-taskfile run build-all --var VERSION=1.0.0
-
-# Generowanie checksums
-taskfile run checksum --var VERSION=1.0.0
-
-# Utworzenie draftu release na GitHub
-taskfile run create-release --var VERSION=1.0.0
-
-# Upload binarek
-taskfile run upload-assets --var VERSION=1.0.0
-
-# Publikacja release (usunięcie flagi draft)
-taskfile run publish --var VERSION=1.0.0
-
-# Weryfikacja
-taskfile run verify --var VERSION=1.0.0
+taskfile run test                        # go test
+taskfile run build-linux --var VERSION=1.0.0   # Linux amd64 + arm64
+taskfile run build-all --var VERSION=1.0.0     # 4 platformy parallel + checksums
+taskfile run release --var VERSION=1.0.0       # tag + build + gh release create
+taskfile run verify --var VERSION=1.0.0        # gh release view
 ```
 
-## Wymagane tokeny
+## Wymagane
 
-| Zmienna | Gdzie uzyskać |
-|---------|---------------|
+| Narzędzie | Instalacja |
+|-----------|------------|
+| `gh` CLI | https://cli.github.com/ |
 | `GITHUB_TOKEN` | https://github.com/settings/tokens (scope: `repo`) |
-
-Wymagane narzędzie: [`gh` CLI](https://cli.github.com/)
-
-```bash
-gh auth login
-```

@@ -191,22 +191,162 @@ taskfile ci generate --all
 ```
 examples/
 ├── README.md
-├── minimal/               # ⭐ start
-├── saas-app/              # ⭐⭐ multi-env
-├── multiplatform/         # ⭐⭐⭐ web+desktop
-├── codereview.pl/         # ⭐⭐⭐⭐ full project
-├── publish-pypi/          # 📦 Python → PyPI
-├── publish-npm/           # 📦 Node.js → npm
-├── publish-cargo/         # 📦 Rust → crates.io
-├── publish-docker/        # 🐳 Docker → GHCR + Docker Hub
-├── publish-github/        # 🏷️ Binaries → GitHub Releases
-├── fleet-rpi/             # 🤖 RPi fleet management
-├── multi-artifact/        # 🏭 Python+Rust+Node+Docker monorepo
+│
+│  ─── Basics ───────────────────────────────
+├── minimal/                  # ⭐ start here
+├── saas-app/                 # ⭐⭐ multi-env (local/staging/prod)
+├── multiplatform/            # ⭐⭐⭐ web+desktop × local+prod
+├── codereview.pl/            # ⭐⭐⭐⭐ full production project
+│
+│  ─── Publishing ───────────────────────────
+├── publish-pypi/             # 📦 Python → PyPI
+├── publish-npm/              # 📦 Node.js → npm
+├── publish-cargo/            # 📦 Rust → crates.io
+├── publish-docker/           # 🐳 Docker → GHCR + Docker Hub
+├── publish-github/           # 🏷️ Go binaries → GitHub Releases
+├── multi-artifact/           # 🏭 Python+Rust+Node+Docker monorepo
+│
+│  ─── Fleet & IoT ──────────────────────────
+├── fleet-rpi/                # 🤖 RPi fleet, environment_defaults
+├── edge-iot/                 # 📡 IoT gateways, all 3 group strategies
+│
+│  ─── Infrastructure & Cloud ───────────────
+├── ci-pipeline/              # 🔄 pipeline section, ci generate/run
+├── kubernetes-deploy/        # ☸️  Helm + multi-cluster K8s
+├── iac-terraform/            # 🏗️ Terraform multi-env IaC
+├── cloud-aws/                # ☁️  AWS: Lambda + ECS + S3
+├── quadlet-podman/           # 🐧 Podman Quadlet → systemd
+│
+│  ─── Advanced ─────────────────────────────
+├── monorepo-microservices/   # 🔧 platforms, condition, dir, stage
+├── fullstack-deploy/         # 🎯 ALL CLI commands showcase
+│
 ├── Taskfile.softreck.yml
 ├── .github-actions-deploy.yml
 ├── .gitlab-ci.yml
 └── .gitea-actions-deploy.yml
 ```
+
+## Feature Coverage Matrix
+
+| Feature | Example(s) |
+|---------|-----------|
+| `environments` (multi-env) | saas-app, ci-pipeline, kubernetes-deploy, cloud-aws |
+| `environment_defaults` | fleet-rpi, edge-iot, kubernetes-deploy, cloud-aws |
+| `environment_groups` (rolling/canary/parallel) | fleet-rpi, edge-iot, kubernetes-deploy, cloud-aws |
+| `platforms` + `build_cmd`/`deploy_cmd` | multiplatform, monorepo-microservices |
+| `default_platform` | monorepo-microservices |
+| `pipeline` section (stages, when, dind) | ci-pipeline, kubernetes-deploy, cloud-aws, monorepo-microservices, fullstack-deploy |
+| `stage` field (auto-infer pipeline) | ci-pipeline, iac-terraform, monorepo-microservices |
+| `compose` section (override_files, network) | quadlet-podman, monorepo-microservices, fullstack-deploy |
+| `service_manager: quadlet` | quadlet-podman, codereview.pl, monorepo-microservices, fullstack-deploy |
+| `quadlet_dir` / `quadlet_remote_dir` | quadlet-podman, fullstack-deploy |
+| `dir` (working_dir on task) | iac-terraform, monorepo-microservices |
+| `condition` on task | ci-pipeline, iac-terraform, cloud-aws, edge-iot, monorepo-microservices |
+| `silent` on task | ci-pipeline, cloud-aws, quadlet-podman, fullstack-deploy |
+| `ignore_errors` / `continue_on_error` | all publish-*, ci-pipeline, iac-terraform |
+| `parallel` (deps run concurrently) | multi-artifact, monorepo-microservices, publish-github |
+| `env_file` per environment | ci-pipeline, iac-terraform, cloud-aws, edge-iot, quadlet-podman, fullstack-deploy |
+| `ssh_port` (non-standard) | edge-iot (2200), quadlet-podman (2222) |
+| `@remote` SSH commands | fleet-rpi, edge-iot, quadlet-podman, saas-app, codereview.pl |
+| `--var KEY=VALUE` override | all examples |
+| `--dry-run` | fullstack-deploy |
+| `taskfile ci generate/run/preview/list` | ci-pipeline, fullstack-deploy |
+| `taskfile deploy` (auto strategy) | quadlet-podman, fullstack-deploy |
+| `taskfile setup` (VPS provisioning) | quadlet-podman, fullstack-deploy |
+| `taskfile validate/info/list` | fullstack-deploy |
+
+---
+
+## Best Practices: Kod vs Konfiguracja
+
+Te przykłady stosują następujące zasady. Stosuj je w swoich Taskfile:
+
+### 1. Taskfile.yml = deklaratywna konfiguracja
+
+```yaml
+# ✅ Krótkie, jednoliniowe komendy
+tasks:
+  build:
+    deps: [test]
+    cmds:
+      - cargo build --release
+```
+
+```yaml
+# ❌ Logika bash wewnątrz YAML
+tasks:
+  build:
+    cmds:
+      - |
+        if [ "$ENV" = "prod" ]; then
+          cargo build --release
+        else
+          cargo build
+        fi
+```
+
+### 2. Skrypty shell → `scripts/`
+
+Gdy task wymaga ifów, pętli, error handling — wyciągnij do pliku:
+
+```yaml
+# ✅ Taskfile woła skrypt
+ci-generate:
+  cmds:
+    - ./scripts/ci-generate.sh
+```
+
+Patrz: [multiplatform/scripts/](multiplatform/scripts/)
+
+### 3. `environment_defaults` zamiast kopiowania
+
+```yaml
+# ✅ DRY — 2 linie na urządzenie
+environment_defaults:
+  ssh_user: pi
+  ssh_key: ~/.ssh/fleet
+  container_runtime: podman
+
+environments:
+  node-1:
+    ssh_host: 192.168.1.10
+  node-2:
+    ssh_host: 192.168.1.11
+```
+
+Patrz: [fleet-rpi/](fleet-rpi/)
+
+### 4. Nie deklaruj `environments` bez potrzeby
+
+```yaml
+# ✅ Publish pipeline nie potrzebuje environments
+version: "1"
+name: my-lib
+variables:
+  VERSION: "1.0.0"
+tasks:
+  test:
+    cmds: [cargo test]
+  publish:
+    deps: [test]
+    cmds: [cargo publish]
+```
+
+Patrz: [publish-pypi/](publish-pypi/), [publish-cargo/](publish-cargo/), [publish-npm/](publish-npm/)
+
+### 5. `deps` + `parallel` zamiast powtarzania komend
+
+```yaml
+# ✅ Compose tasks via deps
+test-all:
+  deps: [py-test, rs-test, js-test]
+  parallel: true
+```
+
+Patrz: [multi-artifact/](multi-artifact/)
+
+---
 
 ## Jak zacząć?
 
@@ -218,15 +358,6 @@ examples/
 
 ## Wsparcie
 
-Więcej informacji w głównej dokumentacji:
-- [Główny README](../README.md)
+- [Główny README](../README.md) — pełna dokumentacja + integracja z Make/Just/Task/Dagger/Ansible
 - [Dokumentacja](../docs/)
 - [CHANGELOG](../CHANGELOG.md)
-
-## License
-
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
-
-## Author
-
-Created by **Tom Sapletta** - [tom@sapletta.com](mailto:tom@sapletta.com)

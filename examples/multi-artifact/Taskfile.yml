@@ -1,294 +1,201 @@
 version: "1"
 name: unirepo
-description: >
-  Multi-artifact monorepo — one folder produces 4 artifacts:
-    1. Python SDK   → PyPI
-    2. Rust CLI      → crates.io + GitHub Releases
-    3. Node.js SDK   → npm
-    4. Docker image  → GHCR + Docker Hub
-  Shared version, parallel builds, unified release pipeline.
-
-default_env: local
+description: "Monorepo: Python SDK + Rust CLI + Node.js SDK + Docker → 5 registries"
 
 variables:
-  PROJECT_NAME: unirepo
+  PROJECT: unirepo
   VERSION: "0.1.0"
   REGISTRY: ghcr.io/myorg
   DOCKERHUB: myorg/unirepo
   GITHUB_REPO: myorg/unirepo
-  DIST_DIR: dist
+  DIST: dist
 
 environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
-
   prod:
     ssh_host: prod.example.com
     ssh_user: deploy
     ssh_key: ~/.ssh/id_ed25519
     container_runtime: podman
-    variables:
-      DOMAIN: api.example.com
 
-# ─── Tasks ────────────────────────────────────────────
+# ─── Python SDK ─────────────────────────────────────
 
 tasks:
 
-  # ════════════════════════════════════════════════════
-  # Python SDK (packages/python-sdk/)
-  # ════════════════════════════════════════════════════
-
-  py-install:
-    desc: "Python: install dev dependencies"
-    cmds:
-      - cd packages/python-sdk && pip install -e ".[dev]"
-
   py-lint:
-    desc: "Python: run ruff"
+    desc: "py: ruff check"
     cmds:
       - cd packages/python-sdk && ruff check src/
     ignore_errors: true
 
   py-test:
-    desc: "Python: run pytest"
-    deps: [py-install]
+    desc: "py: pytest"
     cmds:
-      - cd packages/python-sdk && pytest tests/ -v --cov=src/
+      - cd packages/python-sdk && pip install -e ".[dev]" && pytest tests/ -v
 
   py-build:
-    desc: "Python: build wheel + sdist"
+    desc: "py: wheel + sdist"
     deps: [py-test]
     cmds:
-      - cd packages/python-sdk && rm -rf dist/ && python -m build
-      - echo "📦 Python SDK → packages/python-sdk/dist/"
+      - cd packages/python-sdk && rm -rf dist/ && python -m build && twine check dist/*
 
   py-publish:
-    desc: "Python: publish to PyPI"
+    desc: "py → PyPI"
     deps: [py-build]
     cmds:
-      - cd packages/python-sdk && twine check dist/* && twine upload dist/*
-      - echo "✅ Python SDK v${VERSION} → PyPI"
+      - cd packages/python-sdk && twine upload dist/*
 
-  # ════════════════════════════════════════════════════
-  # Rust CLI (packages/rust-cli/)
-  # ════════════════════════════════════════════════════
+  # ─── Rust CLI ──────────────────────────────────────
 
-  rs-fmt:
-    desc: "Rust: check formatting"
+  rs-lint:
+    desc: "rs: fmt + clippy"
     cmds:
-      - cd packages/rust-cli && cargo fmt --check
-    ignore_errors: true
-
-  rs-clippy:
-    desc: "Rust: run clippy"
-    cmds:
-      - cd packages/rust-cli && cargo clippy -- -D warnings
+      - cd packages/rust-cli && cargo fmt --check && cargo clippy -- -D warnings
     ignore_errors: true
 
   rs-test:
-    desc: "Rust: run tests"
+    desc: "rs: cargo test"
     cmds:
       - cd packages/rust-cli && cargo test --verbose
 
   rs-build:
-    desc: "Rust: build release binary"
+    desc: "rs: release binary"
     deps: [rs-test]
     cmds:
       - cd packages/rust-cli && cargo build --release
-      - mkdir -p ${DIST_DIR}
-      - cp packages/rust-cli/target/release/${PROJECT_NAME}-cli ${DIST_DIR}/
-      - echo "📦 Rust CLI → ${DIST_DIR}/${PROJECT_NAME}-cli"
+      - mkdir -p ${DIST} && cp packages/rust-cli/target/release/${PROJECT}-cli ${DIST}/
 
-  rs-build-all:
-    desc: "Rust: build for Linux + macOS + Windows"
+  rs-build-cross:
+    desc: "rs: cross-compile Linux + macOS + Windows"
     deps: [rs-test]
     cmds:
       - cd packages/rust-cli && cargo build --release --target x86_64-unknown-linux-gnu
       - cd packages/rust-cli && cargo build --release --target x86_64-apple-darwin
       - cd packages/rust-cli && cargo build --release --target x86_64-pc-windows-gnu
-      - mkdir -p ${DIST_DIR}
-      - cp packages/rust-cli/target/x86_64-unknown-linux-gnu/release/${PROJECT_NAME}-cli ${DIST_DIR}/${PROJECT_NAME}-cli-linux-amd64
-      - cp packages/rust-cli/target/x86_64-apple-darwin/release/${PROJECT_NAME}-cli ${DIST_DIR}/${PROJECT_NAME}-cli-darwin-amd64
-      - cp packages/rust-cli/target/x86_64-pc-windows-gnu/release/${PROJECT_NAME}-cli.exe ${DIST_DIR}/${PROJECT_NAME}-cli-windows-amd64.exe
-      - echo "📦 Rust CLI binaries → ${DIST_DIR}/"
+      - mkdir -p ${DIST}
+      - cp packages/rust-cli/target/x86_64-unknown-linux-gnu/release/${PROJECT}-cli ${DIST}/${PROJECT}-cli-linux-amd64
+      - cp packages/rust-cli/target/x86_64-apple-darwin/release/${PROJECT}-cli ${DIST}/${PROJECT}-cli-darwin-amd64
+      - cp packages/rust-cli/target/x86_64-pc-windows-gnu/release/${PROJECT}-cli.exe ${DIST}/${PROJECT}-cli-windows-amd64.exe
 
   rs-publish:
-    desc: "Rust: publish to crates.io"
+    desc: "rs → crates.io"
     deps: [rs-test]
     cmds:
       - cd packages/rust-cli && cargo publish
-      - echo "✅ Rust CLI v${VERSION} → crates.io"
 
-  # ════════════════════════════════════════════════════
-  # Node.js SDK (packages/node-sdk/)
-  # ════════════════════════════════════════════════════
-
-  js-install:
-    desc: "Node.js: install dependencies"
-    cmds:
-      - cd packages/node-sdk && npm ci
+  # ─── Node.js SDK ───────────────────────────────────
 
   js-lint:
-    desc: "Node.js: run eslint"
-    deps: [js-install]
+    desc: "js: eslint"
     cmds:
-      - cd packages/node-sdk && npm run lint
+      - cd packages/node-sdk && npm ci && npm run lint
     ignore_errors: true
 
   js-test:
-    desc: "Node.js: run tests"
-    deps: [js-install]
+    desc: "js: npm test"
     cmds:
-      - cd packages/node-sdk && npm test
+      - cd packages/node-sdk && npm ci && npm test
 
   js-build:
-    desc: "Node.js: build TypeScript → JavaScript"
+    desc: "js: TypeScript → JavaScript"
     deps: [js-test]
     cmds:
       - cd packages/node-sdk && npm run build
-      - echo "📦 Node.js SDK → packages/node-sdk/dist/"
 
   js-publish:
-    desc: "Node.js: publish to npm"
+    desc: "js → npm"
     deps: [js-build]
     cmds:
       - cd packages/node-sdk && npm publish --access public
-      - echo "✅ Node.js SDK v${VERSION} → npm"
 
-  # ════════════════════════════════════════════════════
-  # Docker image (root Dockerfile)
-  # ════════════════════════════════════════════════════
+  # ─── Docker ────────────────────────────────────────
 
   docker-build:
-    desc: "Docker: build API image"
+    desc: "docker: build API image"
     cmds:
-      - docker build -t ${REGISTRY}/${PROJECT_NAME}:${VERSION} .
-      - docker tag ${REGISTRY}/${PROJECT_NAME}:${VERSION} ${REGISTRY}/${PROJECT_NAME}:latest
-      - echo "📦 Docker → ${REGISTRY}/${PROJECT_NAME}:${VERSION}"
+      - docker build -t ${REGISTRY}/${PROJECT}:${VERSION} -t ${REGISTRY}/${PROJECT}:latest .
 
   docker-push:
-    desc: "Docker: push to GHCR + Docker Hub"
+    desc: "docker → GHCR + Docker Hub"
     deps: [docker-build]
     cmds:
-      - docker push ${REGISTRY}/${PROJECT_NAME}:${VERSION}
-      - docker push ${REGISTRY}/${PROJECT_NAME}:latest
-      - docker tag ${REGISTRY}/${PROJECT_NAME}:${VERSION} ${DOCKERHUB}:${VERSION}
+      - docker push ${REGISTRY}/${PROJECT}:${VERSION}
+      - docker push ${REGISTRY}/${PROJECT}:latest
+      - docker tag ${REGISTRY}/${PROJECT}:${VERSION} ${DOCKERHUB}:${VERSION}
       - docker push ${DOCKERHUB}:${VERSION}
-      - echo "✅ Docker image → GHCR + Docker Hub"
 
   docker-deploy:
-    desc: "Docker: deploy to production"
+    desc: "docker: pull + restart on prod"
     env: [prod]
     cmds:
-      - "@remote podman pull ${REGISTRY}/${PROJECT_NAME}:${VERSION}"
-      - "@remote systemctl --user restart ${PROJECT_NAME}"
-      - echo "✅ Deployed ${PROJECT_NAME}:${VERSION} to prod"
+      - "@remote podman pull ${REGISTRY}/${PROJECT}:${VERSION}"
+      - "@remote systemctl --user restart ${PROJECT}"
 
-  # ════════════════════════════════════════════════════
-  # Cross-cutting commands
-  # ════════════════════════════════════════════════════
+  # ─── Aggregate tasks ───────────────────────────────
 
   test-all:
-    desc: Run all tests (Python + Rust + Node.js)
+    desc: All tests (parallel)
     deps: [py-test, rs-test, js-test]
     parallel: true
     cmds:
-      - echo "✅ All tests passed"
+      - echo "All tests passed"
 
   lint-all:
-    desc: Run all linters
-    deps: [py-lint, rs-fmt, rs-clippy, js-lint]
+    desc: All linters (parallel)
+    deps: [py-lint, rs-lint, js-lint]
     parallel: true
     continue_on_error: true
     cmds:
-      - echo "✅ All linters done"
+      - echo "Lint complete"
 
   build-all:
-    desc: Build all artifacts
+    desc: All 4 artifacts (parallel)
     deps: [py-build, rs-build, js-build, docker-build]
     parallel: true
     cmds:
-      - echo "✅ All 4 artifacts built"
+      - echo "All artifacts built"
 
   publish-all:
-    desc: Publish everything — PyPI + crates.io + npm + Docker
+    desc: All registries (parallel) — PyPI + crates.io + npm + Docker
     deps: [py-publish, rs-publish, js-publish, docker-push]
     parallel: true
     cmds:
-      - echo "✅ All 4 artifacts published"
-
-  checksums:
-    desc: Generate SHA256 checksums for all artifacts
-    deps: [build-all]
-    cmds:
-      - mkdir -p ${DIST_DIR}
-      - cp packages/python-sdk/dist/*.whl ${DIST_DIR}/ 2>/dev/null || true
-      - cp packages/python-sdk/dist/*.tar.gz ${DIST_DIR}/ 2>/dev/null || true
-      - cd ${DIST_DIR} && sha256sum * > checksums.txt
-      - cat ${DIST_DIR}/checksums.txt
-
-  github-release:
-    desc: Create GitHub Release with all binaries
-    deps: [rs-build-all, checksums]
-    cmds:
-      - >-
-        gh release create v${VERSION}
-        --repo ${GITHUB_REPO}
-        --title "v${VERSION}"
-        --generate-notes
-        ${DIST_DIR}/${PROJECT_NAME}-cli-linux-amd64
-        ${DIST_DIR}/${PROJECT_NAME}-cli-darwin-amd64
-        ${DIST_DIR}/${PROJECT_NAME}-cli-windows-amd64.exe
-        ${DIST_DIR}/checksums.txt
-      - echo "✅ GitHub Release v${VERSION} created with binaries"
+      - echo "All artifacts published"
 
   release:
-    desc: "FULL RELEASE — tag + build all + publish all + GitHub Release"
+    desc: Tag + build + publish + GitHub Release
+    deps: [lint-all, test-all]
+    parallel: true
     cmds:
-      - echo "🚀 Releasing ${PROJECT_NAME} v${VERSION}..."
-      - echo ""
-      - echo "Artifacts:"
-      - echo "  📦 Python SDK  → PyPI"
-      - echo "  📦 Rust CLI    → crates.io + GitHub Releases"
-      - echo "  📦 Node.js SDK → npm"
-      - echo "  📦 Docker      → GHCR + Docker Hub"
-      - echo ""
       - git tag -a v${VERSION} -m "Release v${VERSION}"
       - git push origin v${VERSION}
 
-  verify:
-    desc: Verify all published artifacts
+  github-release:
+    desc: Cross-compile + create GitHub Release with binaries
+    deps: [rs-build-cross]
     cmds:
-      - echo "Verifying published artifacts..."
-      - pip install ${PROJECT_NAME}-sdk==${VERSION} && echo "✅ PyPI OK"
-      - cargo search ${PROJECT_NAME}-cli && echo "✅ crates.io OK"
-      - npm info @myorg/${PROJECT_NAME}-sdk@${VERSION} && echo "✅ npm OK"
-      - docker pull ${REGISTRY}/${PROJECT_NAME}:${VERSION} && echo "✅ Docker OK"
-      - gh release view v${VERSION} --repo ${GITHUB_REPO} && echo "✅ GitHub Release OK"
-    ignore_errors: true
+      - cd ${DIST} && sha256sum ${PROJECT}-cli-* > checksums.txt
+      - >-
+        gh release create v${VERSION} --repo ${GITHUB_REPO}
+        --title "v${VERSION}" --generate-notes
+        ${DIST}/${PROJECT}-cli-linux-amd64
+        ${DIST}/${PROJECT}-cli-darwin-amd64
+        ${DIST}/${PROJECT}-cli-windows-amd64.exe
+        ${DIST}/checksums.txt
+
+  verify:
+    desc: Check all published artifacts exist
+    cmds:
+      - pip install ${PROJECT}-sdk==${VERSION}
+      - cargo search ${PROJECT}-cli
+      - npm info @myorg/${PROJECT}-sdk@${VERSION}
+      - docker pull ${REGISTRY}/${PROJECT}:${VERSION}
+      - gh release view v${VERSION} --repo ${GITHUB_REPO}
+    continue_on_error: true
 
   clean:
     desc: Remove all build artifacts
     cmds:
-      - rm -rf ${DIST_DIR}/
+      - rm -rf ${DIST}/
       - cd packages/python-sdk && rm -rf dist/ build/ *.egg-info
       - cd packages/rust-cli && cargo clean
       - cd packages/node-sdk && rm -rf dist/ node_modules/
-      - echo "🧹 All artifacts cleaned"
-
-  # ─── Local Development ────────────────────────────
-  dev:
-    desc: Start all services locally
-    env: [local]
-    cmds:
-      - docker compose up -d --build
-      - echo "✅ Local dev running"
-      - echo "   API:  http://localhost:8080"
-      - echo "   Docs: http://localhost:8080/docs"
-
-  dev-stop:
-    desc: Stop local dev
-    env: [local]
-    cmds:
-      - docker compose down
