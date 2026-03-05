@@ -337,36 +337,6 @@ def list_tasks(ctx):
 
 
 @main.command()
-@click.option("--template", type=click.Choice(["minimal", "web", "podman", "codereview", "full", "multiplatform", "publish", "kubernetes", "terraform", "iot"]), default="full")
-@click.option("--force", is_flag=True, help="Overwrite existing Taskfile")
-def init(template, force):
-    """Create a new Taskfile.yml in the current directory.
-
-    \b
-    Templates:
-        minimal        — basic build/deploy tasks
-        web            — web app with Docker + Traefik
-        podman         — Podman Quadlet + Traefik (low RAM)
-        codereview     — 3-stage: local(docker) → prod(podman quadlet)
-        full           — all features, multi-env example
-        multiplatform  — desktop+web × local+prod deployment
-        publish        — multi-registry publish (PyPI+npm+Docker+GitHub)
-        kubernetes     — Kubernetes + Helm multi-cluster deployment
-        terraform      — Terraform IaC multi-environment
-        iot            — IoT/edge fleet with rolling/canary/parallel
-    """
-    outpath = Path("Taskfile.yml")
-    if outpath.exists() and not force:
-        console.print("[yellow]Taskfile.yml already exists. Use --force to overwrite.[/]")
-        sys.exit(1)
-
-    content = generate_taskfile(template)
-    outpath.write_text(content)
-    console.print(f"[green]✓ Created Taskfile.yml (template: {template})[/]")
-    console.print("[dim]  Edit variables and environments, then run: taskfile list[/]")
-
-
-@main.command()
 @click.pass_context
 def validate(ctx):
     """Validate the Taskfile without running anything."""
@@ -385,59 +355,6 @@ def validate(ctx):
                 f"  {len(config.tasks)} tasks, "
                 f"{len(config.environments)} environments"
             )
-    except (TaskfileNotFoundError, TaskfileParseError) as e:
-        console.print(f"[red]Error:[/] {e}")
-        if isinstance(e, TaskfileNotFoundError):
-            _print_nearby_taskfiles(e.nearby)
-        sys.exit(1)
-
-
-@main.command()
-@click.argument("task_name")
-@click.pass_context
-def info(ctx, task_name):
-    """Show detailed info about a specific task."""
-    opts = ctx.obj
-    try:
-        config = load_taskfile(opts["taskfile_path"])
-        if task_name not in config.tasks:
-            console.print(f"[red]Unknown task: {task_name}[/]")
-            sys.exit(1)
-
-        task = config.tasks[task_name]
-        console.print(f"\n[bold green]{task.name}[/]")
-        if task.description:
-            console.print(f"  {task.description}")
-        if task.deps:
-            console.print(f"  [dim]Dependencies:[/] {', '.join(task.deps)}")
-        if task.env_filter:
-            console.print(f"  [dim]Environments:[/] {', '.join(task.env_filter)}")
-        if task.platform_filter:
-            console.print(f"  [dim]Platforms:[/] {', '.join(task.platform_filter)}")
-        if task.condition:
-            console.print(f"  [dim]Condition:[/] {task.condition}")
-        if task.parallel:
-            console.print(f"  [dim]Parallel:[/] yes (deps run concurrently)")
-        if task.ignore_errors:
-            console.print(f"  [dim]Ignore errors:[/] yes")
-        if task.retries:
-            console.print(f"  [dim]Retries:[/] {task.retries} (delay: {task.retry_delay}s)")
-        if task.timeout:
-            console.print(f"  [dim]Timeout:[/] {task.timeout}s")
-        if task.tags:
-            console.print(f"  [dim]Tags:[/] {', '.join(task.tags)}")
-        if task.register:
-            console.print(f"  [dim]Register:[/] {task.register}")
-        if task.script:
-            console.print(f"  [dim]Script:[/] {task.script}")
-
-        if task.script:
-            console.print(f"\n  [bold]Script:[/] {task.script}")
-        if task.commands:
-            console.print(f"\n  [bold]Commands:[/]")
-            for cmd in task.commands:
-                console.print(f"    → {cmd}")
-
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         if isinstance(e, TaskfileNotFoundError):
@@ -483,6 +400,10 @@ def import_cmd(source, source_type, output_path, force):
     except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]Error:[/] {e}")
         sys.exit(1)
+
+
+# ─── Register extracted command modules ───
+import taskfile.cli.info_cmd  # noqa: E402, F401 — registers 'info' command
 
 
 if __name__ == "__main__":

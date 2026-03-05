@@ -3,23 +3,23 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-05T18:02:41Z'
+  analyzed_at: '2026-03-05T18:40:01Z'
   tool: code2llm
   stats:
-    files: 46
-    lines: 17440
-    functions: 429
-    classes: 51
+    files: 50
+    lines: 17618
+    functions: 427
+    classes: 49
 health:
-  cc_avg: 4.6
-  critical_count: 37
+  cc_avg: 4.5
+  critical_count: 36
   critical_limit: 10
   duplicates: 0
   cycles: 0
   alerts:
   - type: cc_exceeded
-    target: fleet_repair_cmd
-    value: 31
+    target: _safe_ssh
+    value: 26
     limit: 15
     severity: critical
   - type: high_fan_out
@@ -73,11 +73,6 @@ health:
     limit: 10
     severity: error
   - type: high_fan_out
-    target: fleet_repair_cmd
-    value: 18
-    limit: 10
-    severity: error
-  - type: high_fan_out
     target: _import_gitlab_ci
     value: 17
     limit: 10
@@ -117,13 +112,18 @@ health:
     value: 19
     limit: 15
     severity: warning
+  - type: cc_exceeded
+    target: info
+    value: 19
+    limit: 15
+    severity: warning
 modules:
 - path: src/taskfile/cli/fleet.py
-  lines: 357
+  lines: 362
   classes: 0
-  methods: 8
-  cc_max: 31
-  inbound_deps: 1
+  methods: 9
+  cc_max: 26
+  inbound_deps: 0
   exports:
   - name: fleet
     type: function
@@ -134,9 +134,8 @@ modules:
     fan_out: 25
   - name: fleet_repair_cmd
     type: function
-    cc: 31
-    flag: split
-    fan_out: 18
+    cc: 7
+    fan_out: 11
   - name: fleet_list_cmd
     type: function
     cc: 8
@@ -145,7 +144,7 @@ modules:
   classes: 2
   methods: 11
   cc_max: 22
-  inbound_deps: 15
+  inbound_deps: 16
   exports:
   - name: TaskfileNotFoundError
     type: class
@@ -172,7 +171,7 @@ modules:
   classes: 0
   methods: 9
   cc_max: 21
-  inbound_deps: 2
+  inbound_deps: 0
   exports:
   - name: import_file
     type: function
@@ -196,41 +195,17 @@ modules:
     - name: _fix_ports
       cc: 11
       fan_out: 12
-- path: src/taskfile/cli/main.py
-  lines: 490
+- path: src/taskfile/cli/info_cmd.py
+  lines: 67
   classes: 0
-  methods: 15
+  methods: 1
   cc_max: 19
-  inbound_deps: 1
+  inbound_deps: 0
   exports:
-  - name: parse_var
-    type: function
-    cc: 3
-  - name: main
-    type: function
-    cc: 2
-  - name: run
-    type: function
-    cc: 15
-    flag: split
-    fan_out: 20
-  - name: list_tasks
-    type: function
-    cc: 3
-  - name: init
-    type: function
-    cc: 3
-  - name: validate
-    type: function
-    cc: 5
   - name: info
     type: function
     cc: 19
     flag: split
-  - name: import_cmd
-    type: function
-    cc: 4
-    fan_out: 11
 - path: src/taskfile/cli/interactive.py
   lines: 552
   classes: 0
@@ -267,10 +242,29 @@ modules:
   - name: serve
     type: function
     cc: 2
-- path: src/taskfile/runner.py
-  lines: 711
+- path: src/taskfile/runner/commands.py
+  lines: 184
+  classes: 0
+  methods: 3
+  cc_max: 16
+  inbound_deps: 1
+  exports:
+  - name: run_command
+    type: function
+    cc: 16
+    flag: split
+    fan_out: 12
+  - name: execute_script
+    type: function
+    cc: 13
+  - name: execute_commands
+    type: function
+    cc: 15
+    flag: split
+- path: src/taskfile/runner/core.py
+  lines: 447
   classes: 2
-  methods: 35
+  methods: 31
   cc_max: 16
   inbound_deps: 0
   exports:
@@ -279,30 +273,46 @@ modules:
     cc_avg: 1.0
   - name: TaskfileRunner
     type: class
-    cc_avg: 5.2
+    cc_avg: 3.4
     methods:
-    - name: run_command
-      cc: 16
-      flag: split
-      fan_out: 12
-    - name: _run_function
-      cc: 10
-      fan_out: 12
-    - name: _execute_script
-      cc: 13
-    - name: _execute_commands
-      cc: 15
-      flag: split
     - name: run
       cc: 16
       flag: split
       fan_out: 15
+- path: src/taskfile/cli/main.py
+  lines: 412
+  classes: 0
+  methods: 13
+  cc_max: 15
+  inbound_deps: 2
+  exports:
+  - name: parse_var
+    type: function
+    cc: 3
+  - name: main
+    type: function
+    cc: 2
+  - name: run
+    type: function
+    cc: 15
+    flag: split
+    fan_out: 20
+  - name: list_tasks
+    type: function
+    cc: 3
+  - name: validate
+    type: function
+    cc: 5
+  - name: import_cmd
+    type: function
+    cc: 4
+    fan_out: 11
 - path: src/taskfile/converters.py
   lines: 429
   classes: 5
   methods: 11
   cc_max: 15
-  inbound_deps: 1
+  inbound_deps: 2
   exports:
   - name: MakefileConverter
     type: class
@@ -492,53 +502,6 @@ modules:
   - name: ci_targets
     type: function
     cc: 2
-- path: src/taskfile/cli/fleet_diagnostics.py
-  lines: 251
-  classes: 2
-  methods: 12
-  cc_max: 10
-  inbound_deps: 1
-  exports:
-  - name: DiagnosticResult
-    type: class
-    cc_avg: 0.0
-  - name: DiagnosticsReport
-    type: class
-    cc_avg: 0.0
-  - name: check_ping
-    type: function
-    cc: 2
-  - name: check_ssh
-    type: function
-    cc: 5
-  - name: check_disk
-    type: function
-    cc: 4
-  - name: check_ram
-    type: function
-    cc: 4
-  - name: check_temperature
-    type: function
-    cc: 5
-  - name: check_podman
-    type: function
-    cc: 3
-  - name: check_ntp
-    type: function
-    cc: 3
-  - name: run_diagnostics
-    type: function
-    cc: 5
-    fan_out: 11
-  - name: print_diagnostics_report
-    type: function
-    cc: 5
-  - name: print_diagnostics_summary
-    type: function
-    cc: 3
-  - name: apply_fixes
-    type: function
-    cc: 10
 - path: src/taskfile/cli/setup.py
   lines: 448
   classes: 1
@@ -598,6 +561,20 @@ modules:
   - name: export_to_dot
     type: function
     cc: 6
+- path: src/taskfile/runner/functions.py
+  lines: 133
+  classes: 0
+  methods: 6
+  cc_max: 10
+  inbound_deps: 2
+  exports:
+  - name: run_function
+    type: function
+    cc: 10
+    fan_out: 12
+  - name: run_inline_python
+    type: function
+    cc: 4
 - path: src/taskfile/watch.py
   lines: 182
   classes: 1
@@ -839,7 +816,7 @@ modules:
   classes: 0
   methods: 6
   cc_max: 7
-  inbound_deps: 1
+  inbound_deps: 2
   exports:
   - name: has_paramiko
     type: function
@@ -996,6 +973,25 @@ modules:
   - name: cache_clear
     type: function
     cc: 4
+- path: src/taskfile/runner/ssh.py
+  lines: 49
+  classes: 0
+  methods: 4
+  cc_max: 4
+  inbound_deps: 2
+  exports:
+  - name: is_remote_command
+    type: function
+    cc: 2
+  - name: strip_remote_prefix
+    type: function
+    cc: 3
+  - name: wrap_ssh
+    type: function
+    cc: 1
+  - name: run_embedded_ssh
+    type: function
+    cc: 4
 - path: src/taskfile/cigen/__init__.py
   lines: 58
   classes: 0
@@ -1028,6 +1024,16 @@ modules:
   - name: register_target
     type: function
     cc: 1
+- path: src/taskfile/cli/init_cmd.py
+  lines: 41
+  classes: 0
+  methods: 1
+  cc_max: 3
+  inbound_deps: 0
+  exports:
+  - name: init
+    type: function
+    cc: 3
 - path: src/taskfile/cigen/jenkins.py
   lines: 54
   classes: 1
@@ -1081,6 +1087,12 @@ modules:
   inbound_deps: 0
 - path: src/taskfile/cli/__init__.py
   lines: 17
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/runner/__init__.py
+  lines: 9
   classes: 0
   methods: 0
   cc_max: 0
@@ -1157,12 +1169,6 @@ hotspots:
 - name: ProjectDiagnostics.check_ports
   fan_out: 18
   note: Check docker-compose port conflicts and suggest .env fixes.
-- name: fleet_repair_cmd
-  fan_out: 18
-  note: 'Diagnose and repair a remote device.
-
-
-    Runs 8-point diagnostics: ping, SSH, disk,'
 - name: _import_gitlab_ci
   fan_out: 17
   note: Convert .gitlab-ci.yml to Taskfile.yml.
@@ -1170,21 +1176,28 @@ hotspots:
   fan_out: 16
   note: "Set specific version number.\n\n\b\nExamples:\n    taskfile version set 1.0.0\
     \      # "
+- name: auth_setup
+  fan_out: 16
+  note: 'Interactive registry authentication setup.
+
+
+    Guides you through obtaining API tok'
 refactoring:
   priorities:
-  - action: Split fleet_repair_cmd (CC=31 → target CC<10)
+  - action: Split _safe_ssh (CC=26 → target CC<10)
     impact: high
     effort: low
     module: fleet.py
   - action: Split god module src/taskfile/cli/interactive.py (552L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/runner.py (711L, 2 classes)
-    impact: high
-    effort: high
   - action: Split god module src/taskfile/webui.py (594L, 2 classes)
     impact: high
     effort: high
+  - action: Split GitLabCIConverter.import_gitlab_ci (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: converters.py
   - action: Split _detect_type (CC=16 → target CC<10)
     impact: medium
     effort: low
@@ -1197,22 +1210,6 @@ refactoring:
     impact: medium
     effort: low
     module: importer.py
-  - action: Split GitLabCIConverter.import_gitlab_ci (CC=15 → target CC<10)
-    impact: medium
-    effort: low
-    module: converters.py
-  - action: Split TaskfileRunner.run_command (CC=16 → target CC<10)
-    impact: medium
-    effort: low
-    module: runner.py
-  - action: Split TaskfileRunner._execute_commands (CC=15 → target CC<10)
-    impact: medium
-    effort: low
-    module: runner.py
-  - action: Split TaskfileRunner.run (CC=16 → target CC<10)
-    impact: medium
-    effort: low
-    module: runner.py
   - action: Split scan_nearby_taskfiles (CC=17 → target CC<10)
     impact: medium
     effort: low
@@ -1221,6 +1218,18 @@ refactoring:
     impact: medium
     effort: low
     module: parser.py
+  - action: Split run_command (CC=16 → target CC<10)
+    impact: medium
+    effort: low
+    module: commands.py
+  - action: Split execute_commands (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: commands.py
+  - action: Split TaskfileRunner.run (CC=16 → target CC<10)
+    impact: medium
+    effort: low
+    module: core.py
   - action: Split init (CC=16 → target CC<10)
     impact: medium
     effort: low
@@ -1229,9 +1238,13 @@ refactoring:
     impact: medium
     effort: low
     module: diagnostics.py
+  - action: Split info (CC=19 → target CC<10)
+    impact: medium
+    effort: low
+    module: info_cmd.py
 evolution:
 - date: '2026-03-05'
-  cc_avg: 4.6
-  critical: 37
-  lines: 17440
+  cc_avg: 4.5
+  critical: 36
+  lines: 17618
   note: Automated analysis

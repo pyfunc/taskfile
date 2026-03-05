@@ -1,6 +1,6 @@
-# taskfile | 78f 17718L | python:78
+# taskfile | 84f 17902L | python:85
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[78]:
+M[84]:
   examples/functions-embed/scripts/report.py,16
   examples/script-extraction/scripts/migrate.py,20
   examples/script-extraction/scripts/provision.py,41
@@ -26,12 +26,13 @@ M[78]:
   src/taskfile/cli/deploy.py,227
   src/taskfile/cli/diagnostics.py,302
   src/taskfile/cli/docker_cmds.py,117
-  src/taskfile/cli/fleet.py,274
-  src/taskfile/cli/fleet_diagnostics.py,204
+  src/taskfile/cli/fleet.py,275
   src/taskfile/cli/health.py,51
   src/taskfile/cli/import_export.py,173
+  src/taskfile/cli/info_cmd.py,58
+  src/taskfile/cli/init_cmd.py,33
   src/taskfile/cli/interactive.py,429
-  src/taskfile/cli/main.py,410
+  src/taskfile/cli/main.py,338
   src/taskfile/cli/quadlet.py,154
   src/taskfile/cli/registry_cmds.py,174
   src/taskfile/cli/release.py,294
@@ -50,7 +51,11 @@ M[78]:
   src/taskfile/provisioner.py,237
   src/taskfile/quadlet.py,254
   src/taskfile/registry.py,258
-  src/taskfile/runner.py,592
+  src/taskfile/runner/__init__.py,6
+  src/taskfile/runner/commands.py,151
+  src/taskfile/runner/core.py,354
+  src/taskfile/runner/functions.py,107
+  src/taskfile/runner/ssh.py,36
   src/taskfile/scaffold/__init__.py,24
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
@@ -67,6 +72,7 @@ M[78]:
   tests/test_cigen.py,262
   tests/test_cli.py,124
   tests/test_compose.py,43
+  tests/test_docker_e2e.py,206
   tests/test_e2e_examples.py,847
   tests/test_fleet.py,208
   tests/test_health.py,166
@@ -227,20 +233,7 @@ D:
     fleet()
     fleet_status_cmd(ctx;group)
     fleet_repair_cmd(ctx;env_name;auto_fix)
-    fleet_list_cmd(ctx)
-  src/taskfile/cli/fleet_diagnostics.py:
-    i: subprocess,click,dataclasses.{dataclass,field},rich.console.Console,typing.Callable
-    e: DiagnosticResult,DiagnosticsReport,check_ping,check_ssh,check_disk,check_ram,check_temperature,check_podman
-    DiagnosticResult:   # Result of a single diagnostic check.
-    DiagnosticsReport: passed_checks(0),failed_checks(0),is_healthy(0)  # Complete diagnostics report for a dev...
-    _safe_ssh(env;cmd:str;timeout:int=10)->subprocess.CompletedProcess | None
-    check_ping(host:str;ping_fn:Callable[Any;bool])->DiagnosticResult
-    check_ssh(env;ssh_fn:Callable)->DiagnosticResult
-    check_disk(env;ssh_fn:Callable)->DiagnosticResult
-    check_ram(env;ssh_fn:Callable)->DiagnosticResult
-    check_temperature(env;ssh_fn:Callable)->DiagnosticResult
-    check_podman(env;ssh_fn:Callable)->DiagnosticResult
-    check_ntp(env;ssh_fn:Callable)->DiagnosticResult
+    _safe_ssh(env;cmd:str;timeout:int=10)
   src/taskfile/cli/health.py:
     i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.health.{health_check_all,print_health_report,run_health_checks},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError},typing.TYPE_CHECKING
     e: health_cmd
@@ -251,6 +244,14 @@ D:
     import_cmd(source;source_type;output_path;force)
     export_cmd(ctx;target_type;output_path;workflow_name;project_name;taskfile_path)
     detect()
+  src/taskfile/cli/info_cmd.py:
+    i: sys,click,taskfile.cli.main,taskfile.cli.main.{_print_nearby_taskfiles,console},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    e: info
+    info(ctx;task_name)
+  src/taskfile/cli/init_cmd.py:
+    i: sys,click,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.scaffold.generate_taskfile
+    e: init
+    init(template;force)
   src/taskfile/cli/interactive.py:
     i: os,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.{Confirm,Prompt},typing.TYPE_CHECKING
     e: doctor,init,setup,hosts,env,watch,graph,serve
@@ -264,7 +265,7 @@ D:
     init(template;force;interactive)
   src/taskfile/cli/main.py:
     i: sys,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile},taskfile.runner.TaskfileRunner
-    e: parse_var,main,run,list_tasks,init,validate,info,import_cmd
+    e: parse_var,main,run,list_tasks,validate,import_cmd
     _print_nearby_taskfiles(nearby:list[tuple[Path;int]])->None
     _suggest_similar_tasks(unknown:str;available:list[str];max_suggestions:int=3)->list[str]
     _run_env_group(taskfile_path;env_group:str;task_names:list[str];platform_name:Any=None;var_overrides:Any=None;dry_run:bool=False;...+1)->bool
@@ -451,11 +452,33 @@ D:
     TaskPackage: __init__(7),to_dict(0),from_dict(2)  # Represents a task package in the regi...
     RegistryClient: __init__(1),search(2),_search_github(2),install(3),_parse_package_name(1)  # Client for interacting with the task...
     include_installed_tasks(taskfile_config:dict)->dict
-  src/taskfile/runner.py:
-    i: os,subprocess,sys,time,concurrent.futures.{ThreadPoolExecutor,as_completed},pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text
+  src/taskfile/runner/commands.py:
+    i: os,subprocess,sys,time,pathlib.Path,rich.console.Console,taskfile.models.Task,taskfile.runner.ssh.{is_remote_command,run_embedded_ssh,wrap_ssh}
+    e: run_command,execute_script,execute_commands
+    run_command(runner;cmd:str;task:Task)->int
+    execute_script(runner;task:Task;task_name:str)->int
+    execute_commands(runner;task:Task;task_name:str;start:float)->bool
+  src/taskfile/runner/core.py:
+    i: os,subprocess,time,concurrent.futures.{ThreadPoolExecutor,as_completed},pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.compose._compose_resolve_variables
     e: TaskRunError,TaskfileRunner
     TaskRunError: __init__(3)  # Raised when a task command fails.
     TaskfileRunner: __init__(7),_init_config(2),_init_environment(0),_init_platform(0),_init_variables(0)  # Executes tasks from a Taskfile config...
+  src/taskfile/runner/functions.py:
+    i: os,subprocess,sys,rich.console.Console,taskfile.models.Task
+    e: run_function,run_inline_python
+    run_function(runner;cmd:str;task:Task)->int
+    _exec_function_shell(fn;fn_args:str;env:dict;task:Task)->int
+    _exec_function_python(fn;fn_args:str;env:dict;task:Task)->int
+    _exec_function_node(fn;fn_args:str;env:dict;task:Task)->int
+    _exec_function_binary(fn;fn_args:str;env:dict;task:Task)->int
+    run_inline_python(runner;cmd:str;task:Task)->int
+  src/taskfile/runner/ssh.py:
+    i: rich.console.Console,taskfile.models.Task,taskfile.ssh.ssh_exec
+    e: is_remote_command,strip_remote_prefix,wrap_ssh,run_embedded_ssh
+    is_remote_command(cmd:str)->bool
+    strip_remote_prefix(cmd:str)->str
+    wrap_ssh(cmd:str;env)->str
+    run_embedded_ssh(runner;cmd:str;task:Task)->int
   src/taskfile/scaffold/__init__.py:
     i: pathlib.Path
     e: _TEMPLATES_DIR,_TEMPLATE_NAMES,generate_taskfile
@@ -502,6 +525,14 @@ D:
     i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
     e: TestComposeFile
     TestComposeFile: test_load_compose(1),test_service_names(1)
+  tests/test_docker_e2e.py:
+    i: pytest,click.testing.CliRunner,pathlib.Path
+    e: TestDockerCommands,TestDockerDeployment,TestDockerHealthCheck,TestDockerEnvFileHandling,TestDockerPortManagement
+    TestDockerCommands: test_docker_ps_command(0),test_docker_stop_port_command(0),test_docker_stop_all_command(0),test_docker_compose_down_command(0)  # Test Docker CLI commands: ps, stop-po...
+    TestDockerDeployment: test_deploy_env_validation(1),test_deploy_with_env_vars(1),test_docker_image_resolution(1)  # Test Docker deployment scenarios.
+    TestDockerHealthCheck: test_health_check_url_construction(0),test_deploy_user_in_ssh_url(0)  # Test Docker deployment health checks.
+    TestDockerEnvFileHandling: test_env_file_parsing(1),test_env_file_empty_values(1),test_env_file_with_quotes(1)  # Test .env file handling for Docker de...
+    TestDockerPortManagement: test_port_conflict_detection(1),test_container_port_parsing(0)  # Test Docker port management features.
   tests/test_e2e_examples.py:
     i: pytest,os,sys,click.testing.CliRunner,pathlib.Path,taskfile.cli.main,taskfile.parser.{TaskfileConfig,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
     e: EXAMPLES_DIR,TestMinimalExample,TestSaasAppExample,TestMultiplatformExample,TestCodereviewExample,TestExamplesCrossCutting,TestExamplesAdvancedFeatures,TestIncludeFeature

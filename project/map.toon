@@ -1,6 +1,6 @@
-# taskfile | 61f 13280L | python:61
+# taskfile | 66f 13175L | python:66
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[61]:
+M[66]:
   examples/functions-embed/scripts/report.py,22
   examples/script-extraction/scripts/migrate.py,32
   examples/script-extraction/scripts/provision.py,55
@@ -26,12 +26,13 @@ M[61]:
   src/taskfile/cli/deploy.py,274
   src/taskfile/cli/diagnostics.py,372
   src/taskfile/cli/docker_cmds.py,157
-  src/taskfile/cli/fleet.py,357
-  src/taskfile/cli/fleet_diagnostics.py,251
+  src/taskfile/cli/fleet.py,362
   src/taskfile/cli/health.py,70
   src/taskfile/cli/import_export.py,220
+  src/taskfile/cli/info_cmd.py,67
+  src/taskfile/cli/init_cmd.py,41
   src/taskfile/cli/interactive.py,552
-  src/taskfile/cli/main.py,490
+  src/taskfile/cli/main.py,412
   src/taskfile/cli/quadlet.py,189
   src/taskfile/cli/registry_cmds.py,229
   src/taskfile/cli/release.py,364
@@ -50,7 +51,11 @@ M[61]:
   src/taskfile/provisioner.py,308
   src/taskfile/quadlet.py,309
   src/taskfile/registry.py,349
-  src/taskfile/runner.py,711
+  src/taskfile/runner/__init__.py,9
+  src/taskfile/runner/commands.py,184
+  src/taskfile/runner/core.py,447
+  src/taskfile/runner/functions.py,133
+  src/taskfile/runner/ssh.py,49
   src/taskfile/scaffold/__init__.py,33
   src/taskfile/scaffold/codereview.py,207
   src/taskfile/scaffold/full.py,181
@@ -64,7 +69,7 @@ M[61]:
   src/taskfile/webui.py,594
 D:
   src/taskfile/cli/fleet.py:
-    e: _load_config_or_exit,_get_remote_envs,_ssh_check,_ping,fleet,fleet_status_cmd,fleet_repair_cmd,fleet_list_cmd
+    e: _load_config_or_exit,_get_remote_envs,_ssh_check,_ping,fleet,fleet_status_cmd,fleet_repair_cmd,_safe_ssh,fleet_list_cmd
     _load_config_or_exit(taskfile_path)
     _get_remote_envs(config;group_name)
     _ssh_check(env;cmd;timeout)
@@ -72,6 +77,7 @@ D:
     fleet()
     fleet_status_cmd(ctx;group)
     fleet_repair_cmd(ctx;env_name;auto_fix)
+    _safe_ssh(env;cmd;timeout)
     fleet_list_cmd(ctx)
   src/taskfile/parser.py:
     e: TaskfileNotFoundError,TaskfileParseError,scan_nearby_taskfiles,find_taskfile,_resolve_includes,load_taskfile,_validate_tasks_exist,_validate_task_commands,_validate_task_dependencies,_validate_task_env_filter,_validate_task_platform_filter,validate_taskfile
@@ -107,27 +113,18 @@ D:
     _upsert_env_value(env_path;key;value)
     _docker_containers_using_port(port)
     _docker_stop(container_ids)
-  src/taskfile/cli/main.py:
-    e: _print_nearby_taskfiles,_suggest_similar_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,init,validate,info,import_cmd
-    _print_nearby_taskfiles(nearby)
-    _suggest_similar_tasks(unknown;available;max_suggestions)
-    _run_env_group(taskfile_path;env_group;task_names;platform_name;var_overrides;dry_run;verbose)
-    _group_rolling(members;run_fn)
-    _group_canary(members;run_fn;canary_count)
-    _group_parallel(members;run_fn;max_parallel)
-    parse_var(ctx;param;value)
-    main(ctx;taskfile_path;env_name;env_group;platform_name;var;dry_run;verbose)
-    run(ctx;tasks;run_tags)
-    _filter_tasks_by_tags(config;task_names;tags)
-    list_tasks(ctx)
-    init(template;force)
-    validate(ctx)
+  src/taskfile/cli/info_cmd.py:
+    e: info
     info(ctx;task_name)
-    import_cmd(source;source_type;output_path;force)
-  src/taskfile/runner.py:
+  src/taskfile/runner/commands.py:
+    e: run_command,execute_script,execute_commands
+    run_command(runner;cmd;task)
+    execute_script(runner;task;task_name)
+    execute_commands(runner;task;task_name;start)
+  src/taskfile/runner/core.py:
     e: TaskRunError,TaskfileRunner
     TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
-    TaskfileRunner: __init__(8),_init_config(2),_init_environment(0),_init_platform(0),_init_variables(0),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),_run_embedded_ssh(2),_run_function(2),_exec_function_shell(4),_exec_function_python(4),_exec_function_node(4),_exec_function_binary(4),_run_inline_python(2),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_run_dependencies_parallel(2),_execute_script(2),_execute_commands(3),_print_task_header(2),run_task(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_environment_groups_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration...
+    TaskfileRunner: __init__(8),_init_config(2),_init_environment(0),_init_platform(0),_init_variables(0),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),_run_embedded_ssh(2),_run_function(2),_run_inline_python(2),_execute_script(2),_execute_commands(3),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_run_dependencies_parallel(2),_print_task_header(2),run_task(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_environment_groups_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration...
   src/taskfile/cli/interactive.py:
     e: _detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,init,setup,hosts,env,watch,graph,serve
     _detect_project_type()
@@ -154,6 +151,21 @@ D:
     detect_format(file_path)
     import_file(file_path;source_type)
     export_file(config;target_type)
+  src/taskfile/cli/main.py:
+    e: _print_nearby_taskfiles,_suggest_similar_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,validate,import_cmd
+    _print_nearby_taskfiles(nearby)
+    _suggest_similar_tasks(unknown;available;max_suggestions)
+    _run_env_group(taskfile_path;env_group;task_names;platform_name;var_overrides;dry_run;verbose)
+    _group_rolling(members;run_fn)
+    _group_canary(members;run_fn;canary_count)
+    _group_parallel(members;run_fn;max_parallel)
+    parse_var(ctx;param;value)
+    main(ctx;taskfile_path;env_name;env_group;platform_name;var;dry_run;verbose)
+    run(ctx;tasks;run_tags)
+    _filter_tasks_by_tags(config;task_names;tags)
+    list_tasks(ctx)
+    validate(ctx)
+    import_cmd(source;source_type;output_path;force)
   src/taskfile/cache.py:
     e: TaskCache,get_project_hash
     TaskCache: __init__(1),_load_cache(0),_save_cache(0),_compute_file_hash(1),_compute_task_hash(2),_get_input_files_hash(1),is_fresh(4),save(6),clear(1),get_stats(0)  # Manages caching of task outputs based on input file hashes...
@@ -225,6 +237,14 @@ D:
     _add_deps_to_tree(tree;task_name;graph;config;visited)
     print_dependency_list(config)
     export_to_dot(config;output_path)
+  src/taskfile/runner/functions.py:
+    e: run_function,_exec_function_shell,_exec_function_python,_exec_function_node,_exec_function_binary,run_inline_python
+    run_function(runner;cmd;task)
+    _exec_function_shell(fn;fn_args;env;task)
+    _exec_function_python(fn;fn_args;env;task)
+    _exec_function_node(fn;fn_args;env;task)
+    _exec_function_binary(fn;fn_args;env;task)
+    run_inline_python(runner;cmd;task)
   src/taskfile/cli/version.py:
     e: version,bump,show,set,_increment_version,_is_valid_version,_get_version_from_git,_has_git,_git_commit_version,_update_taskfile_version,_update_pyproject_version
     version()
@@ -263,22 +283,6 @@ D:
     _build_config_from_args(ip;ssh_key;user;domain;port_list)
     _execute_setup_steps(config;dry_run;skip_provision;skip_deploy)
     setup(ip;ssh_key;user;domain;ports;dry_run;skip_provision;skip_deploy)
-  src/taskfile/cli/fleet_diagnostics.py:
-    e: DiagnosticResult,DiagnosticsReport,_safe_ssh,check_ping,check_ssh,check_disk,check_ram,check_temperature,check_podman,check_ntp,run_diagnostics,print_diagnostics_report,print_diagnostics_summary,apply_fixes
-    DiagnosticResult:  # Result of a single diagnostic check...
-    DiagnosticsReport:  # Complete diagnostics report for a device...
-    _safe_ssh(env;cmd;timeout)
-    check_ping(host;ping_fn)
-    check_ssh(env;ssh_fn)
-    check_disk(env;ssh_fn)
-    check_ram(env;ssh_fn)
-    check_temperature(env;ssh_fn)
-    check_podman(env;ssh_fn)
-    check_ntp(env;ssh_fn)
-    run_diagnostics(env;host;env_name;ping_fn;ssh_fn)
-    print_diagnostics_report(report)
-    print_diagnostics_summary(report)
-    apply_fixes(report;auto_fix)
   src/taskfile/registry.py:
     e: TaskPackage,RegistryClient,include_installed_tasks
     TaskPackage: __init__(8),to_dict(0),from_dict(2)  # Represents a task package in the registry...
@@ -372,18 +376,6 @@ Th...
   src/taskfile/cigen/github.py:
     e: GitHubActionsTarget
     GitHubActionsTarget(CITarget): _tag_var(0),_build_steps(1),_apply_conditions(2),_has_tag_stages(0),_build_on_triggers(1),generate(0),_apply_secrets_env(2)
-  src/taskfile/cli/docker_cmds.py:
-    e: DockerContainer,_docker_ps,_container_publishes_port,_containers_using_port,_docker_stop,docker_group,docker_ps_cmd,docker_stop_port_cmd,docker_stop_all_cmd,docker_compose_down_cmd
-    DockerContainer:
-    _docker_ps()
-    _container_publishes_port(container;port)
-    _containers_using_port(port)
-    _docker_stop(container_ids)
-    docker_group()
-    docker_ps_cmd()
-    docker_stop_port_cmd(port;assume_yes)
-    docker_stop_all_cmd(assume_yes)
-    docker_compose_down_cmd(compose_dir;assume_yes)
   src/taskfile/models.py:
     e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
     Environment: resolve_variables(1)  # Deployment environment configuration...
@@ -396,14 +388,18 @@ Th...
     PipelineConfig: from_dict(1),infer_from_tasks(1)  # CI/CD pipeline configuration...
     TaskfileConfig: from_dict(1),_parse_compose(0),_parse_environments(0),_parse_environment_groups(0),_parse_platforms(0),_parse_functions(0),_parse_tasks(0),_parse_pipeline(1)  # Parsed Taskfile configuration...
     _normalize_commands(cmds)
-  src/taskfile/cli/quadlet.py:
-    e: quadlet,quadlet_generate,_get_upload_env,_get_upload_files,_run_upload_commands,quadlet_upload
-    quadlet()
-    quadlet_generate(ctx;compose_path;env_file;output_dir;network;no_auto_update;services)
-    _get_upload_env(config;env_name)
-    _get_upload_files(quadlet_dir)
-    _run_upload_commands(env;files;dry_run)
-    quadlet_upload(ctx;quadlet_dir)
+  src/taskfile/cli/docker_cmds.py:
+    e: DockerContainer,_docker_ps,_container_publishes_port,_containers_using_port,_docker_stop,docker_group,docker_ps_cmd,docker_stop_port_cmd,docker_stop_all_cmd,docker_compose_down_cmd
+    DockerContainer:
+    _docker_ps()
+    _container_publishes_port(container;port)
+    _containers_using_port(port)
+    _docker_stop(container_ids)
+    docker_group()
+    docker_ps_cmd()
+    docker_stop_port_cmd(port;assume_yes)
+    docker_stop_all_cmd(assume_yes)
+    docker_compose_down_cmd(compose_dir;assume_yes)
   src/taskfile/cli/deploy.py:
     e: DeployStrategy,_run,_ssh,_deploy_local_compose,_deploy_remote_compose,_quadlet_step1_generate,_quadlet_step2_upload,_quadlet_step3_reload_and_pull,_quadlet_step4_restart_and_cleanup,_deploy_quadlet,_resolve_deploy_config,_print_deploy_header,_select_deploy_strategy,_execute_deploy_strategy,deploy_cmd
     DeployStrategy: __init__(8)  # Pure data class representing selected deploy strategy...
@@ -421,6 +417,14 @@ Th...
     _select_deploy_strategy(env;env_name;env_file_path;config;compose_path;var_overrides;dry_run)
     _execute_deploy_strategy(strategy)
     deploy_cmd(ctx;compose_override)
+  src/taskfile/cli/quadlet.py:
+    e: quadlet,quadlet_generate,_get_upload_env,_get_upload_files,_run_upload_commands,quadlet_upload
+    quadlet()
+    quadlet_generate(ctx;compose_path;env_file;output_dir;network;no_auto_update;services)
+    _get_upload_env(config;env_name)
+    _get_upload_files(quadlet_dir)
+    _run_upload_commands(env;files;dry_run)
+    quadlet_upload(ctx;quadlet_dir)
   src/taskfile/provisioner.py:
     e: ProvisionConfig,VPSProvisioner,provision_vps
     ProvisionConfig:  # Configuration for VPS provisioning...
@@ -429,6 +433,12 @@ Th...
   src/taskfile/cigen/gitlab.py:
     e: GitLabCITarget
     GitLabCITarget(CITarget): _tag_var(0),_build_base_doc(0),_build_job(1),_apply_dind(3),_apply_when_rules(3),_apply_ssh_setup(2),_apply_artifacts(3),generate(0)
+  src/taskfile/runner/ssh.py:
+    e: is_remote_command,strip_remote_prefix,wrap_ssh,run_embedded_ssh
+    is_remote_command(cmd)
+    strip_remote_prefix(cmd)
+    wrap_ssh(cmd;env)
+    run_embedded_ssh(runner;cmd;task)
   src/taskfile/cli/cache_cmds.py:
     e: cache,cache_show,cache_clear
     cache()
@@ -445,6 +455,9 @@ Th...
     e: ssh_run,main
     ssh_run(host;user;cmd;check)
     main()
+  src/taskfile/cli/init_cmd.py:
+    e: init
+    init(template;force)
   src/taskfile/cigen/base.py:
     e: CITarget,register_target,_sanitize_id,_yaml_dump
     CITarget: __init__(1),generate(0),write(1),_tag_var(0),_stage_env_flag(1),_stage_tasks_cmd(1)  # Base class for CI/CD target generators...
@@ -488,4 +501,5 @@ Th...
   src/taskfile/scaffold/podman.py:
   src/taskfile/scaffold/multiplatform.py:
   src/taskfile/scaffold/codereview.py:
+  src/taskfile/runner/__init__.py:
   src/taskfile/cli/__init__.py:
