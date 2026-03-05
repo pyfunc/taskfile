@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from taskfile import __version__
+from taskfile.cli.main import main
 from taskfile.parser import (
     TaskfileNotFoundError,
     TaskfileParseError,
@@ -22,7 +23,7 @@ from taskfile.parser import (
 console = Console()
 
 
-@click.group()
+@main.group()
 def version():
     """Version management commands.
 
