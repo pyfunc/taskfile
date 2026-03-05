@@ -1,0 +1,382 @@
+# taskfile/flow | 120 func | 12 pipelines | 3 hub-types | 2026-03-05
+
+PIPELINES[12] (IO:12):
+  Src [IO]: ctx → str | None
+              → deploy_cmd(ctx, compose_override)       CC=14   IO ▶
+              → _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run) CC=13   IO
+              → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None) → list[Path] CC=1    IO
+              → _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None) → tuple[list[Path], set[str]] CC=4    IO
+              → generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str CC=1    pure
+              → _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str] CC=4    mutation
+              → _build_container_podman_args(service:dict, lines:list[str]) → None CC=4    mutation
+              → _parse_cpus_limit(deploy:dict) → str | None CC=2    pure ■
+              PURITY: 2/8 pure  BOTTLENECK: deploy_cmd(CC=14)
+
+  Src [IO]: ctx → str | None
+              → quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services) CC=6    IO ▶
+              → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None) → list[Path] CC=1    IO
+              → _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None) → tuple[list[Path], set[str]] CC=4    IO
+              → generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str CC=1    pure
+              → _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str] CC=4    mutation
+              → _build_container_podman_args(service:dict, lines:list[str]) → None CC=4    mutation
+              → _parse_cpus_limit(deploy:dict) → str | None CC=2    pure ■
+              PURITY: 2/7 pure  BOTTLENECK: quadlet_generate(CC=6)
+
+  Src [IO]: list[str] → str
+              → run(task_names:list[str]) → bool        CC=4    IO ▶
+              → run_task(task_name:str) → bool          CC=13   IO
+              → run_command(cmd:str, task:Task) → int   CC=7    IO
+              → _wrap_ssh(cmd:str) → str                CC=1    pure
+              → _strip_remote_prefix(cmd:str) → str     CC=3    pure ■
+              PURITY: 2/5 pure  BOTTLENECK: run_task(CC=13)
+
+  Src [IO]: ? → str
+              → generate() → str                        CC=7    pure ▶
+              → _build_steps(stage) → list[dict]        CC=7    mutation
+              → _stage_tasks_cmd(stage:PipelineStage) → str CC=1    pure
+              → _tag_var() → str                        CC=1    pure ■
+              PURITY: 3/4 pure  BOTTLENECK: generate(CC=7)
+
+  Src [IO]: str | Path → str
+              → __init__(compose_path:str | Path, env_file:str | Path | None, extra_vars:dict[str, str] | None) CC=5    IO ▶
+              → resolve_dict(data:Any, variables:dict[str, str]) → Any CC=6    pure
+              → resolve_variables(text:str, variables:dict[str, str]) → str CC=2    pure ■
+              PURITY: 2/3 pure  BOTTLENECK: resolve_dict(CC=6)
+
+  Src [IO]: TaskfileConfig | None → Path
+              → __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool) CC=10   IO ▶
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
+              PURITY: 1/3 pure  BOTTLENECK: __init__(CC=10)
+
+  Src [IO]: ctx → Path
+              → quadlet_upload(ctx, quadlet_dir)        CC=5    IO ▶
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
+              PURITY: 1/3 pure  BOTTLENECK: find_taskfile(CC=6)
+
+  Src [IO]: ctx → Path
+              → ci_generate(ctx, targets, gen_all, output_dir) CC=10   IO ▶
+              → generate_all_ci(config:TaskfileConfig, project_dir:str | Path, targets:list[str] | None) → list[Path] CC=3    mutation
+              → generate_ci(config:TaskfileConfig, target:str, project_dir:str | Path) → Path CC=2    IO ■
+              PURITY: 0/3 pure  BOTTLENECK: ci_generate(CC=10)
+
+  Src [IO]: ctx → Path
+              → ci_run(ctx, stages, skip_stages, stop_at) CC=6    IO ▶
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
+              PURITY: 1/3 pure  BOTTLENECK: ci_run(CC=6)
+
+  Src [IO]: ctx → Path
+              → ci_list(ctx)                            CC=3    IO ▶
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
+              PURITY: 1/3 pure  BOTTLENECK: find_taskfile(CC=6)
+
+  Src [IO]: ctx → Path
+              → ci_preview(ctx, target)                 CC=4    IO ▶
+              → load_taskfile(path:str | Path | None) → TaskfileConfig CC=5    IO
+              → find_taskfile(start_dir:str | Path | None) → Path CC=6    pure ■
+              PURITY: 1/3 pure  BOTTLENECK: find_taskfile(CC=6)
+
+  Src [IO]: ? → str
+              → generate() → str                        CC=10   pure ▶
+              → _stage_tasks_cmd(stage:PipelineStage) → str CC=1    pure
+              → _tag_var() → str                        CC=1    pure ■
+              PURITY: 3/3 pure  BOTTLENECK: generate(CC=10)
+
+
+TRANSFORMS (fan-out ≥10):
+  run(stage_filter:list[str] | None, skip_stages:list[str] | None, stop_at:str | None) → bool fan=14   PIPELINE:PipelineRunner.entry
+  _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run) fan=14   fan=14
+  run_task(task_name:str) → bool                          fan=13   PIPELINE:TaskfileRunner.entry
+  ci_generate(ctx, targets, gen_all, output_dir)          fan=12   fan=12
+  deploy_cmd(ctx, compose_override)                       fan=12   fan=12
+  load_taskfile(path:str | Path | None) → TaskfileConfig  fan=10   fan=10
+  load_env_file(path:str | Path) → dict[str, str]         fan=10   fan=10
+
+CONTRACTS:
+  Pipeline: Src
+    deploy_cmd(ctx, compose_override)
+      IN:  ctx, compose_override
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run)
+      IN:  env, env_name, env_file_path, compose_path, var_overrides, dry_run
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None) → list[Path]
+      IN:  compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None
+      OUT: list[Path]
+      SIDE-EFFECT: IO(mkdir)
+
+    _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None) → tuple[list[Path], set[str]]
+      IN:  outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None
+      OUT: tuple[list[Path], set[str]]
+      SIDE-EFFECT: IO(write_text, print)
+
+    generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str
+      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+      OUT: str
+
+    _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str]
+      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+      OUT: list[str]
+      SIDE-EFFECT: pure
+
+    _build_container_podman_args(service:dict, lines:list[str]) → None
+      IN:  service:dict, lines:list[str]
+      OUT: None
+      SIDE-EFFECT: pure
+
+    _parse_cpus_limit(deploy:dict) → str | None
+      IN:  deploy:dict
+      OUT: str | None
+
+  Pipeline: Src
+    quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services)
+      IN:  ctx, compose_path, env_file, output_dir, network, no_auto_update, services
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None) → list[Path]
+      IN:  compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None
+      OUT: list[Path]
+      SIDE-EFFECT: IO(mkdir)
+
+    _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None) → tuple[list[Path], set[str]]
+      IN:  outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None
+      OUT: tuple[list[Path], set[str]]
+      SIDE-EFFECT: IO(write_text, print)
+
+    generate_container_unit(service_name:str, service:dict, network_name:str, auto_update:bool) → str
+      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+      OUT: str
+
+    _build_container_section(service_name:str, service:dict, network_name:str, auto_update:bool) → list[str]
+      IN:  service_name:str, service:dict, network_name:str, auto_update:bool
+      OUT: list[str]
+      SIDE-EFFECT: pure
+
+    _build_container_podman_args(service:dict, lines:list[str]) → None
+      IN:  service:dict, lines:list[str]
+      OUT: None
+      SIDE-EFFECT: pure
+
+    _parse_cpus_limit(deploy:dict) → str | None
+      IN:  deploy:dict
+      OUT: str | None
+
+  Pipeline: Src
+    run(task_names:list[str]) → bool
+      IN:  task_names:list[str]
+      OUT: bool
+      SIDE-EFFECT: IO(print)
+
+    run_task(task_name:str) → bool
+      IN:  task_name:str
+      OUT: bool
+      SIDE-EFFECT: IO(print, print, print)
+
+    run_command(cmd:str, task:Task) → int
+      IN:  cmd:str, task:Task
+      OUT: int
+      SIDE-EFFECT: IO(print, print, print)
+
+    _wrap_ssh(cmd:str) → str
+      IN:  cmd:str
+      OUT: str
+
+    _strip_remote_prefix(cmd:str) → str
+      IN:  cmd:str
+      OUT: str
+
+  Pipeline: Src
+    generate() → str
+      IN:  ()
+      OUT: str
+
+    _build_steps(stage) → list[dict]
+      IN:  stage
+      OUT: list[dict]
+      SIDE-EFFECT: pure
+
+    _stage_tasks_cmd(stage:PipelineStage) → str
+      IN:  stage:PipelineStage
+      OUT: str
+
+    _tag_var() → str
+      IN:  ()
+      OUT: str
+
+  Pipeline: Src
+    __init__(compose_path:str | Path, env_file:str | Path | None, extra_vars:dict[str, str] | None)
+      IN:  compose_path:str | Path, env_file:str | Path | None, extra_vars:dict[str, str] | None
+      OUT: None
+      SIDE-EFFECT: IO(open); mutates self.compose_path, self.env_file, self.extra_vars
+
+    resolve_dict(data:Any, variables:dict[str, str]) → Any
+      IN:  data:Any, variables:dict[str, str]
+      OUT: Any
+      INVARIANT: all entities exist in analysis
+
+    resolve_variables(text:str, variables:dict[str, str]) → str
+      IN:  text:str, variables:dict[str, str]
+      OUT: str
+      INVARIANT: all entities exist in analysis
+
+  Pipeline: Src
+    __init__(config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool)
+      IN:  config:TaskfileConfig | None, taskfile_path:str | Path | None, env_name:str | None, platform_name:str | None, var_overrides:dict[str, str] | None, dry_run:bool, verbose:bool
+      OUT: None
+      SIDE-EFFECT: IO(print, print); mutates self.config, self.env_name, self.platform_name
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+  Pipeline: Src
+    quadlet_upload(ctx, quadlet_dir)
+      IN:  ctx, quadlet_dir
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+  Pipeline: Src
+    ci_generate(ctx, targets, gen_all, output_dir)
+      IN:  ctx, targets, gen_all, output_dir
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    generate_all_ci(config:TaskfileConfig, project_dir:str | Path, targets:list[str] | None) → list[Path]
+      IN:  config:TaskfileConfig, project_dir:str | Path, targets:list[str] | None
+      OUT: list[Path]
+      SIDE-EFFECT: pure
+
+    generate_ci(config:TaskfileConfig, target:str, project_dir:str | Path) → Path
+      IN:  config:TaskfileConfig, target:str, project_dir:str | Path
+      OUT: Path
+      SIDE-EFFECT: IO(write, print)
+
+  Pipeline: Src
+    ci_run(ctx, stages, skip_stages, stop_at)
+      IN:  ctx, stages, skip_stages, stop_at
+      OUT: None
+      SIDE-EFFECT: IO(print)
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+  Pipeline: Src
+    ci_list(ctx)
+      IN:  ctx
+      OUT: None
+      SIDE-EFFECT: IO(print)
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+  Pipeline: Src
+    ci_preview(ctx, target)
+      IN:  ctx, target
+      OUT: None
+      SIDE-EFFECT: IO(print, print, print)
+
+    load_taskfile(path:str | Path | None) → TaskfileConfig
+      IN:  path:str | Path | None
+      OUT: TaskfileConfig
+      SIDE-EFFECT: IO(open)
+
+    find_taskfile(start_dir:str | Path | None) → Path
+      IN:  start_dir:str | Path | None
+      OUT: Path
+
+  Pipeline: Src
+    generate() → str
+      IN:  ()
+      OUT: str
+
+    _stage_tasks_cmd(stage:PipelineStage) → str
+      IN:  stage:PipelineStage
+      OUT: str
+
+    _tag_var() → str
+      IN:  ()
+      OUT: str
+
+
+DATA_TYPES (by cross-function usage) [108 annotated, 0 inferred / 120 functions]:
+  str                  consumed:38  produced:26   !! HUB-TYPE → split interface
+  bool                 consumed:13  produced:7    !! HUB-TYPE → split interface
+  dict                 consumed:18  produced:0    !! HUB-TYPE → split interface
+  list[str]            consumed:8   produced:7  
+  str | None           consumed:8   produced:2  
+  dict[str, str]       consumed:4   produced:5  
+  TaskfileConfig       consumed:7   produced:2  
+  list[str] | None     consumed:7   produced:0    input-heavy (read-only flow)
+  Path                 consumed:3   produced:4  
+  str | Path           consumed:6   produced:0    input-heavy (read-only flow)
+  list[Path]           consumed:1   produced:4  
+  str | Path | None    consumed:4   produced:0    narrow scope
+  dict[str, Task]      consumed:2   produced:1    narrow scope
+  dict[str, str] | None consumed:3   produced:0    narrow scope
+  float                consumed:2   produced:0    narrow scope
+  PipelineStage        consumed:2   produced:0    narrow scope
+  PipelineConfig       consumed:0   produced:2    narrow scope
+  ComposeFile          consumed:2   produced:0    narrow scope
+  set[str]             consumed:1   produced:1    narrow scope
+  list[PipelineStage]  consumed:1   produced:1    narrow scope
+
+  HUB TYPES (consumed ≥10):
+    str → 38 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
+    bool → 13 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
+    dict → 18 consumers → split into:
+      - replace with typed alternatives (dataclass/TypedDict)
+
+SIDE_EFFECTS:
+  IO:        load_taskfile, load_env_file, ComposeFile.__init__, PipelineRunner.run, PipelineRunner._resolve_stages, PipelineRunner._print_pipeline_header, PipelineRunner._print_summary, PipelineRunner.list_stages, TaskfileRunner.__init__, TaskfileRunner.run_command
+  Mutation:  validate_taskfile, PipelineError.__init__, PipelineRunner.__init__, StageResult.__init__, TaskRunError.__init__, _build_unit_section, _build_container_env, _build_container_ports, _build_container_volumes, _build_container_networks
+  Pure:      find_taskfile, resolve_variables, resolve_dict, ComposeFile.get_service, ComposeFile.get_traefik_labels, ComposeFile.service_names, generate_taskfile, TaskfileRunner.expand_variables, TaskfileRunner._is_remote_command, TaskfileRunner._strip_remote_prefix
+
+  PIPELINE PURITY:
+    Src             █░░░ 25% pure
+    Src             █░░░ 28% pure
+    Src             █░░░ 40% pure
+    Src             ███░ 75% pure
+    Src             ██░░ 66% pure
+    Src             █░░░ 33% pure
+    Src             █░░░ 33% pure
+    Src             ░░░░ 0% pure
+    Src             █░░░ 33% pure
+    Src             █░░░ 33% pure
+    Src             █░░░ 33% pure
+    Src             ████ 100% pure

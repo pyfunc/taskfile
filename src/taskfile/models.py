@@ -228,22 +228,36 @@ class TaskfileConfig:
             description=data.get("description", ""),
             variables=data.get("variables", {}),
             default_env=data.get("default_env", "local"),
+            default_platform=data.get("default_platform", None),
         )
 
-        # Parse compose section
-        compose_data = data.get("compose", {})
-        if isinstance(compose_data, dict):
-            config.compose = ComposeConfig(
-                file=compose_data.get("file", "docker-compose.yml"),
-                override_files=compose_data.get("override_files", []),
-                network=compose_data.get("network", "proxy"),
-                auto_update=compose_data.get("auto_update", True),
-            )
+        config.compose = cls._parse_compose(data.get("compose", {}))
+        config.environments = cls._parse_environments(data.get("environments", {}))
+        config.platforms = cls._parse_platforms(data.get("platforms", {}))
+        config.tasks = cls._parse_tasks(data.get("tasks", {}))
+        config.pipeline = cls._parse_pipeline(data.get("pipeline", {}), config.tasks)
 
-        # Parse environments
-        for env_name, env_data in data.get("environments", {}).items():
+        return config
+
+    @staticmethod
+    def _parse_compose(compose_data: Any) -> ComposeConfig:
+        """Parse the compose section of Taskfile."""
+        if not isinstance(compose_data, dict):
+            return ComposeConfig()
+        return ComposeConfig(
+            file=compose_data.get("file", "docker-compose.yml"),
+            override_files=compose_data.get("override_files", []),
+            network=compose_data.get("network", "proxy"),
+            auto_update=compose_data.get("auto_update", True),
+        )
+
+    @staticmethod
+    def _parse_environments(env_section: dict) -> dict[str, Environment]:
+        """Parse all environment definitions, ensuring 'local' always exists."""
+        environments: dict[str, Environment] = {}
+        for env_name, env_data in env_section.items():
             if isinstance(env_data, dict):
-                config.environments[env_name] = Environment(
+                environments[env_name] = Environment(
                     name=env_name,
                     variables=env_data.get("variables", {}),
                     ssh_host=env_data.get("ssh_host"),
@@ -258,28 +272,33 @@ class TaskfileConfig:
                     quadlet_dir=env_data.get("quadlet_dir", "deploy/quadlet"),
                     quadlet_remote_dir=env_data.get("quadlet_remote_dir", "~/.config/containers/systemd"),
                 )
+        if "local" not in environments:
+            environments["local"] = Environment(name="local")
+        return environments
 
-        if "local" not in config.environments:
-            config.environments["local"] = Environment(name="local")
-
-        # Parse platforms
-        for plat_name, plat_data in data.get("platforms", {}).items():
+    @staticmethod
+    def _parse_platforms(plat_section: dict) -> dict[str, Platform]:
+        """Parse all platform definitions."""
+        platforms: dict[str, Platform] = {}
+        for plat_name, plat_data in plat_section.items():
             if isinstance(plat_data, dict):
-                config.platforms[plat_name] = Platform(
+                platforms[plat_name] = Platform(
                     name=plat_name,
                     variables=plat_data.get("variables", {}),
                     build_cmd=plat_data.get("build_cmd"),
                     deploy_cmd=plat_data.get("deploy_cmd"),
                     description=plat_data.get("desc", plat_data.get("description", "")),
                 )
+        return platforms
 
-        config.default_platform = data.get("default_platform", None)
-
-        # Parse tasks
-        for task_name, task_data in data.get("tasks", {}).items():
+    @staticmethod
+    def _parse_tasks(tasks_section: dict) -> dict[str, Task]:
+        """Parse all task definitions."""
+        tasks: dict[str, Task] = {}
+        for task_name, task_data in tasks_section.items():
             if isinstance(task_data, dict):
                 raw_cmds = task_data.get("cmds", task_data.get("commands", []))
-                config.tasks[task_name] = Task(
+                tasks[task_name] = Task(
                     name=task_name,
                     description=task_data.get("desc", task_data.get("description", "")),
                     commands=_normalize_commands(raw_cmds),
@@ -294,14 +313,17 @@ class TaskfileConfig:
                 )
             elif isinstance(task_data, list):
                 # Shorthand: task is just a list of commands
-                config.tasks[task_name] = Task(
+                tasks[task_name] = Task(
                     name=task_name, commands=_normalize_commands(task_data)
                 )
+        return tasks
 
-        # Parse pipeline
-        pipeline_data = data.get("pipeline", {})
+    @staticmethod
+    def _parse_pipeline(pipeline_data: Any, tasks: dict[str, Task]) -> PipelineConfig:
+        """Parse pipeline section and infer stages from tasks if needed."""
         if isinstance(pipeline_data, dict):
-            config.pipeline = PipelineConfig.from_dict(pipeline_data)
-        config.pipeline.infer_from_tasks(config.tasks)
-
-        return config
+            pipeline = PipelineConfig.from_dict(pipeline_data)
+        else:
+            pipeline = PipelineConfig()
+        pipeline.infer_from_tasks(tasks)
+        return pipeline

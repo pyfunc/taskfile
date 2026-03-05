@@ -4,21 +4,26 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 106
+- **Total Functions**: 120
 - **Total Classes**: 22
 - **Modules**: 27
-- **Entry Points**: 67
+- **Entry Points**: 77
 
 ## Architecture by Module
 
 ### src.taskfile.quadlet
-- **Functions**: 17
+- **Functions**: 21
 - **File**: `quadlet.py`
 
 ### src.taskfile.runner
-- **Functions**: 11
+- **Functions**: 16
 - **Classes**: 2
 - **File**: `runner.py`
+
+### src.taskfile.models
+- **Functions**: 13
+- **Classes**: 7
+- **File**: `models.py`
 
 ### src.taskfile.cigen.base
 - **Functions**: 9
@@ -30,11 +35,6 @@
 - **Classes**: 3
 - **File**: `cirunner.py`
 
-### src.taskfile.models
-- **Functions**: 8
-- **Classes**: 7
-- **File**: `models.py`
-
 ### src.taskfile.compose
 - **Functions**: 7
 - **Classes**: 1
@@ -44,13 +44,13 @@
 - **Functions**: 7
 - **File**: `main.py`
 
-### src.taskfile.cli.ci
-- **Functions**: 6
-- **File**: `ci.py`
-
 ### src.taskfile.cli.quadlet
 - **Functions**: 6
 - **File**: `quadlet.py`
+
+### src.taskfile.cli.ci
+- **Functions**: 6
+- **File**: `ci.py`
 
 ### src.taskfile.cli.deploy
 - **Functions**: 6
@@ -103,10 +103,6 @@
 
 Main execution flows into the system:
 
-### src.taskfile.models.TaskfileConfig.from_dict
-> Parse raw YAML dict into TaskfileConfig.
-- **Calls**: cls, data.get, isinstance, None.items, None.items, data.get, None.items, data.get
-
 ### src.taskfile.cli.ci.ci_generate
 > Generate CI/CD config files from Taskfile.yml pipeline section.
 
@@ -139,10 +135,6 @@ deploy
 ### src.taskfile.models.PipelineConfig.from_dict
 - **Calls**: cls, data.get, isinstance, str, data.get, data.get, data.get, data.get
 
-### src.taskfile.runner.TaskfileRunner.list_tasks
-> Print available tasks and environments.
-- **Calls**: console.print, sorted, console.print, sorted, console.print, self.config.tasks.items, console.print, self.config.environments.items
-
 ### src.taskfile.cli.quadlet.quadlet_generate
 > Generate Quadlet .container files from docker-compose.yml.
 
@@ -152,12 +144,20 @@ Examples:
     taskfile quadlet generate --env-file .env.pr
 - **Calls**: quadlet.command, click.option, click.option, click.option, click.option, click.option, click.option, opts.get
 
+### src.taskfile.models.TaskfileConfig._parse_tasks
+> Parse all task definitions.
+- **Calls**: tasks_section.items, isinstance, task_data.get, Task, isinstance, task_data.get, Task, task_data.get
+
 ### src.taskfile.cli.main.info
 > Show detailed info about a specific task.
 - **Calls**: main.command, click.argument, src.taskfile.parser.load_taskfile, console.print, console.print, console.print, sys.exit, console.print
 
 ### src.taskfile.cigen.makefile.MakefileTarget.generate
 - **Calls**: sorted, None.join, self.config.tasks.items, task_name.replace, lines.append, lines.append, lines.append, lines.append
+
+### src.taskfile.models.TaskfileConfig.from_dict
+> Parse raw YAML dict into TaskfileConfig.
+- **Calls**: cls, cls._parse_compose, cls._parse_environments, cls._parse_platforms, cls._parse_tasks, cls._parse_pipeline, data.get, data.get
 
 ### src.taskfile.cli.ci.ci_run
 > Run CI/CD pipeline stages locally.
@@ -168,6 +168,10 @@ but directly on your machine. No runner needed.
 
 Exa
 - **Calls**: ci.command, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, PipelineRunner, runner.run, sys.exit
+
+### src.taskfile.models.TaskfileConfig._parse_environments
+> Parse all environment definitions, ensuring 'local' always exists.
+- **Calls**: env_section.items, isinstance, Environment, Environment, env_data.get, env_data.get, env_data.get, env_data.get
 
 ### src.taskfile.cli.quadlet.quadlet_upload
 > Upload generated Quadlet files to remote server via SSH.
@@ -236,13 +240,25 @@ Examples:
     task
 - **Calls**: main.command, click.argument, TaskfileRunner, runner.run, sys.exit, list, console.print, sys.exit
 
+### src.taskfile.models.TaskfileConfig._parse_platforms
+> Parse all platform definitions.
+- **Calls**: plat_section.items, isinstance, Platform, plat_data.get, plat_data.get, plat_data.get, plat_data.get, plat_data.get
+
 ### src.taskfile.runner.TaskfileRunner.run_command
 > Execute a single command, locally or via SSH.
 - **Calls**: self.expand_variables, self._is_remote_command, self._wrap_ssh, console.print, console.print, subprocess.run, console.print
 
+### src.taskfile.runner.TaskfileRunner._list_tasks_section
+> Print task list with filters and dependencies.
+- **Calls**: console.print, sorted, self.config.tasks.items, console.print, None.join, None.join, None.join
+
 ### src.taskfile.cli.ci.ci_list
 > List pipeline stages defined in Taskfile.yml.
 - **Calls**: ci.command, src.taskfile.parser.load_taskfile, PipelineRunner, runner.list_stages, opts.get, console.print, sys.exit
+
+### src.taskfile.models.TaskfileConfig._parse_compose
+> Parse the compose section of Taskfile.
+- **Calls**: ComposeConfig, isinstance, ComposeConfig, compose_data.get, compose_data.get, compose_data.get, compose_data.get
 
 ### src.taskfile.runner.TaskfileRunner.expand_variables
 > Replace {{VAR}} and ${VAR} placeholders with resolved values.
@@ -252,59 +268,45 @@ Examples:
 > List available CI/CD generation targets.
 - **Calls**: ci.command, console.print, src.taskfile.cigen.list_targets, console.print, console.print, console.print
 
-### src.taskfile.cli.main.list_tasks
-> List available tasks and environments.
-- **Calls**: main.command, src.taskfile.parser.load_taskfile, TaskfileRunner, runner.list_tasks, console.print, sys.exit
-
-### src.taskfile.cigen.gitlab.GitLabCITarget.generate
-- **Calls**: src.taskfile.cigen.base._yaml_dump, src.taskfile.cigen.base._sanitize_id, job.get, before.extend, self._stage_tasks_cmd, self._stage_tasks_cmd
-
-### src.taskfile.cigen.github.GitHubActionsTarget._build_steps
-- **Calls**: steps.append, steps.append, steps.append, steps.append, self._stage_tasks_cmd, None.join
-
-### src.taskfile.models.PipelineConfig.infer_from_tasks
-> Auto-generate pipeline stages from task 'stage' fields if no stages defined.
-- **Calls**: tasks.items, stage_map.items, self.stages.append, None.append, PipelineStage, stage_map.setdefault
-
 ## Process Flows
 
 Key execution flows identified:
 
-### Flow 1: from_dict
-```
-from_dict [src.taskfile.models.TaskfileConfig]
-```
-
-### Flow 2: ci_generate
+### Flow 1: ci_generate
 ```
 ci_generate [src.taskfile.cli.ci]
   └─ →> load_taskfile
       └─> find_taskfile
 ```
 
-### Flow 3: run_task
+### Flow 2: run_task
 ```
 run_task [src.taskfile.runner.TaskfileRunner]
 ```
 
-### Flow 4: run
+### Flow 3: run
 ```
 run [src.taskfile.cirunner.PipelineRunner]
 ```
 
-### Flow 5: deploy_cmd
+### Flow 4: deploy_cmd
 ```
 deploy_cmd [src.taskfile.cli.deploy]
 ```
 
-### Flow 6: list_tasks
+### Flow 5: from_dict
 ```
-list_tasks [src.taskfile.runner.TaskfileRunner]
+from_dict [src.taskfile.models.PipelineConfig]
 ```
 
-### Flow 7: quadlet_generate
+### Flow 6: quadlet_generate
 ```
 quadlet_generate [src.taskfile.cli.quadlet]
+```
+
+### Flow 7: _parse_tasks
+```
+_parse_tasks [src.taskfile.models.TaskfileConfig]
 ```
 
 ### Flow 8: info
@@ -330,7 +332,7 @@ ci_run [src.taskfile.cli.ci]
 
 ### src.taskfile.runner.TaskfileRunner
 > Executes tasks from a Taskfile configuration.
-- **Methods**: 10
+- **Methods**: 15
 - **Key Methods**: src.taskfile.runner.TaskfileRunner.__init__, src.taskfile.runner.TaskfileRunner.expand_variables, src.taskfile.runner.TaskfileRunner.run_command, src.taskfile.runner.TaskfileRunner._is_remote_command, src.taskfile.runner.TaskfileRunner._strip_remote_prefix, src.taskfile.runner.TaskfileRunner._wrap_ssh, src.taskfile.runner.TaskfileRunner.check_condition, src.taskfile.runner.TaskfileRunner.run_task, src.taskfile.runner.TaskfileRunner.run, src.taskfile.runner.TaskfileRunner.list_tasks
 
 ### src.taskfile.compose.ComposeFile
@@ -349,6 +351,11 @@ The pipeline is just an ordered list of st
 > Base class for CI/CD target generators.
 - **Methods**: 6
 - **Key Methods**: src.taskfile.cigen.base.CITarget.__init__, src.taskfile.cigen.base.CITarget.generate, src.taskfile.cigen.base.CITarget.write, src.taskfile.cigen.base.CITarget._tag_var, src.taskfile.cigen.base.CITarget._stage_env_flag, src.taskfile.cigen.base.CITarget._stage_tasks_cmd
+
+### src.taskfile.models.TaskfileConfig
+> Parsed Taskfile configuration.
+- **Methods**: 6
+- **Key Methods**: src.taskfile.models.TaskfileConfig.from_dict, src.taskfile.models.TaskfileConfig._parse_compose, src.taskfile.models.TaskfileConfig._parse_environments, src.taskfile.models.TaskfileConfig._parse_platforms, src.taskfile.models.TaskfileConfig._parse_tasks, src.taskfile.models.TaskfileConfig._parse_pipeline
 
 ### src.taskfile.cigen.github.GitHubActionsTarget
 - **Methods**: 4
@@ -417,11 +424,6 @@ The pipeline is just an ordered list of st
 - **Methods**: 1
 - **Key Methods**: src.taskfile.models.Platform.resolve_variables
 
-### src.taskfile.models.TaskfileConfig
-> Parsed Taskfile configuration.
-- **Methods**: 1
-- **Key Methods**: src.taskfile.models.TaskfileConfig.from_dict
-
 ### src.taskfile.parser.TaskfileNotFoundError
 > Raised when no Taskfile is found in the search path.
 - **Methods**: 0
@@ -459,6 +461,26 @@ Key functions that process and transform data:
 > Validate the Taskfile without running anything.
 - **Output to**: main.command, src.taskfile.parser.load_taskfile, src.taskfile.parser.validate_taskfile, console.print, console.print
 
+### src.taskfile.models.TaskfileConfig._parse_compose
+> Parse the compose section of Taskfile.
+- **Output to**: ComposeConfig, isinstance, ComposeConfig, compose_data.get, compose_data.get
+
+### src.taskfile.models.TaskfileConfig._parse_environments
+> Parse all environment definitions, ensuring 'local' always exists.
+- **Output to**: env_section.items, isinstance, Environment, Environment, env_data.get
+
+### src.taskfile.models.TaskfileConfig._parse_platforms
+> Parse all platform definitions.
+- **Output to**: plat_section.items, isinstance, Platform, plat_data.get, plat_data.get
+
+### src.taskfile.models.TaskfileConfig._parse_tasks
+> Parse all task definitions.
+- **Output to**: tasks_section.items, isinstance, task_data.get, Task, isinstance
+
+### src.taskfile.models.TaskfileConfig._parse_pipeline
+> Parse pipeline section and infer stages from tasks if needed.
+- **Output to**: isinstance, pipeline.infer_from_tasks, PipelineConfig.from_dict, PipelineConfig
+
 ## Behavioral Patterns
 
 ### recursion_resolve_dict
@@ -470,17 +492,15 @@ Key functions that process and transform data:
 
 Functions exposed as public API (no underscore prefix):
 
-- `src.taskfile.models.TaskfileConfig.from_dict` - 65 calls
 - `src.taskfile.cli.ci.ci_generate` - 41 calls
 - `src.taskfile.runner.TaskfileRunner.run_task` - 29 calls
 - `src.taskfile.cirunner.PipelineRunner.run` - 28 calls
 - `src.taskfile.cli.deploy.deploy_cmd` - 28 calls
 - `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
-- `src.taskfile.quadlet.compose_to_quadlet` - 24 calls
-- `src.taskfile.runner.TaskfileRunner.list_tasks` - 21 calls
 - `src.taskfile.cli.quadlet.quadlet_generate` - 19 calls
 - `src.taskfile.cli.main.info` - 18 calls
 - `src.taskfile.cigen.makefile.MakefileTarget.generate` - 18 calls
+- `src.taskfile.models.TaskfileConfig.from_dict` - 18 calls
 - `src.taskfile.cli.ci.ci_run` - 17 calls
 - `src.taskfile.cli.quadlet.quadlet_upload` - 15 calls
 - `src.taskfile.cli.main.init` - 12 calls
@@ -492,6 +512,7 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.compose.ComposeFile.get_traefik_labels` - 9 calls
 - `src.taskfile.compose.resolve_variables` - 8 calls
 - `src.taskfile.cirunner.PipelineRunner.list_stages` - 8 calls
+- `src.taskfile.quadlet.compose_to_quadlet` - 8 calls
 - `src.taskfile.cli.main.run` - 8 calls
 - `src.taskfile.compose.resolve_dict` - 7 calls
 - `src.taskfile.runner.TaskfileRunner.run_command` - 7 calls
@@ -504,6 +525,7 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cigen.gitlab.GitLabCITarget.generate` - 6 calls
 - `src.taskfile.cigen.generate_ci` - 6 calls
 - `src.taskfile.models.PipelineConfig.infer_from_tasks` - 6 calls
+- `src.taskfile.runner.TaskfileRunner.list_tasks` - 5 calls
 - `src.taskfile.quadlet.generate_container_unit` - 5 calls
 - `src.taskfile.cigen.jenkins.JenkinsTarget.generate` - 5 calls
 - `src.taskfile.cigen.preview_ci` - 5 calls
@@ -517,10 +539,6 @@ How components interact:
 
 ```mermaid
 graph TD
-    from_dict --> cls
-    from_dict --> get
-    from_dict --> isinstance
-    from_dict --> items
     ci_generate --> command
     ci_generate --> option
     ci_generate --> load_taskfile
@@ -536,17 +554,21 @@ graph TD
     deploy_cmd --> command
     deploy_cmd --> option
     deploy_cmd --> get
+    from_dict --> cls
+    from_dict --> get
+    from_dict --> isinstance
     from_dict --> str
-    list_tasks --> print
-    list_tasks --> sorted
     quadlet_generate --> command
     quadlet_generate --> option
+    _parse_tasks --> items
+    _parse_tasks --> isinstance
+    _parse_tasks --> get
+    _parse_tasks --> Task
     info --> command
     info --> argument
     info --> load_taskfile
     info --> print
     generate --> sorted
-    generate --> join
 ```
 
 ## Reverse Engineering Guidelines

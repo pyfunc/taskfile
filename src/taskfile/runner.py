@@ -244,14 +244,23 @@ class TaskfileRunner:
         return success
 
     def list_tasks(self) -> None:
-        """Print available tasks and environments."""
+        """Print available tasks, environments, platforms and variables."""
+        self._list_header()
+        self._list_tasks_section()
+        self._list_environments_section()
+        self._list_platforms_section()
+        self._list_variables_section()
+
+    def _list_header(self) -> None:
+        """Print project name and description panel."""
         if self.config.name:
             console.print(Panel(
                 f"[bold]{self.config.name}[/]\n{self.config.description or ''}",
                 border_style="blue",
             ))
 
-        # Tasks
+    def _list_tasks_section(self) -> None:
+        """Print task list with filters and dependencies."""
         console.print("\n[bold]Tasks:[/]")
         for name, task in sorted(self.config.tasks.items()):
             env_info = ""
@@ -266,7 +275,8 @@ class TaskfileRunner:
             desc = f"  [dim]{task.description}[/]" if task.description else ""
             console.print(f"  [green]{name:20s}[/]{desc}{env_info}{plat_info}{deps_info}")
 
-        # Environments
+    def _list_environments_section(self) -> None:
+        """Print environment list with connection info."""
         console.print(f"\n[bold]Environments:[/]")
         for name, env in sorted(self.config.environments.items()):
             default = " [yellow](default)[/]" if name == self.config.default_env else ""
@@ -274,16 +284,20 @@ class TaskfileRunner:
             runtime = f" [{env.container_runtime}]"
             console.print(f"  [cyan]{name:20s}[/]{remote}{runtime}{default}")
 
-        # Platforms
-        if self.config.platforms:
-            console.print(f"\n[bold]Platforms:[/]")
-            for name, plat in sorted(self.config.platforms.items()):
-                default = " [yellow](default)[/]" if name == self.config.default_platform else ""
-                desc = f"  [dim]{plat.description}[/]" if plat.description else ""
-                console.print(f"  [magenta]{name:20s}[/]{desc}{default}")
+    def _list_platforms_section(self) -> None:
+        """Print platform list if any are defined."""
+        if not self.config.platforms:
+            return
+        console.print(f"\n[bold]Platforms:[/]")
+        for name, plat in sorted(self.config.platforms.items()):
+            default = " [yellow](default)[/]" if name == self.config.default_platform else ""
+            desc = f"  [dim]{plat.description}[/]" if plat.description else ""
+            console.print(f"  [magenta]{name:20s}[/]{desc}{default}")
 
-        # Variables
-        if self.config.variables:
-            console.print(f"\n[bold]Variables:[/]")
-            for key, val in sorted(self.config.variables.items()):
-                console.print(f"  [dim]{key}[/] = {val}")
+    def _list_variables_section(self) -> None:
+        """Print global variables."""
+        if not self.config.variables:
+            return
+        console.print(f"\n[bold]Variables:[/]")
+        for key, val in sorted(self.config.variables.items()):
+            console.print(f"  [dim]{key}[/] = {val}")

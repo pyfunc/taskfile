@@ -1,0 +1,122 @@
+flowchart TD
+    subgraph src_taskfile
+        src__taskfile__parser__find_taskfile["find_taskfile"]
+        src__taskfile__parser__load_taskfile["load_taskfile"]
+        src__taskfile__parser__validate_taskfile("validate_taskfile CC=12")
+        src__taskfile__compose__load_env_file("load_env_file CC=9")
+        src__taskfile__compose__resolve_variables["resolve_variables"]
+        src__taskfile__compose__resolve_dict["resolve_dict"]
+        src__taskfile__compose__ComposeFile____init__["__init__"]
+        src__taskfile__compose__ComposeFile__get_service["get_service"]
+        src__get_traefik_labels("get_traefik_labels CC=10")
+        src__taskfile__compose__ComposeFile__service_names["service_names"]
+        src__taskfile__cirunner__PipelineError____init__["__init__"]
+        src__taskfile__cirunner__PipelineRunner____init__["__init__"]
+        src__taskfile__cirunner__PipelineRunner__run("run CC=8")
+        src___resolve_stages("_resolve_stages CC=10")
+        src___print_pipeline_header["_print_pipeline_header"]
+        src___print_summary["_print_summary"]
+        src__list_stages["list_stages"]
+        src__taskfile__cirunner__StageResult____init__["__init__"]
+        src__taskfile__scaffold__generate_taskfile["generate_taskfile"]
+        src__taskfile__runner__TaskRunError____init__["__init__"]
+        src__taskfile__runner__TaskfileRunner____init__("__init__ CC=10")
+        src__expand_variables["expand_variables"]
+        src__taskfile__runner__TaskfileRunner__run_command["run_command"]
+        src___is_remote_command["_is_remote_command"]
+        src___strip_remote_prefix["_strip_remote_prefix"]
+        src__taskfile__runner__TaskfileRunner___wrap_ssh["_wrap_ssh"]
+        src__check_condition["check_condition"]
+        src__taskfile__runner__TaskfileRunner__run_task("run_task CC=13")
+        src__taskfile__runner__TaskfileRunner__run["run"]
+        src__taskfile__runner__TaskfileRunner__list_tasks["list_tasks"]
+        src___list_header["_list_header"]
+        src___list_tasks_section["_list_tasks_section"]
+        src___list_environments_section["_list_environments_section"]
+        src___list_platforms_section["_list_platforms_section"]
+        src___list_variables_section["_list_variables_section"]
+        src__taskfile__quadlet___parse_port["_parse_port"]
+        src__taskfile__quadlet___parse_memory_limit["_parse_memory_limit"]
+        src__taskfile__quadlet___parse_cpus_limit["_parse_cpus_limit"]
+        src__taskfile__quadlet___build_unit_section["_build_unit_section"]
+        src__taskfile__quadlet___build_container_env["_build_container_env"]
+        src__taskfile__quadlet___build_container_ports["_build_container_ports"]
+        src__taskfile__quadlet___build_container_volumes("_build_container_volumes CC=9")
+        src__taskfile__quadlet___build_container_networks["_build_container_networks"]
+        src__taskfile__quadlet___build_container_labels["_build_container_labels"]
+        src___build_container_podman_args["_build_container_podman_args"]
+        src__taskfile__quadlet___build_container_section["_build_container_section"]
+        src__taskfile__quadlet___build_service_section["_build_service_section"]
+        src__taskfile__quadlet___build_install_section["_build_install_section"]
+        src__taskfile__quadlet__generate_container_unit["generate_container_unit"]
+        src__taskfile__quadlet__generate_network_unit["generate_network_unit"]
+        src__taskfile__quadlet__generate_volume_unit["generate_volume_unit"]
+        src__taskfile__quadlet___collect_named_volumes["_collect_named_volumes"]
+        src__taskfile__quadlet___generate_network_file["_generate_network_file"]
+        src__taskfile__quadlet___generate_container_files["_generate_container_files"]
+        src__taskfile__quadlet___generate_volume_files["_generate_volume_files"]
+        src__taskfile__quadlet__compose_to_quadlet["compose_to_quadlet"]
+        src__taskfile__cli__quadlet__quadlet["quadlet"]
+        src__taskfile__cli__quadlet__quadlet_generate["quadlet_generate"]
+        src__taskfile__cli__quadlet___get_upload_env["_get_upload_env"]
+        src__taskfile__cli__quadlet___get_upload_files["_get_upload_files"]
+    end
+    src__taskfile__parser__load_taskfile --> src__taskfile__models__TaskfileConfig__from_dict
+    src__taskfile__parser__load_taskfile --> src__taskfile__parser__find_taskfile
+    src__taskfile__compose__resolve_dict --> src__taskfile__compose__resolve_variables
+    src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__resolve_dict
+    src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__load_env_file
+    src__taskfile__runner__TaskfileRunner____init__ --> src__taskfile__parser__load_taskfile
+    src__taskfile__runner__TaskfileRunner__run --> src__taskfile__parser__validate_taskfile
+    src__taskfile__quadlet___build_container_ports --> src__taskfile__quadlet___parse_port
+    src___build_container_podman_args --> src__taskfile__quadlet___parse_memory_limit
+    src___build_container_podman_args --> src__taskfile__quadlet___parse_cpus_limit
+    src__taskfile__quadlet___build_container_section --> src__taskfile__quadlet___build_container_env
+    src__taskfile__quadlet___build_container_section --> src__taskfile__quadlet___build_container_ports
+    src__taskfile__quadlet___build_container_section --> src__taskfile__quadlet___build_container_volumes
+    src__taskfile__quadlet___build_container_section --> src__taskfile__quadlet___build_container_networks
+    src__taskfile__quadlet___build_container_section --> src__taskfile__quadlet___build_container_labels
+    src__taskfile__quadlet___build_container_section --> src___build_container_podman_args
+    src__taskfile__quadlet__generate_container_unit --> src__taskfile__quadlet___build_unit_section
+    src__taskfile__quadlet__generate_container_unit --> src__taskfile__quadlet___build_container_section
+    src__taskfile__quadlet__generate_container_unit --> src__taskfile__quadlet___build_service_section
+    src__taskfile__quadlet__generate_container_unit --> src__taskfile__quadlet___build_install_section
+    src__taskfile__quadlet___generate_network_file --> src__taskfile__quadlet__generate_network_unit
+    src__taskfile__quadlet___generate_container_files --> src__taskfile__quadlet___collect_named_volumes
+    src__taskfile__quadlet___generate_container_files --> src__taskfile__quadlet__generate_container_unit
+    src__taskfile__quadlet___generate_volume_files --> src__taskfile__quadlet__generate_volume_unit
+    src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_container_files
+    src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_network_file
+    src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_volume_files
+    src__taskfile__cli__quadlet__quadlet_generate --> src__taskfile__quadlet__compose_to_quadlet
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_env
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_files
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___run_upload_commands
+    src__taskfile__cli__ci__ci_generate --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__ci__ci_run --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__ci__ci_list --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__ci__ci_preview --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__ci__ci_preview --> src__taskfile__cigen__preview_ci
+    src__taskfile__cli__ci__ci_targets --> src__taskfile__cigen__list_targets
+    src__taskfile__cli__deploy___ssh --> src__taskfile__cli__deploy___run
+    src__taskfile__cli__deploy___deploy_local_compose --> src__taskfile__cli__deploy___run
+    src__taskfile__cli__deploy___deploy_remote_compose --> src__taskfile__cli__deploy___ssh
+    src__taskfile__cli__deploy___deploy_quadlet --> src__taskfile__cli__deploy___ssh
+    src__taskfile__cli__deploy___deploy_quadlet --> src__taskfile__quadlet__compose_to_quadlet
+    src__taskfile__cli__deploy___deploy_quadlet --> src__taskfile__cli__deploy___run
+    src__taskfile__cli__deploy__deploy_cmd --> src__taskfile__parser__load_taskfile
+    src__generate --> src__taskfile__cigen__base___yaml_dump
+    src__taskfile__cli__main__list_tasks --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__main__init --> src__taskfile__scaffold__generate_taskfile
+    src__taskfile__cli__main__validate --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__main__validate --> src__taskfile__parser__validate_taskfile
+    src__taskfile__cli__main__info --> src__taskfile__parser__load_taskfile
+    src__generate --> src__taskfile__cigen__base___sanitize_id
+    src__taskfile__cigen__generate_all_ci --> src__taskfile__cigen__generate_ci
+    src___parse_tasks --> src__taskfile__models___normalize_commands
+    src___parse_pipeline --> src__taskfile__models__PipelineConfig__from_dict
+
+    classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
+    class src__taskfile__parser__validate_taskfile,src__taskfile__compose__load_env_file,src__get_traefik_labels,src__taskfile__cirunner__PipelineRunner__run,src___resolve_stages,src__taskfile__runner__TaskfileRunner____init__,src__taskfile__runner__TaskfileRunner__run_task,src__taskfile__quadlet___build_container_volumes,src__taskfile__cli__ci__ci_generate,src__taskfile__cli__deploy___deploy_quadlet,src__taskfile__cli__deploy__deploy_cmd,src__generate,src__taskfile__cli__main__info,src__generate,src__generate medCC

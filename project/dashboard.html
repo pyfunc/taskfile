@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>taskfile — Health Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444; --blue: #3b82f6;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); padding:2rem; }
+  h1 { font-size:1.5rem; margin-bottom:.5rem; }
+  h2 { font-size:1.1rem; color:var(--muted); margin:1.5rem 0 .75rem; border-bottom:1px solid var(--border); padding-bottom:.25rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin:1rem 0; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:.5rem; padding:1rem; }
+  .card .value { font-size:1.8rem; font-weight:700; }
+  .card .label { color:var(--muted); font-size:.8rem; text-transform:uppercase; }
+  .chart-container { background:var(--surface); border:1px solid var(--border); border-radius:.5rem; padding:1rem; margin:1rem 0; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th { text-align:left; color:var(--muted); padding:.5rem; border-bottom:1px solid var(--border); }
+  td { padding:.5rem; border-bottom:1px solid var(--border); }
+  .badge { padding:.15rem .5rem; border-radius:.25rem; font-size:.75rem; font-weight:600; }
+  .badge.critical { background:var(--red); color:#fff; }
+  .badge.warning { background:var(--yellow); color:#000; }
+  .badge.high { background:var(--red); color:#fff; }
+  .badge.medium { background:var(--yellow); color:#000; }
+  .badge.low { background:var(--green); color:#fff; }
+  tr.critical td { background:rgba(239,68,68,.08); }
+  tr.warning td { background:rgba(234,179,8,.05); }
+  .health-indicator { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:.5rem; }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media (max-width:768px) { .two-col { grid-template-columns:1fr; } }
+  footer { margin-top:2rem; color:var(--muted); font-size:.75rem; text-align:center; }
+</style>
+</head>
+<body>
+<h1>
+  <span class="health-indicator" style="background:#22c55e"></span>
+  taskfile — Good
+</h1>
+<p style="color:var(--muted);font-size:.85rem;">
+  Analyzed 2026-03-05 by code2llm
+</p>
+
+<div class="grid">
+  <div class="card"><div class="value">3.9</div><div class="label">Avg CC</div></div>
+  <div class="card"><div class="value">10</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">120</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">22</div><div class="label">Classes</div></div>
+  <div class="card"><div class="value">19</div><div class="label">Files</div></div>
+  <div class="card"><div class="value">1771552</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">0</div><div class="label">Duplicates</div></div>
+  <div class="card"><div class="value">1</div><div class="label">Cycles</div></div>
+</div>
+
+<div class="two-col">
+  <div class="chart-container">
+    <h2 style="border:none;margin:0 0 .5rem;">Evolution</h2>
+    <canvas id="evoChart" height="200"></canvas>
+  </div>
+  <div class="chart-container">
+    <h2 style="border:none;margin:0 0 .5rem;">Module CC (top 15)</h2>
+    <canvas id="modChart" height="200"></canvas>
+  </div>
+</div>
+
+<h2>Alerts (7)</h2>
+<div class="card">
+<table>
+  <thead><tr><th>Severity</th><th>Target</th><th>Type</th><th>Value</th><th>Limit</th></tr></thead>
+  <tbody>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>PipelineRunner.run</td>
+                <td>high_fan_out</td>
+                <td>14</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>_deploy_quadlet</td>
+                <td>high_fan_out</td>
+                <td>14</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>TaskfileRunner.run_task</td>
+                <td>high_fan_out</td>
+                <td>13</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>ci_generate</td>
+                <td>high_fan_out</td>
+                <td>12</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>deploy_cmd</td>
+                <td>high_fan_out</td>
+                <td>12</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>load_taskfile</td>
+                <td>high_fan_out</td>
+                <td>10</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>load_env_file</td>
+                <td>high_fan_out</td>
+                <td>10</td>
+                <td>10</td>
+            </tr></tbody>
+</table>
+</div>
+
+<div class="two-col">
+<div>
+<h2>Hotspots (7)</h2>
+<div class="card">
+<table>
+  <thead><tr><th>Function</th><th>Fan-out</th><th>Note</th></tr></thead>
+  <tbody>
+            <tr>
+                <td><strong>PipelineRunner.run</strong></td>
+                <td>14</td>
+                <td>Run pipeline stages in order.
+
+Args:
+    stage_filter: Only run these stages (No</td>
+            </tr>
+            <tr>
+                <td><strong>_deploy_quadlet</strong></td>
+                <td>14</td>
+                <td>Orchestrates 14 calls</td>
+            </tr>
+            <tr>
+                <td><strong>TaskfileRunner.run_task</strong></td>
+                <td>13</td>
+                <td>Run a task and its dependencies. Returns True on success.</td>
+            </tr>
+            <tr>
+                <td><strong>ci_generate</strong></td>
+                <td>12</td>
+                <td>Generate CI/CD config files from Taskfile.yml pipeline section.
+
+
+Examples:
+   </td>
+            </tr>
+            <tr>
+                <td><strong>deploy_cmd</strong></td>
+                <td>12</td>
+                <td>Full deploy pipeline: build → push → generate Quadlet → upload → restart.
+
+Reads</td>
+            </tr>
+            <tr>
+                <td><strong>load_taskfile</strong></td>
+                <td>10</td>
+                <td>Load and parse a Taskfile.
+
+Args:
+    path: Explicit path to Taskfile. If None, </td>
+            </tr>
+            <tr>
+                <td><strong>load_env_file</strong></td>
+                <td>10</td>
+                <td>Parse a .env file into a dict.
+
+Supports:
+    KEY=value
+    KEY="quoted value"
+ </td>
+            </tr></tbody>
+</table>
+</div>
+</div>
+
+<div>
+<h2>Refactoring Priorities (1)</h2>
+<div class="card">
+<table>
+  <thead><tr><th>#</th><th>Action</th><th>Impact</th><th>Effort</th></tr></thead>
+  <tbody>
+            <tr>
+                <td>1</td>
+                <td>Break circular dependency: src.taskfile.compose.resolve_dict</td>
+                <td><span class="badge medium">medium</span></td>
+                <td>low</td>
+            </tr></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<footer>Generated by code2llm on 2026-03-05 08:46</footer>
+
+<script>
+const evoCtx = document.getElementById('evoChart').getContext('2d');
+new Chart(evoCtx, {
+  type: 'line',
+  data: {
+    labels: ['2026-03-05'],
+    datasets: [
+      { label: 'CC avg', data: [3.9], borderColor: '#3b82f6', tension: .3, yAxisID: 'y' },
+      { label: 'Critical', data: [10], borderColor: '#ef4444', tension: .3, yAxisID: 'y1' }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: { position:'left', grid:{color:'#334155'}, ticks:{color:'#94a3b8'} },
+      y1: { position:'right', grid:{drawOnChartArea:false}, ticks:{color:'#94a3b8'} },
+      x: { ticks:{color:'#94a3b8'}, grid:{color:'#334155'} }
+    },
+    plugins: { legend: { labels: { color:'#e2e8f0' } } }
+  }
+});
+
+const modCtx = document.getElementById('modChart').getContext('2d');
+new Chart(modCtx, {
+  type: 'bar',
+  data: {
+    labels: ['gitlab.py', 'deploy.py', 'runner.py', 'parser.py', 'drone.py', 'cirunner.py', 'ci.py', 'compose.py', 'main.py', 'quadlet.py', 'gitea.py', 'github.py', 'makefile.py', 'quadlet.py', 'models.py'],
+    datasets: [{ label: 'Max CC', data: [14, 14, 13, 12, 10, 10, 10, 10, 9, 9, 8, 7, 7, 6, 6],
+      backgroundColor: [14, 14, 13, 12, 10, 10, 10, 10, 9, 9, 8, 7, 7, 6, 6].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    }]
+  },
+  options: {
+    responsive: true, indexAxis: 'y',
+    scales: {
+      x: { grid:{color:'#334155'}, ticks:{color:'#94a3b8'} },
+      y: { grid:{color:'#334155'}, ticks:{color:'#94a3b8',font:{size:10}} }
+    },
+    plugins: { legend: { display:false } }
+  }
+});
+</script>
+</body>
+</html>

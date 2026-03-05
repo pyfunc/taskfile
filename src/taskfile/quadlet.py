@@ -199,6 +199,67 @@ VolumeName={volume_name}
 """
 
 
+def _collect_named_volumes(service: dict) -> set[str]:
+    """Extract named volume references from a service definition."""
+    named = set()
+    for vol in service.get("volumes", []):
+        if isinstance(vol, str):
+            src = vol.split(":")[0]
+            if not src.startswith("/") and not src.startswith(".") and not src.startswith("$"):
+                named.add(src)
+    return named
+
+
+def _generate_network_file(outdir: Path, network_name: str) -> Path:
+    """Write the .network Quadlet file and return its path."""
+    net_path = outdir / f"{network_name}.network"
+    net_path.write_text(generate_network_unit(network_name))
+    console.print(f"  [green]✓[/] {net_path.name}")
+    return net_path
+
+
+def _generate_container_files(
+    outdir: Path,
+    compose: ComposeFile,
+    network_name: str,
+    auto_update: bool,
+    services_filter: list[str] | None,
+) -> tuple[list[Path], set[str]]:
+    """Write .container files for each service. Returns (paths, named_volumes)."""
+    generated: list[Path] = []
+    named_volumes: set[str] = set()
+
+    for svc_name, svc_data in compose.services.items():
+        if services_filter and svc_name not in services_filter:
+            continue
+
+        named_volumes |= _collect_named_volumes(svc_data)
+
+        content = generate_container_unit(
+            service_name=svc_name,
+            service=svc_data,
+            network_name=network_name,
+            auto_update=auto_update,
+        )
+        filepath = outdir / f"{svc_name}.container"
+        filepath.write_text(content)
+        generated.append(filepath)
+        console.print(f"  [green]✓[/] {filepath.name}")
+
+    return generated, named_volumes
+
+
+def _generate_volume_files(outdir: Path, named_volumes: set[str]) -> list[Path]:
+    """Write .volume Quadlet files for named volumes."""
+    generated: list[Path] = []
+    for vol_name in sorted(named_volumes):
+        vol_path = outdir / f"{vol_name}.volume"
+        vol_path.write_text(generate_volume_unit(vol_name))
+        generated.append(vol_path)
+        console.print(f"  [green]✓[/] {vol_path.name}")
+    return generated
+
+
 def compose_to_quadlet(
     compose: ComposeFile,
     output_dir: str | Path,
@@ -220,45 +281,13 @@ def compose_to_quadlet(
     """
     outdir = Path(output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
+
     generated: list[Path] = []
-
-    # Generate network file
-    net_path = outdir / f"{network_name}.network"
-    net_path.write_text(generate_network_unit(network_name))
-    generated.append(net_path)
-    console.print(f"  [green]✓[/] {net_path.name}")
-
-    # Collect named volumes
-    named_volumes: set[str] = set()
-
-    # Generate container files
-    for svc_name, svc_data in compose.services.items():
-        if services_filter and svc_name not in services_filter:
-            continue
-
-        # Track named volumes
-        for vol in svc_data.get("volumes", []):
-            if isinstance(vol, str):
-                src = vol.split(":")[0]
-                if not src.startswith("/") and not src.startswith(".") and not src.startswith("$"):
-                    named_volumes.add(src)
-
-        content = generate_container_unit(
-            service_name=svc_name,
-            service=svc_data,
-            network_name=network_name,
-            auto_update=auto_update,
-        )
-        filepath = outdir / f"{svc_name}.container"
-        filepath.write_text(content)
-        generated.append(filepath)
-        console.print(f"  [green]✓[/] {filepath.name}")
-
-    # Generate volume files
-    for vol_name in sorted(named_volumes):
-        vol_path = outdir / f"{vol_name}.volume"
-        vol_path.write_text(generate_volume_unit(vol_name))
-        generated.append(vol_path)
-        console.print(f"  [green]✓[/] {vol_path.name}")
+    generated.append(_generate_network_file(outdir, network_name))
+    container_paths, named_volumes = _generate_container_files(
+        outdir, compose, network_name, auto_update, services_filter,
+    )
+    generated.extend(container_paths)
+    generated.extend(_generate_volume_files(outdir, named_volumes))
 
     return generated

@@ -1,4 +1,4 @@
-# taskfile | 36f 4729L | python:36
+# taskfile | 36f 4794L | python:36
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[36]:
   src/taskfile/__init__.py,34
@@ -17,10 +17,10 @@ M[36]:
   src/taskfile/cli/main.py,165
   src/taskfile/cli/quadlet.py,154
   src/taskfile/compose.py,118
-  src/taskfile/models.py,255
+  src/taskfile/models.py,283
   src/taskfile/parser.py,83
-  src/taskfile/quadlet.py,214
-  src/taskfile/runner.py,229
+  src/taskfile/quadlet.py,241
+  src/taskfile/runner.py,246
   src/taskfile/scaffold/__init__.py,20
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148

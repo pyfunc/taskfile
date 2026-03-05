@@ -1,0 +1,466 @@
+version: '1'
+project:
+  name: taskfile
+  repo: /home/tom/github/pyfunc/taskfile
+  language: python
+  analyzed_at: '2026-03-05T08:46:44Z'
+  tool: code2llm
+  stats:
+    files: 19
+    lines: 1771552
+    functions: 120
+    classes: 22
+health:
+  cc_avg: 3.9
+  critical_count: 10
+  critical_limit: 10
+  duplicates: 0
+  cycles: 1
+  alerts:
+  - type: high_fan_out
+    target: PipelineRunner.run
+    value: 14
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: _deploy_quadlet
+    value: 14
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: TaskfileRunner.run_task
+    value: 13
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: ci_generate
+    value: 12
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: deploy_cmd
+    value: 12
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: load_taskfile
+    value: 10
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: load_env_file
+    value: 10
+    limit: 10
+    severity: warning
+modules:
+- path: src/taskfile/cigen/gitlab.py
+  lines: 83
+  classes: 1
+  methods: 2
+  cc_max: 14
+  inbound_deps: 0
+  exports:
+  - name: GitLabCITarget
+    type: class
+    cc_avg: 7.5
+    methods:
+    - name: generate
+      cc: 14
+- path: src/taskfile/cli/deploy.py
+  lines: 170
+  classes: 0
+  methods: 6
+  cc_max: 14
+  inbound_deps: 0
+  exports:
+  - name: deploy_cmd
+    type: function
+    cc: 14
+    fan_out: 12
+- path: src/taskfile/runner.py
+  lines: 303
+  classes: 2
+  methods: 16
+  cc_max: 13
+  inbound_deps: 0
+  exports:
+  - name: TaskRunError
+    type: class
+    cc_avg: 1.0
+  - name: TaskfileRunner
+    type: class
+    cc_avg: 4.5
+    methods:
+    - name: __init__
+      cc: 10
+    - name: run_task
+      cc: 13
+      fan_out: 13
+- path: src/taskfile/parser.py
+  lines: 113
+  classes: 2
+  methods: 3
+  cc_max: 12
+  inbound_deps: 5
+  exports:
+  - name: TaskfileNotFoundError
+    type: class
+    cc_avg: 0.0
+  - name: TaskfileParseError
+    type: class
+    cc_avg: 0.0
+  - name: find_taskfile
+    type: function
+    cc: 6
+  - name: load_taskfile
+    type: function
+    cc: 5
+    fan_out: 10
+  - name: validate_taskfile
+    type: function
+    cc: 12
+- path: src/taskfile/cigen/drone.py
+  lines: 49
+  classes: 1
+  methods: 2
+  cc_max: 10
+  inbound_deps: 0
+  exports:
+  - name: DroneCITarget
+    type: class
+    cc_avg: 5.5
+    methods:
+    - name: generate
+      cc: 10
+- path: src/taskfile/cirunner.py
+  lines: 250
+  classes: 3
+  methods: 8
+  cc_max: 10
+  inbound_deps: 0
+  exports:
+  - name: PipelineError
+    type: class
+    cc_avg: 1.0
+  - name: PipelineRunner
+    type: class
+    cc_avg: 5.5
+    methods:
+    - name: run
+      cc: 8
+      fan_out: 14
+    - name: _resolve_stages
+      cc: 10
+  - name: StageResult
+    type: class
+    cc_avg: 1.0
+- path: src/taskfile/cli/ci.py
+  lines: 202
+  classes: 0
+  methods: 6
+  cc_max: 10
+  inbound_deps: 0
+  exports:
+  - name: ci
+    type: function
+    cc: 1
+  - name: ci_generate
+    type: function
+    cc: 10
+    fan_out: 12
+  - name: ci_run
+    type: function
+    cc: 6
+  - name: ci_list
+    type: function
+    cc: 3
+  - name: ci_preview
+    type: function
+    cc: 4
+  - name: ci_targets
+    type: function
+    cc: 2
+- path: src/taskfile/compose.py
+  lines: 154
+  classes: 1
+  methods: 7
+  cc_max: 10
+  inbound_deps: 0
+  exports:
+  - name: ComposeFile
+    type: class
+    cc_avg: 4.2
+    methods:
+    - name: get_traefik_labels
+      cc: 10
+  - name: load_env_file
+    type: function
+    cc: 9
+    fan_out: 10
+  - name: resolve_variables
+    type: function
+    cc: 2
+  - name: resolve_dict
+    type: function
+    cc: 6
+- path: src/taskfile/cli/main.py
+  lines: 197
+  classes: 0
+  methods: 7
+  cc_max: 9
+  inbound_deps: 0
+  exports:
+  - name: parse_var
+    type: function
+    cc: 3
+  - name: main
+    type: function
+    cc: 2
+  - name: run
+    type: function
+    cc: 3
+  - name: list_tasks
+    type: function
+    cc: 2
+  - name: init
+    type: function
+    cc: 3
+  - name: validate
+    type: function
+    cc: 4
+  - name: info
+    type: function
+    cc: 9
+- path: src/taskfile/quadlet.py
+  lines: 293
+  classes: 0
+  methods: 21
+  cc_max: 9
+  inbound_deps: 2
+  exports:
+  - name: generate_container_unit
+    type: function
+    cc: 1
+  - name: generate_network_unit
+    type: function
+    cc: 1
+  - name: generate_volume_unit
+    type: function
+    cc: 1
+  - name: compose_to_quadlet
+    type: function
+    cc: 1
+- path: src/taskfile/cigen/gitea.py
+  lines: 51
+  classes: 1
+  methods: 2
+  cc_max: 8
+  inbound_deps: 0
+  exports:
+  - name: GiteaActionsTarget
+    type: class
+    cc_avg: 4.5
+- path: src/taskfile/cigen/github.py
+  lines: 103
+  classes: 1
+  methods: 4
+  cc_max: 7
+  inbound_deps: 0
+  exports:
+  - name: GitHubActionsTarget
+    type: class
+    cc_avg: 4.8
+- path: src/taskfile/cigen/makefile.py
+  lines: 53
+  classes: 1
+  methods: 1
+  cc_max: 7
+  inbound_deps: 0
+  exports:
+  - name: MakefileTarget
+    type: class
+    cc_avg: 7.0
+- path: src/taskfile/cli/quadlet.py
+  lines: 189
+  classes: 0
+  methods: 6
+  cc_max: 6
+  inbound_deps: 0
+  exports:
+  - name: quadlet
+    type: function
+    cc: 1
+  - name: quadlet_generate
+    type: function
+    cc: 6
+  - name: quadlet_upload
+    type: function
+    cc: 5
+- path: src/taskfile/models.py
+  lines: 329
+  classes: 7
+  methods: 13
+  cc_max: 6
+  inbound_deps: 0
+  exports:
+  - name: Environment
+    type: class
+    cc_avg: 2.0
+  - name: Platform
+    type: class
+    cc_avg: 2.0
+  - name: ComposeConfig
+    type: class
+    cc_avg: 0.0
+  - name: Task
+    type: class
+    cc_avg: 2.5
+  - name: PipelineStage
+    type: class
+    cc_avg: 0.0
+  - name: PipelineConfig
+    type: class
+    cc_avg: 4.5
+  - name: TaskfileConfig
+    type: class
+    cc_avg: 2.7
+- path: src/taskfile/cigen/__init__.py
+  lines: 58
+  classes: 0
+  methods: 4
+  cc_max: 3
+  inbound_deps: 1
+  exports:
+  - name: generate_ci
+    type: function
+    cc: 2
+  - name: generate_all_ci
+    type: function
+    cc: 3
+  - name: list_targets
+    type: function
+    cc: 2
+  - name: preview_ci
+    type: function
+    cc: 2
+- path: src/taskfile/cigen/base.py
+  lines: 67
+  classes: 1
+  methods: 9
+  cc_max: 3
+  inbound_deps: 4
+  exports:
+  - name: CITarget
+    type: class
+    cc_avg: 1.3
+  - name: register_target
+    type: function
+    cc: 1
+- path: src/taskfile/cigen/jenkins.py
+  lines: 54
+  classes: 1
+  methods: 2
+  cc_max: 2
+  inbound_deps: 0
+  exports:
+  - name: JenkinsTarget
+    type: class
+    cc_avg: 1.5
+- path: src/taskfile/scaffold/__init__.py
+  lines: 23
+  classes: 0
+  methods: 1
+  cc_max: 2
+  inbound_deps: 1
+  exports:
+  - name: generate_taskfile
+    type: function
+    cc: 2
+- path: src/taskfile/__init__.py
+  lines: 39
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/cli/__init__.py
+  lines: 6
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/scaffold/codereview.py
+  lines: 207
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/scaffold/full.py
+  lines: 181
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/scaffold/minimal.py
+  lines: 40
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/scaffold/multiplatform.py
+  lines: 222
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/scaffold/podman.py
+  lines: 94
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+- path: src/taskfile/scaffold/web.py
+  lines: 93
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
+hotspots:
+- name: PipelineRunner.run
+  fan_out: 14
+  note: "Run pipeline stages in order.\n\nArgs:\n    stage_filter: Only run these\
+    \ stages (No"
+- name: _deploy_quadlet
+  fan_out: 14
+  note: Orchestrates 14 calls
+- name: TaskfileRunner.run_task
+  fan_out: 13
+  note: Run a task and its dependencies. Returns True on success.
+- name: ci_generate
+  fan_out: 12
+  note: "Generate CI/CD config files from Taskfile.yml pipeline section.\n\n\b\nExamples:\n\
+    \   "
+- name: deploy_cmd
+  fan_out: 12
+  note: 'Full deploy pipeline: build → push → generate Quadlet → upload → restart.
+
+
+    Reads'
+- name: load_taskfile
+  fan_out: 10
+  note: "Load and parse a Taskfile.\n\nArgs:\n    path: Explicit path to Taskfile.\
+    \ If None, "
+- name: load_env_file
+  fan_out: 10
+  note: "Parse a .env file into a dict.\n\nSupports:\n    KEY=value\n    KEY=\"quoted\
+    \ value\"\n "
+refactoring:
+  priorities:
+  - action: 'Break circular dependency: src.taskfile.compose.resolve_dict'
+    impact: medium
+    effort: low
+evolution:
+- date: '2026-03-05'
+  cc_avg: 3.9
+  critical: 10
+  lines: 1771552
+  note: Automated analysis
