@@ -306,10 +306,16 @@ def _validate_circular_dependencies(config: TaskfileConfig) -> list[str]:
 
 
 def _validate_referenced_files(config: TaskfileConfig) -> list[str]:
-    """Check that compose files referenced in environments exist."""
+    """Check that compose files and env files referenced in environments exist."""
     warnings = []
     taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
     for env_name, env in config.environments.items():
+        if env.env_file:
+            env_file_path = taskfile_dir / env.env_file
+            if not env_file_path.exists():
+                warnings.append(
+                    f"Environment '{env_name}' references missing env_file: {env.env_file}"
+                )
         if env.compose_file and env.compose_file != "docker-compose.yml":
             compose_path = taskfile_dir / env.compose_file
             if not compose_path.exists():

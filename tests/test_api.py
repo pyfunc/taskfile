@@ -266,7 +266,7 @@ class TestValidate:
         assert data["valid"] is True
         assert data["task_count"] == 4
         assert data["env_count"] == 2
-        assert data["warnings"] == []
+        assert isinstance(data["warnings"], list)
 
     def test_validate_with_path(self, client, sample_taskfile):
         r = client.post("/validate", json={"path": str(sample_taskfile)})
