@@ -56,6 +56,22 @@
 - Add `TestCLIImportCommand` — 3 tests for import CLI
 - Add `TestCLITagsFlag` — 3 tests for --tags flag
 
+## [0.3.36] - 2026-03-05
+
+### Docs
+- Update project/README.md
+
+### Other
+- Update project/analysis.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/compact_flow.mmd
+- Update project/compact_flow.png
+- Update project/evolution.toon
+- Update project/flow.mmd
+- Update project/flow.png
+- Update project/project.toon
+
 ## [0.3.35] - 2026-03-05
 
 ### Docs

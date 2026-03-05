@@ -239,14 +239,19 @@ def fleet_repair_cmd(ctx, env_name, auto_fix):
         problems.append("SSH timeout")
         fixes.append(f"Check SSH key and connectivity to {host}")
 
-    def _safe_ssh(cmd):
-        try:
-            return _ssh_check(env, cmd, timeout=10)
-        except Exception:
-            return None
+def _safe_ssh(env, cmd: str, timeout: int = 10):
+    """Execute SSH command safely, returning None on failure."""
+    try:
+        return _ssh_check(env, cmd, timeout=timeout)
+    except Exception:
+        return None
 
-    # 3. Disk
-    r = _safe_ssh("df / --output=pcent | tail -1 | tr -d ' %'")
+
+# ─── fleet repair ─────────────────────────────────────
+
+
+# 3. Disk
+    r = _safe_ssh(env, "df / --output=pcent | tail -1 | tr -d ' %'")
     if r and r.stdout.strip().isdigit():
         usage = int(r.stdout.strip())
         if usage > 90:
