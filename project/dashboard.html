@@ -60,12 +60,12 @@
 </p>
 
 <div class="grid">
-  <div class="card"><div class="value">3.7</div><div class="label">Avg CC</div></div>
-  <div class="card"><div class="value">7</div><div class="label">Critical (CC≥10)</div></div>
-  <div class="card"><div class="value">194</div><div class="label">Functions</div></div>
-  <div class="card"><div class="value">29</div><div class="label">Classes</div></div>
-  <div class="card"><div class="value">25</div><div class="label">Files</div></div>
-  <div class="card"><div class="value">8345</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">3.9</div><div class="label">Avg CC</div></div>
+  <div class="card"><div class="value">12</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">247</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">35</div><div class="label">Classes</div></div>
+  <div class="card"><div class="value">28</div><div class="label">Files</div></div>
+  <div class="card"><div class="value">10743</div><div class="label">Lines</div></div>
   <div class="card"><div class="value">0</div><div class="label">Duplicates</div></div>
   <div class="card"><div class="value">1</div><div class="label">Cycles</div></div>
 </div>
@@ -74,9 +74,9 @@
   <div class="chart-container">
     <h2 style="border:none;margin:0 0 .5rem;">Evolution (2026-03-05)</h2>
     <div class="evo-cards">
-      <div class="card"><div class="value">3.7</div><div class="label">CC̄ →</div></div>
-      <div class="card"><div class="value">7</div><div class="label">Critical →</div></div>
-      <div class="card"><div class="value">8345</div><div class="label">Lines</div></div>
+      <div class="card"><div class="value">3.9</div><div class="label">CC̄ →</div></div>
+      <div class="card"><div class="value">12</div><div class="label">Critical →</div></div>
+      <div class="card"><div class="value">10743</div><div class="label">Lines</div></div>
     </div>
     <p class="trend" style="margin-top:.5rem;">Run analysis multiple times to build a trend chart (≥3 data points needed).</p>
   </div>
@@ -86,38 +86,38 @@
   </div>
 </div>
 
-<h2>Alerts (11)</h2>
+<h2>Alerts (15)</h2>
 <div class="card"><div class="table-wrap">
 <table>
   <thead><tr><th>Severity</th><th>Target</th><th>Type</th><th>Value</th><th>Limit</th></tr></thead>
   <tbody>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>release</td>
+                <td>fleet_repair_cmd</td>
                 <td>cc_exceeded</td>
                 <td>31</td>
                 <td>15</td>
             </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>setup</td>
+            <tr class="critical">
+                <td><span class="badge critical">critical</span></td>
+                <td>fleet_status_cmd</td>
                 <td>high_fan_out</td>
-                <td>19</td>
+                <td>25</td>
                 <td>10</td>
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
-                <td>release</td>
+                <td>fleet_repair_cmd</td>
                 <td>high_fan_out</td>
-                <td>15</td>
-                <td>10</td>
-            </tr>
-            <tr class="warning">
-                <td><span class="badge warning">warning</span></td>
-                <td>setup</td>
-                <td>cc_exceeded</td>
                 <td>18</td>
-                <td>15</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>auth_setup</td>
+                <td>high_fan_out</td>
+                <td>16</td>
+                <td>10</td>
             </tr>
             <tr class="warning">
                 <td><span class="badge warning">warning</span></td>
@@ -142,7 +142,28 @@
             </tr>
             <tr class="warning">
                 <td><span class="badge warning">warning</span></td>
+                <td>FleetConfig.from_dict</td>
+                <td>high_fan_out</td>
+                <td>11</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
                 <td>_collect_interactive_setup</td>
+                <td>high_fan_out</td>
+                <td>11</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>release</td>
+                <td>high_fan_out</td>
+                <td>11</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
+                <td>_run_env_group</td>
                 <td>high_fan_out</td>
                 <td>11</td>
                 <td>10</td>
@@ -163,6 +184,13 @@
             </tr>
             <tr class="warning">
                 <td><span class="badge warning">warning</span></td>
+                <td>setup</td>
+                <td>high_fan_out</td>
+                <td>10</td>
+                <td>10</td>
+            </tr>
+            <tr class="warning">
+                <td><span class="badge warning">warning</span></td>
                 <td>deploy_cmd</td>
                 <td>high_fan_out</td>
                 <td>10</td>
@@ -173,24 +201,33 @@
 
 <div class="two-col">
 <div>
-<h2>Hotspots (9)</h2>
+<h2>Hotspots (10)</h2>
 <div class="card"><div class="table-wrap">
 <table>
   <thead><tr><th>Function</th><th>Fan-out</th><th>Note</th></tr></thead>
   <tbody>
             <tr>
-                <td><strong>setup</strong></td>
-                <td>19</td>
-                <td>One-command VPS setup: SSH key → provision → deploy.
+                <td><strong>fleet_status_cmd</strong></td>
+                <td>25</td>
+                <td>Show status of all remote environments (SSH-based health check).
 
-IP can be provided as argu</td>
+
+Examples:
+  </td>
             </tr>
             <tr>
-                <td><strong>release</strong></td>
-                <td>15</td>
-                <td>Full release — build all, deploy all, update landing.
+                <td><strong>fleet_repair_cmd</strong></td>
+                <td>18</td>
+                <td>Diagnose and repair a remote device.
 
-Orchestrates the complete</td>
+Runs 8-point diagnostics: ping, SSH, disk,</td>
+            </tr>
+            <tr>
+                <td><strong>auth_setup</strong></td>
+                <td>16</td>
+                <td>Interactive registry authentication setup.
+
+Guides you through obtaining API tok</td>
             </tr>
             <tr>
                 <td><strong>PipelineRunner.run</strong></td>
@@ -217,34 +254,28 @@ Examples:
 Deploys the previous (or specified) version of th</td>
             </tr>
             <tr>
+                <td><strong>FleetConfig.from_dict</strong></td>
+                <td>11</td>
+                <td>Parse raw YAML dict into FleetConfig.</td>
+            </tr>
+            <tr>
                 <td><strong>_collect_interactive_setup</strong></td>
                 <td>11</td>
                 <td>Collect setup configuration through interactive prompts.</td>
             </tr>
             <tr>
-                <td><strong>load_taskfile</strong></td>
-                <td>10</td>
-                <td>Load and parse a Taskfile.
+                <td><strong>release</strong></td>
+                <td>11</td>
+                <td>Full release — build all, deploy all, update landing.
 
-Args:
-    path: Explicit path to Taskfile. If None, </td>
+Orchestrates the complete</td>
             </tr>
             <tr>
-                <td><strong>load_env_file</strong></td>
-                <td>10</td>
-                <td>Parse a .env file into a dict.
+                <td><strong>_run_env_group</strong></td>
+                <td>11</td>
+                <td>Run tasks across all environments in a group using the group's strategy.
 
-Supports:
-    KEY=value
-    KEY="quoted value"
- </td>
-            </tr>
-            <tr>
-                <td><strong>deploy_cmd</strong></td>
-                <td>10</td>
-                <td>Full deploy pipeline: build → push → generate Quadlet → upload → restart.
-
-Reads</td>
+Strate</td>
             </tr></tbody>
 </table>
 </div></div>
@@ -258,31 +289,31 @@ Reads</td>
   <tbody>
             <tr>
                 <td>1</td>
-                <td>Split release (CC=31 → target CC<10)</td>
+                <td>Split fleet_repair_cmd (CC=31 → target CC<10)</td>
                 <td><span class="badge high">high</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>2</td>
-                <td>Split setup (CC=18 → target CC<10)</td>
-                <td><span class="badge medium">medium</span></td>
-                <td>low</td>
-            </tr>
-            <tr>
-                <td>3</td>
                 <td>Break circular dependency: src.taskfile.compose.resolve_dict</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
+                <td>3</td>
+                <td>Reduce fleet_status_cmd fan-out (currently 25)</td>
+                <td><span class="badge medium">medium</span></td>
+                <td>medium</td>
+            </tr>
+            <tr>
                 <td>4</td>
-                <td>Reduce setup fan-out (currently 19)</td>
+                <td>Reduce fleet_repair_cmd fan-out (currently 18)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>medium</td>
             </tr>
             <tr>
                 <td>5</td>
-                <td>Reduce release fan-out (currently 15)</td>
+                <td>Reduce auth_setup fan-out (currently 16)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>medium</td>
             </tr></tbody>
@@ -291,7 +322,7 @@ Reads</td>
 </div>
 </div>
 
-<footer>Generated by code2llm on 2026-03-05 09:41</footer>
+<footer>Generated by code2llm on 2026-03-05 10:37</footer>
 
 <script>
 // Evolution chart disabled — fewer than 3 data points
@@ -300,9 +331,9 @@ const modCtx = document.getElementById('modChart').getContext('2d');
 new Chart(modCtx, {
   type: 'bar',
   data: {
-    labels: ['release.py', 'setup.py', 'health.py', 'ci.py', 'health.py', 'main.py', 'compose.py', 'quadlet.py', 'gitea.py', 'cirunner.py', 'github.py', 'makefile.py', 'runner.py', 'deploy.py', 'quadlet.py'],
-    datasets: [{ label: 'Max CC', data: [31, 18, 11, 10, 9, 9, 9, 9, 8, 8, 7, 7, 7, 6, 6],
-      backgroundColor: [31, 18, 11, 10, 9, 9, 9, 9, 8, 8, 7, 7, 7, 6, 6].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    labels: ['fleet.py', 'fleet.py', 'auth.py', 'release.py', 'main.py', 'health.py', 'ci.py', 'setup.py', 'health.py', 'compose.py', 'quadlet.py', 'gitea.py', 'cirunner.py', 'runner.py', 'github.py'],
+    datasets: [{ label: 'Max CC', data: [31, 13, 12, 12, 11, 11, 10, 10, 9, 9, 9, 8, 8, 8, 7],
+      backgroundColor: [31, 13, 12, 12, 11, 11, 10, 10, 9, 9, 9, 8, 8, 8, 7].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
     }]
   },
   options: {

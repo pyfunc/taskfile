@@ -183,27 +183,34 @@ def _provision_ssh_key(config: SetupConfig, dry_run: bool = False) -> bool:
         console.print("  [dim](dry run — skipped)[/]")
         return True
 
+    # Inform user about password prompt
+    console.print("\n  [yellow]⚠ You may be prompted for the VPS root password[/]")
+    console.print("  [dim]   (this is expected for first-time SSH key setup)[/]\n")
+
     try:
-        result = subprocess.run(
+        # Use Popen for interactive input instead of run with capture_output
+        import subprocess
+        process = subprocess.Popen(
             cmd,
             shell=True,
-            capture_output=True,
-            text=True,
-            timeout=60,
+            stdin=sys.stdin,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
-        if result.returncode == 0:
-            console.print("  [green]✓ SSH key copied successfully[/]")
+        result = process.wait(timeout=120)
+
+        if result == 0:
+            console.print("\n  [green]✓ SSH key copied successfully[/]")
             return True
         else:
-            console.print(f"  [yellow]⚠ ssh-copy-id may have failed (exit {result.returncode})[/]")
-            console.print(f"  [dim]{result.stderr}[/]")
+            console.print(f"\n  [yellow]⚠ ssh-copy-id may have failed (exit {result})[/]")
             # Continue anyway - key might already be present
             return True
     except subprocess.TimeoutExpired:
-        console.print("  [red]✗ SSH connection timeout[/]")
+        console.print("\n  [red]✗ SSH connection timeout[/]")
         return False
     except Exception as e:
-        console.print(f"  [red]✗ SSH key copy failed: {e}[/]")
+        console.print(f"\n  [red]✗ SSH key copy failed: {e}[/]")
         return False
 
 

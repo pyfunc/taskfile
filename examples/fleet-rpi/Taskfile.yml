@@ -1,0 +1,212 @@
+version: "1"
+name: kiosk-fleet
+description: >
+  Raspberry Pi fleet management — 6 kiosks in a shopping mall.
+  Each Pi runs a kiosk web app via Podman container.
+  Rolling updates, health monitoring, remote repair.
+
+default_env: local
+
+variables:
+  APP_NAME: kiosk-app
+  IMAGE: ghcr.io/myorg/kiosk-app
+  TAG: latest
+  KIOSK_URL: http://localhost:3000
+  UPDATE_CHANNEL: stable
+
+# ─── Environments ─────────────────────────────────────
+# Each Raspberry Pi is a separate environment with SSH access.
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    variables:
+      KIOSK_URL: http://localhost:3000
+
+  kiosk-lobby:
+    ssh_host: 192.168.1.10
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+    variables:
+      KIOSK_ID: lobby
+      KIOSK_DISPLAY: ":0"
+
+  kiosk-cafe:
+    ssh_host: 192.168.1.11
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+    variables:
+      KIOSK_ID: cafe
+      KIOSK_DISPLAY: ":0"
+
+  kiosk-entrance-north:
+    ssh_host: 192.168.1.12
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+    variables:
+      KIOSK_ID: entrance-north
+      KIOSK_DISPLAY: ":0"
+
+  kiosk-entrance-south:
+    ssh_host: 192.168.1.13
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+    variables:
+      KIOSK_ID: entrance-south
+      KIOSK_DISPLAY: ":0"
+
+  kiosk-food-court:
+    ssh_host: 192.168.1.14
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+    variables:
+      KIOSK_ID: food-court
+      KIOSK_DISPLAY: ":0"
+
+  kiosk-parking:
+    ssh_host: 192.168.1.15
+    ssh_user: pi
+    ssh_key: ~/.ssh/fleet_ed25519
+    container_runtime: podman
+    variables:
+      KIOSK_ID: parking
+      KIOSK_DISPLAY: ":0"
+
+# ─── Environment Groups ──────────────────────────────
+# Groups define batch-deploy strategies for fleet operations.
+
+environment_groups:
+  all-kiosks:
+    members:
+      - kiosk-lobby
+      - kiosk-cafe
+      - kiosk-entrance-north
+      - kiosk-entrance-south
+      - kiosk-food-court
+      - kiosk-parking
+    strategy: rolling
+    max_parallel: 2
+
+  entrances:
+    members: [kiosk-entrance-north, kiosk-entrance-south]
+    strategy: parallel
+
+  high-traffic:
+    members: [kiosk-lobby, kiosk-cafe, kiosk-food-court]
+    strategy: canary
+    canary_count: 1
+
+# ─── Tasks ────────────────────────────────────────────
+
+tasks:
+
+  # ─── Build & Push ─────────────────────────────────
+  build:
+    desc: Build kiosk app Docker image (ARM64 for RPi)
+    cmds:
+      - docker buildx build --platform linux/arm64 -t ${IMAGE}:${TAG} .
+      - echo "✅ Built ${IMAGE}:${TAG} (arm64)"
+
+  push:
+    desc: Push image to registry
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+      - echo "✅ Pushed ${IMAGE}:${TAG}"
+
+  # ─── Local Dev ────────────────────────────────────
+  dev:
+    desc: Run kiosk app locally for development
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+      - echo "✅ Kiosk running at ${KIOSK_URL}"
+
+  dev-stop:
+    desc: Stop local dev
+    env: [local]
+    cmds:
+      - docker compose down
+
+  # ─── Deploy to Single Device ──────────────────────
+  deploy-kiosk:
+    desc: Deploy kiosk app to a single RPi
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote podman stop ${APP_NAME} 2>/dev/null || true"
+      - "@remote podman rm ${APP_NAME} 2>/dev/null || true"
+      - >-
+        @remote podman run -d --name ${APP_NAME}
+        --restart=always
+        -p 3000:3000
+        -e KIOSK_ID=${KIOSK_ID}
+        -e DISPLAY=${KIOSK_DISPLAY}
+        ${IMAGE}:${TAG}
+      - echo "✅ Deployed ${APP_NAME}:${TAG} to ${KIOSK_ID}"
+
+  # ─── Fleet-wide Operations ───────────────────────
+  restart-kiosk:
+    desc: Restart kiosk container on device
+    cmds:
+      - "@remote podman restart ${APP_NAME}"
+      - echo "✅ Restarted ${APP_NAME} on ${KIOSK_ID}"
+
+  reboot-device:
+    desc: Reboot the Raspberry Pi
+    cmds:
+      - "@remote sudo reboot"
+      - echo "⚠️  Rebooting ${KIOSK_ID}..."
+
+  update-os:
+    desc: Update OS packages on device
+    cmds:
+      - "@remote sudo apt-get update -qq"
+      - "@remote sudo apt-get upgrade -y -qq"
+      - echo "✅ OS updated on ${KIOSK_ID}"
+
+  cleanup:
+    desc: Clean unused images on device (save SD card space)
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote sudo journalctl --vacuum-size=20M"
+      - "@remote sudo apt-get clean"
+      - echo "🧹 Cleaned ${KIOSK_ID}"
+
+  # ─── Monitoring ───────────────────────────────────
+  kiosk-screenshot:
+    desc: Take screenshot of kiosk display
+    cmds:
+      - "@remote DISPLAY=${KIOSK_DISPLAY} scrot /tmp/screenshot.png"
+      - scp ${SSH_USER}@${SSH_HOST}:/tmp/screenshot.png ./screenshots/${KIOSK_ID}.png
+      - echo "📸 Screenshot saved: screenshots/${KIOSK_ID}.png"
+
+  kiosk-logs:
+    desc: View kiosk app logs
+    cmds:
+      - "@remote podman logs -f --tail 100 ${APP_NAME}"
+
+  kiosk-info:
+    desc: Show device system info
+    cmds:
+      - echo "=== ${KIOSK_ID} (${SSH_HOST}) ==="
+      - "@remote cat /proc/device-tree/model 2>/dev/null || echo 'Unknown model'"
+      - "@remote free -h | head -2"
+      - "@remote df -h / | tail -1"
+      - "@remote vcgencmd measure_temp 2>/dev/null || echo 'temp=N/A'"
+      - "@remote uptime"
+
+  # ─── Provisioning (first-time setup) ─────────────
+  provision:
+    desc: First-time setup for a new RPi
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman"
+      - "@remote sudo loginctl enable-linger pi"
+      - "@remote podman network create kiosk 2>/dev/null || true"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+      - echo "✅ ${KIOSK_ID} provisioned and ready"

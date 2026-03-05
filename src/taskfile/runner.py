@@ -42,7 +42,7 @@ class TaskfileRunner:
         dry_run: bool = False,
         verbose: bool = False,
     ):
-        self.config = config or load_taskfile(taskfile_path)
+        self._init_config(config, taskfile_path)
         self.env_name = env_name or self.config.default_env
         self.platform_name = platform_name or self.config.default_platform
         self.var_overrides = var_overrides or {}
@@ -53,6 +53,10 @@ class TaskfileRunner:
         self.env = self._init_environment()
         self.platform = self._init_platform()
         self.variables = self._init_variables()
+
+    def _init_config(self, config: TaskfileConfig | None, taskfile_path: str | Path | None) -> None:
+        """Load or accept the Taskfile configuration."""
+        self.config = config or load_taskfile(taskfile_path)
 
     def _init_environment(self) -> Environment:
         """Initialize and validate environment configuration."""
@@ -314,10 +318,11 @@ class TaskfileRunner:
         return success
 
     def list_tasks(self) -> None:
-        """Print available tasks, environments, platforms and variables."""
+        """Print available tasks, environments, platforms, groups and variables."""
         self._list_header()
         self._list_tasks_section()
         self._list_environments_section()
+        self._list_environment_groups_section()
         self._list_platforms_section()
         self._list_variables_section()
 
@@ -353,6 +358,18 @@ class TaskfileRunner:
             remote = f" → {env.ssh_target}" if env.ssh_target else " (local)"
             runtime = f" [{env.container_runtime}]"
             console.print(f"  [cyan]{name:20s}[/]{remote}{runtime}{default}")
+
+    def _list_environment_groups_section(self) -> None:
+        """Print environment groups if any are defined."""
+        if not self.config.environment_groups:
+            return
+        console.print(f"\n[bold]Environment Groups:[/]")
+        for name, grp in sorted(self.config.environment_groups.items()):
+            members = ", ".join(grp.members) if grp.members else "empty"
+            console.print(
+                f"  [yellow]{name:20s}[/] strategy={grp.strategy:10s} "
+                f"members=[{members}]"
+            )
 
     def _list_platforms_section(self) -> None:
         """Print platform list if any are defined."""

@@ -12,7 +12,7 @@ export PYTHONPATH="/home/tom/github/pyfunc/taskfile/src:$PYTHONPATH"
 
 echo ""
 echo "▶ taskfile list"
-taskfile list 2>/dev/null || python -m taskfile list
+taskfile list 2>/dev/null || python3 -m taskfile list
 
 echo ""
 echo "▶ Environments:"
@@ -21,15 +21,15 @@ echo "  - prod:  Podman Quadlet + Traefik"
 
 echo ""
 echo "▶ Pipeline:"
-taskfile ci list 2>/dev/null || python -m taskfile ci list
+taskfile ci list 2>/dev/null || python3 -m taskfile ci list
 
 echo ""
 echo "▶ Available CI/CD targets:"
-taskfile ci targets 2>/dev/null || python -m taskfile ci targets
+taskfile ci targets 2>/dev/null || python3 -m taskfile ci targets
 
 echo ""
 echo "▶ Generate CI configs (dry-run):"
-taskfile ci generate github --dry-run 2>/dev/null || python -m taskfile ci generate github --dry-run
+taskfile --dry-run ci generate --target github 2>/dev/null || python3 -m taskfile --dry-run ci generate --target github
 
 echo ""
 echo "✅ codereview.pl example completed"

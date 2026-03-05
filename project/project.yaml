@@ -3,40 +3,40 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-05T09:41:04Z'
+  analyzed_at: '2026-03-05T10:37:09Z'
   tool: code2llm
   stats:
-    files: 25
-    lines: 8345
-    functions: 194
-    classes: 29
+    files: 28
+    lines: 10743
+    functions: 247
+    classes: 35
 health:
-  cc_avg: 3.7
-  critical_count: 7
+  cc_avg: 3.9
+  critical_count: 12
   critical_limit: 10
   duplicates: 0
   cycles: 1
   alerts:
   - type: cc_exceeded
-    target: release
+    target: fleet_repair_cmd
     value: 31
     limit: 15
     severity: critical
   - type: high_fan_out
-    target: setup
-    value: 19
+    target: fleet_status_cmd
+    value: 25
+    limit: 10
+    severity: critical
+  - type: high_fan_out
+    target: fleet_repair_cmd
+    value: 18
     limit: 10
     severity: error
   - type: high_fan_out
-    target: release
-    value: 15
+    target: auth_setup
+    value: 16
     limit: 10
     severity: error
-  - type: cc_exceeded
-    target: setup
-    value: 18
-    limit: 15
-    severity: warning
   - type: high_fan_out
     target: PipelineRunner.run
     value: 14
@@ -53,7 +53,22 @@ health:
     limit: 10
     severity: warning
   - type: high_fan_out
+    target: FleetConfig.from_dict
+    value: 11
+    limit: 10
+    severity: warning
+  - type: high_fan_out
     target: _collect_interactive_setup
+    value: 11
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: release
+    value: 11
+    limit: 10
+    severity: warning
+  - type: high_fan_out
+    target: _run_env_group
     value: 11
     limit: 10
     severity: warning
@@ -68,42 +83,148 @@ health:
     limit: 10
     severity: warning
   - type: high_fan_out
+    target: setup
+    value: 10
+    limit: 10
+    severity: warning
+  - type: high_fan_out
     target: deploy_cmd
     value: 10
     limit: 10
     severity: warning
 modules:
-- path: src/taskfile/cli/release.py
-  lines: 327
+- path: src/taskfile/cli/fleet.py
+  lines: 357
   classes: 0
-  methods: 5
+  methods: 8
   cc_max: 31
+  inbound_deps: 0
+  exports:
+  - name: fleet
+    type: function
+    cc: 1
+  - name: fleet_status_cmd
+    type: function
+    cc: 7
+    fan_out: 25
+  - name: fleet_repair_cmd
+    type: function
+    cc: 31
+    flag: split
+    fan_out: 18
+  - name: fleet_list_cmd
+    type: function
+    cc: 8
+- path: src/taskfile/fleet.py
+  lines: 476
+  classes: 5
+  methods: 14
+  cc_max: 13
+  inbound_deps: 0
+  exports:
+  - name: FleetApp
+    type: class
+    cc_avg: 0.0
+  - name: DeviceGroup
+    type: class
+    cc_avg: 0.0
+  - name: Device
+    type: class
+    cc_avg: 0.0
+  - name: FleetConfig
+    type: class
+    cc_avg: 7.0
+    methods:
+    - name: from_dict
+      cc: 7
+      fan_out: 11
+  - name: DeviceStatus
+    type: class
+    cc_avg: 0.0
+  - name: load_fleet
+    type: function
+    cc: 4
+  - name: save_fleet
+    type: function
+    cc: 10
+  - name: check_device_status
+    type: function
+    cc: 13
+  - name: fleet_status
+    type: function
+    cc: 4
+  - name: print_fleet_status
+    type: function
+    cc: 6
+  - name: deploy_to_device
+    type: function
+    cc: 8
+  - name: deploy_to_group
+    type: function
+    cc: 12
+  - name: add_device
+    type: function
+    cc: 2
+- path: src/taskfile/cli/auth.py
+  lines: 256
+  classes: 0
+  methods: 7
+  cc_max: 12
+  inbound_deps: 0
+  exports:
+  - name: auth
+    type: function
+    cc: 1
+  - name: auth_setup
+    type: function
+    cc: 12
+    fan_out: 16
+  - name: auth_verify
+    type: function
+    cc: 8
+- path: src/taskfile/cli/release.py
+  lines: 364
+  classes: 0
+  methods: 14
+  cc_max: 12
   inbound_deps: 0
   exports:
   - name: release
     type: function
-    cc: 31
-    flag: split
-    fan_out: 15
+    cc: 12
+    fan_out: 11
   - name: rollback
     type: function
     cc: 11
     fan_out: 12
-- path: src/taskfile/cli/setup.py
-  lines: 435
-  classes: 1
-  methods: 12
-  cc_max: 18
+- path: src/taskfile/cli/main.py
+  lines: 336
+  classes: 0
+  methods: 11
+  cc_max: 11
   inbound_deps: 0
   exports:
-  - name: SetupConfig
-    type: class
-    cc_avg: 1.0
-  - name: setup
+  - name: parse_var
     type: function
-    cc: 18
-    flag: split
-    fan_out: 19
+    cc: 3
+  - name: main
+    type: function
+    cc: 2
+  - name: run
+    type: function
+    cc: 4
+  - name: list_tasks
+    type: function
+    cc: 2
+  - name: init
+    type: function
+    cc: 3
+  - name: validate
+    type: function
+    cc: 4
+  - name: info
+    type: function
+    cc: 11
 - path: src/taskfile/health.py
   lines: 425
   classes: 2
@@ -161,6 +282,20 @@ modules:
   - name: ci_targets
     type: function
     cc: 2
+- path: src/taskfile/cli/setup.py
+  lines: 448
+  classes: 1
+  methods: 15
+  cc_max: 10
+  inbound_deps: 0
+  exports:
+  - name: SetupConfig
+    type: class
+    cc_avg: 1.0
+  - name: setup
+    type: function
+    cc: 3
+    fan_out: 10
 - path: src/taskfile/cli/health.py
   lines: 70
   classes: 0
@@ -169,34 +304,6 @@ modules:
   inbound_deps: 0
   exports:
   - name: health_cmd
-    type: function
-    cc: 9
-- path: src/taskfile/cli/main.py
-  lines: 197
-  classes: 0
-  methods: 7
-  cc_max: 9
-  inbound_deps: 0
-  exports:
-  - name: parse_var
-    type: function
-    cc: 3
-  - name: main
-    type: function
-    cc: 2
-  - name: run
-    type: function
-    cc: 3
-  - name: list_tasks
-    type: function
-    cc: 2
-  - name: init
-    type: function
-    cc: 3
-  - name: validate
-    type: function
-    cc: 4
-  - name: info
     type: function
     cc: 9
 - path: src/taskfile/compose.py
@@ -271,16 +378,29 @@ modules:
   - name: StageResult
     type: class
     cc_avg: 1.0
+- path: src/taskfile/runner.py
+  lines: 390
+  classes: 2
+  methods: 27
+  cc_max: 8
+  inbound_deps: 0
+  exports:
+  - name: TaskRunError
+    type: class
+    cc_avg: 1.0
+  - name: TaskfileRunner
+    type: class
+    cc_avg: 3.7
 - path: src/taskfile/cigen/github.py
-  lines: 103
+  lines: 127
   classes: 1
-  methods: 4
+  methods: 7
   cc_max: 7
   inbound_deps: 0
   exports:
   - name: GitHubActionsTarget
     type: class
-    cc_avg: 4.8
+    cc_avg: 4.0
 - path: src/taskfile/cigen/makefile.py
   lines: 53
   classes: 1
@@ -291,19 +411,6 @@ modules:
   - name: MakefileTarget
     type: class
     cc_avg: 7.0
-- path: src/taskfile/runner.py
-  lines: 335
-  classes: 2
-  methods: 24
-  cc_max: 7
-  inbound_deps: 0
-  exports:
-  - name: TaskRunError
-    type: class
-    cc_avg: 1.0
-  - name: TaskfileRunner
-    type: class
-    cc_avg: 3.4
 - path: src/taskfile/cli/deploy.py
   lines: 274
   classes: 1
@@ -335,9 +442,9 @@ modules:
     type: function
     cc: 5
 - path: src/taskfile/models.py
-  lines: 329
-  classes: 7
-  methods: 13
+  lines: 361
+  classes: 8
+  methods: 14
   cc_max: 6
   inbound_deps: 0
   exports:
@@ -347,6 +454,9 @@ modules:
   - name: Platform
     type: class
     cc_avg: 2.0
+  - name: EnvironmentGroup
+    type: class
+    cc_avg: 0.0
   - name: ComposeConfig
     type: class
     cc_avg: 0.0
@@ -367,7 +477,7 @@ modules:
   classes: 2
   methods: 8
   cc_max: 6
-  inbound_deps: 7
+  inbound_deps: 8
   exports:
   - name: TaskfileNotFoundError
     type: class
@@ -483,9 +593,9 @@ modules:
     type: function
     cc: 2
 - path: src/taskfile/scaffold/__init__.py
-  lines: 23
+  lines: 32
   classes: 0
-  methods: 1
+  methods: 2
   cc_max: 2
   inbound_deps: 1
   exports:
@@ -499,7 +609,7 @@ modules:
   cc_max: 0
   inbound_deps: 0
 - path: src/taskfile/cli/__init__.py
-  lines: 9
+  lines: 11
   classes: 0
   methods: 0
   cc_max: 0
@@ -534,6 +644,12 @@ modules:
   methods: 0
   cc_max: 0
   inbound_deps: 0
+- path: src/taskfile/scaffold/publish.py
+  lines: 280
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
 - path: src/taskfile/scaffold/web.py
   lines: 93
   classes: 0
@@ -541,18 +657,22 @@ modules:
   cc_max: 0
   inbound_deps: 0
 hotspots:
-- name: setup
-  fan_out: 19
-  note: 'One-command VPS setup: SSH key → provision → deploy.
+- name: fleet_status_cmd
+  fan_out: 25
+  note: "Show status of all remote environments (SSH-based health check).\n\n\b\n\
+    Examples:\n  "
+- name: fleet_repair_cmd
+  fan_out: 18
+  note: 'Diagnose and repair a remote device.
 
 
-    IP can be provided as argu'
-- name: release
-  fan_out: 15
-  note: 'Full release — build all, deploy all, update landing.
+    Runs 8-point diagnostics: ping, SSH, disk,'
+- name: auth_setup
+  fan_out: 16
+  note: 'Interactive registry authentication setup.
 
 
-    Orchestrates the complete'
+    Guides you through obtaining API tok'
 - name: PipelineRunner.run
   fan_out: 14
   note: "Run pipeline stages in order.\n\nArgs:\n    stage_filter: Only run these\
@@ -567,45 +687,45 @@ hotspots:
 
 
     Deploys the previous (or specified) version of th'
+- name: FleetConfig.from_dict
+  fan_out: 11
+  note: Parse raw YAML dict into FleetConfig.
 - name: _collect_interactive_setup
   fan_out: 11
   note: Collect setup configuration through interactive prompts.
-- name: load_taskfile
-  fan_out: 10
-  note: "Load and parse a Taskfile.\n\nArgs:\n    path: Explicit path to Taskfile.\
-    \ If None, "
-- name: load_env_file
-  fan_out: 10
-  note: "Parse a .env file into a dict.\n\nSupports:\n    KEY=value\n    KEY=\"quoted\
-    \ value\"\n "
-- name: deploy_cmd
-  fan_out: 10
-  note: 'Full deploy pipeline: build → push → generate Quadlet → upload → restart.
+- name: release
+  fan_out: 11
+  note: 'Full release — build all, deploy all, update landing.
 
 
-    Reads'
+    Orchestrates the complete'
+- name: _run_env_group
+  fan_out: 11
+  note: 'Run tasks across all environments in a group using the group''s strategy.
+
+
+    Strate'
 refactoring:
   priorities:
-  - action: Split release (CC=31 → target CC<10)
+  - action: Split fleet_repair_cmd (CC=31 → target CC<10)
     impact: high
     effort: low
-    module: release.py
-  - action: Split setup (CC=18 → target CC<10)
-    impact: medium
-    effort: low
-    module: setup.py
+    module: fleet.py
   - action: 'Break circular dependency: src.taskfile.compose.resolve_dict'
     impact: medium
     effort: low
-  - action: Reduce setup fan-out (currently 19)
+  - action: Reduce fleet_status_cmd fan-out (currently 25)
     impact: medium
     effort: medium
-  - action: Reduce release fan-out (currently 15)
+  - action: Reduce fleet_repair_cmd fan-out (currently 18)
+    impact: medium
+    effort: medium
+  - action: Reduce auth_setup fan-out (currently 16)
     impact: medium
     effort: medium
 evolution:
 - date: '2026-03-05'
-  cc_avg: 3.7
-  critical: 7
-  lines: 8345
+  cc_avg: 3.9
+  critical: 12
+  lines: 10743
   note: Automated analysis

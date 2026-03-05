@@ -12,19 +12,19 @@ export PYTHONPATH="/home/tom/github/pyfunc/taskfile/src:$PYTHONPATH"
 
 echo ""
 echo "▶ taskfile --version"
-taskfile --version 2>/dev/null || python -m taskfile --version
+taskfile --version 2>/dev/null || python3 -m taskfile --version
 
 echo ""
 echo "▶ taskfile list"
-taskfile list 2>/dev/null || python -m taskfile list
+taskfile list 2>/dev/null || python3 -m taskfile list
 
 echo ""
 echo "▶ taskfile run test (dry-run)"
-taskfile run test --dry-run 2>/dev/null || python -m taskfile run test --dry-run
+taskfile --dry-run run test 2>/dev/null || python3 -m taskfile --dry-run run test
 
 echo ""
 echo "▶ taskfile run build (dry-run)"
-taskfile run build --dry-run 2>/dev/null || python -m taskfile run build --dry-run
+taskfile --dry-run run build 2>/dev/null || python3 -m taskfile --dry-run run build
 
 echo ""
 echo "✅ Minimal example completed"

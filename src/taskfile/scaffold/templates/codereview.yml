@@ -1,0 +1,205 @@
+version: "1"
+name: codereview
+description: >
+  codereview.pl — 3-stage deployment.
+  Local: Docker Compose + Traefik.
+  Prod: Podman Quadlet + Traefik on 512MB VPS.
+  Single docker-compose.yml as source of truth,
+  .env files for per-environment differences.
+
+default_env: local
+
+variables:
+  APP_NAME: codereview
+  REGISTRY: ghcr.io/softreck
+  TAG: latest
+  PROXY_NETWORK: proxy
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    compose_file: docker-compose.yml
+    env_file: .env.local
+    service_manager: compose
+    variables:
+      DOMAIN: localhost
+      TLS_ENABLED: "false"
+      ENTRYPOINT: web
+
+  staging:
+    ssh_host: staging.codereview.pl
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: docker
+    compose_command: docker compose
+    compose_file: docker-compose.yml
+    env_file: .env.staging
+    service_manager: compose
+    variables:
+      DOMAIN: staging.codereview.pl
+      TLS_ENABLED: "true"
+      ENTRYPOINT: websecure
+
+  prod:
+    ssh_host: codereview.pl
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    compose_file: docker-compose.yml
+    env_file: .env.prod
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+    variables:
+      DOMAIN: codereview.pl
+      TLS_ENABLED: "true"
+      ENTRYPOINT: websecure
+      CERT_RESOLVER: le
+
+# ─── Tasks ──────────────────────────────────────────
+
+tasks:
+
+  # ─── Build ────────────────────────────────────
+  build:
+    desc: Build all images
+    cmds:
+      - docker compose --env-file .env.local build
+
+  build-app:
+    desc: Build single app (--var APP=web)
+    cmds:
+      - docker build -t ${REGISTRY}/${APP}:${TAG} ./apps/${APP}
+
+  push:
+    desc: Push all images to registry
+    deps: [build]
+    cmds:
+      - docker compose --env-file .env.local push
+
+  push-app:
+    desc: Push single app (--var APP=web)
+    deps: [build-app]
+    cmds:
+      - docker push ${REGISTRY}/${APP}:${TAG}
+
+  test:
+    desc: Run tests
+    cmds:
+      - docker compose --env-file .env.local run --rm app pytest
+
+  # ─── Local Development ────────────────────────
+  dev:
+    desc: Start local dev with Docker Compose + Traefik
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local up -d --build
+      - echo "✅ codereview.pl running locally"
+      - echo "   http://app.localhost"
+      - echo "   http://traefik.localhost:8080 (dashboard)"
+
+  dev-down:
+    desc: Stop local dev
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local down
+
+  dev-logs:
+    desc: Follow local logs
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local logs -f
+
+  dev-restart:
+    desc: Restart single service (--var APP=web)
+    env: [local]
+    cmds:
+      - docker compose --env-file .env.local restart ${APP}
+
+  # ─── Staging Deploy ───────────────────────────
+  deploy-staging:
+    desc: Deploy to staging via Docker Compose over SSH
+    env: [staging]
+    deps: [push]
+    cmds:
+      - "@remote cd /opt/codereview && docker compose --env-file .env.staging pull"
+      - "@remote cd /opt/codereview && docker compose --env-file .env.staging up -d"
+      - echo "✅ Deployed to staging.codereview.pl"
+
+  # ─── Production Deploy (Quadlet) ──────────────
+  quadlet-generate:
+    desc: Generate Quadlet files from docker-compose.yml + .env.prod
+    cmds:
+      - echo "Generating Quadlet files..."
+    # NOTE: Use 'taskfile quadlet generate --env-file .env.prod' instead
+    # This task is a placeholder — the real work is done by the quadlet CLI
+
+  deploy-prod:
+    desc: Full production deploy — push, generate quadlet, upload, restart
+    env: [prod]
+    deps: [push]
+    cmds:
+      - echo "🚀 Deploying to production..."
+      - "@remote podman pull ${REGISTRY}/app:${TAG}"
+      - "@remote podman pull ${REGISTRY}/web:${TAG}"
+      - "@remote systemctl --user daemon-reload"
+      - "@remote systemctl --user restart app"
+      - "@remote systemctl --user restart web"
+      - "@remote podman image prune -f"
+      - echo "✅ Deployed to codereview.pl"
+
+  deploy-quadlet:
+    desc: Generate + upload Quadlet files to prod
+    env: [prod]
+    cmds:
+      - echo "Generating Quadlet files from docker-compose.yml..."
+    # Run: taskfile quadlet generate --env-file .env.prod
+    # Then: taskfile --env prod quadlet upload
+
+  # ─── Operations ───────────────────────────────
+  status:
+    desc: Show status on target environment
+    env: [staging, prod]
+    cmds:
+      - "@remote ${RUNTIME} ps --format 'table {{.Names}}	{{.Status}}	{{.Ports}}'"
+
+  logs:
+    desc: View logs on target (--var APP=web)
+    env: [staging, prod]
+    cmds:
+      - "@remote journalctl --user -u ${APP} -f --no-pager -n 100"
+
+  ram:
+    desc: Check RAM usage on server
+    env: [staging, prod]
+    cmds:
+      - "@remote free -h"
+      - "@remote ${RUNTIME} stats --no-stream --format 'table {{.Name}}	{{.MemUsage}}'"
+
+  cleanup:
+    desc: Clean unused images on server
+    env: [staging, prod]
+    cmds:
+      - "@remote ${RUNTIME} image prune -af"
+      - "@remote ${RUNTIME} volume prune -f"
+      - echo "🧹 Cleaned"
+
+  # ─── Initial Setup ───────────────────────────
+  setup-server:
+    desc: First-time server provisioning
+    env: [prod]
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+      - "@remote podman network create ${PROXY_NETWORK} 2>/dev/null || true"
+      - "@remote loginctl enable-linger $(whoami)"
+      - echo "✅ Server ready for Podman Quadlet"
+
+  # ─── Release ──────────────────────────────────
+  release:
+    desc: Tag + full deploy pipeline
+    cmds:
+      - git tag -a ${TAG} -m 'Release ${TAG}'
+      - git push origin ${TAG}
+      - echo "📦 Release ${TAG} created"

@@ -4,12 +4,33 @@ Kompletne przykłady użycia Taskfile dla różnych scenariuszy.
 
 ## Przegląd przykładów
 
+### Podstawowe
+
 | Przykład | Złożoność | Cechy | Kiedy użyć |
 |----------|-----------|-------|------------|
-| [minimal/](minimal/) | ⭐ Najniższa | Podstawowe taski, bez środowisk | Projekty lokalne, start z taskfile |
-| [saas-app/](saas-app/) | ⭐⭐ Niska | local/staging/prod, pipeline | SaaS z wieloma env |
-| [multiplatform/](multiplatform/) | ⭐⭐⭐ Średnia | Web + Desktop, walidacja, CI/CD gen | Aplikacje multi-platform |
-| [codereview.pl/](codereview.pl/) | ⭐⭐⭐⭐ Wysoka | Full CI/CD, 6 platform, Quadlet | Real-world produkcyjne |
+| [minimal/](minimal/) | ⭐ | Podstawowe taski, bez środowisk | Start z taskfile |
+| [saas-app/](saas-app/) | ⭐⭐ | local/staging/prod, pipeline | SaaS z wieloma env |
+| [multiplatform/](multiplatform/) | ⭐⭐⭐ | Web + Desktop, walidacja, CI/CD gen | Aplikacje multi-platform |
+| [codereview.pl/](codereview.pl/) | ⭐⭐⭐⭐ | Full CI/CD, 6 platform, Quadlet | Real-world produkcyjne |
+
+### Publikacja (jeden rejestr)
+
+| Przykład | Rejestr | Język | Artefakt |
+|----------|---------|-------|----------|
+| [publish-pypi/](publish-pypi/) | PyPI | Python | wheel + sdist |
+| [publish-npm/](publish-npm/) | npm | Node.js / TypeScript | npm package |
+| [publish-cargo/](publish-cargo/) | crates.io | Rust | crate |
+| [publish-docker/](publish-docker/) | GHCR + Docker Hub | dowolny | Docker image (multi-arch) |
+| [publish-github/](publish-github/) | GitHub Releases | Go (przykład) | binaries + checksums |
+
+### Zaawansowane
+
+| Przykład | Złożoność | Cechy | Kiedy użyć |
+|----------|-----------|-------|------------|
+| [fleet-rpi/](fleet-rpi/) | ⭐⭐⭐⭐ | 6 RPi, 3 grupy, rolling/canary | Flota IoT/kiosków |
+| [multi-artifact/](multi-artifact/) | ⭐⭐⭐⭐⭐ | Python+Rust+Node+Docker → 5 rejestrów | Monorepo multi-język |
+
+---
 
 ## Szybki wybór przykładu
 
@@ -28,18 +49,70 @@ taskfile --env staging run deploy
 taskfile --env prod run deploy
 ```
 
+### 📦 Publikuję paczkę Python na PyPI?
+```bash
+cd publish-pypi/
+taskfile auth setup --registry pypi
+taskfile run release --var VERSION=1.0.0
+```
+
+### 📦 Publikuję paczkę Node.js na npm?
+```bash
+cd publish-npm/
+taskfile auth setup --registry npm
+taskfile run release --var VERSION=1.0.0
+```
+
+### 📦 Publikuję crate Rust na crates.io?
+```bash
+cd publish-cargo/
+taskfile auth setup --registry crates
+taskfile run release --var VERSION=1.0.0
+```
+
+### 🐳 Publikuję obraz Docker?
+```bash
+cd publish-docker/
+taskfile run build-multiarch --var TAG=v1.0.0   # amd64 + arm64
+```
+
+### 🏷️ Tworzę release na GitHub z binarkami?
+```bash
+cd publish-github/
+taskfile run build-all --var VERSION=1.0.0      # 4 platformy parallel
+taskfile run github-release --var VERSION=1.0.0
+```
+
 ### 🖥️ Web + Desktop aplikacja?
 ```bash
 cd multiplatform/
-taskfile --env prod run deploy-all  # SaaS + Desktop
+taskfile --env prod run deploy-all
+```
+
+### 🤖 Flota Raspberry Pi / kiosków?
+```bash
+cd fleet-rpi/
+taskfile fleet status                                    # status floty
+taskfile -G all-kiosks run deploy-kiosk --var TAG=v2.0   # rolling deploy
+taskfile fleet repair kiosk-lobby                        # diagnostyka
+```
+
+### 🏭 Monorepo: Python + Rust + Node.js + Docker?
+```bash
+cd multi-artifact/
+taskfile run test-all          # testy 3 języków parallel
+taskfile run build-all         # 4 artefakty parallel
+taskfile run publish-all       # 5 rejestrów parallel
 ```
 
 ### 🏭 Produkcyjny projekt?
 ```bash
 cd codereview.pl/
-taskfile run ci-generate  # Generuj CI/CD
+taskfile run ci-generate
 taskfile --env prod run deploy
 ```
+
+---
 
 ## Funkcje pokazane w przykładach
 
@@ -54,6 +127,32 @@ taskfile --env prod run deploy
 - ✅ Pipeline CI/CD
 - ✅ Komenda @remote
 
+### Publish (PyPI / npm / Cargo / Docker / GitHub)
+- ✅ Pełny pipeline: lint → test → build → publish
+- ✅ Dry-run przed publikacją
+- ✅ `taskfile auth setup` — konfiguracja tokenów
+- ✅ `taskfile auth verify` — weryfikacja tokenów
+- ✅ `parallel: true` — równoległe testy i lint
+- ✅ `continue_on_error: true` — lint nie blokuje
+- ✅ Multi-arch Docker (amd64 + arm64)
+- ✅ Checksums SHA256
+
+### Fleet RPi
+- ✅ `environment_groups` — grupy urządzeń
+- ✅ `strategy: rolling/canary/parallel`
+- ✅ `taskfile fleet status` — monitoring floty
+- ✅ `taskfile fleet repair` — diagnostyka + auto-fix
+- ✅ `taskfile -G <group> run <task>` — deploy na grupę
+- ✅ ARM64 build z `docker buildx`
+
+### Multi-Artifact
+- ✅ 3 języki (Python + Rust + Node.js) + Docker w jednym repo
+- ✅ 5 rejestrów (PyPI, crates.io, npm, GHCR, Docker Hub)
+- ✅ `taskfile run test-all` — parallel testy
+- ✅ `taskfile run publish-all` — parallel publikacja
+- ✅ Wspólna wersja (`--var VERSION=X`)
+- ✅ GitHub Releases z binarkami
+
 ### Multiplatform
 - ✅ Platformy (web/desktop)
 - ✅ Auto-generowanie .env
@@ -67,36 +166,17 @@ taskfile --env prod run deploy
 - ✅ 6 platform CI/CD
 - ✅ Kompletny workflow
 
+---
+
 ## Generowanie CI/CD
 
-Wszystkie przykłady (oprócz minimal) pokazują generowanie CI/CD:
-
 ```bash
-# Multiplatform
-taskfile run ci-generate
-
-# Codereview.pl
-taskfile ci generate --all
 taskfile ci generate --platform github
 taskfile ci generate --platform gitlab
-```
-
-## Walidacja
-
-```bash
-# Multiplatform - walidacja w Docker
-taskfile run validate-deploy
-
-# Multiplatform - walidacja w VM
-taskfile run validate-vm
-
-# Multiplatform - sprawdzenie wymagań
-taskfile run preflight
+taskfile ci generate --all
 ```
 
 ## Skrypty testujące
-
-W głównym katalogu `examples/` znajdują się skrypty do testowania:
 
 ```bash
 ./run-all.sh              # Uruchom wszystkie przykłady
@@ -110,51 +190,31 @@ W głównym katalogu `examples/` znajdują się skrypty do testowania:
 
 ```
 examples/
-├── README.md              # Ten plik
-├── minimal/
-│   ├── Taskfile.yml
-│   ├── Makefile
-│   └── README.md
-├── saas-app/
-│   ├── Taskfile.yml
-│   ├── Makefile
-│   └── README.md
-├── multiplatform/
-│   ├── Taskfile.yml
-│   └── README.md
-├── codereview.pl/
-│   ├── Taskfile.yml
-│   ├── docker-compose.yml
-│   ├── .env.local
-│   ├── .env.prod
-│   └── README.md
-├── Taskfile.softreck.yml  # Multi-project
+├── README.md
+├── minimal/               # ⭐ start
+├── saas-app/              # ⭐⭐ multi-env
+├── multiplatform/         # ⭐⭐⭐ web+desktop
+├── codereview.pl/         # ⭐⭐⭐⭐ full project
+├── publish-pypi/          # 📦 Python → PyPI
+├── publish-npm/           # 📦 Node.js → npm
+├── publish-cargo/         # 📦 Rust → crates.io
+├── publish-docker/        # 🐳 Docker → GHCR + Docker Hub
+├── publish-github/        # 🏷️ Binaries → GitHub Releases
+├── fleet-rpi/             # 🤖 RPi fleet management
+├── multi-artifact/        # 🏭 Python+Rust+Node+Docker monorepo
+├── Taskfile.softreck.yml
 ├── .github-actions-deploy.yml
 ├── .gitlab-ci.yml
 └── .gitea-actions-deploy.yml
 ```
-
-## Taskfile.softreck.yml
-
-Specjalny przykład multi-project deploymentu dla organizacji Softreck:
-- wronai
-- prototypowanie
-- portigen
-
-## CI/CD Templates
-
-Gotowe szablony dla różnych platform:
-
-- `.github-actions-deploy.yml` - GitHub Actions
-- `.gitlab-ci.yml` - GitLab CI
-- `.gitea-actions-deploy.yml` - Gitea Actions
 
 ## Jak zacząć?
 
 1. **Wybierz przykład** pasujący do Twojego projektu
 2. **Skopiuj Taskfile.yml** do swojego projektu
 3. **Dostosuj zmienne** (APP_NAME, REGISTRY, etc.)
-4. **Uruchom pierwszy task**: `taskfile list`
+4. **Skonfiguruj tokeny**: `taskfile auth setup`
+5. **Uruchom pierwszy task**: `taskfile list`
 
 ## Wsparcie
 
@@ -163,3 +223,10 @@ Więcej informacji w głównej dokumentacji:
 - [Dokumentacja](../docs/)
 - [CHANGELOG](../CHANGELOG.md)
 
+## License
+
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
+
+## Author
+
+Created by **Tom Sapletta** - [tom@sapletta.com](mailto:tom@sapletta.com)

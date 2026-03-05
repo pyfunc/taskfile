@@ -47,6 +47,9 @@ Issues = "https://github.com/pyfunc/taskfile/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"taskfile.scaffold" = ["templates/*.yml"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py39"

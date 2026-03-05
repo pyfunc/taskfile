@@ -1,0 +1,220 @@
+version: "1"
+name: my-multiplatform-app
+description: >
+  Multi-platform deployment example.
+  Desktop (Electron) + Web (Docker/CDN) × Local + Production.
+  Standardized deploy format: taskfile --env <env> --platform <platform> run deploy
+
+default_env: local
+default_platform: web
+
+variables:
+  APP_NAME: my-app
+  REGISTRY: ghcr.io/myorg
+  TAG: latest
+  DOMAIN: my-app.example.com
+
+# ─── Environments ─────────────────────────────────────
+#
+# Environment = WHERE we deploy (local machine vs remote server)
+#
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    env_file: .env.local
+    variables:
+      DOMAIN: ${APP_NAME}.localhost
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod
+    variables:
+      DOMAIN: my-app.example.com
+
+# ─── Platforms ────────────────────────────────────────
+#
+# Platform = WHAT we deploy (desktop app vs web app)
+# Each platform has its own build/deploy commands and variables.
+#
+
+platforms:
+  desktop:
+    desc: Electron desktop application
+    variables:
+      BUILD_DIR: dist/desktop
+      ELECTRON_BUILDER_OPTS: "--linux --win --mac"
+    build_cmd: npm run build:electron
+    deploy_cmd: npm run publish:electron
+
+  web:
+    desc: Web application (Docker container)
+    variables:
+      BUILD_DIR: dist/web
+      WEB_PORT: "3000"
+    build_cmd: npm run build:web
+    deploy_cmd: docker compose up -d
+
+# ─── Tasks ────────────────────────────────────────────
+
+tasks:
+
+  # ─── Common ─────────────────────────────────────
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm ci
+
+  lint:
+    desc: Run linter
+    cmds:
+      - npm run lint
+    ignore_errors: true
+
+  test:
+    desc: Run tests
+    cmds:
+      - npm run test
+
+  # ─── Build ──────────────────────────────────────
+  build:
+    desc: Build for current platform
+    deps: [install, test]
+    cmds:
+      - echo "🔨 Building ${APP_NAME} for platform=${PLATFORM} env=${ENV}"
+      - npm run build:${PLATFORM}
+
+  build-desktop:
+    desc: Build Electron desktop app
+    platform: [desktop]
+    deps: [install]
+    cmds:
+      - npm run build:electron
+      - echo "📦 Desktop build → ${BUILD_DIR}"
+
+  build-web:
+    desc: Build web app
+    platform: [web]
+    deps: [install]
+    cmds:
+      - npm run build:web
+      - echo "📦 Web build → ${BUILD_DIR}"
+
+  # ─── Deploy: Desktop × Local ───────────────────
+  deploy-desktop-local:
+    desc: Run desktop app locally (dev mode)
+    env: [local]
+    platform: [desktop]
+    cmds:
+      - npm run dev:electron
+      - echo "✅ Desktop app running locally"
+
+  # ─── Deploy: Desktop × Prod ────────────────────
+  deploy-desktop-prod:
+    desc: Publish desktop app to release channels
+    env: [prod]
+    platform: [desktop]
+    deps: [build-desktop]
+    cmds:
+      - npm run publish:electron -- ${ELECTRON_BUILDER_OPTS}
+      - echo "✅ Desktop ${APP_NAME}:${TAG} published"
+
+  # ─── Deploy: Web × Local ───────────────────────
+  deploy-web-local:
+    desc: Start web app locally with Docker Compose
+    env: [local]
+    platform: [web]
+    cmds:
+      - docker compose --env-file .env.local up -d --build
+      - echo ""
+      - "echo '✅ Web app running:'"
+      - "echo '   http://${DOMAIN}'"
+
+  # ─── Deploy: Web × Prod ────────────────────────
+  deploy-web-prod:
+    desc: Deploy web app to production server
+    env: [prod]
+    platform: [web]
+    deps: [build-web]
+    cmds:
+      - docker build -t ${REGISTRY}/${APP_NAME}:${TAG} .
+      - docker push ${REGISTRY}/${APP_NAME}:${TAG}
+      - "@remote podman pull ${REGISTRY}/${APP_NAME}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"
+      - "@remote podman image prune -f"
+      - echo "✅ Web ${APP_NAME}:${TAG} → https://${DOMAIN}"
+
+  # ─── Universal deploy (auto-routes) ────────────
+  deploy:
+    desc: "Deploy to current env+platform (use --env and --platform)"
+    cmds:
+      - echo "🚀 Deploying ${APP_NAME} — env=${ENV} platform=${PLATFORM} tag=${TAG}"
+      - taskfile --env ${ENV} --platform ${PLATFORM} run deploy-${PLATFORM}-${ENV}
+
+  # ─── Operations ─────────────────────────────────
+  status:
+    desc: Check service status
+    env: [prod]
+    platform: [web]
+    cmds:
+      - "@remote podman ps --filter name=${APP_NAME}"
+
+  logs:
+    desc: View logs
+    env: [local]
+    platform: [web]
+    cmds:
+      - docker compose logs -f
+
+  logs-remote:
+    desc: View remote logs
+    env: [prod]
+    platform: [web]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME} -f --no-pager -n 100"
+
+  stop:
+    desc: Stop local services
+    env: [local]
+    platform: [web]
+    cmds:
+      - docker compose down
+
+  stop-remote:
+    desc: Stop remote service
+    env: [prod]
+    platform: [web]
+    cmds:
+      - "@remote systemctl --user stop ${APP_NAME}"
+
+  # ─── Cleanup ────────────────────────────────────
+  cleanup:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf dist/
+      - echo "🧹 Cleaned build artifacts"
+
+  cleanup-remote:
+    desc: Clean unused images on server
+    env: [prod]
+    platform: [web]
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote podman volume prune -f"
+      - echo "🧹 Cleaned remote resources"
+
+  # ─── Release ────────────────────────────────────
+  release:
+    desc: Full release — tag, build all platforms, deploy
+    cmds:
+      - echo "🚀 Releasing ${APP_NAME}:${TAG}"
+      - git tag -a ${TAG} -m "Release ${TAG}"
+      - git push origin ${TAG}
+      - taskfile --env prod --platform web run deploy-web-prod
+      - taskfile --env prod --platform desktop run deploy-desktop-prod
+      - echo "📦 Released ${APP_NAME}:${TAG} on all platforms"

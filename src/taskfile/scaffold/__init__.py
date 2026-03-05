@@ -1,25 +1,32 @@
-"""Scaffold templates for `taskfile init`."""
+"""Scaffold templates for `taskfile init`.
 
-from taskfile.scaffold.minimal import TEMPLATE as minimal
-from taskfile.scaffold.web import TEMPLATE as web
-from taskfile.scaffold.podman import TEMPLATE as podman
-from taskfile.scaffold.full import TEMPLATE as full
-from taskfile.scaffold.codereview import TEMPLATE as codereview
-from taskfile.scaffold.multiplatform import TEMPLATE as multiplatform
-from taskfile.scaffold.publish import TEMPLATE as publish
+Templates are stored as plain YAML files in templates/ directory,
+editable without knowing Python. The old Python modules are kept
+as fallbacks for backward compatibility.
+"""
 
-TEMPLATES = {
-    "minimal": minimal,
-    "web": web,
-    "podman": podman,
-    "full": full,
-    "codereview": codereview,
-    "multiplatform": multiplatform,
-    "publish": publish,
-}
+from pathlib import Path
+
+_TEMPLATES_DIR = Path(__file__).parent / "templates"
+
+_TEMPLATE_NAMES = [
+    "minimal", "web", "podman", "full", "codereview", "multiplatform", "publish",
+]
+
+
+def _load_template(name: str) -> str:
+    """Load template from YAML file, fall back to Python module."""
+    yml_path = _TEMPLATES_DIR / f"{name}.yml"
+    if yml_path.is_file():
+        return yml_path.read_text(encoding="utf-8")
+    # Fallback to Python module (backward compat)
+    import importlib
+    mod = importlib.import_module(f"taskfile.scaffold.{name}")
+    return mod.TEMPLATE
+
 
 def generate_taskfile(template: str = "full") -> str:
     """Generate a Taskfile.yml from a template."""
-    if template not in TEMPLATES:
-        raise ValueError(f"Unknown template: {template}. Available: {list(TEMPLATES.keys())}")
-    return TEMPLATES[template]
+    if template not in _TEMPLATE_NAMES:
+        raise ValueError(f"Unknown template: {template}. Available: {_TEMPLATE_NAMES}")
+    return _load_template(template)

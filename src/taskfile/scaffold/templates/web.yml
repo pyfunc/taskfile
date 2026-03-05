@@ -1,0 +1,91 @@
+version: "1"
+name: web-app
+description: Web app with Docker Compose + Traefik
+
+variables:
+  APP_NAME: web-app
+  IMAGE: ghcr.io/myorg/web-app
+  TAG: latest
+  DOMAIN: app.example.com
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    variables:
+      DOMAIN: ${APP_NAME}.localhost
+
+  staging:
+    ssh_host: staging.example.com
+    ssh_user: deploy
+    container_runtime: docker
+    compose_command: docker compose
+    variables:
+      DOMAIN: staging.example.com
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    container_runtime: podman
+    variables:
+      DOMAIN: app.example.com
+
+tasks:
+  build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  push:
+    desc: Push image to registry
+    deps: [build]
+    cmds:
+      - docker push ${IMAGE}:${TAG}
+
+  deploy-local:
+    desc: Deploy locally with Docker Compose
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+      - echo "✅ ${APP_NAME} → http://${DOMAIN}"
+
+  deploy-remote:
+    desc: Deploy to remote server via SSH
+    env: [staging, prod]
+    cmds:
+      - "@remote ${RUNTIME} pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"
+      - echo "✅ ${APP_NAME} → https://${DOMAIN}"
+
+  deploy:
+    desc: Smart deploy — picks local or remote based on env
+    deps: [push]
+    cmds:
+      - echo "Deploying ${APP_NAME} to ${ENV}..."
+
+  logs:
+    desc: View logs
+    cmds:
+      - ${COMPOSE} logs -f ${APP_NAME}
+
+  logs-remote:
+    desc: View remote logs
+    env: [staging, prod]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME} -f"
+
+  status:
+    desc: Check service status
+    cmds:
+      - ${COMPOSE} ps
+
+  stop:
+    desc: Stop services
+    cmds:
+      - ${COMPOSE} down
+
+  clean:
+    desc: Remove unused images and volumes
+    cmds:
+      - docker image prune -f
+      - docker volume prune -f

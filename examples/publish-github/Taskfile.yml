@@ -1,0 +1,126 @@
+version: "1"
+name: my-cli-tool
+description: >
+  CLI tool → GitHub Releases publishing pipeline.
+  Build binaries for Linux/macOS/Windows, create release with assets.
+
+variables:
+  APP_NAME: my-cli-tool
+  VERSION: "0.1.0"
+  GITHUB_REPO: myorg/my-cli-tool
+  DIST_DIR: dist
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+
+tasks:
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./... -v
+
+  build-linux:
+    desc: Build for Linux amd64
+    deps: [test]
+    cmds:
+      - GOOS=linux GOARCH=amd64 go build -o ${DIST_DIR}/${APP_NAME}-linux-amd64 .
+      - echo "✅ Built ${APP_NAME}-linux-amd64"
+
+  build-linux-arm:
+    desc: Build for Linux arm64 (RPi, cloud ARM)
+    deps: [test]
+    cmds:
+      - GOOS=linux GOARCH=arm64 go build -o ${DIST_DIR}/${APP_NAME}-linux-arm64 .
+      - echo "✅ Built ${APP_NAME}-linux-arm64"
+
+  build-macos:
+    desc: Build for macOS (Apple Silicon + Intel)
+    deps: [test]
+    cmds:
+      - GOOS=darwin GOARCH=arm64 go build -o ${DIST_DIR}/${APP_NAME}-darwin-arm64 .
+      - GOOS=darwin GOARCH=amd64 go build -o ${DIST_DIR}/${APP_NAME}-darwin-amd64 .
+      - echo "✅ Built macOS binaries"
+
+  build-windows:
+    desc: Build for Windows amd64
+    deps: [test]
+    cmds:
+      - GOOS=windows GOARCH=amd64 go build -o ${DIST_DIR}/${APP_NAME}-windows-amd64.exe .
+      - echo "✅ Built ${APP_NAME}-windows-amd64.exe"
+
+  build-all:
+    desc: Build for all platforms
+    deps: [build-linux, build-linux-arm, build-macos, build-windows]
+    parallel: true
+    cmds:
+      - echo "✅ All binaries built:"
+      - ls -la ${DIST_DIR}/
+
+  checksum:
+    desc: Generate SHA256 checksums
+    deps: [build-all]
+    cmds:
+      - cd ${DIST_DIR} && sha256sum ${APP_NAME}-* > checksums.txt
+      - cat ${DIST_DIR}/checksums.txt
+      - echo "✅ Checksums generated"
+
+  create-release:
+    desc: Create GitHub Release draft
+    cmds:
+      - >-
+        gh release create v${VERSION}
+        --repo ${GITHUB_REPO}
+        --title "v${VERSION}"
+        --generate-notes
+        --draft
+      - echo "✅ Draft release v${VERSION} created"
+
+  upload-assets:
+    desc: Upload binaries to GitHub Release
+    deps: [checksum]
+    cmds:
+      - >-
+        gh release upload v${VERSION}
+        --repo ${GITHUB_REPO}
+        ${DIST_DIR}/${APP_NAME}-linux-amd64
+        ${DIST_DIR}/${APP_NAME}-linux-arm64
+        ${DIST_DIR}/${APP_NAME}-darwin-arm64
+        ${DIST_DIR}/${APP_NAME}-darwin-amd64
+        ${DIST_DIR}/${APP_NAME}-windows-amd64.exe
+        ${DIST_DIR}/checksums.txt
+      - echo "✅ Assets uploaded to release v${VERSION}"
+
+  publish:
+    desc: Publish release (remove draft flag)
+    cmds:
+      - gh release edit v${VERSION} --repo ${GITHUB_REPO} --draft=false
+      - echo "✅ Release v${VERSION} is now public"
+      - echo "   https://github.com/${GITHUB_REPO}/releases/tag/v${VERSION}"
+
+  release:
+    desc: Full release — build all, create release, upload, publish
+    cmds:
+      - git tag -a v${VERSION} -m "Release v${VERSION}"
+      - git push origin v${VERSION}
+      - mkdir -p ${DIST_DIR}
+      - echo "Building all platforms..."
+    # After tag push, build + release:
+    # taskfile run build-all
+    # taskfile run checksum
+    # taskfile run create-release
+    # taskfile run upload-assets
+    # taskfile run publish
+
+  verify:
+    desc: Verify release exists on GitHub
+    cmds:
+      - gh release view v${VERSION} --repo ${GITHUB_REPO}
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf ${DIST_DIR}/
+      - echo "🧹 Cleaned"

@@ -1,23 +1,19 @@
-# code2llm/evolution | 194 func | 25f | 2026-03-05
+# code2llm/evolution | 247 func | 28f | 2026-03-05
 
-NEXT[2] (ranked by impact):
-  [1] !! SPLIT-FUNC      release  CC=31  fan=15
+NEXT[1] (ranked by impact):
+  [1] !! SPLIT-FUNC      fleet_repair_cmd  CC=31  fan=18
       WHY: CC=31 exceeds 15
-      EFFORT: ~1h  IMPACT: 465
-
-  [2] !  SPLIT-FUNC      setup  CC=18  fan=19
-      WHY: CC=18 exceeds 15
-      EFFORT: ~1h  IMPACT: 342
+      EFFORT: ~1h  IMPACT: 558
 
 
 RISKS[0]: none
 
 METRICS-TARGET:
-  CC̄:          3.7 → ≤2.6
+  CC̄:          3.9 → ≤2.7
   max-CC:      31 → ≤15
   god-modules: 0 → 0
-  high-CC(≥15): 2 → ≤1
+  high-CC(≥15): 1 → ≤0
   hub-types:   0 → ≤0
 
 HISTORY:
-  prev CC̄=3.7 → now CC̄=3.7
+  prev CC̄=3.7 → now CC̄=3.9

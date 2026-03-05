@@ -12,147 +12,504 @@
 
 Write your deploy logic once in `Taskfile.yml`, run it from your terminal, GitLab CI, GitHub Actions, Gitea, Jenkins — or any other pipeline. Zero CI/CD lock-in.
 
+---
+
+## Table of Contents
+
+- [The Problem This Solves](#the-problem-this-solves)
+- [Install](#install)
+- [Quick Start](#quick-start)
+- [Taskfile.yml Reference](#taskfileyml-reference)
+- [CLI Commands](#cli-commands)
+- [Multi-Environment Deploy](#multi-environment-deploy)
+- [Multi-Platform Deploy](#multi-platform-deploy)
+- [Environment Groups & Fleet Management](#environment-groups--fleet-management)
+- [Parallel Tasks & Error Handling](#parallel-tasks--error-handling)
+- [Registry Authentication](#registry-authentication)
+- [Multi-Registry Publishing](#multi-registry-publishing)
+- [Quadlet Generator](#quadlet-generator)
+- [VPS Setup (One-Command)](#vps-setup-one-command)
+- [Release Pipeline](#release-pipeline)
+- [CI/CD Integration](#cicd-integration)
+- [Scaffold Templates](#scaffold-templates)
+- [Examples](#examples)
+
+---
+
 ## The Problem This Solves
 
-You have one project (`codereview.pl`) with deployment stages:
+You have one project with multiple deployment stages:
 
 ```
 local   → Docker Compose + Traefik  (dev on laptop)
+staging → Docker Compose over SSH   (test server)
 prod    → Podman Quadlet + Traefik  (512MB VPS)
+fleet   → 20× Raspberry Pi kiosks   (edge deploy)
 ```
 
-Without `taskfile`, you maintain separate configs for each. With `taskfile`:
+Without `taskfile`, you maintain separate scripts, CI configs, and fleet tools for each. With `taskfile`:
 
 ```
-┌─────────────────────────────────────────────┐
-│         docker-compose.yml                  │
-│         (single source of truth)            │
-│                                             │
-│  .env.local    →  docker compose up         │
-│  .env.prod     →  generate Quadlet → deploy │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│              Taskfile.yml                        │
+│  (environments + tasks + groups = one file)      │
+│                                                  │
+│  taskfile --env local run dev                    │
+│  taskfile --env prod run deploy                  │
+│  taskfile -G kiosks run deploy-kiosk             │
+│  taskfile fleet status                           │
+│  taskfile auth setup                             │
+└──────────────────────────────────────────────────┘
 ```
 
-One compose file, `.env` files for differences, automatic Quadlet generation.
+One YAML file. All environments, platforms, device groups, and deploy tasks in one place.
 
-## Examples
-
-| Example | Complexity | Features |
-|---------|------------|----------|
-| [minimal](examples/minimal/) | ⭐ Basic | test, build, run - no environments |
-| [saas-app](examples/saas-app/) | ⭐⭐ Simple | local/staging/prod with pipeline |
-| [multiplatform](examples/multiplatform/) | ⭐⭐⭐ Medium | Web + Desktop, CI/CD generation, validation |
-| [codereview.pl](examples/codereview.pl/) | ⭐⭐⭐⭐ Full | 6 CI platforms, Quadlet, docker-compose |
-
-### Quick Example Usage
-
-```bash
-# Choose an example
-cd examples/multiplatform
-
-# Initialize (creates .env)
-taskfile run init
-
-# Validate deployment
-taskfile run validate-deploy
-
-# Deploy everything
-taskfile --env prod run deploy-all
-```
+---
 
 ## Install
-
-[![PyPI](https://img.shields.io/pypi/v/taskfile.svg)](https://pypi.org/project/taskfile/)
 
 ```bash
 pip install taskfile
 ```
 
+Short alias `tf` is also available after install:
+
+```bash
+tf --env prod run deploy
+```
+
+---
+
 ## Quick Start
 
 ```bash
-# Create project from template
-taskfile init --template codereview
+# 1. Create project from template
+taskfile init --template full
 
-# See available tasks
+# 2. See available tasks
 taskfile list
 
+# 3. Local development
+taskfile --env local run dev
+
+# 4. Deploy to production
+taskfile --env prod run deploy
+
+# 5. Dry run — see what would happen
+taskfile --env prod --dry-run run deploy
+```
+
+---
+
+## Taskfile.yml Reference
+
+A complete `Taskfile.yml` can contain these top-level sections:
+
+```yaml
+version: "1"
+name: my-project
+description: Project description
+default_env: local
+default_platform: web
+
+# ─── Global variables ────────────────────────────
+variables:
+  APP_NAME: my-project
+  IMAGE: ghcr.io/myorg/my-project
+  TAG: latest
+
+# ─── Environments (WHERE to deploy) ──────────────
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    variables:
+      DOMAIN: localhost
+
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    variables:
+      DOMAIN: app.example.com
+
+# ─── Environment Groups (fleet / batch deploy) ───
+environment_groups:
+  kiosks:
+    members: [kiosk-1, kiosk-2, kiosk-3]
+    strategy: rolling        # rolling | canary | parallel
+    max_parallel: 2
+
+# ─── Platforms (WHAT to deploy) ───────────────────
+platforms:
+  web:
+    desc: Web application
+    variables:
+      BUILD_DIR: dist/web
+  desktop:
+    desc: Electron desktop app
+    variables:
+      BUILD_DIR: dist/desktop
+
+# ─── Tasks ────────────────────────────────────────
+tasks:
+  build:
+    desc: Build the application
+    cmds:
+      - docker build -t ${IMAGE}:${TAG} .
+
+  deploy:
+    desc: Deploy to target environment
+    deps: [build, push]          # run dependencies first
+    parallel: true               # run deps concurrently
+    env: [prod]                  # only run on prod
+    platform: [web]              # only run for web platform
+    condition: "test -f Dockerfile"  # skip if condition fails
+    continue_on_error: true      # don't stop on failure
+    cmds:
+      - "@remote podman pull ${IMAGE}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}"
+```
+
+### Key Concepts
+
+- **`environments`** — WHERE to deploy (local machine, remote server via SSH)
+- **`platforms`** — WHAT to deploy (web, desktop, mobile)
+- **`environment_groups`** — batch of environments for fleet/group deploy
+- **`tasks`** — commands to execute, with deps, filters, conditions
+- **`variables`** — cascade: global → environment → platform → `--var` CLI overrides
+- **`@remote`** prefix — command runs via SSH on the target environment's host
+
+---
+
+## CLI Commands
+
+### Global Options
+
+```
+taskfile [OPTIONS] COMMAND [ARGS...]
+
+Options:
+  --version                Show version
+  -f, --file PATH          Path to Taskfile.yml
+  -e, --env ENV            Target environment (default: local)
+  -G, --env-group GROUP    Target environment group (fleet deploy)
+  -p, --platform PLATFORM  Target platform (e.g. desktop, web)
+  --var KEY=VALUE           Override variable (repeatable)
+  --dry-run                Show commands without executing
+  -v, --verbose            Verbose output
+```
+
+### Core Commands
+
+| Command | Description |
+|---------|-------------|
+| `taskfile run <tasks...>` | Run one or more tasks |
+| `taskfile list` | List tasks, environments, groups, platforms, variables |
+| `taskfile info <task>` | Show detailed info about a task |
+| `taskfile validate` | Check Taskfile.yml for errors |
+| `taskfile init [--template T]` | Create Taskfile.yml from template |
+
+### Deploy & Release
+
+| Command | Description |
+|---------|-------------|
+| `taskfile deploy` | Smart deploy — auto-detects strategy per environment |
+| `taskfile release [--tag v1.0]` | Full release pipeline: tag → build → deploy → health |
+| `taskfile rollback [--target TAG]` | Rollback to previous version |
+| `taskfile setup <IP>` | One-command VPS provisioning + deploy |
+
+### Fleet Management
+
+| Command | Description |
+|---------|-------------|
+| `taskfile fleet status` | SSH health check on all remote environments |
+| `taskfile fleet status --group kiosks` | Check only devices in a group |
+| `taskfile fleet list` | List remote environments and groups |
+| `taskfile fleet repair <env>` | 8-point diagnostics + auto-fix |
+| `taskfile -G kiosks run deploy` | Deploy to all devices in a group |
+
+### Registry Auth
+
+| Command | Description |
+|---------|-------------|
+| `taskfile auth setup` | Interactive token setup for registries |
+| `taskfile auth setup --registry pypi` | Setup for one registry only |
+| `taskfile auth verify` | Test all configured credentials |
+
+### Infrastructure
+
+| Command | Description |
+|---------|-------------|
+| `taskfile quadlet generate` | Generate Podman Quadlet from docker-compose.yml |
+| `taskfile quadlet upload` | Upload Quadlet files to server via SSH |
+| `taskfile ci generate` | Generate CI/CD config (GitHub Actions, GitLab, etc.) |
+| `taskfile health` | Check health of deployed services |
+
+---
+
+## Multi-Environment Deploy
+
+Define environments in `Taskfile.yml`, then target them with `--env`:
+
+```bash
 # Local development
 taskfile --env local run dev
 
-# Deploy to production (generates Quadlet, uploads, restarts)
-taskfile --env prod run deploy
-
-# Or use the deploy shortcut (auto-detects strategy)
-taskfile --env prod deploy
-
-# Dry run — see what would happen
-taskfile --env prod --dry-run deploy
-```
-
-Short alias `tf` is also available:
-
-```bash
-tf --env prod run deploy-quick
-```
-
-## How It Works
-
-### Project Structure
-
-```
-my-project/
-├── docker-compose.yml          # SINGLE SOURCE OF TRUTH
-├── .env.local                  # local: localhost, no TLS, relaxed limits
-├── .env.prod                   # prod: TLS, tight limits
-├── Taskfile.yml                # all deploy tasks
-├── deploy/
-│   └── quadlet/                # auto-generated .container files
-└── Dockerfile
-```
-
-### docker-compose.yml — Same File, All Environments
-
-All differences between environments are captured in variables:
-
-```yaml
-services:
-  app:
-    image: ${REGISTRY}/my-app:${TAG:-latest}
-    labels:
-      traefik.http.routers.app.rule: "Host(`${DOMAIN:-app.localhost}`)"
-      traefik.http.routers.app.tls: "${TLS_ENABLED:-false}"
-    deploy:
-      resources:
-        limits:
-          memory: ${APP_MEMORY:-128m}
-```
-
-### Deploy Commands
-
-```bash
-# Local development
-taskfile --env local run dev          # docker compose up --build
-taskfile --env local run dev-logs     # follow logs
+# Staging deploy
+taskfile --env staging run deploy
 
 # Production deploy
-taskfile --env prod run deploy        # full: build → push → quadlet → upload → restart
-taskfile --env prod run deploy-quick  # just: pull → restart
-taskfile --env prod run deploy-service --var SVC=app
+taskfile --env prod run deploy
 
-# Quadlet generation
-taskfile quadlet generate --env-file .env.prod
-taskfile --env prod quadlet upload
-
-# Operations
-taskfile --env prod run status
-taskfile --env prod run logs --var SVC=app
-taskfile --env prod run ram
+# Override variables per-run
+taskfile --env prod run deploy --var TAG=v1.2.3 --var DOMAIN=new.example.com
 ```
+
+### Remote Commands with `@remote`
+
+Any command prefixed with `@remote` runs on the environment's SSH host:
+
+```yaml
+tasks:
+  restart:
+    env: [prod]
+    cmds:
+      - "@remote systemctl --user restart ${APP_NAME}"
+      - "@remote podman ps --filter name=${APP_NAME}"
+```
+
+This translates to: `ssh -i ~/.ssh/id_ed25519 deploy@prod.example.com 'systemctl --user restart my-app'`
+
+### Deploy Shortcut
+
+`taskfile deploy` auto-detects the right strategy:
+
+```bash
+taskfile --env local deploy    # → docker compose up -d
+taskfile --env prod deploy     # → generate Quadlet → scp → systemctl restart
+```
+
+---
+
+## Multi-Platform Deploy
+
+Deploy to **desktop** and **web** platforms across environments:
+
+```
+┌──────────┬───────────────────────┬──────────────────────────┐
+│          │ local                 │ prod                     │
+├──────────┼───────────────────────┼──────────────────────────┤
+│ desktop  │ npm run dev:electron  │ electron-builder publish │
+│ web      │ docker compose up     │ podman pull + restart    │
+└──────────┴───────────────────────┴──────────────────────────┘
+```
+
+```bash
+taskfile --env local --platform desktop run deploy
+taskfile --env prod --platform web run deploy
+taskfile run release    # all platforms at once
+```
+
+Variables cascade: **global → environment → platform → CLI overrides**.
+
+Generate a multiplatform scaffold:
+
+```bash
+taskfile init --template multiplatform
+```
+
+---
+
+## Environment Groups & Fleet Management
+
+Manage fleets of devices (Raspberry Pi, edge nodes, kiosks) using `environment_groups` in `Taskfile.yml`. Each device is an environment with `ssh_host`; groups define batch-deploy strategies.
+
+### Defining a Fleet
+
+```yaml
+environments:
+  kiosk-lobby:
+    ssh_host: 192.168.1.10
+    ssh_user: pi
+    container_runtime: podman
+  kiosk-cafe:
+    ssh_host: 192.168.1.11
+    ssh_user: pi
+    container_runtime: podman
+  kiosk-entrance:
+    ssh_host: 192.168.1.12
+    ssh_user: pi
+    container_runtime: podman
+
+environment_groups:
+  kiosks:
+    members: [kiosk-lobby, kiosk-cafe, kiosk-entrance]
+    strategy: rolling       # rolling | canary | parallel
+    max_parallel: 2         # for rolling: how many at a time
+    canary_count: 1         # for canary: how many to test first
+```
+
+### Group Deploy Strategies
+
+- **`rolling`** — deploy to `max_parallel` devices at a time, wait for success, then next batch
+- **`canary`** — deploy to `canary_count` devices first, confirm, then deploy to rest
+- **`parallel`** — deploy to all devices simultaneously
+
+```bash
+# Deploy to all kiosks with rolling strategy
+taskfile -G kiosks run deploy-kiosk --var TAG=v2.0
+
+# Deploy to a single device
+taskfile --env kiosk-lobby run deploy-kiosk --var TAG=v2.0
+```
+
+### Fleet Status & Health
+
+```bash
+# Check all remote devices (parallel SSH: temp, RAM, disk, containers, uptime)
+taskfile fleet status
+
+# Check only devices in a group
+taskfile fleet status --group kiosks
+
+# List all remote environments and groups
+taskfile fleet list
+```
+
+Example output:
+
+```
+┌─────────────────┬──────────────┬────────┬──────┬─────┬──────┬────────────┬─────────┐
+│ Name            │ IP           │ Status │ Temp │ RAM │ Disk │ Containers │ Uptime  │
+├─────────────────┼──────────────┼────────┼──────┼─────┼──────┼────────────┼─────────┤
+│ kiosk-cafe      │ 192.168.1.11 │ ✅ UP  │ 52°C │ 41% │ 23%  │          3 │ up 14d  │
+│ kiosk-entrance  │ 192.168.1.12 │ ✅ UP  │ 48°C │ 38% │ 19%  │          3 │ up 14d  │
+│ kiosk-lobby     │ 192.168.1.10 │ ✅ UP  │ 55°C │ 45% │ 27%  │          3 │ up 14d  │
+└─────────────────┴──────────────┴────────┴──────┴─────┴──────┴────────────┴─────────┘
+```
+
+### Fleet Repair
+
+Diagnose and auto-fix issues on a device with 8-point check: ping, SSH, disk, RAM, temperature, Podman, containers, NTP.
+
+```bash
+# Interactive repair
+taskfile fleet repair kiosk-lobby
+
+# Auto-fix without prompts
+taskfile fleet repair kiosk-lobby --auto-fix
+```
+
+---
+
+## Parallel Tasks & Error Handling
+
+### Parallel Dependencies
+
+Run task dependencies concurrently for faster builds:
+
+```yaml
+tasks:
+  deploy:
+    deps: [test, lint, build]
+    parallel: true              # test, lint, build run at the same time
+    cmds:
+      - echo "All deps done, deploying..."
+```
+
+### Continue on Error
+
+Allow tasks to continue even if a command fails:
+
+```yaml
+tasks:
+  lint:
+    cmds:
+      - ruff check .
+    continue_on_error: true     # alias for ignore_errors: true
+
+  deploy:
+    deps: [lint, test]
+    parallel: true
+    continue_on_error: true     # failed deps won't stop the deploy
+    cmds:
+      - "@remote systemctl --user restart ${APP_NAME}"
+```
+
+### Conditional Execution
+
+Skip tasks when conditions aren't met:
+
+```yaml
+tasks:
+  migrate:
+    condition: "test -f migrations/pending.sql"
+    cmds:
+      - "@remote psql < migrations/pending.sql"
+```
+
+---
+
+## Registry Authentication
+
+Interactively configure API tokens for package registries. Tokens are saved to `.env` (auto-gitignored).
+
+```bash
+# Setup all registries
+taskfile auth setup
+
+# Setup one registry
+taskfile auth setup --registry pypi
+
+# Verify all configured tokens
+taskfile auth verify
+```
+
+Supported registries:
+
+| Registry | Token variable | How to get |
+|----------|---------------|------------|
+| **PyPI** | `PYPI_TOKEN` | https://pypi.org/manage/account/token/ |
+| **npm** | `NPM_TOKEN` | `npm token create` |
+| **Docker Hub** | `DOCKER_TOKEN` | https://hub.docker.com/settings/security |
+| **GitHub** | `GITHUB_TOKEN` | https://github.com/settings/tokens |
+| **crates.io** | `CARGO_TOKEN` | https://crates.io/settings/tokens |
+
+---
+
+## Multi-Registry Publishing
+
+Generate a publish scaffold for releasing to multiple registries:
+
+```bash
+taskfile init --template publish
+```
+
+This creates a `Taskfile.yml` with tasks for:
+
+- **PyPI** — `twine upload`
+- **npm** — `npm publish`
+- **Docker Hub / GHCR** — `docker push`
+- **GitHub Releases** — `gh release create`
+- **Landing page** — build & deploy
+
+```bash
+# Publish to all registries
+taskfile run publish-all --var TAG=v1.0.0
+
+# Publish to single registry
+taskfile run publish-pypi --var TAG=v1.0.0
+taskfile run publish-docker --var TAG=v1.0.0
+```
+
+---
 
 ## Quadlet Generator
 
-The killer feature: **automatically generate Podman Quadlet `.container` files from your existing `docker-compose.yml`**.
+**Automatically generate Podman Quadlet `.container` files from your existing `docker-compose.yml`.**
 
 ```bash
 taskfile quadlet generate --env-file .env.prod -o deploy/quadlet
@@ -169,84 +526,84 @@ Reads `docker-compose.yml`, resolves `${VAR:-default}` with `.env.prod` values, 
 
 No `podlet` binary needed — pure Python.
 
-## Deploy Shortcut
+```bash
+# Generate + upload to server
+taskfile quadlet generate --env-file .env.prod
+taskfile --env prod quadlet upload
+```
 
-`taskfile deploy` auto-detects the right strategy:
+---
+
+## VPS Setup (One-Command)
+
+Provision a fresh VPS and deploy your app in one command:
 
 ```bash
-taskfile --env local deploy    # → docker compose up -d
-taskfile --env prod deploy     # → generate Quadlet → scp → systemctl restart
+taskfile setup 123.45.67.89 --domain app.example.com
 ```
 
-## Multi-Platform Deploy
+This runs:
+1. SSH key provisioning
+2. System update + Podman install
+3. Firewall configuration
+4. Deploy user creation
+5. Application deployment
 
-Deploy to **desktop** and **web** platforms across **local** and **production** environments using one standardized format:
-
-```
-┌──────────┬───────────────────────┬──────────────────────────┐
-│          │ local                 │ prod                     │
-├──────────┼───────────────────────┼──────────────────────────┤
-│ desktop  │ npm run dev:electron  │ electron-builder publish │
-│ web      │ docker compose up     │ podman pull + restart    │
-└──────────┴───────────────────────┴──────────────────────────┘
-```
+Options:
 
 ```bash
-# Desktop app — local dev
-taskfile --env local --platform desktop run deploy
+taskfile setup 123.45.67.89 \
+  --domain app.example.com \
+  --ssh-key ~/.ssh/custom_key \
+  --user admin \
+  --ports 80,443,8080
 
-# Web app — production
-taskfile --env prod --platform web run deploy
+# Dry run
+taskfile setup 123.45.67.89 --dry-run
 
-# Release all platforms at once
-taskfile run release
+# Skip steps
+taskfile setup 123.45.67.89 --skip-provision
+taskfile setup 123.45.67.89 --skip-deploy
 ```
 
-Define platforms in `Taskfile.yml`:
+---
 
-```yaml
-platforms:
-  desktop:
-    desc: Electron desktop application
-    variables:
-      BUILD_DIR: dist/desktop
-  web:
-    desc: Web application (Docker container)
-    variables:
-      BUILD_DIR: dist/web
+## Release Pipeline
 
-tasks:
-  deploy-web-prod:
-    env: [prod]
-    platform: [web]
-    cmds:
-      - docker push ${REGISTRY}/${APP_NAME}:${TAG}
-      - "@remote podman pull ${REGISTRY}/${APP_NAME}:${TAG}"
-```
-
-Variables cascade: **global → environment → platform → CLI overrides**.
-
-See `examples/multiplatform/` for a full working example, or generate one:
+Full release orchestration: tag → build → deploy → health check.
 
 ```bash
-taskfile init --template multiplatform
+# Full release
+taskfile release --tag v1.0.0
+
+# Skip desktop build
+taskfile release --tag v1.0.0 --skip-desktop
+
+# Dry run
+taskfile release --tag v1.0.0 --dry-run
 ```
 
-## Key Features
+Steps:
+1. Create git tag
+2. Build desktop applications
+3. Build and deploy web (SaaS)
+4. Upload desktop binaries
+5. Build and deploy landing page
+6. Run health checks
 
-- **Multi-env deploy** — local/staging/prod with different runtimes
-- **Multi-platform deploy** — desktop/web/mobile with platform-specific variables and filters
-- **`@remote` prefix** — commands run via SSH on target server
-- **Variable substitution** — `${VAR}`, `{{VAR}}`, cascading: global → env → platform → CLI → OS
-- **Task dependencies** — `deps: [test, push, generate]`
-- **Environment filters** — `env: [prod]` restricts task to specific envs
-- **Platform filters** — `platform: [web]` restricts task to specific platforms
-- **Conditional execution** — `condition: "test -f migrations/pending.sql"`
-- **Dry run** — `--dry-run` shows commands without executing
+Rollback:
+
+```bash
+taskfile rollback                   # rollback to previous tag
+taskfile rollback --target v0.9.0   # rollback to specific tag
+taskfile rollback --dry-run
+```
+
+---
 
 ## CI/CD Integration
 
-Same command everywhere:
+Same commands work everywhere — terminal, GitLab CI, GitHub Actions, Jenkins:
 
 ```bash
 # Terminal
@@ -257,35 +614,108 @@ script: taskfile --env prod run deploy --var TAG=$CI_COMMIT_SHORT_SHA
 
 # GitHub Actions
 run: taskfile --env prod run deploy --var TAG=${{ github.sha }}
+
+# Jenkins
+sh 'taskfile --env prod run deploy --var TAG=${BUILD_NUMBER}'
 ```
 
-## CLI Reference
+Generate CI configs automatically:
+
+```bash
+# Generate GitHub Actions workflow
+taskfile ci generate --provider github
+
+# Generated workflows support:
+# - Tag-triggered releases (v*)
+# - Secrets injection from GitHub Secrets
+# - Multi-job pipelines
+```
+
+---
+
+## Scaffold Templates
+
+Generate a `Taskfile.yml` from built-in templates:
+
+```bash
+taskfile init --template <name>
+```
+
+| Template | Description |
+|----------|-------------|
+| `minimal` | Basic build/deploy, 2 environments |
+| `web` | Web app with Docker + Traefik, 3 environments |
+| `podman` | Podman Quadlet + Traefik, optimized for low-RAM |
+| `full` | All features: multi-env, release, cleanup, quadlet |
+| `codereview` | 3-stage: local(Docker) → staging → prod(Podman Quadlet) |
+| `multiplatform` | Desktop + Web × Local + Prod deployment matrix |
+| `publish` | Multi-registry publishing: PyPI, npm, Docker, GitHub |
+
+Templates are stored as plain YAML files and can be customized.
+
+---
+
+## Project Structure
 
 ```
-taskfile run <tasks...>          Run one or more tasks
-taskfile list                    List tasks and environments
-taskfile init                    Create Taskfile.yml
-taskfile validate                Check for errors
-taskfile info <task>             Show task details
-taskfile deploy                  Smart deploy (auto-detects strategy)
-taskfile quadlet generate        Generate Quadlet from docker-compose.yml
-taskfile quadlet upload          Upload Quadlet files to server
-
-Options:
-  -e, --env ENV             Target environment (default: local)
-  -p, --platform PLATFORM   Target platform (e.g. desktop, web)
-  -f, --file PATH           Path to Taskfile.yml
-  --var KEY=VALUE            Override variable (repeatable)
-  --dry-run                 Show commands without executing
-  -v, --verbose             Verbose output
-
-Templates: minimal | web | podman | codereview | full | multiplatform
+my-project/
+├── Taskfile.yml                # tasks, environments, groups
+├── docker-compose.yml          # container definitions (source of truth)
+├── .env.local                  # local variables
+├── .env.prod                   # production variables (gitignored)
+├── deploy/
+│   └── quadlet/                # auto-generated .container files
+└── Dockerfile
 ```
+
+---
+
+## Examples
+
+### Getting Started
+
+| Example | Complexity | Features |
+|---------|------------|----------|
+| [minimal](examples/minimal/) | ⭐ | test, build, run — no environments |
+| [saas-app](examples/saas-app/) | ⭐⭐ | local/staging/prod with pipeline |
+| [multiplatform](examples/multiplatform/) | ⭐⭐⭐ | Web + Desktop, CI/CD generation |
+| [codereview.pl](examples/codereview.pl/) | ⭐⭐⭐⭐ | 6 CI platforms, Quadlet, docker-compose |
+
+### Publishing (one registry per example)
+
+| Example | Registry | Language | Artifact |
+|---------|----------|----------|----------|
+| [publish-pypi](examples/publish-pypi/) | PyPI | Python | wheel + sdist |
+| [publish-npm](examples/publish-npm/) | npm | Node.js / TypeScript | npm package |
+| [publish-cargo](examples/publish-cargo/) | crates.io | Rust | crate |
+| [publish-docker](examples/publish-docker/) | GHCR + Docker Hub | any | Docker image (multi-arch) |
+| [publish-github](examples/publish-github/) | GitHub Releases | Go (example) | binaries + checksums |
+
+### Advanced
+
+| Example | Complexity | Features |
+|---------|------------|----------|
+| [fleet-rpi](examples/fleet-rpi/) | ⭐⭐⭐⭐ | 6 Raspberry Pi, 3 groups, rolling/canary deploy |
+| [multi-artifact](examples/multi-artifact/) | ⭐⭐⭐⭐⭐ | Python + Rust + Node.js + Docker → 5 registries |
+
+```bash
+# Fleet management
+cd examples/fleet-rpi
+taskfile fleet status
+taskfile -G all-kiosks run deploy-kiosk --var TAG=v2.0
+
+# Multi-artifact monorepo
+cd examples/multi-artifact
+taskfile run test-all       # 3 languages in parallel
+taskfile run publish-all    # 5 registries in parallel
+```
+
+---
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
+Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 ## Author
 
-Created by **Tom Sapletta** - [tom@sapletta.com](mailto:tom@sapletta.com)
+Created by **Tom Sapletta** — [tom@sapletta.com](mailto:tom@sapletta.com)

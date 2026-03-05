@@ -12,7 +12,7 @@ export PYTHONPATH="/home/tom/github/pyfunc/taskfile/src:$PYTHONPATH"
 
 echo ""
 echo "▶ taskfile list"
-taskfile list 2>/dev/null || python -m taskfile list
+taskfile list 2>/dev/null || python3 -m taskfile list
 
 echo ""
 echo "▶ Platforms:"
@@ -31,7 +31,7 @@ for env in local prod; do
     echo ""
     echo "  [$env × $platform]"
     taskfile --env $env --platform $platform list 2>/dev/null || \
-      python -m taskfile --env $env --platform $platform list
+      python3 -m taskfile --env $env --platform $platform list
   done
 done
 
