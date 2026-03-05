@@ -18,7 +18,11 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 
-from clickmd import MarkdownRenderer
+try:
+    from clickmd import MarkdownRenderer
+    _HAS_CLICKMD = True
+except ImportError:
+    _HAS_CLICKMD = False
 
 if TYPE_CHECKING:
     from taskfile.models import Environment
@@ -115,8 +119,10 @@ def ssh_exec(env: Environment, command: str, timeout: int = 300) -> int:
         err_text = stderr.read().decode("utf-8", errors="replace")
         combined = (out_text + err_text).rstrip()
         if combined:
-            renderer = MarkdownRenderer(use_colors=True)
-            renderer.codeblock("log", combined)
+            if _HAS_CLICKMD:
+                MarkdownRenderer(use_colors=True).codeblock("log", combined)
+            else:
+                print(combined)
 
         exit_code = stdout.channel.recv_exit_status()
         return exit_code
@@ -138,6 +144,8 @@ def _ssh_exec_subprocess(env: Environment, command: str) -> int:
     )
     output = (result.stdout or "").rstrip()
     if output:
-        renderer = MarkdownRenderer(use_colors=True)
-        renderer.codeblock("log", output)
+        if _HAS_CLICKMD:
+            MarkdownRenderer(use_colors=True).codeblock("log", output)
+        else:
+            print(output)
     return result.returncode

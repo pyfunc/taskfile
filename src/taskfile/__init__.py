@@ -12,7 +12,7 @@ Features:
     - @remote SSH command execution
 """
 
-__version__ = "0.3.51"
+__version__ = "0.3.52"
 __author__ = "Softreck"
 
 from taskfile.runner import TaskfileRunner

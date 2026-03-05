@@ -9,7 +9,11 @@ from pathlib import Path
 
 from rich.console import Console
 
-from clickmd import MarkdownRenderer
+try:
+    from clickmd import MarkdownRenderer
+    _HAS_CLICKMD = True
+except ImportError:
+    _HAS_CLICKMD = False
 
 from taskfile.models import Task
 from taskfile.runner.ssh import is_remote_command, is_local_command, strip_local_prefix, wrap_ssh, run_embedded_ssh
@@ -57,8 +61,10 @@ def _render_output(output: str, task: Task) -> None:
     """Render command output as a markdown codeblock using clickmd."""
     if not output or not output.strip() or task.silent:
         return
-    renderer = MarkdownRenderer(use_colors=True)
-    renderer.codeblock("log", output.rstrip())
+    if _HAS_CLICKMD:
+        MarkdownRenderer(use_colors=True).codeblock("log", output.rstrip())
+    else:
+        print(output.rstrip())
 
 
 def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") -> int:
