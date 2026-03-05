@@ -1,57 +1,73 @@
-# code2llm | 43f 9299L | py:43 | 2026-03-05
-# CC̄=4.4 | critical:25/312 | dups:0 | cycles:1
+# code2llm | 56f 13080L | py:56 | 2026-03-05
+# CC̄=4.6 | critical:37/436 | dups:0 | cycles:0
 
-HEALTH[10]:
+HEALTH[14]:
   🟡 CC    _detect_type CC=16 (limit:15)
   🟡 CC    _import_github_actions CC=21 (limit:15)
   🟡 CC    _import_gitlab_ci CC=20 (limit:15)
+  🟡 CC    import_gitlab_ci CC=15 (limit:15)
   🟡 CC    run_command CC=16 (limit:15)
+  🟡 CC    _execute_commands CC=15 (limit:15)
+  🟡 CC    run CC=16 (limit:15)
   🟡 CC    scan_nearby_taskfiles CC=17 (limit:15)
   🟡 CC    _resolve_includes CC=22 (limit:15)
   🟡 CC    init CC=16 (limit:15)
+  🟡 CC    check_ports CC=19 (limit:15)
   🟡 CC    fleet_repair_cmd CC=31 (limit:15)
   🟡 CC    run CC=15 (limit:15)
-  🟡 CC    info CC=16 (limit:15)
+  🟡 CC    info CC=19 (limit:15)
 
-REFACTOR[2]:
-  1. split 10 high-CC methods  (CC>15)
-  2. break 1 circular dependencies
+REFACTOR[1]:
+  1. split 14 high-CC methods  (CC>15)
 
 COUPLING: no cross-package imports detected
 
 LAYERS:
-  src/                            CC̄=4.4    ←in:0  →out:0
-  │ !! runner                     586L  2C   34m  CC=16     ←0
-  │ !! interactive                516L  1C   19m  CC=16     ←0
-  │ !! main                       485L  0C   15m  CC=16     ←1
+  src/                            CC̄=4.6    ←in:0  →out:0
+  │ !! runner                     711L  2C   35m  CC=16     ←0
+  │ !! webui                      594L  2C   14m  CC=8      ←1
+  │ !! interactive                552L  0C   14m  CC=16     ←0
+  │ !! main                       490L  0C   15m  CC=19     ←1
   │ !  fleet                      476L  5C   14m  CC=13     ←0
   │ !  setup                      448L  1C   15m  CC=10     ←0
+  │ !! converters                 429L  5C   11m  CC=15     ←1
   │ !  health                     425L  2C    6m  CC=11     ←2
-  │ models                     409L  9C   15m  CC=6      ←1
-  │ !! importer                   374L  0C    9m  CC=21     ←1
+  │ models                     411L  9C   15m  CC=6      ←1
+  │ !! importer                   374L  0C    9m  CC=21     ←2
+  │ !! diagnostics                372L  1C   21m  CC=19     ←0
   │ landing                    365L  0C    4m  CC=2      ←1
   │ !  release                    364L  0C   14m  CC=12     ←0
-  │ !! fleet                      357L  0C    8m  CC=31     ←0
+  │ !! fleet                      357L  0C    8m  CC=31     ←1
+  │ registry                   349L  2C   14m  CC=9      ←0
   │ quadlet                    309L  1C   21m  CC=9      ←2
   │ provisioner                308L  2C   12m  CC=5      ←0
+  │ !  version                    306L  0C   11m  CC=10     ←6
   │ publish                    280L  0C    0m  CC=0.0    ←0
-  │ !! parser                     274L  2C   11m  CC=22     ←10
+  │ !! parser                     274L  2C   11m  CC=22     ←15
   │ deploy                     274L  1C   15m  CC=6      ←0
   │ cirunner                   262L  3C    9m  CC=8      ←0
   │ !  auth                       256L  0C    7m  CC=12     ←0
+  │ !  fleet_diagnostics          251L  2C   12m  CC=10     ←1
+  │ !  cache                      235L  1C   11m  CC=14     ←1
+  │ registry_cmds              229L  0C    6m  CC=8      ←0
   │ multiplatform              222L  0C    0m  CC=0.0    ←0
+  │ import_export              220L  0C    3m  CC=8      ←0
+  │ !  graph                      211L  0C    6m  CC=10     ←1
   │ codereview                 207L  0C    0m  CC=0.0    ←0
   │ !  ci                         202L  0C    6m  CC=10     ←0
   │ quadlet                    189L  0C    6m  CC=6      ←0
+  │ !  watch                      182L  1C    7m  CC=10     ←1
   │ full                       181L  0C    0m  CC=0.0    ←0
-  │ compose                    165L  1C    9m  CC=9      ←0
+  │ compose                    165L  1C    9m  CC=9      ←1
   │ completion                 159L  0C    4m  CC=8      ←0
+  │ docker_cmds                157L  1C    9m  CC=6      ←1
   │ ssh                        132L  0C    6m  CC=7      ←1
   │ github                     127L  1C    7m  CC=7      ←0
   │ notifications              109L  0C    5m  CC=8      ←1
   │ gitlab                     105L  1C    8m  CC=5      ←0
   │ podman                      94L  0C    0m  CC=0.0    ←0
   │ web                         93L  0C    0m  CC=0.0    ←0
+  │ cache_cmds                  73L  0C    3m  CC=4      ←0
   │ health                      70L  0C    1m  CC=9      ←0
   │ base                        67L  1C    9m  CC=3      ←4
   │ drone                       63L  1C    5m  CC=4      ←0
@@ -61,24 +77,31 @@ LAYERS:
   │ gitea                       51L  1C    2m  CC=8      ←0
   │ minimal                     40L  0C    0m  CC=0.0    ←0
   │ __init__                    39L  0C    0m  CC=0.0    ←0
-  │ __init__                    33L  0C    2m  CC=2      ←2
-  │ __init__                    12L  0C    0m  CC=0.0    ←0
+  │ __init__                    33L  0C    2m  CC=2      ←3
+  │ __init__                    17L  0C    0m  CC=0.0    ←0
   │ __main__                     6L  0C    0m  CC=0.0    ←0
   │
 
 DUPLICATES[0]: none
 
-FUNCTIONS (CC≥10, 25 of 305):
+FUNCTIONS (CC≥10, 37 of 429):
    31.0  fleet_repair_cmd                           41n   3exit  loops+cond+ret  !! split
    22.0  _resolve_includes                          26n   3exit  loops+cond+ret  !! split
    21.0  _import_github_actions                     24n   2exit  loops+cond+ret  !! split
    20.0  _import_gitlab_ci                          29n   2exit  loops+cond+ret  !! split
+   19.0  ProjectDiagnostics.check_ports             22n   3exit  loops+cond+ret  !! split
+   19.0  info                                        2n   1exit    !! split
    17.0  scan_nearby_taskfiles                      11n   2exit  loops+cond+ret  !! split
    16.0  _detect_type                               25n   8exit  cond+ret  !! split
    16.0  TaskfileRunner.run_command                 18n   5exit  cond+ret  !! split
+   16.0  TaskfileRunner.run                          6n   2exit  loops+cond+ret  !! split
    16.0  init                                       18n   1exit  cond  !! split
-   16.0  info                                        2n   1exit    !! split
+   15.0  GitLabCIConverter.import_gitlab_ci         31n   3exit  loops+cond+ret  !! split
+   15.0  TaskfileRunner._execute_commands           24n   4exit  loops+cond+ret  !! split
    15.0  run                                         2n   1exit    !! split
+   14.0  MakefileConverter.import_makefile          20n   2exit  loops+cond+ret
+   14.0  TaskCache._get_input_files_hash            16n   3exit  loops+cond+ret
+   13.0  TaskfileRunner._execute_script             12n   3exit  cond+ret
    13.0  check_device_status                         5n   2exit  cond+ret
    12.0  _import_makefile                           16n   2exit  loops+cond+ret
    12.0  _import_shell_script                       13n   2exit  loops+cond+ret
@@ -88,53 +111,69 @@ FUNCTIONS (CC≥10, 25 of 305):
    11.0  check_http_endpoint                         4n   2exit  loops+ret
    11.0  run_health_checks                          15n   2exit  cond+ret
    11.0  rollback                                   16n   1exit  cond
+   11.0  ProjectDiagnostics._fix_ports              16n   3exit  loops+cond+ret
    11.0  _print_nearby_taskfiles                    14n   2exit  loops+cond+ret
+   10.0  FileWatcher._get_files                     10n   2exit  loops+cond+ret
+   10.0  detect_format                              24n   7exit  cond+ret
+   10.0  print_task_tree                            14n   3exit  loops+cond+ret
    10.0  TaskfileRunner._run_function               22n   7exit  cond+ret
-   10.0  TaskfileRunner.run                          6n   2exit  loops+cond+ret
    10.0  save_fleet                                 18n   2exit  loops+cond+ret
+   10.0  bump                                       12n   1exit  cond
    10.0  ci_generate                                 2n   1exit  
    10.0  _collect_interactive_setup                 15n   2exit  cond+ret
+   10.0  apply_fixes                                15n   4exit  loops+cond+ret
 
   summary:
-    critical(≥10): 25 | high(5-10): 85 | medium(2-5): 136 | low(<2): 59
-    8% CC≥10  36% CC≥5
+    critical(≥10): 37 | high(5-10): 129 | medium(2-5): 184 | low(<2): 79
+    9% CC≥10  39% CC≥5
 
 HOTSPOTS:
   #1  fleet_status_cmd                     fan=25   "calls 25 functions"
-  #2  run                                  fan=20   "calls 20 functions"
-  #3  _import_github_actions               fan=19   "calls 19 functions"
-  #4  init                                 fan=18   "calls 18 functions"
-  #5  fleet_repair_cmd                     fan=18   "calls 18 functions"
-  #6  _import_gitlab_ci                    fan=17   "calls 17 functions"
-  #7  auth_setup                           fan=16   "calls 16 functions"
-  #8  _import_makefile                     fan=15   "calls 15 functions"
-  #9  doctor                               fan=15   "calls 15 functions"
-  #10 TaskfileRunner.run                   fan=14   "TaskfileRunner method, fan-out=14"
+  #2  bump                                 fan=20   "calls 20 functions"
+  #3  run                                  fan=20   "calls 20 functions"
+  #4  _import_github_actions               fan=19   "calls 19 functions"
+  #5  RegistryClient._install_from_github  fan=18   "RegistryClient method, fan-out=18"
+  #6  init                                 fan=18   "calls 18 functions"
+  #7  ProjectDiagnostics.check_ports       fan=18   "ProjectDiagnostics method, fan-out=18"
+  #8  fleet_repair_cmd                     fan=18   "calls 18 functions"
+  #9  _import_gitlab_ci                    fan=17   "calls 17 functions"
+  #10 set                                  fan=16   "calls 16 functions"
 
 CLASSES:
-  TaskfileRunner                 ████████████████████████  33m  CC̄=4.4   max=16    !!
-  VPSProvisioner                 ████████                  11m  CC̄=2.8   max=5   
-  ProjectDiagnostics             █████                      8m  CC̄=3.5   max=8   
+  TaskfileRunner                 ████████████████████████  34m  CC̄=5.2   max=16    !!
+  ProjectDiagnostics             ██████████                15m  CC̄=4.9   max=19    !!
+  VPSProvisioner                 ███████                   11m  CC̄=2.8   max=5   
+  RegistryClient                 ███████                   10m  CC̄=3.9   max=9   
+  TaskfileHandler                ███████                   10m  CC̄=2.5   max=8   
+  TaskCache                      ███████                   10m  CC̄=4.5   max=14  
   TaskfileConfig                 █████                      8m  CC̄=3.2   max=6   
   GitLabCITarget                 █████                      8m  CC̄=2.6   max=5   
-  PipelineRunner                 █████                      7m  CC̄=5.0   max=8   
-  GitHubActionsTarget            █████                      7m  CC̄=4.0   max=7   
+  PipelineRunner                 ████                       7m  CC̄=5.0   max=8   
+  GitHubActionsTarget            ████                       7m  CC̄=4.0   max=7   
+  FileWatcher                    ████                       6m  CC̄=5.7   max=10  
   ComposeFile                    ████                       6m  CC̄=3.0   max=5   
   CITarget                       ████                       6m  CC̄=1.3   max=3   
   DroneCITarget                  ███                        5m  CC̄=2.8   max=4   
+  TaskPackage                    ██                         3m  CC̄=2.0   max=4   
+  WebUIServer                    ██                         3m  CC̄=2.0   max=3   
+  MakefileConverter              █                          2m  CC̄=11.0  max=14  
+  GitHubActionsConverter         █                          2m  CC̄=8.5   max=9   
+  NpmScriptsConverter            █                          2m  CC̄=3.0   max=4   
   Task                           █                          2m  CC̄=2.5   max=3   
   PipelineConfig                 █                          2m  CC̄=4.5   max=5   
-  GiteaActionsTarget             █                          2m  CC̄=4.5   max=8   
   JenkinsTarget                  █                          2m  CC̄=1.5   max=2   
+  GiteaActionsTarget             █                          2m  CC̄=4.5   max=8   
+  GitLabCIConverter                                         1m  CC̄=15.0  max=15    !!
+  DockerComposeConverter                                    1m  CC̄=9.0   max=9   
   TaskRunError                                              1m  CC̄=1.0   max=1   
   TaskfileNotFoundError                                     1m  CC̄=2.0   max=2   
   PipelineError                                             1m  CC̄=1.0   max=1   
   StageResult                                               1m  CC̄=1.0   max=1   
   FleetConfig                                               1m  CC̄=7.0   max=7   
-  SetupConfig                                               1m  CC̄=1.0   max=1   
-  DeployStrategy                                            1m  CC̄=1.0   max=1   
   Environment                                               1m  CC̄=2.0   max=2   
   Platform                                                  1m  CC̄=2.0   max=2   
+  SetupConfig                                               1m  CC̄=1.0   max=1   
+  DeployStrategy                                            1m  CC̄=1.0   max=1   
   MakefileTarget                                            1m  CC̄=7.0   max=7   
   ProvisionConfig                                           0m  CC̄=0.0   max=0.0 
   TaskfileParseError                                        0m  CC̄=0.0   max=0.0 
@@ -144,10 +183,13 @@ CLASSES:
   DeviceGroup                                               0m  CC̄=0.0   max=0.0 
   Device                                                    0m  CC̄=0.0   max=0.0 
   DeviceStatus                                              0m  CC̄=0.0   max=0.0 
+  DockerContainer                                           0m  CC̄=0.0   max=0.0 
   EnvironmentGroup                                          0m  CC̄=0.0   max=0.0 
   ComposeConfig                                             0m  CC̄=0.0   max=0.0 
   Function                                                  0m  CC̄=0.0   max=0.0 
   PipelineStage                                             0m  CC̄=0.0   max=0.0 
+  DiagnosticResult                                          0m  CC̄=0.0   max=0.0 
+  DiagnosticsReport                                         0m  CC̄=0.0   max=0.0 
   ServiceConfig                                             0m  CC̄=0.0   max=0.0 
 
 D:
@@ -188,32 +230,16 @@ D:
     _import_dockerfile(content)
     _slugify(name)
     _dump_taskfile(data)
-  src/taskfile/runner.py:
-    e: TaskRunError,TaskfileRunner
-    TaskRunError  # Raised when a task command fails....
-      __init__(3)  CC=1.0
-        → __init__(3)  CC=1.0
-    TaskfileRunner  # Executes tasks from a Taskfile configuration....
-      __init__(8)  CC=5.0
-        → _init_config(2)  CC=2.0
-        → _init_environment(0)  CC=2.0
-        → _init_platform(0)  CC=3.0
-        → _init_variables(0)  CC=3.0
-  src/taskfile/cli/interactive.py:
-    e: ProjectDiagnostics,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,init,setup,hosts,env
+  src/taskfile/cli/diagnostics.py:
+    e: ProjectDiagnostics,_parse_compose_host_port,_is_port_free,_find_free_port_near,_upsert_env_value,_docker_containers_using_port,_docker_stop
     ProjectDiagnostics  # Diagnose and auto-fix common project issues....
       __init__(0)  CC=1.0
-    _detect_project_type()
-    _suggest_template(project_type)
-    _collect_env_config_interactive()
-    _write_env_file(config,env_name)
-    _collect_init_choices()
-    _create_gitignore()
-    doctor(fix,verbose)
-    init(template,force,interactive)
-    setup()
-    hosts(ctx)
-    env(ctx)
+    _parse_compose_host_port(port_entry)
+    _is_port_free(port,host)
+    _find_free_port_near(start_port,span)
+    _upsert_env_value(env_path,key,value)
+    _docker_containers_using_port(port)
+    _docker_stop(container_ids)
   src/taskfile/cli/main.py:
     e: _print_nearby_taskfiles,_suggest_similar_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,init,validate,info,import_cmd
     _print_nearby_taskfiles(nearby)
@@ -231,6 +257,54 @@ D:
     validate(ctx)
     info(ctx,task_name)
     import_cmd(source,source_type,output_path,force)
+  src/taskfile/runner.py:
+    e: TaskRunError,TaskfileRunner
+    TaskRunError  # Raised when a task command fails....
+      __init__(3)  CC=1.0
+        → __init__(3)  CC=1.0
+    TaskfileRunner  # Executes tasks from a Taskfile configuration....
+      __init__(8)  CC=5.0
+        → _init_config(2)  CC=2.0
+        → _init_environment(0)  CC=2.0
+        → _init_platform(0)  CC=3.0
+        → _init_variables(0)  CC=5.0
+  src/taskfile/cli/interactive.py:
+    e: _detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,init,setup,hosts,env,watch,graph,serve
+    _detect_project_type()
+    _suggest_template(project_type)
+    _collect_env_config_interactive()
+    _write_env_file(config,env_name)
+    _collect_init_choices()
+    _create_gitignore()
+    doctor(fix,verbose)
+    init(template,force,interactive)
+    setup()
+    hosts(ctx)
+    env(ctx)
+    watch(ctx,tasks,path,debounce)
+    graph(ctx,task_name,dot,output)
+    serve(port,no_browser)
+  src/taskfile/converters.py:
+    e: MakefileConverter,GitHubActionsConverter,NpmScriptsConverter,GitLabCIConverter,DockerComposeConverter,detect_format,import_file,export_file
+    MakefileConverter  # Convert between Taskfile and Makefile....
+      import_makefile(0)  CC=14.0
+    GitHubActionsConverter  # Convert between Taskfile and GitHub Actions workflows....
+      import_workflow(0)  CC=8.0
+    NpmScriptsConverter  # Convert between Taskfile and npm scripts....
+      import_package_json(0)  CC=4.0
+    GitLabCIConverter  # Convert between Taskfile and GitLab CI....
+      import_gitlab_ci(0)  CC=15.0  !
+    DockerComposeConverter  # Convert Taskfile docker tasks to docker-compose services....
+      export_docker_compose(0)  CC=9.0
+    detect_format(file_path)
+    import_file(file_path,source_type)
+    export_file(config,target_type)
+  src/taskfile/cache.py:
+    e: TaskCache,get_project_hash
+    TaskCache  # Manages caching of task outputs based on input file hashes....
+      __init__(1)  CC=1.0
+        → _load_cache(0)  CC=3.0
+    get_project_hash(taskfile_path)
   src/taskfile/fleet.py:
     e: FleetApp,DeviceGroup,Device,FleetConfig,DeviceStatus,load_fleet,save_fleet,_ssh_cmd,_ping_device,check_device_status,fleet_status,print_fleet_status,deploy_to_device,deploy_to_group,_deploy_rolling,_deploy_canary,_deploy_parallel,add_device
     FleetApp  # Container application definition for fleet devices....
@@ -287,6 +361,32 @@ D:
     run_health_checks(domain,ssh_host,ssh_user,ssh_key,check_web,check_landing,check_api,api_path,verbose)
     print_health_report(report)
     health_check_all(domain,ssh_host,ssh_user,ssh_key,exit_on_error)
+  src/taskfile/watch.py:
+    e: FileWatcher,watch_tasks
+    FileWatcher  # Watch files for changes and trigger callbacks....
+      __init__(4)  CC=3.0
+    watch_tasks(task_names,watch_paths,runner,debounce_ms)
+  src/taskfile/graph.py:
+    e: build_dependency_graph,detect_cycles,print_task_tree,_add_deps_to_tree,print_dependency_list,export_to_dot
+    build_dependency_graph(config)
+    detect_cycles(graph)
+    print_task_tree(config,root_task)
+    _add_deps_to_tree(tree,task_name,graph,config,visited)
+    print_dependency_list(config)
+    export_to_dot(config,output_path)
+  src/taskfile/cli/version.py:
+    e: version,bump,show,set,_increment_version,_is_valid_version,_get_version_from_git,_has_git,_git_commit_version,_update_taskfile_version,_update_pyproject_version
+    version()
+    bump(ctx,part,dry_run,force)
+    show(ctx)
+    set(ctx,new_version,dry_run,force)
+    _increment_version(version,part)
+    _is_valid_version(version)
+    _get_version_from_git(project_dir)
+    _has_git(project_dir)
+    _git_commit_version(project_dir,version)
+    _update_taskfile_version(taskfile_path,version)
+    _update_pyproject_version(pyproject_path,version)
   src/taskfile/cli/ci.py:
     e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
     ci()
@@ -313,6 +413,29 @@ D:
     _build_config_from_args(ip,ssh_key,user,domain,port_list)
     _execute_setup_steps(config,dry_run,skip_provision,skip_deploy)
     setup(ip,ssh_key,user,domain,ports,dry_run,skip_provision,skip_deploy)
+  src/taskfile/cli/fleet_diagnostics.py:
+    e: DiagnosticResult,DiagnosticsReport,_safe_ssh,check_ping,check_ssh,check_disk,check_ram,check_temperature,check_podman,check_ntp,run_diagnostics,print_diagnostics_report,print_diagnostics_summary,apply_fixes
+    DiagnosticResult  # Result of a single diagnostic check....
+    DiagnosticsReport  # Complete diagnostics report for a device....
+    _safe_ssh(env,cmd,timeout)
+    check_ping(host,ping_fn)
+    check_ssh(env,ssh_fn)
+    check_disk(env,ssh_fn)
+    check_ram(env,ssh_fn)
+    check_temperature(env,ssh_fn)
+    check_podman(env,ssh_fn)
+    check_ntp(env,ssh_fn)
+    run_diagnostics(env,host,env_name,ping_fn,ssh_fn)
+    print_diagnostics_report(report)
+    print_diagnostics_summary(report)
+    apply_fixes(report,auto_fix)
+  src/taskfile/registry.py:
+    e: TaskPackage,RegistryClient,include_installed_tasks
+    TaskPackage  # Represents a task package in the registry....
+      __init__(8)  CC=4.0
+    RegistryClient  # Client for interacting with the task registry....
+      __init__(1)  CC=2.0
+    include_installed_tasks(taskfile_config)
   src/taskfile/compose.py:
     e: ComposeFile,load_env_file,resolve_variables,resolve_dict
     ComposeFile  # Parsed docker-compose.yml with environment resolution....
@@ -365,6 +488,26 @@ Th...
     _notify_linux(title,message)
     _notify_windows(title,message)
     is_notification_available()
+  src/taskfile/webui.py:
+    e: TaskfileHandler,WebUIServer,serve_dashboard
+    TaskfileHandler  # HTTP request handler for taskfile web UI....
+      log_message(1)  CC=1.0
+    WebUIServer  # Web UI server for taskfile....
+      __init__(1)  CC=1.0
+    serve_dashboard(port,open_browser)
+  src/taskfile/cli/registry_cmds.py:
+    e: pkg,pkg_search,pkg_install,pkg_list,pkg_uninstall,pkg_info
+    pkg()
+    pkg_search(query,limit,registry)
+    pkg_install(package_name,version,save,no_save,registry)
+    pkg_list(all)
+    pkg_uninstall(package_name,yes)
+    pkg_info(package_name)
+  src/taskfile/cli/import_export.py:
+    e: import_cmd,export_cmd,detect
+    import_cmd(source,source_type,output_path,force)
+    export_cmd(ctx,target_type,output_path,workflow_name,project_name,taskfile_path)
+    detect()
   src/taskfile/cli/completion.py:
     e: get_task_names,get_environment_names,get_platform_names,generate_completion_script
     get_task_names(ctx,param,incomplete)
@@ -392,6 +535,43 @@ Th...
     GitHubActionsTarget
       _tag_var(0)  CC=2.0
         → _has_tag_stages(0)  CC=2.0
+  src/taskfile/cli/docker_cmds.py:
+    e: DockerContainer,_docker_ps,_container_publishes_port,_containers_using_port,_docker_stop,docker_group,docker_ps_cmd,docker_stop_port_cmd,docker_stop_all_cmd,docker_compose_down_cmd
+    DockerContainer
+    _docker_ps()
+    _container_publishes_port(container,port)
+    _containers_using_port(port)
+    _docker_stop(container_ids)
+    docker_group()
+    docker_ps_cmd()
+    docker_stop_port_cmd(port,assume_yes)
+    docker_stop_all_cmd(assume_yes)
+    docker_compose_down_cmd(compose_dir,assume_yes)
+  src/taskfile/models.py:
+    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
+    Environment  # Deployment environment configuration....
+      resolve_variables(1)  CC=2.0
+    Platform  # Target platform configuration (e.g. desktop, web, mobile)....
+      resolve_variables(1)  CC=2.0
+    EnvironmentGroup  # Group of environments sharing an update strategy (e.g. RPi f...
+    ComposeConfig  # Compose-based deployment configuration....
+    Function  # Embedded function callable from tasks via @fn prefix....
+    Task  # Single task definition....
+      should_run_on(1)  CC=2.0
+    PipelineStage  # A stage in the CI/CD pipeline....
+    PipelineConfig  # CI/CD pipeline configuration....
+      from_dict(1)  CC=4.0
+    TaskfileConfig  # Parsed Taskfile configuration....
+      from_dict(1)  CC=1.0
+        → _parse_compose(0)  CC=2.0
+        → _parse_environments(0)  CC=4.0
+        → _parse_environment_groups(0)  CC=3.0
+        → _parse_platforms(0)  CC=3.0
+        → _parse_functions(0)  CC=5.0
+        → _parse_tasks(0)  CC=6.0
+        → _parse_pipeline(1)  CC=2.0
+        → from_dict(1)  CC=1.0
+    _normalize_commands(cmds)
   src/taskfile/cli/quadlet.py:
     e: quadlet,quadlet_generate,_get_upload_env,_get_upload_files,_run_upload_commands,quadlet_upload
     quadlet()
@@ -418,31 +598,6 @@ Th...
     _select_deploy_strategy(env,env_name,env_file_path,config,compose_path,var_overrides,dry_run)
     _execute_deploy_strategy(strategy)
     deploy_cmd(ctx,compose_override)
-  src/taskfile/models.py:
-    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
-    Environment  # Deployment environment configuration....
-      resolve_variables(1)  CC=2.0
-    Platform  # Target platform configuration (e.g. desktop, web, mobile)....
-      resolve_variables(1)  CC=2.0
-    EnvironmentGroup  # Group of environments sharing an update strategy (e.g. RPi f...
-    ComposeConfig  # Compose-based deployment configuration....
-    Function  # Embedded function callable from tasks via @fn prefix....
-    Task  # Single task definition....
-      should_run_on(1)  CC=2.0
-    PipelineStage  # A stage in the CI/CD pipeline....
-    PipelineConfig  # CI/CD pipeline configuration....
-      from_dict(1)  CC=4.0
-    TaskfileConfig  # Parsed Taskfile configuration....
-      from_dict(1)  CC=1.0
-        → _parse_compose(0)  CC=2.0
-        → _parse_environments(0)  CC=4.0
-        → _parse_environment_groups(0)  CC=3.0
-        → _parse_platforms(0)  CC=3.0
-        → _parse_functions(0)  CC=5.0
-        → _parse_tasks(0)  CC=6.0
-        → _parse_pipeline(1)  CC=2.0
-        → from_dict(1)  CC=1.0
-    _normalize_commands(cmds)
   src/taskfile/provisioner.py:
     e: ProvisionConfig,VPSProvisioner,provision_vps
     ProvisionConfig  # Configuration for VPS provisioning....
@@ -453,6 +608,11 @@ Th...
     e: GitLabCITarget
     GitLabCITarget
       _tag_var(0)  CC=1.0
+  src/taskfile/cli/cache_cmds.py:
+    e: cache,cache_show,cache_clear
+    cache()
+    cache_show()
+    cache_clear(task_name,clear_all)
   src/taskfile/cigen/drone.py:
     e: DroneCITarget
     DroneCITarget
@@ -505,8 +665,8 @@ Th...
   src/taskfile/__main__.py:
   src/taskfile/scaffold/web.py:
   src/taskfile/scaffold/minimal.py:
-  src/taskfile/scaffold/publish.py:
   src/taskfile/scaffold/full.py:
+  src/taskfile/scaffold/publish.py:
   src/taskfile/scaffold/podman.py:
   src/taskfile/scaffold/multiplatform.py:
   src/taskfile/scaffold/codereview.py:

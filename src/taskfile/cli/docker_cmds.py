@@ -112,6 +112,28 @@ def docker_stop_port_cmd(port: int, assume_yes: bool):
     console.print(f"[green]✓[/] Stopped {len(containers)} container(s)")
 
 
+@docker_group.command(name="stop-all")
+@click.option("--yes", "assume_yes", is_flag=True, help="Do not ask for confirmation")
+def docker_stop_all_cmd(assume_yes: bool):
+    """Stop all running docker containers."""
+    containers = _docker_ps()
+    if not containers:
+        console.print("[green]✓[/] No running containers to stop")
+        return
+
+    console.print(f"[yellow]Found {len(containers)} running container(s):[/]")
+    for c in containers:
+        console.print(f"  {c.container_id}  {c.name}  {c.ports}")
+
+    if not assume_yes:
+        if not click.confirm(f"Stop all {len(containers)} container(s)?", default=False):
+            console.print("[dim]Cancelled[/]")
+            return
+
+    _docker_stop([c.container_id for c in containers])
+    console.print(f"[green]✓[/] Stopped {len(containers)} container(s)")
+
+
 @docker_group.command(name="compose-down")
 @click.option("--path", "compose_dir", type=click.Path(path_type=Path), default=Path("."))
 @click.option("--yes", "assume_yes", is_flag=True, help="Do not ask for confirmation")

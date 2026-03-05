@@ -60,23 +60,23 @@
 </p>
 
 <div class="grid">
-  <div class="card"><div class="value">4.4</div><div class="label">Avg CC</div></div>
-  <div class="card"><div class="value">25</div><div class="label">Critical (CC≥10)</div></div>
-  <div class="card"><div class="value">305</div><div class="label">Functions</div></div>
-  <div class="card"><div class="value">37</div><div class="label">Classes</div></div>
-  <div class="card"><div class="value">33</div><div class="label">Files</div></div>
-  <div class="card"><div class="value">13658</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">4.6</div><div class="label">Avg CC</div></div>
+  <div class="card"><div class="value">37</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">429</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">51</div><div class="label">Classes</div></div>
+  <div class="card"><div class="value">46</div><div class="label">Files</div></div>
+  <div class="card"><div class="value">17440</div><div class="label">Lines</div></div>
   <div class="card"><div class="value">0</div><div class="label">Duplicates</div></div>
-  <div class="card"><div class="value">1</div><div class="label">Cycles</div></div>
+  <div class="card"><div class="value">0</div><div class="label">Cycles</div></div>
 </div>
 
 <div class="two-col">
   <div class="chart-container">
     <h2 style="border:none;margin:0 0 .5rem;">Evolution (2026-03-05)</h2>
     <div class="evo-cards">
-      <div class="card"><div class="value">4.4</div><div class="label">CC̄ →</div></div>
-      <div class="card"><div class="value">25</div><div class="label">Critical →</div></div>
-      <div class="card"><div class="value">13658</div><div class="label">Lines</div></div>
+      <div class="card"><div class="value">4.6</div><div class="label">CC̄ →</div></div>
+      <div class="card"><div class="value">37</div><div class="label">Critical →</div></div>
+      <div class="card"><div class="value">17440</div><div class="label">Lines</div></div>
     </div>
     <p class="trend" style="margin-top:.5rem;">Run analysis multiple times to build a trend chart (≥3 data points needed).</p>
   </div>
@@ -103,6 +103,13 @@
                 <td>fleet_status_cmd</td>
                 <td>high_fan_out</td>
                 <td>25</td>
+                <td>10</td>
+            </tr>
+            <tr class="critical">
+                <td><span class="badge critical">critical</span></td>
+                <td>bump</td>
+                <td>high_fan_out</td>
+                <td>20</td>
                 <td>10</td>
             </tr>
             <tr class="critical">
@@ -142,7 +149,21 @@
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
+                <td>RegistryClient._install_from_github</td>
+                <td>high_fan_out</td>
+                <td>18</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
                 <td>init</td>
+                <td>high_fan_out</td>
+                <td>18</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>ProjectDiagnostics.check_ports</td>
                 <td>high_fan_out</td>
                 <td>18</td>
                 <td>10</td>
@@ -163,38 +184,17 @@
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
+                <td>set</td>
+                <td>high_fan_out</td>
+                <td>16</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
                 <td>auth_setup</td>
                 <td>high_fan_out</td>
                 <td>16</td>
                 <td>10</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>_import_makefile</td>
-                <td>high_fan_out</td>
-                <td>15</td>
-                <td>10</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>doctor</td>
-                <td>high_fan_out</td>
-                <td>15</td>
-                <td>10</td>
-            </tr>
-            <tr class="warning">
-                <td><span class="badge warning">warning</span></td>
-                <td>scan_nearby_taskfiles</td>
-                <td>cc_exceeded</td>
-                <td>17</td>
-                <td>15</td>
-            </tr>
-            <tr class="warning">
-                <td><span class="badge warning">warning</span></td>
-                <td>_detect_type</td>
-                <td>cc_exceeded</td>
-                <td>16</td>
-                <td>15</td>
             </tr></tbody>
 </table>
 </div></div>
@@ -216,6 +216,13 @@ Examples:
   </td>
             </tr>
             <tr>
+                <td><strong>bump</strong></td>
+                <td>20</td>
+                <td>Bump version number (patch, minor, or major).
+
+Updates VERSION file and optional</td>
+            </tr>
+            <tr>
                 <td><strong>run</strong></td>
                 <td>20</td>
                 <td>Run one or more tasks.
@@ -231,11 +238,21 @@ Examples:
                 <td>Convert GitHub Actions workflow YAML to Taskfile.yml.</td>
             </tr>
             <tr>
+                <td><strong>RegistryClient._install_from_github</strong></td>
+                <td>18</td>
+                <td>Install package from GitHub repository.</td>
+            </tr>
+            <tr>
                 <td><strong>init</strong></td>
                 <td>18</td>
                 <td>✨ Create a new Taskfile.yml with interactive setup.
 
 Without --interactive: uses</td>
+            </tr>
+            <tr>
+                <td><strong>ProjectDiagnostics.check_ports</strong></td>
+                <td>18</td>
+                <td>Check docker-compose port conflicts and suggest .env fixes.</td>
             </tr>
             <tr>
                 <td><strong>fleet_repair_cmd</strong></td>
@@ -250,29 +267,13 @@ Runs 8-point diagnostics: ping, SSH, disk,</td>
                 <td>Convert .gitlab-ci.yml to Taskfile.yml.</td>
             </tr>
             <tr>
-                <td><strong>auth_setup</strong></td>
+                <td><strong>set</strong></td>
                 <td>16</td>
-                <td>Interactive registry authentication setup.
+                <td>Set specific version number.
 
-Guides you through obtaining API tok</td>
-            </tr>
-            <tr>
-                <td><strong>_import_makefile</strong></td>
-                <td>15</td>
-                <td>Convert Makefile to Taskfile.yml.</td>
-            </tr>
-            <tr>
-                <td><strong>doctor</strong></td>
-                <td>15</td>
-                <td>🔧 Diagnose project and suggest fixes.
-
-Checks:
-    - Taskfile.yml existence and </td>
-            </tr>
-            <tr>
-                <td><strong>TaskfileRunner.run</strong></td>
-                <td>14</td>
-                <td>Run multiple tasks in order. Returns True if all succeed.</td>
+
+Examples:
+    taskfile version set 1.0.0      # </td>
             </tr></tbody>
 </table>
 </div></div>
@@ -292,55 +293,55 @@ Checks:
             </tr>
             <tr>
                 <td>2</td>
-                <td>Split god module src/taskfile/cli/interactive.py (516L, 1 classes)</td>
+                <td>Split god module src/taskfile/cli/interactive.py (552L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>3</td>
-                <td>Split god module src/taskfile/runner.py (586L, 2 classes)</td>
+                <td>Split god module src/taskfile/runner.py (711L, 2 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>4</td>
+                <td>Split god module src/taskfile/webui.py (594L, 2 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
+            </tr>
+            <tr>
+                <td>5</td>
                 <td>Split _detect_type (CC=16 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>5</td>
+                <td>6</td>
                 <td>Split _import_github_actions (CC=21 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>6</td>
+                <td>7</td>
                 <td>Split _import_gitlab_ci (CC=20 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
-                <td>7</td>
-                <td>Split TaskfileRunner.run_command (CC=16 → target CC<10)</td>
-                <td><span class="badge medium">medium</span></td>
-                <td>low</td>
-            </tr>
-            <tr>
                 <td>8</td>
-                <td>Split scan_nearby_taskfiles (CC=17 → target CC<10)</td>
+                <td>Split GitLabCIConverter.import_gitlab_ci (CC=15 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>9</td>
-                <td>Split _resolve_includes (CC=22 → target CC<10)</td>
+                <td>Split TaskfileRunner.run_command (CC=16 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>10</td>
-                <td>Split init (CC=16 → target CC<10)</td>
+                <td>Split TaskfileRunner._execute_commands (CC=15 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr></tbody>
@@ -349,7 +350,7 @@ Checks:
 </div>
 </div>
 
-<footer>Generated by code2llm on 2026-03-05 14:14</footer>
+<footer>Generated by code2llm on 2026-03-05 18:02</footer>
 
 <script>
 // Evolution chart disabled — fewer than 3 data points
@@ -358,9 +359,9 @@ const modCtx = document.getElementById('modChart').getContext('2d');
 new Chart(modCtx, {
   type: 'bar',
   data: {
-    labels: ['fleet.py', 'parser.py', 'importer.py', 'interactive.py', 'main.py', 'runner.py', 'fleet.py', 'auth.py', 'release.py', 'health.py', 'ci.py', 'setup.py', 'health.py', 'compose.py', 'quadlet.py'],
-    datasets: [{ label: 'Max CC', data: [31, 22, 21, 16, 16, 16, 13, 12, 12, 11, 10, 10, 9, 9, 9],
-      backgroundColor: [31, 22, 21, 16, 16, 16, 13, 12, 12, 11, 10, 10, 9, 9, 9].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    labels: ['fleet.py', 'parser.py', 'importer.py', 'diagnostics.py', 'main.py', 'interactive.py', 'runner.py', 'converters.py', 'cache.py', 'fleet.py', 'auth.py', 'release.py', 'health.py', 'ci.py', 'fleet_diagnostics.py'],
+    datasets: [{ label: 'Max CC', data: [31, 22, 21, 19, 19, 16, 16, 15, 14, 13, 12, 12, 11, 10, 10],
+      backgroundColor: [31, 22, 21, 19, 19, 16, 16, 15, 14, 13, 12, 12, 11, 10, 10].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
     }]
   },
   options: {

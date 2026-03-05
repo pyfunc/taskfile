@@ -100,6 +100,7 @@ taskfile serve --no-browser # Don't open browser
 |---------|-------------|---------|
 | `docker ps` | Show running containers | `taskfile docker ps` |
 | `docker stop-port` | Stop containers using port | `taskfile docker stop-port 8000 --yes` |
+| `docker stop-all` | Stop all running containers | `taskfile docker stop-all --yes` |
 | `docker compose-down` | Run compose down | `taskfile docker compose-down --path ./deploy` |
 
 ## Taskfile.yml Format

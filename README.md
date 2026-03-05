@@ -419,6 +419,7 @@ Options:
 |---------|-------------|
 | `taskfile docker ps` | Show running Docker containers |
 | `taskfile docker stop-port <port>` | Stop containers using a specific port |
+| `taskfile docker stop-all` | Stop all running containers |
 | `taskfile docker compose-down` | Run `docker compose down` in directory |
 
 ---
