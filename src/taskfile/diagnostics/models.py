@@ -67,6 +67,8 @@ class Issue:
     context: dict | None = None
     # Layer that detected this issue (1-5)
     layer: int = 3
+    # Educational explanation — teaches user the underlying principle
+    teach: str | None = None
 
     @property
     def auto_fixable(self) -> bool:
@@ -88,6 +90,8 @@ class Issue:
         if self.context:
             # Filter internal keys
             d["context"] = {k: v for k, v in self.context.items() if not k.startswith("_")}
+        if self.teach:
+            d["teach"] = self.teach
         return d
 
 

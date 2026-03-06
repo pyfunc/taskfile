@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import glob
 import os
+import re
+import shlex
 import subprocess
 import time
 from pathlib import Path
@@ -23,6 +25,259 @@ from taskfile.runner.functions import run_function, run_inline_python
 console = Console()
 
 
+# ─── Markdown rendering helpers ──────────────────────────────────────────────
+
+def _md(text: str) -> None:
+    """Render markdown text via clickmd (falls back to plain print)."""
+    if _HAS_CLICKMD:
+        MarkdownRenderer(use_colors=True).render_markdown_with_fences(text)
+    else:
+        print(text)
+
+
+# ─── Source location tracing ─────────────────────────────────────────────────
+
+def _find_task_line(source_path: str | None, task_name: str) -> int | None:
+    """Find the line number where a task is defined in the YAML source file."""
+    if not source_path or not os.path.isfile(source_path):
+        return None
+    try:
+        with open(source_path) as f:
+            for i, line in enumerate(f, 1):
+                # Match '  task_name:' as a YAML key under tasks
+                if re.match(rf'^\s{{2,4}}{re.escape(task_name)}\s*:', line):
+                    return i
+    except OSError:
+        pass
+    return None
+
+
+def _find_cmd_line(source_path: str | None, task_name: str, cmd: str) -> int | None:
+    """Find the line number of a specific command within a task."""
+    if not source_path or not os.path.isfile(source_path):
+        return None
+    try:
+        cmd_stripped = cmd.strip().rstrip('"').lstrip('- ').strip('"').strip("'")
+        # Use first 40 chars for matching (commands can be long)
+        needle = cmd_stripped[:40]
+        with open(source_path) as f:
+            for i, line in enumerate(f, 1):
+                if needle and needle in line:
+                    return i
+    except OSError:
+        pass
+    return None
+
+
+def _source_ref(source_path: str | None, line: int | None) -> str:
+    """Format a source file reference like 'Taskfile.yml:37'."""
+    if not source_path or not line:
+        return ""
+    name = os.path.basename(source_path)
+    return f"{name}:{line}"
+
+
+# ─── Step-by-step rendering ──────────────────────────────────────────────────
+
+def _render_step_header(
+    runner, task_name: str, cmd: str, step: int, total: int, task: Task
+) -> None:
+    """Render a step header showing config location and command being executed."""
+    if task.silent:
+        return
+
+    source_path = runner.config.source_path
+    cmd_line = _find_cmd_line(source_path, task_name, cmd)
+    ref = _source_ref(source_path, cmd_line)
+
+    # Determine command type label
+    stripped = cmd.strip()
+    if stripped.startswith("@remote "):
+        cmd_type = "🌐 remote"
+    elif stripped.startswith("@local "):
+        cmd_type = "💻 local"
+    elif stripped.startswith("@fn "):
+        cmd_type = "⚡ function"
+    elif stripped.startswith("@python "):
+        cmd_type = "🐍 python"
+    else:
+        cmd_type = "💻 local"
+
+    ref_str = f" `{ref}`" if ref else ""
+    header = f"### Step {step}/{total} — {cmd_type}{ref_str}"
+
+    if runner.verbose:
+        _md(header + f"\n```yaml\n# task: {task_name}\n- {cmd.strip()}\n```")
+    else:
+        _md(header)
+
+
+# ─── Pre-run file validation ─────────────────────────────────────────────────
+
+_FILE_TRANSFER_CMDS = re.compile(r'^(scp|rsync|cp)\b')
+
+
+def _validate_command_files(cmd: str, cwd: str | Path | None = None) -> list[str]:
+    """Check if local files referenced in scp/rsync/cp commands exist.
+
+    Returns list of warning messages for missing files.
+    """
+    stripped = cmd.strip()
+    # Strip @remote/@local prefix first
+    for prefix in ("@remote ", "@local ", "@ssh "):
+        if stripped.startswith(prefix):
+            stripped = stripped[len(prefix):]
+            break
+
+    if not _FILE_TRANSFER_CMDS.match(stripped):
+        return []
+
+    warnings = []
+    try:
+        parts = shlex.split(stripped)
+    except ValueError:
+        return []
+
+    base = Path(cwd) if cwd else Path.cwd()
+
+    for part in parts[1:]:
+        # Skip options, remote targets (user@host:path), and stdout
+        if part.startswith('-') or ':' in part or part == '-':
+            continue
+        # Skip variables
+        if '$' in part:
+            continue
+
+        path = Path(part)
+        if path.is_absolute():
+            resolved = path
+        else:
+            resolved = base / part
+
+        # Check glob patterns
+        if '*' in part or '?' in part:
+            matches = glob.glob(part, root_dir=str(base)) if not path.is_absolute() else glob.glob(part)
+            if not matches:
+                warnings.append(
+                    f"**No files match** `{part}` — generate them first "
+                    f"(e.g. `taskfile quadlet generate`)"
+                )
+        elif not resolved.exists():
+            # Find similar files for hint
+            parent = resolved.parent
+            suffix = resolved.suffix
+            similar = []
+            if parent.exists():
+                similar = sorted(p.name for p in parent.iterdir() if p.suffix == suffix)[:5]
+            hint = ""
+            if similar:
+                hint = f" Available: `{'`, `'.join(similar)}`"
+            warnings.append(f"**File not found:** `{part}`{hint}")
+
+    return warnings
+
+
+def _validate_all_commands(runner, task: Task, task_name: str) -> list[str]:
+    """Validate all commands in a task before execution. Returns list of warnings."""
+    all_warnings = []
+    for cmd in task.commands:
+        expanded = runner.expand_variables(cmd)
+        warnings = _validate_command_files(expanded, cwd=task.working_dir)
+        if warnings:
+            for w in warnings:
+                all_warnings.append(f"Task `{task_name}`, cmd `{cmd.strip()[:60]}`: {w}")
+    return all_warnings
+
+
+# ─── Learning tips ───────────────────────────────────────────────────────────
+
+_TIPS: list[tuple[str, str, str]] = [
+    # (trigger_pattern, tip_title, tip_body)
+    (
+        "scp",
+        "💡 Tip: Use rsync instead of scp",
+        "`rsync -avz` handles globs, partial transfers, and resume better than `scp`.\n"
+        "Example: `rsync -avz deploy/quadlet/ user@host:/etc/containers/systemd/`",
+    ),
+    (
+        "quadlet",
+        "💡 Tip: Generate Quadlet files first",
+        "Run `taskfile quadlet generate --env-file .env.prod -o deploy/quadlet` before deploy.\n"
+        "Add `quadlet-generate` as a dependency: `deps: [build, quadlet-generate]`",
+    ),
+    (
+        "@remote",
+        "💡 Tip: Test SSH connectivity",
+        "Run `taskfile fleet status` to verify all remote hosts are reachable.\n"
+        "Use `taskfile --dry-run` to preview SSH commands without executing.",
+    ),
+    (
+        "docker compose",
+        "💡 Tip: Check Docker Compose",
+        "Run `docker compose config` to validate your compose file.\n"
+        "Use `taskfile doctor --category runtime` to check Docker health.",
+    ),
+    (
+        "systemctl",
+        "💡 Tip: Quadlet + systemctl",
+        "Podman Quadlet auto-generates systemd units from `.container` files.\n"
+        "After uploading, run `systemctl daemon-reload` then `systemctl start <unit>`.",
+    ),
+    (
+        ".env",
+        "💡 Tip: Environment files",
+        "Keep `.env.prod` gitignored. Use `.env.prod.example` as a template.\n"
+        "Run `taskfile doctor --fix` to auto-create missing .env files from examples.",
+    ),
+]
+
+
+def _get_tip_for_command(cmd: str) -> tuple[str, str] | None:
+    """Return a (title, body) learning tip relevant to the command, or None."""
+    cmd_lower = cmd.lower()
+    for trigger, title, body in _TIPS:
+        if trigger in cmd_lower:
+            return title, body
+    return None
+
+
+def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None:
+    """Return a learning tip relevant to a specific failure."""
+    cmd_lower = cmd.lower()
+
+    if "no such file" in cmd_lower or returncode == 1:
+        if "scp" in cmd_lower or "rsync" in cmd_lower:
+            return (
+                "**💡 Missing files?** Run `taskfile doctor --fix` to check for missing "
+                "deploy artifacts.\nGenerate Quadlet files: `taskfile quadlet generate`"
+            )
+
+    if returncode == 255 and ("ssh" in cmd_lower or "scp" in cmd_lower):
+        return (
+            "**💡 SSH error (exit 255)?** Common causes:\n"
+            "- Host unreachable — check `ssh_host` in Taskfile.yml\n"
+            "- Key rejected — check `ssh_key` and `chmod 600`\n"
+            "- Run `taskfile fleet status` to diagnose"
+        )
+
+    if returncode == 126:
+        return (
+            "**💡 Permission denied?** Check:\n"
+            "- Script is executable: `chmod +x scripts/*.sh`\n"
+            "- Correct path in `script:` field"
+        )
+
+    if returncode == 127:
+        return (
+            "**💡 Command not found?** Check:\n"
+            "- Tool is installed: `which <command>`\n"
+            "- PATH includes the tool's directory\n"
+            "- Run `taskfile doctor` to check missing dependencies"
+        )
+
+    return None
+
+
 def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
     """Expand glob patterns (wildcards) in a command string locally.
 
@@ -37,7 +292,6 @@ def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
     Returns:
         Command string with globs expanded to matching paths
     """
-    import shlex
     try:
         parts = shlex.split(cmd)
     except ValueError:
@@ -98,6 +352,11 @@ def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
     # @local — execute only on local (non-SSH) environments
     if is_local_command(expanded):
         if runner.env.is_remote:
+            if not task.silent:
+                console.print(
+                    f"  [dim]⏭ Pominięto @local"
+                    f" (env '{runner.env_name}' jest zdalny — ma ssh_host)[/]"
+                )
             return 0  # skip @local commands on remote envs
         local_cmd = strip_local_prefix(expanded)
         return _run_local(runner, local_cmd, task)
@@ -105,6 +364,11 @@ def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
     # @remote — execute only on remote (SSH) environments
     if is_remote_command(expanded):
         if not runner.env.ssh_target:
+            if not task.silent:
+                console.print(
+                    f"  [dim]⏭ Pominięto @remote"
+                    f" (env '{runner.env_name}' nie ma ssh_host)[/]"
+                )
             return 0  # skip @remote commands on local envs
         if runner.use_embedded_ssh:
             return run_embedded_ssh(runner, expanded, task)
@@ -135,12 +399,14 @@ def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") ->
             env=env,
             text=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.PIPE,
             timeout=timeout,
         )
-        output = result.stdout or ""
-        if task.register and output:
-            runner.variables[task.register] = output.strip()
+        output = (result.stdout or "") + (result.stderr or "")
+        # Store stderr for ErrorPresenter diagnosis
+        runner._last_stderr = result.stderr or ""
+        if task.register and result.stdout:
+            runner.variables[task.register] = result.stdout.strip()
         _render_output(output, task)
         return result.returncode
     except subprocess.TimeoutExpired:
@@ -170,8 +436,11 @@ def run_command(runner, cmd: str, task: Task) -> int:
     Expands variables and glob patterns before execution.
     """
     expanded = runner.expand_variables(cmd)
-    # Expand globs locally (e.g., deploy/quadlet/*.container → actual files)
-    expanded = _expand_globs_in_command(expanded, cwd=task.working_dir)
+    # Skip glob expansion for @fn/@python — shlex would mangle their arguments
+    stripped = expanded.strip()
+    if not (stripped.startswith("@fn ") or stripped.startswith("@python ")):
+        # Expand globs locally (e.g., deploy/quadlet/*.container → actual files)
+        expanded = _expand_globs_in_command(expanded, cwd=task.working_dir)
 
     # Try special prefix dispatch first (@fn, @python, @remote/@ssh)
     result = _dispatch_special_prefix(runner, expanded, task)
@@ -273,7 +542,9 @@ def _classify_exit_code(returncode: int) -> tuple[str, str]:
 
 
 def _handle_failure(
-    returncode: int, task: Task, task_name: str, start: float, label: str
+    returncode: int, task: Task, task_name: str, start: float, label: str,
+    cmd: str = "", source_path: str | None = None,
+    runner=None,
 ) -> bool:
     """Handle a non-zero return code. Returns False if execution should stop."""
     if returncode == 0:
@@ -283,15 +554,53 @@ def _handle_failure(
         return True
     elapsed = time.time() - start
     category, hint = _classify_exit_code(returncode)
-    console.print(
-        f"[red]✗ Task '{task_name}' {label} failed after {elapsed:.1f}s "
-        f"(exit code {returncode}) [{category}][/]"
+
+    # Show failure with config location
+    cmd_line = _find_cmd_line(source_path, task_name, cmd) if cmd else None
+    ref = _source_ref(source_path, cmd_line)
+    ref_info = f" at `{ref}`" if ref else ""
+
+    _md(
+        f"### ❌ Task `{task_name}` {label} failed\n\n"
+        f"- **Exit code:** {returncode} ({category})\n"
+        f"- **Duration:** {elapsed:.1f}s\n"
+        f"- **Hint:** {hint}\n"
+        + (f"- **Location:**{ref_info}\n" if ref_info else "")
     )
-    console.print(f"  [dim]{hint}[/]")
+
+    # Show the failing command in context
+    if cmd and source_path:
+        _md(f"```yaml\n# Failing command in task '{task_name}':\n- {cmd.strip()}\n```")
+
+    # Rich contextual diagnosis via ErrorPresenter
+    if runner and cmd:
+        try:
+            from taskfile.runner.error_presenter import ErrorPresenter
+            stderr = runner._last_stderr if hasattr(runner, '_last_stderr') else ""
+            ErrorPresenter().present(
+                cmd=cmd,
+                exit_code=returncode,
+                stderr=stderr,
+                task_name=task_name,
+                env_name=runner.env_name,
+                variables=runner.variables,
+            )
+        except Exception:
+            pass  # fallback to legacy tips below
+
+    # Contextual learning tip
+    tip = _get_tip_for_failure(cmd, returncode, category)
+    if tip:
+        _md(f"\n{tip}")
+
+    # Actionable next steps
     if category == "config":
-        console.print(f"  [dim]Run 'taskfile doctor' to diagnose configuration issues[/]")
+        _md("\n**Next steps:** `taskfile doctor --fix` or `taskfile validate`")
     elif category == "infra":
-        console.print(f"  [dim]Run 'taskfile doctor --llm' for AI-assisted troubleshooting[/]")
+        _md("\n**Next steps:** `taskfile doctor --llm` for AI-assisted troubleshooting")
+    else:
+        _md("\n**Next steps:** Check output above, then `taskfile doctor` for diagnostics")
+
     return False
 
 
@@ -303,15 +612,69 @@ def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
 
     When task.script is set, the external script file is executed first,
     followed by any inline commands.
+
+    Step-by-step visibility: each command is numbered and its config location
+    is shown so users can trace execution back to Taskfile.yml.
     """
+    source_path = runner.config.source_path
+    total_steps = len(task.commands) + (1 if task.script else 0)
+    step = 0
+
+    # Pre-run file validation — catch missing files before execution
+    if runner.verbose and task.commands:
+        file_warnings = _validate_all_commands(runner, task, task_name)
+        if file_warnings:
+            _md("### ⚠️ Pre-run file check\n")
+            for w in file_warnings:
+                _md(f"- {w}")
+            _md("")
+
     # Execute external script if defined
     if task.script:
+        step += 1
+        if not task.silent:
+            ref = _source_ref(source_path, _find_task_line(source_path, task_name))
+            ref_str = f" `{ref}`" if ref else ""
+            _md(f"### Step {step}/{total_steps} — 📜 script{ref_str}")
+            if runner.verbose:
+                _md(f"```yaml\n# task: {task_name}\nscript: {task.script}\n```")
         rc = _run_with_retries(lambda: execute_script(runner, task, task_name), task)
-        if not _handle_failure(rc, task, task_name, start, "script"):
+        if not _handle_failure(rc, task, task_name, start, "script",
+                               cmd=f"script: {task.script}", source_path=source_path,
+                               runner=runner):
             return False
 
-    for cmd in task.commands:
+    for i, cmd in enumerate(task.commands):
+        step += 1
+        _render_step_header(runner, task_name, cmd, step, total_steps, task)
+
+        # Pre-validate files in file transfer commands
+        expanded = runner.expand_variables(cmd)
+        file_warnings = _validate_command_files(expanded, cwd=task.working_dir)
+        if file_warnings:
+            _md("\n".join(f"  ⚠️ {w}" for w in file_warnings))
+            if not task.ignore_errors:
+                # Show tip and fail early with clear message
+                tip = _get_tip_for_command(cmd)
+                if tip:
+                    _md(f"\n{tip[0]}\n\n{tip[1]}")
+                _md(
+                    f"\n### ❌ Pre-run validation failed for task `{task_name}`\n\n"
+                    f"**Fix:** Create the missing files, then re-run.\n"
+                    f"**Diagnose:** `taskfile doctor --fix`"
+                )
+                return False
+
         rc = _run_with_retries(lambda cmd=cmd: run_command(runner, cmd, task), task)
-        if not _handle_failure(rc, task, task_name, start, "command"):
+        if not _handle_failure(rc, task, task_name, start, "command",
+                               cmd=cmd, source_path=source_path,
+                               runner=runner):
             return False
+
+    # Success tip — show a learning tip for the last command (occasionally)
+    if task.commands and runner.verbose:
+        tip = _get_tip_for_command(task.commands[-1])
+        if tip:
+            _md(f"\n{tip[0]}\n\n{tip[1]}")
+
     return True

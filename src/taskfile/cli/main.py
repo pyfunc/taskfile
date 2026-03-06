@@ -278,8 +278,10 @@ taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
 @main.command()
 @click.argument("tasks", nargs=-1, required=True)
 @click.option("--tags", "run_tags", default=None, help="Run only tasks matching these tags (comma-separated)")
+@click.option("--explain", is_flag=True, help="Show execution plan without running (what will happen)")
+@click.option("--teach", is_flag=True, help="Educational mode — explain what each step does and why")
 @click.pass_context
-def run(ctx, tasks, run_tags):
+def run(ctx, tasks, run_tags, explain, teach):
     """**Run one or more tasks** defined in Taskfile.yml.
 
 ## Usage
@@ -297,6 +299,8 @@ taskfile run <task> [<task> ...]
 | `-p, --platform` | Target platform |
 | `--var KEY=VALUE` | Override variables |
 | `--dry-run` | Preview without executing |
+| `--explain` | Show execution plan without running |
+| `--teach` | Educational mode — explain each step |
 
 ## Examples
 
@@ -315,6 +319,12 @@ taskfile run release --var TAG=v1.2.3
 
 # Run with tags filter
 taskfile run --tags ci build test
+
+# Preview execution plan
+taskfile run deploy --env prod --explain
+
+# Educational mode
+taskfile run deploy --teach
 ```
 """
     opts = ctx.obj
@@ -322,6 +332,37 @@ taskfile run --tags ci build test
     tag_filter = [t.strip() for t in run_tags.split(",")] if run_tags else None
 
     try:
+        # --explain / --teach mode: analyze without running
+        if explain or teach:
+            from taskfile.runner.resolver import TaskResolver
+            from taskfile.runner.explainer import (
+                TaskExplainer, print_explain_report, print_teach_report,
+            )
+            config = load_taskfile(opts["taskfile_path"])
+            resolver = TaskResolver(
+                config,
+                env_name=opts["env_name"],
+                platform_name=opts["platform_name"],
+                var_overrides=opts["var"],
+            )
+            task_list = list(tasks)
+            _check_unknown_tasks(task_list, config.tasks)
+            if tag_filter:
+                task_list = _filter_tasks_by_tags(config, task_list, tag_filter)
+                if not task_list:
+                    console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
+                    sys.exit(0)
+
+            explainer = TaskExplainer(resolver)
+            report = explainer.explain(task_list)
+
+            if teach:
+                print_teach_report(report, task_list, resolver.env_name, config)
+            else:
+                print_explain_report(report, task_list, resolver.env_name)
+
+            sys.exit(1 if report.has_errors else 0)
+
         if env_group:
             success = _run_env_group(
                 taskfile_path=opts["taskfile_path"],
@@ -630,6 +671,7 @@ def import_cmd(source, source_type, output_path, force):
 
 # ─── Register extracted command modules ───
 import taskfile.cli.info_cmd  # noqa: E402, F401 — registers 'info' command
+import taskfile.cli.explain_cmd  # noqa: E402, F401 — registers 'explain' command
 
 
 if __name__ == "__main__":

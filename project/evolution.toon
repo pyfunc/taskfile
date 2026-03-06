@@ -1,58 +1,58 @@
-# code2llm/evolution | 607 func | 69f | 2026-03-06
+# code2llm/evolution | 668 func | 78f | 2026-03-06
 
 NEXT[10] (ranked by impact):
   [1] !! SPLIT           src/taskfile/diagnostics/checks.py
-      WHY: 743L, 0 classes, max CC=21
-      EFFORT: ~4h  IMPACT: 15603
+      WHY: 961L, 0 classes, max CC=17
+      EFFORT: ~4h  IMPACT: 16337
 
-  [2] !! SPLIT           src/taskfile/cli/main.py
-      WHY: 637L, 0 classes, max CC=22
-      EFFORT: ~4h  IMPACT: 14014
-
-  [3] !  SPLIT-FUNC      e2e_cmd  CC=22  fan=25
+  [2] !  SPLIT-FUNC      e2e_cmd  CC=22  fan=25
       WHY: CC=22 exceeds 15
       EFFORT: ~1h  IMPACT: 550
 
-  [4] !  SPLIT-FUNC      doctor  CC=17  fan=28
+  [3] !! SPLIT-FUNC      explain  CC=26  fan=21
+      WHY: CC=26 exceeds 15
+      EFFORT: ~1h  IMPACT: 546
+
+  [4] !  SPLIT-FUNC      doctor  CC=17  fan=29
       WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 476
+      EFFORT: ~1h  IMPACT: 493
 
-  [5] !  SPLIT-FUNC      check_unresolved_variables  CC=20  fan=21
+  [5] !  SPLIT-FUNC      _check_containers_running  CC=20  fan=21
       WHY: CC=20 exceeds 15
       EFFORT: ~1h  IMPACT: 420
 
-  [6] !  SPLIT-FUNC      _check_containers_running  CC=20  fan=21
-      WHY: CC=20 exceeds 15
-      EFFORT: ~1h  IMPACT: 420
-
-  [7] !  SPLIT-FUNC      _validate_dependent_files  CC=22  fan=19
+  [6] !  SPLIT-FUNC      _validate_dependent_files  CC=22  fan=19
       WHY: CC=22 exceeds 15
       EFFORT: ~1h  IMPACT: 418
 
-  [8] !  SPLIT-FUNC      check_ports  CC=17  fan=15
-      WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 255
-
-  [9] !  SPLIT-FUNC      validate_before_run  CC=21  fan=12
+  [7] !  SPLIT-FUNC      _validate_command_files  CC=21  fan=17
       WHY: CC=21 exceeds 15
-      EFFORT: ~1h  IMPACT: 252
+      EFFORT: ~1h  IMPACT: 357
 
-  [10] !  SPLIT-FUNC      _print_layered_report  CC=19  fan=12
-      WHY: CC=19 exceeds 15
-      EFFORT: ~1h  IMPACT: 228
+  [8] !  SPLIT-FUNC      run  CC=15  fan=23
+      WHY: CC=15 exceeds 15
+      EFFORT: ~1h  IMPACT: 345
+
+  [9] !  SPLIT-FUNC      execute_commands  CC=20  fan=15
+      WHY: CC=20 exceeds 15
+      EFFORT: ~1h  IMPACT: 300
+
+  [10] !  SPLIT-FUNC      TaskfileRunner.run  CC=18  fan=15
+      WHY: CC=18 exceeds 15
+      EFFORT: ~1h  IMPACT: 270
 
 
 RISKS[3]:
+  ⚠ Splitting tests/test_dsl_commands.py may break 0 import paths
   ⚠ Splitting tests/test_e2e_examples.py may break 0 import paths
-  ⚠ Splitting src/taskfile/diagnostics/checks.py may break 22 import paths
-  ⚠ Splitting src/taskfile/cli/main.py may break 19 import paths
+  ⚠ Splitting src/taskfile/diagnostics/checks.py may break 31 import paths
 
 METRICS-TARGET:
-  CC̄:          4.3 → ≤3.0
-  max-CC:      22 → ≤11
-  god-modules: 6 → 0
-  high-CC(≥15): 9 → ≤4
+  CC̄:          4.5 → ≤3.1
+  max-CC:      31 → ≤15
+  god-modules: 10 → 0
+  high-CC(≥15): 15 → ≤7
   hub-types:   0 → ≤0
 
 HISTORY:
-  prev CC̄=4.2 → now CC̄=4.3
+  prev CC̄=4.3 → now CC̄=4.5

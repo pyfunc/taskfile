@@ -108,6 +108,9 @@ tasks:
     cmds:
       - echo "Deploying to ${ssh_host} as ${ssh_user}"
 """)
+        # Create required env file to pass pre-run validation
+        env_file = tmp_path / ".env.staging"
+        env_file.write_text("SSH_HOST=staging.example.com\nSSH_USER=deploy\n")
         
         runner = CliRunner()
         result = runner.invoke(main, [

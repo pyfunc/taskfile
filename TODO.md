@@ -15,20 +15,32 @@
 - [x] Doctor command: `--report` (JSON for CI) and `--examples` flags
 - [x] Fix all example .env files (24 warnings → 0)
 - [x] Add 38 new diagnostics tests (total: 432)
+- [x] Comprehensive DSL command E2E tests (117 tests in test_dsl_commands.py)
+- [x] Fix `python` → `sys.executable` bug in `@fn`/`@python` commands
+- [x] Fix glob expansion mangling `@fn`/`@python` arguments
 
 ### Medium Priority
 - [x] Create comprehensive docs/ guides
 - [x] Document CI/CD generation features
 - [x] Add more validation examples
+- [x] Step-by-step execution tracing with config location (Taskfile.yml:37)
+- [x] Pre-run file validation for scp/rsync/cp commands
+- [x] Learning tips system (contextual hints on errors/successes)
+- [x] Enhanced failure reporting with clickmd markdown output
+- [x] Run context header and summary via clickmd
 - [ ] Add embedded functions examples to documentation
 - [ ] Create migration guide from other tools
 - [ ] Add `taskfile check-examples` standalone command for CI
 - [ ] Add `.env.example` auto-generation from Taskfile env definitions
+- [ ] Expand learning tips with more patterns (Dockerfile, Helm, Terraform)
+- [ ] Add `--tips off` flag to disable learning tips
+- [ ] Interactive fix suggestions with `taskfile doctor --interactive`
 
 ### Low Priority
 - [ ] Add more example projects
 - [ ] Create video tutorials
 - [ ] Add diagnostics to web UI dashboard
+- [ ] Persistent tip history (don't repeat tips user already saw)
 
 ## ✅ Recently Completed
 
@@ -73,6 +85,9 @@
 - `taskfile doctor --report` provides CI-friendly JSON output
 - Pre-run validation prevents cryptic subprocess failures by checking config first
 - All 26 examples pass validation with 0 warnings
-- 432 tests passing
+- 569 tests passing
+- Step-by-step tracing uses clickmd for markdown-colored stdout
+- File validation catches missing deploy artifacts before SCP/rsync fails
+- Learning tips help users improve their Taskfile.yml as they work
 
 Last updated: 2026-03-06

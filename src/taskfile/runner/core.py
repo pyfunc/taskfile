@@ -15,7 +15,7 @@ from rich.text import Text
 from taskfile.models import Environment, Platform, Task, TaskfileConfig
 from taskfile.parser import load_taskfile, validate_taskfile
 from taskfile.ssh import has_paramiko, close_all as ssh_close_all
-from taskfile.runner.commands import run_command, execute_commands
+from taskfile.runner.commands import run_command, execute_commands, _md, _find_task_line, _source_ref
 from taskfile.runner.ssh import is_remote_command, strip_remote_prefix, wrap_ssh, run_embedded_ssh
 from taskfile.runner.functions import run_function, run_inline_python
 from taskfile.runner.resolver import TaskResolver
@@ -59,6 +59,7 @@ class TaskfileRunner:
         self.verbose = verbose
         self.use_embedded_ssh = use_embedded_ssh and has_paramiko()
         self._executed: set[str] = set()
+        self._last_stderr: str = ""  # Store last command stderr for ErrorPresenter diagnosis
 
         # Emit warnings for undefined env/platform (IO concern)
         if not self._resolver.env_is_defined():
@@ -233,13 +234,19 @@ class TaskfileRunner:
     # ─── Task header ───
 
     def _print_task_header(self, task_name: str, task: Task) -> None:
-        """Print task execution header with env/platform info."""
+        """Print task execution header with env/platform info and YAML source location."""
+        source_path = self.config.source_path
+        task_line = _find_task_line(source_path, task_name)
+        ref = _source_ref(source_path, task_line)
+
         header = Text(f"▶ {task_name}", style="bold green")
         if task.description:
             header.append(f" — {task.description}", style="dim")
         header.append(f" [{self.env_name}]", style="bold cyan")
         if self.platform_name:
             header.append(f" [{self.platform_name}]", style="bold magenta")
+        if ref:
+            header.append(f" ({ref})", style="dim")
         console.print(header)
 
     # ─── Core run methods ───
@@ -323,6 +330,16 @@ class TaskfileRunner:
         from taskfile.notifications import notify_task_complete
         import time
 
+        # Show run context header via clickmd
+        source_name = os.path.basename(self.config.source_path) if self.config.source_path else "Taskfile.yml"
+        _md(
+            f"## 🚀 Running: {', '.join(f'`{t}`' for t in task_names)}\n\n"
+            f"- **Config:** `{source_name}`\n"
+            f"- **Environment:** `{self.env_name}`"
+            + (f"\n- **Platform:** `{self.platform_name}`" if self.platform_name else "")
+            + (f"\n- **Mode:** dry-run" if self.dry_run else "")
+        )
+
         # Validate first
         warnings = validate_taskfile(self.config)
         for w in warnings:
@@ -336,14 +353,18 @@ class TaskfileRunner:
         for iss in pre_issues:
             if iss.severity == "error":
                 cat_hint = CATEGORY_HINTS.get(iss.category, "")
-                console.print(f"[red]✗ [{iss.category.value}][/] {iss.message}")
+                _md(f"- ❌ **[{iss.category.value}]** {iss.message}")
                 if cat_hint:
-                    console.print(f"  [dim]{cat_hint}[/]")
+                    _md(f"  *{cat_hint}*")
                 has_errors = True
             else:
-                console.print(f"[yellow]⚠ [{iss.category.value}][/] {iss.message}")
+                _md(f"- ⚠️ **[{iss.category.value}]** {iss.message}")
         if has_errors:
-            console.print("\n[red]Pre-run validation failed.[/] Run [bold]taskfile doctor --fix[/] to resolve.")
+            _md(
+                "\n### Pre-run validation failed\n\n"
+                "**Fix:** `taskfile doctor --fix`\n"
+                "**Diagnose:** `taskfile validate`"
+            )
             return False
 
         start_time = time.time()
@@ -361,6 +382,20 @@ class TaskfileRunner:
                 ssh_close_all()
 
         total_duration = time.time() - start_time
+
+        # Run summary
+        if success:
+            _md(
+                f"\n## ✅ All tasks completed ({total_duration:.1f}s)\n\n"
+                f"Tasks: {', '.join(f'`{t}`' for t in task_names)}"
+            )
+        else:
+            _md(
+                f"\n## ❌ Run failed ({total_duration:.1f}s)\n\n"
+                f"**Diagnose:** `taskfile doctor`\n"
+                f"**Verbose:** re-run with `-v` flag for detailed step tracing"
+            )
+
         if len(task_names) == 1 and total_duration > 10:
             notify_task_complete(task_names[0], success, total_duration)
 

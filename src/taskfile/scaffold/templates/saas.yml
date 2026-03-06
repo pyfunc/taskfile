@@ -1,0 +1,130 @@
+version: "1"
+name: my-saas-app
+description: SaaS application with multi-region deploy
+
+variables:
+  APP_NAME: my-saas-app
+  REGISTRY: ghcr.io/myorg
+  TAG: ${TAG:-latest}
+  DOMAIN: my-saas-app.example.com
+  DB_NAME: my_saas_app
+
+# ── Hosts (compact syntax) ────────────────────────
+hosts:
+  _defaults:
+    user: deploy
+    key: ~/.ssh/id_ed25519
+    runtime: podman
+    env_file: .env.prod
+
+  staging:    { host: staging.example.com, env_file: .env.staging }
+  prod-eu:    { host: eu.example.com, region: eu-west-1 }
+  prod-us:    { host: us.example.com, region: us-east-1 }
+
+  _groups:
+    all-prod: { members: [prod-eu, prod-us], strategy: canary, canary_count: 1 }
+
+environments:
+  local:
+    env_file: .env.local
+
+# ── Deploy recipe ─────────────────────────────────
+deploy:
+  strategy: quadlet
+  images:
+    api: services/api/Dockerfile
+    web: services/web/Dockerfile
+  registry: ${REGISTRY}
+  health_check: /health
+  health_retries: 5
+  rollback: auto
+
+# ── Addons ────────────────────────────────────────
+addons:
+  - postgres:
+      db_name: ${DB_NAME}
+      backup_dir: /tmp/db-backups
+  - monitoring:
+      grafana: http://grafana:3000
+      prometheus: http://prometheus:9090
+  - redis:
+      url: redis://redis:6379
+
+# ── Pipeline (CI/CD) ─────────────────────────────
+pipeline:
+  branches: [main]
+  docker_in_docker: true
+  secrets: [REGISTRY_TOKEN]
+  stages:
+    - name: lint
+      tasks: [lint]
+    - name: test
+      tasks: [test-unit, test-integration]
+    - name: build
+      tasks: [build-all]
+      docker_in_docker: true
+    - name: deploy-staging
+      tasks: [deploy]
+      env: staging
+      when: auto
+    - name: deploy-prod
+      tasks: [deploy]
+      env: prod-eu
+      when: manual
+
+# ── Custom tasks ──────────────────────────────────
+tasks:
+  lint:
+    desc: Run linters
+    tags: [ci]
+    ignore_errors: true
+    cmds:
+      - ruff check src/
+      - mypy src/
+
+  test-unit:
+    desc: Run unit tests
+    tags: [ci, test]
+    cmds:
+      - pytest tests/unit/ -v
+
+  test-integration:
+    desc: Run integration tests
+    tags: [ci, test]
+    condition: "test -f docker-compose.yml"
+    cmds:
+      - docker compose up -d
+      - pytest tests/integration/ -v
+      - docker compose down
+
+  dev:
+    desc: Start local development
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+      - "echo '✅ http://localhost:${PORT_WEB:-8000}'"
+
+  dev-logs:
+    desc: Follow local logs
+    env: [local]
+    cmds:
+      - docker compose logs -f --tail=50
+
+  cleanup:
+    desc: Remove old images on remote
+    tags: [ops, maintenance]
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote podman volume prune -f"
+
+  status:
+    desc: Show running containers
+    tags: [ops]
+    cmds:
+      - "@remote podman ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'"
+
+  logs:
+    desc: Follow remote logs (--var SVC=api)
+    tags: [ops]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME}-${SVC:-api} -f --lines=50"

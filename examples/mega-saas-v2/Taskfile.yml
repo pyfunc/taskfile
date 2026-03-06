@@ -1,0 +1,395 @@
+version: "1"
+name: mega-saas
+description: >
+  SaaS platform — multi-region Quadlet deploy, CI/CD pipeline,
+  monitoring, database, edge CDN.
+  V2: same capabilities as mega-saas/ but using hosts:, deploy:, addons:.
+
+variables:
+  APP_NAME: mega-saas
+  REGISTRY: ghcr.io/myorg
+  TAG: ${TAG:-latest}
+  DOMAIN: mega-saas.example.com
+  DB_NAME: mega_saas
+  REDIS_URL: redis://redis:6379
+  S3_BUCKET: mega-saas-static
+  CDN_DISTRIBUTION: EDIST123
+  SLACK_WEBHOOK: ${SLACK_WEBHOOK:-https://hooks.slack.com/services/xxx}
+  SENTRY_DSN: ${SENTRY_DSN:-https://xxx@sentry.io/123}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  REPLICAS: ${REPLICAS:-2}
+
+# ── Hosts (replaces 60+ lines of environments) ───
+hosts:
+  _defaults:
+    user: deploy
+    key: ~/.ssh/id_ed25519
+    runtime: podman
+    env_file: .env.prod
+
+  staging:    { host: staging.mega-saas.example.com, env_file: .env.staging }
+  prod-eu:    { host: eu.mega-saas.example.com, region: eu-west-1 }
+  prod-us:    { host: us.mega-saas.example.com, region: us-east-1 }
+  prod-asia:  { host: asia.mega-saas.example.com, region: ap-southeast-1 }
+  edge-eu:    { host: cdn-eu.mega-saas.example.com, role: edge }
+  edge-us:    { host: cdn-us.mega-saas.example.com, role: edge }
+
+  _groups:
+    all-prod:   { members: [prod-eu, prod-us, prod-asia], strategy: canary, canary_count: 1 }
+    prod-west:  { members: [prod-eu, prod-us], strategy: rolling, max_parallel: 1 }
+    all-edge:   { members: [edge-eu, edge-us], strategy: parallel, max_parallel: 2 }
+    global:     { members: [prod-eu, prod-us, prod-asia, edge-eu, edge-us], strategy: rolling }
+
+environments:
+  local:
+    env_file: .env.local
+
+# ── Platforms ─────────────────────────────────────
+platforms:
+  web:
+    desc: Web frontend SPA
+    variables:
+      BUILD_TARGET: web
+      PORT_WEB: "3000"
+  desktop:
+    desc: Electron desktop app
+    build_cmd: npm run build:electron
+    variables:
+      BUILD_TARGET: desktop
+  mobile-api:
+    desc: Mobile API backend
+    variables:
+      BUILD_TARGET: mobile
+      PORT_API: "8080"
+
+default_env: local
+default_platform: web
+
+# ── Deploy recipe (replaces 15+ manual tasks) ────
+deploy:
+  strategy: quadlet
+  images:
+    api: services/api/Dockerfile
+    web: services/web/Dockerfile
+    worker: services/worker/Dockerfile
+  registry: ${REGISTRY}
+  health_check: /health
+  health_retries: 5
+  health_delay: 5
+  rollback: auto
+
+# ── Addons (replaces 2 include files ~100L) ──────
+addons:
+  - postgres:
+      db_name: ${DB_NAME}
+      db_user: mega_saas
+      backup_dir: /tmp/db-backups
+      migration_cmd: alembic upgrade head
+  - monitoring:
+      grafana: http://grafana.mega-saas.example.com:3000
+      prometheus: http://prometheus.mega-saas.example.com:9090
+  - redis:
+      url: ${REDIS_URL}
+
+# ── Compose (local dev) ──────────────────────────
+compose:
+  file: docker-compose.yml
+  override_files:
+    - docker-compose.override.yml
+    - docker-compose.monitoring.yml
+  network: mega-saas-net
+
+# ── Embedded functions ────────────────────────────
+functions:
+  notify-slack:
+    lang: shell
+    code: |
+      curl -sf -X POST -H 'Content-Type: application/json' \
+        -d "{\"text\": \"$1\"}" "${SLACK_WEBHOOK}"
+  health-check:
+    lang: shell
+    file: scripts/health.sh
+  generate-report:
+    lang: python
+    file: scripts/report.py
+    function: generate_report
+  sentry-release:
+    lang: python
+    code: |
+      import urllib.request, json, os
+      data = json.dumps({"version": os.environ.get("TAG", "latest")}).encode()
+      req = urllib.request.Request(
+          f"{os.environ['SENTRY_DSN']}/releases/",
+          data=data, headers={"Content-Type": "application/json"}
+      )
+      try:
+          urllib.request.urlopen(req)
+          print("Sentry release created")
+      except Exception as e:
+          print(f"Sentry release failed: {e}")
+  version-bump:
+    lang: node
+    code: |
+      const fs = require('fs');
+      const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+      const parts = pkg.version.split('.').map(Number);
+      parts[2]++;
+      pkg.version = parts.join('.');
+      fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+      console.log(pkg.version);
+  git-sha:
+    lang: shell
+    code: "git rev-parse --short HEAD"
+
+# ── Pipeline (CI/CD) ─────────────────────────────
+pipeline:
+  python_version: "3.12"
+  runner_image: ubuntu-latest
+  docker_in_docker: true
+  branches: [main, develop]
+  secrets: [REGISTRY_TOKEN, SLACK_WEBHOOK, SENTRY_DSN, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
+  cache: [~/.cache/pip, node_modules]
+  artifacts: [dist/, coverage/, deploy/quadlet/]
+  install_cmd: pip install taskfile
+
+  stages:
+    - name: lint
+      tasks: [lint]
+    - name: security
+      tasks: [security-scan]
+    - name: test
+      tasks: [test-unit, test-integration]
+    - name: build
+      tasks: [build-all]
+      docker_in_docker: true
+    - name: deploy-staging
+      tasks: [deploy]
+      env: staging
+      when: auto
+    - name: deploy-prod
+      tasks: [deploy]
+      env: prod-eu
+      when: manual
+    - name: post-deploy
+      tasks: [smoke-test, notify-complete]
+      when: auto
+
+# ── Custom tasks (only project-specific ones) ────
+tasks:
+
+  # ── Linting & security ──
+  lint:
+    desc: Run all linters
+    tags: [ci]
+    ignore_errors: true
+    parallel: true
+    deps: [lint-python, lint-frontend]
+    cmds:
+      - echo "Linting complete"
+
+  lint-python:
+    desc: Lint Python code
+    tags: [ci]
+    cmds:
+      - ruff check src/ --fix
+      - mypy src/ --ignore-missing-imports
+
+  lint-frontend:
+    desc: Lint frontend code
+    tags: [ci]
+    dir: services/web
+    cmds:
+      - npm run lint
+
+  security-scan:
+    desc: Security scan
+    tags: [ci, security]
+    stage: security
+    cmds:
+      - pip-audit
+      - trivy fs --severity HIGH,CRITICAL .
+
+  # ── Tests ──
+  test-unit:
+    desc: Run unit tests with coverage
+    tags: [ci, test]
+    timeout: 300
+    cmds:
+      - pytest tests/unit/ -v --cov=src --cov-report=html
+
+  test-integration:
+    desc: Run integration tests
+    tags: [ci, test]
+    timeout: 600
+    condition: "test -f docker-compose.yml"
+    cmds:
+      - docker compose up -d postgres redis
+      - pytest tests/integration/ -v
+      - docker compose down
+
+  # ── Local dev ──
+  dev:
+    desc: Start local development
+    env: [local]
+    cmds:
+      - docker compose up -d --build
+      - "echo '✅ API: http://localhost:${PORT_API:-8000}'"
+      - "echo '✅ Web: http://localhost:${PORT_WEB:-3000}'"
+
+  dev-logs:
+    desc: Follow local container logs
+    env: [local]
+    cmds:
+      - docker compose logs -f --tail=50
+
+  # ── Deploy extras ──
+  deploy-compose:
+    desc: Deploy via docker compose (staging)
+    env: [local, staging]
+    tags: [deploy]
+    cmds:
+      - docker compose pull
+      - docker compose up -d --remove-orphans
+
+  deploy-quick:
+    desc: Quick deploy (skip Quadlet regen, just pull+restart)
+    tags: [deploy]
+    retries: 2
+    retry_delay: 10
+    cmds:
+      - "@remote podman pull ${REGISTRY}/api:${TAG}"
+      - "@remote podman pull ${REGISTRY}/web:${TAG}"
+      - "@remote podman pull ${REGISTRY}/worker:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}-api ${APP_NAME}-web ${APP_NAME}-worker"
+
+  deploy-edge:
+    desc: Deploy static assets to edge CDN nodes
+    env: [edge-eu, edge-us]
+    tags: [deploy, edge]
+    cmds:
+      - "@remote podman pull ${REGISTRY}/web:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}-web"
+
+  # ── Smoke & post-deploy ──
+  smoke-test:
+    desc: Post-deploy smoke tests
+    tags: [ci, test]
+    retries: 3
+    retry_delay: 10
+    cmds:
+      - "curl -sf https://${DOMAIN}/health | grep -q ok"
+      - "curl -sf https://${DOMAIN}/api/v1/status | python3 -c \"import sys,json; d=json.load(sys.stdin); assert d['status']=='ok'\""
+
+  notify-complete:
+    desc: Send deploy notification
+    tags: [deploy]
+    silent: true
+    cmds:
+      - "@fn notify-slack '🚀 ${APP_NAME}:${TAG} deployed to ${ENV}'"
+      - "@fn sentry-release"
+
+  # ── Static assets & CDN ──
+  static-build:
+    desc: Build static assets
+    dir: services/web
+    tags: [build]
+    cmds:
+      - npm ci
+      - npm run build
+
+  static-upload:
+    desc: Upload static assets to S3
+    deps: [static-build]
+    tags: [deploy]
+    cmds:
+      - aws s3 sync services/web/dist/ s3://${S3_BUCKET}/ --delete
+
+  cdn-invalidate:
+    desc: Invalidate CloudFront CDN cache
+    deps: [static-upload]
+    tags: [deploy]
+    cmds:
+      - aws cloudfront create-invalidation --distribution-id ${CDN_DISTRIBUTION} --paths "/*"
+
+  # ── Operations ──
+  status:
+    desc: Show running services
+    tags: [ops]
+    cmds:
+      - "@remote podman ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'"
+
+  logs:
+    desc: Follow service logs (--var SVC=api)
+    tags: [ops]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME}-${SVC:-api} -f --lines=50"
+
+  ram:
+    desc: Show memory usage
+    tags: [ops]
+    silent: true
+    cmds:
+      - "@remote free -h"
+      - "@remote podman stats --no-stream --format 'table {{.Name}}\\t{{.MemUsage}}'"
+
+  cleanup:
+    desc: Remove old images and volumes
+    tags: [ops, maintenance]
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote podman volume prune -f"
+
+  # ── Maintenance ──
+  os-update:
+    desc: Update OS packages
+    tags: [maintenance]
+    timeout: 600
+    cmds:
+      - "@remote apt-get update && apt-get upgrade -y"
+
+  reboot:
+    desc: Reboot remote host
+    tags: [maintenance]
+    cmds:
+      - "@remote reboot"
+
+  # ── Provisioning ──
+  provision:
+    desc: Initial server provisioning
+    tags: [ops, setup]
+    timeout: 600
+    cmds:
+      - taskfile setup ${SSH_HOST} --ssh-key ~/.ssh/id_ed25519 --user deploy
+
+  # ── Release management ──
+  release:
+    desc: Full release pipeline
+    deps: [lint, test-unit, build-all, push-all]
+    tags: [release]
+    cmds:
+      - "@fn version-bump"
+      - "@fn generate-report"
+      - "@fn notify-slack '📦 Release ${TAG} ready'"
+
+  # ── CI helpers ──
+  ci-run-local:
+    desc: Simulate CI pipeline locally
+    tags: [ci]
+    cmds:
+      - taskfile ci run --dry-run
+
+  ci-generate:
+    desc: Generate CI config files
+    tags: [ci]
+    cmds:
+      - taskfile ci generate --all
+
+  # ── Meta ──
+  info:
+    desc: Show project info and resolved variables
+    tags: [meta]
+    silent: true
+    register: BUILD_SHA
+    cmds:
+      - "@fn git-sha"
+      - "echo 'App: ${APP_NAME}  Tag: ${TAG}  Env: ${ENV}  SHA: ${BUILD_SHA:-unknown}'"

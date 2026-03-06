@@ -3,16 +3,16 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-06T18:38:40Z'
+  analyzed_at: '2026-03-06T19:17:39Z'
   tool: code2llm
   stats:
-    files: 64
-    lines: 23666
-    functions: 600
-    classes: 81
+    files: 72
+    lines: 27421
+    functions: 660
+    classes: 86
 health:
-  cc_avg: 4.3
-  critical_count: 38
+  cc_avg: 4.6
+  critical_count: 55
   critical_limit: 10
   duplicates: 2
   cycles: 0
@@ -22,10 +22,20 @@ health:
     value: 52
     limit: 10
     severity: critical
+  - type: cc_exceeded
+    target: print_teach_report
+    value: 31
+    limit: 15
+    severity: critical
   - type: high_fan_out
     target: doctor
-    value: 28
+    value: 29
     limit: 10
+    severity: critical
+  - type: cc_exceeded
+    target: explain
+    value: 26
+    limit: 15
     severity: critical
   - type: high_fan_out
     target: e2e_cmd
@@ -33,7 +43,12 @@ health:
     limit: 10
     severity: critical
   - type: high_fan_out
-    target: check_unresolved_variables
+    target: run
+    value: 23
+    limit: 10
+    severity: critical
+  - type: high_fan_out
+    target: explain
     value: 21
     limit: 10
     severity: critical
@@ -53,22 +68,22 @@ health:
     limit: 10
     severity: critical
   - type: cc_exceeded
-    target: _validate_dependent_files
-    value: 22
-    limit: 15
-    severity: error
-  - type: cc_exceeded
     target: e2e_cmd
     value: 22
     limit: 15
     severity: error
   - type: cc_exceeded
-    target: validate_before_run
+    target: _validate_dependent_files
+    value: 22
+    limit: 15
+    severity: error
+  - type: cc_exceeded
+    target: _validate_command_files
     value: 21
     limit: 15
     severity: error
   - type: cc_exceeded
-    target: check_unresolved_variables
+    target: execute_commands
     value: 20
     limit: 15
     severity: error
@@ -76,6 +91,11 @@ health:
     target: _check_containers_running
     value: 20
     limit: 15
+    severity: error
+  - type: high_fan_out
+    target: TaskfileConfig.from_dict
+    value: 19
+    limit: 10
     severity: error
   - type: high_fan_out
     target: _validate_dependent_files
@@ -88,36 +108,64 @@ health:
     limit: 10
     severity: error
   - type: high_fan_out
-    target: run
+    target: _validate_command_files
     value: 17
     limit: 10
     severity: error
   - type: high_fan_out
-    target: set
-    value: 16
-    limit: 10
-    severity: error
-  - type: high_fan_out
-    target: auth_setup
-    value: 16
-    limit: 10
-    severity: error
-  - type: high_fan_out
-    target: quadlet_generate
-    value: 16
-    limit: 10
-    severity: error
-  - type: high_fan_out
-    target: fleet_status_cmd
-    value: 16
-    limit: 10
-    severity: error
-  - type: high_fan_out
-    target: fleet_repair_cmd
+    target: check_placeholder_values
     value: 16
     limit: 10
     severity: error
 modules:
+- path: src/taskfile/runner/explainer.py
+  lines: 380
+  classes: 4
+  methods: 10
+  cc_max: 31
+  inbound_deps: 1
+  exports:
+  - name: StepIssue
+    type: class
+    cc_avg: 0.0
+  - name: ExplainStep
+    type: class
+    cc_avg: 0.0
+  - name: ExplainReport
+    type: class
+    cc_avg: 0.0
+  - name: TaskExplainer
+    type: class
+    cc_avg: 7.6
+    methods:
+    - name: explain
+      cc: 9
+      fan_out: 13
+    - name: _analyze_command
+      cc: 11
+      fan_out: 10
+    - name: _check_files
+      cc: 12
+      fan_out: 10
+  - name: print_explain_report
+    type: function
+    cc: 13
+  - name: print_teach_report
+    type: function
+    cc: 31
+    flag: split
+- path: src/taskfile/cli/explain_cmd.py
+  lines: 206
+  classes: 0
+  methods: 4
+  cc_max: 26
+  inbound_deps: 0
+  exports:
+  - name: explain
+    type: function
+    cc: 26
+    flag: split
+    fan_out: 21
 - path: src/taskfile/cli/e2e_cmd.py
   lines: 383
   classes: 1
@@ -134,11 +182,11 @@ modules:
     flag: split
     fan_out: 25
 - path: src/taskfile/cli/main.py
-  lines: 637
+  lines: 679
   classes: 0
   methods: 19
   cc_max: 22
-  inbound_deps: 2
+  inbound_deps: 3
   exports:
   - name: parse_var
     type: function
@@ -148,8 +196,9 @@ modules:
     cc: 2
   - name: run
     type: function
-    cc: 9
-    fan_out: 17
+    cc: 15
+    flag: split
+    fan_out: 23
   - name: list_tasks
     type: function
     cc: 3
@@ -161,83 +210,25 @@ modules:
     type: function
     cc: 4
     fan_out: 11
-- path: src/taskfile/diagnostics/checks.py
-  lines: 743
+- path: src/taskfile/runner/commands.py
+  lines: 680
   classes: 0
-  methods: 22
+  methods: 20
   cc_max: 21
-  inbound_deps: 2
+  inbound_deps: 1
   exports:
-  - name: check_preflight
+  - name: run_command
     type: function
-    cc: 5
-  - name: check_taskfile
+    cc: 4
+  - name: execute_script
     type: function
-    cc: 3
-  - name: check_env_files
-    type: function
-    cc: 8
-  - name: check_unresolved_variables
+    cc: 11
+    fan_out: 12
+  - name: execute_commands
     type: function
     cc: 20
     flag: split
-    fan_out: 21
-  - name: check_ports
-    type: function
-    cc: 17
-    flag: split
     fan_out: 15
-  - name: check_dependent_files
-    type: function
-    cc: 11
-    fan_out: 11
-  - name: check_docker
-    type: function
-    cc: 2
-  - name: check_ssh_keys
-    type: function
-    cc: 3
-  - name: check_ssh_connectivity
-    type: function
-    cc: 9
-  - name: check_remote_health
-    type: function
-    cc: 11
-    fan_out: 11
-  - name: check_git
-    type: function
-    cc: 2
-  - name: check_task_commands
-    type: function
-    cc: 6
-  - name: check_examples
-    type: function
-    cc: 10
-    fan_out: 12
-  - name: validate_before_run
-    type: function
-    cc: 21
-    flag: split
-    fan_out: 12
-- path: src/taskfile/diagnostics/report.py
-  lines: 165
-  classes: 0
-  methods: 8
-  cc_max: 19
-  inbound_deps: 0
-  exports:
-  - name: print_report
-    type: function
-    cc: 3
-  - name: print_report_json
-    type: function
-    cc: 1
-  - name: get_report_dict
-    type: function
-    cc: 8
-  - name: format_summary
-    type: function
-    cc: 6
 - path: src/taskfile/cli/click_compat.py
   lines: 218
   classes: 3
@@ -265,8 +256,29 @@ modules:
   - name: version_option
     type: function
     cc: 5
+- path: src/taskfile/runner/core.py
+  lines: 476
+  classes: 2
+  methods: 30
+  cc_max: 18
+  inbound_deps: 0
+  exports:
+  - name: TaskRunError
+    type: class
+    cc_avg: 1.0
+  - name: TaskfileRunner
+    type: class
+    cc_avg: 3.4
+    methods:
+    - name: _run_tasks_with_progress
+      cc: 6
+      fan_out: 10
+    - name: run
+      cc: 18
+      flag: split
+      fan_out: 15
 - path: src/taskfile/cli/interactive/wizards.py
-  lines: 473
+  lines: 480
   classes: 1
   methods: 13
   cc_max: 17
@@ -279,11 +291,139 @@ modules:
     type: function
     cc: 17
     flag: split
-    fan_out: 28
+    fan_out: 29
   - name: init
     type: function
     cc: 6
     fan_out: 12
+- path: src/taskfile/deploy_recipes.py
+  lines: 188
+  classes: 0
+  methods: 4
+  cc_max: 17
+  inbound_deps: 1
+  exports:
+  - name: expand_deploy_recipe
+    type: function
+    cc: 17
+    flag: split
+- path: src/taskfile/diagnostics/checks.py
+  lines: 961
+  classes: 0
+  methods: 31
+  cc_max: 17
+  inbound_deps: 2
+  exports:
+  - name: check_preflight
+    type: function
+    cc: 5
+  - name: check_taskfile
+    type: function
+    cc: 3
+  - name: check_env_files
+    type: function
+    cc: 8
+  - name: check_unresolved_variables
+    type: function
+    cc: 3
+  - name: check_ports
+    type: function
+    cc: 17
+    flag: split
+    fan_out: 15
+  - name: check_dependent_files
+    type: function
+    cc: 2
+  - name: check_docker
+    type: function
+    cc: 2
+  - name: check_ssh_keys
+    type: function
+    cc: 3
+  - name: check_ssh_connectivity
+    type: function
+    cc: 9
+  - name: check_remote_health
+    type: function
+    cc: 11
+    fan_out: 11
+  - name: check_git
+    type: function
+    cc: 2
+  - name: check_task_commands
+    type: function
+    cc: 6
+  - name: check_examples
+    type: function
+    cc: 10
+    fan_out: 12
+  - name: check_placeholder_values
+    type: function
+    cc: 14
+    fan_out: 16
+  - name: validate_before_run
+    type: function
+    cc: 2
+- path: src/taskfile/diagnostics/report.py
+  lines: 204
+  classes: 0
+  methods: 11
+  cc_max: 17
+  inbound_deps: 0
+  exports:
+  - name: print_report
+    type: function
+    cc: 3
+  - name: print_report_json
+    type: function
+    cc: 1
+  - name: get_report_dict
+    type: function
+    cc: 8
+  - name: format_summary
+    type: function
+    cc: 6
+- path: src/taskfile/models.py
+  lines: 552
+  classes: 9
+  methods: 16
+  cc_max: 14
+  inbound_deps: 0
+  exports:
+  - name: Environment
+    type: class
+    cc_avg: 3.0
+  - name: Platform
+    type: class
+    cc_avg: 3.0
+  - name: EnvironmentGroup
+    type: class
+    cc_avg: 0.0
+  - name: ComposeConfig
+    type: class
+    cc_avg: 0.0
+  - name: Function
+    type: class
+    cc_avg: 0.0
+  - name: Task
+    type: class
+    cc_avg: 2.5
+  - name: PipelineStage
+    type: class
+    cc_avg: 0.0
+  - name: PipelineConfig
+    type: class
+    cc_avg: 4.5
+  - name: TaskfileConfig
+    type: class
+    cc_avg: 5.7
+    methods:
+    - name: from_dict
+      cc: 10
+      fan_out: 19
+    - name: _expand_hosts
+      cc: 14
+      fan_out: 12
 - path: src/taskfile/cli/quadlet.py
   lines: 268
   classes: 0
@@ -306,7 +446,7 @@ modules:
   classes: 0
   methods: 4
   cc_max: 13
-  inbound_deps: 1
+  inbound_deps: 2
   exports:
   - name: is_available
     type: function
@@ -317,6 +457,20 @@ modules:
   - name: classify_runtime_error
     type: function
     cc: 13
+- path: src/taskfile/runner/error_presenter.py
+  lines: 280
+  classes: 1
+  methods: 12
+  cc_max: 13
+  inbound_deps: 0
+  exports:
+  - name: ErrorPresenter
+    type: class
+    cc_avg: 4.0
+    methods:
+    - name: _build_diagnosis
+      cc: 13
+      fan_out: 10
 - path: src/taskfile/cli/auth.py
   lines: 257
   classes: 0
@@ -372,26 +526,6 @@ modules:
     type: function
     cc: 12
     fan_out: 14
-- path: src/taskfile/runner/core.py
-  lines: 441
-  classes: 2
-  methods: 30
-  cc_max: 12
-  inbound_deps: 0
-  exports:
-  - name: TaskRunError
-    type: class
-    cc_avg: 1.0
-  - name: TaskfileRunner
-    type: class
-    cc_avg: 3.2
-    methods:
-    - name: _run_tasks_with_progress
-      cc: 6
-      fan_out: 10
-    - name: run
-      cc: 12
-      fan_out: 12
 - path: src/taskfile/health.py
   lines: 408
   classes: 2
@@ -429,7 +563,7 @@ modules:
   classes: 2
   methods: 19
   cc_max: 11
-  inbound_deps: 21
+  inbound_deps: 22
   exports:
   - name: TaskfileNotFoundError
     type: class
@@ -451,23 +585,6 @@ modules:
     type: function
     cc: 2
     fan_out: 10
-- path: src/taskfile/runner/commands.py
-  lines: 256
-  classes: 0
-  methods: 10
-  cc_max: 11
-  inbound_deps: 1
-  exports:
-  - name: run_command
-    type: function
-    cc: 2
-  - name: execute_script
-    type: function
-    cc: 11
-    fan_out: 12
-  - name: execute_commands
-    type: function
-    cc: 5
 - path: src/taskfile/cli/ci.py
   lines: 202
   classes: 0
@@ -548,7 +665,7 @@ modules:
   classes: 0
   methods: 11
   cc_max: 10
-  inbound_deps: 10
+  inbound_deps: 11
   exports:
   - name: version
     type: function
@@ -639,9 +756,9 @@ modules:
     type: function
     cc: 6
 - path: src/taskfile/runner/functions.py
-  lines: 133
+  lines: 140
   classes: 0
-  methods: 6
+  methods: 7
   cc_max: 10
   inbound_deps: 2
   exports:
@@ -749,9 +866,9 @@ modules:
     type: function
     cc: 5
 - path: src/taskfile/diagnostics/__init__.py
-  lines: 253
+  lines: 260
   classes: 1
-  methods: 23
+  methods: 24
   cc_max: 9
   inbound_deps: 0
   exports:
@@ -1021,6 +1138,25 @@ modules:
   - name: MakefileTarget
     type: class
     cc_avg: 7.0
+- path: src/taskfile/diagnostics/models.py
+  lines: 147
+  classes: 4
+  methods: 3
+  cc_max: 7
+  inbound_deps: 0
+  exports:
+  - name: IssueCategory
+    type: class
+    cc_avg: 0.0
+  - name: FixStrategy
+    type: class
+    cc_avg: 0.0
+  - name: Issue
+    type: class
+    cc_avg: 7.0
+  - name: DoctorReport
+    type: class
+    cc_avg: 4.5
 - path: src/taskfile/ssh.py
   lines: 151
   classes: 0
@@ -1038,6 +1174,17 @@ modules:
     type: function
     cc: 5
     fan_out: 12
+- path: src/taskfile/addons/__init__.py
+  lines: 68
+  classes: 0
+  methods: 2
+  cc_max: 6
+  inbound_deps: 1
+  exports:
+  - name: expand_addons
+    type: function
+    cc: 6
+    fan_out: 11
 - path: src/taskfile/cli/docker_cmds.py
   lines: 187
   classes: 1
@@ -1133,63 +1280,6 @@ modules:
   - name: clean_project
     type: function
     cc: 5
-- path: src/taskfile/diagnostics/models.py
-  lines: 143
-  classes: 4
-  methods: 3
-  cc_max: 6
-  inbound_deps: 0
-  exports:
-  - name: IssueCategory
-    type: class
-    cc_avg: 0.0
-  - name: FixStrategy
-    type: class
-    cc_avg: 0.0
-  - name: Issue
-    type: class
-    cc_avg: 6.0
-  - name: DoctorReport
-    type: class
-    cc_avg: 4.5
-- path: src/taskfile/models.py
-  lines: 416
-  classes: 9
-  methods: 15
-  cc_max: 6
-  inbound_deps: 0
-  exports:
-  - name: Environment
-    type: class
-    cc_avg: 3.0
-  - name: Platform
-    type: class
-    cc_avg: 3.0
-  - name: EnvironmentGroup
-    type: class
-    cc_avg: 0.0
-  - name: ComposeConfig
-    type: class
-    cc_avg: 0.0
-  - name: Function
-    type: class
-    cc_avg: 0.0
-  - name: Task
-    type: class
-    cc_avg: 2.5
-  - name: PipelineStage
-    type: class
-    cc_avg: 0.0
-  - name: PipelineConfig
-    type: class
-    cc_avg: 4.5
-  - name: TaskfileConfig
-    type: class
-    cc_avg: 3.2
-    methods:
-    - name: from_dict
-      cc: 1
-      fan_out: 10
 - path: src/taskfile/runner/resolver.py
   lines: 197
   classes: 1
@@ -1271,7 +1361,7 @@ modules:
   classes: 0
   methods: 6
   cc_max: 4
-  inbound_deps: 2
+  inbound_deps: 3
   exports:
   - name: is_local_command
     type: function
@@ -1291,6 +1381,16 @@ modules:
   - name: run_embedded_ssh
     type: function
     cc: 4
+- path: src/taskfile/addons/redis_addon.py
+  lines: 61
+  classes: 0
+  methods: 1
+  cc_max: 3
+  inbound_deps: 0
+  exports:
+  - name: generate_tasks
+    type: function
+    cc: 3
 - path: src/taskfile/cigen/__init__.py
   lines: 58
   classes: 0
@@ -1391,6 +1491,26 @@ modules:
   - name: generate_taskfile
     type: function
     cc: 2
+- path: src/taskfile/addons/monitoring.py
+  lines: 58
+  classes: 0
+  methods: 1
+  cc_max: 1
+  inbound_deps: 0
+  exports:
+  - name: generate_tasks
+    type: function
+    cc: 1
+- path: src/taskfile/addons/postgres.py
+  lines: 80
+  classes: 0
+  methods: 1
+  cc_max: 1
+  inbound_deps: 0
+  exports:
+  - name: generate_tasks
+    type: function
+    cc: 1
 - path: src/taskfile/webui/dashboard.py
   lines: 424
   classes: 0
@@ -1548,7 +1668,7 @@ hotspots:
   fan_out: 52
   note: Create and configure the FastAPI application.
 - name: doctor
-  fan_out: 28
+  fan_out: 29
   note: '**🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
 
@@ -1562,9 +1682,23 @@ hotspots:
 
 
     Validates infrastructure-as-code a'
-- name: check_unresolved_variables
+- name: run
+  fan_out: 23
+  note: '**Run one or more tasks** defined in Taskfile.yml.
+
+
+    ## Usage
+
+
+    ```bash
+
+    taskfile r'
+- name: explain
   fan_out: 21
-  note: Find ${VAR} references without values — most common problem from TEST_REPORT.
+  note: '**Explain what a task will do** — full execution plan without running.
+
+
+    ## Shows'
 - name: _check_containers_running
   fan_out: 21
   note: Check expected containers are running (local or remote).
@@ -1580,29 +1714,32 @@ hotspots:
 
 
     Updates VERSION file and optional'
+- name: TaskfileConfig.from_dict
+  fan_out: 19
+  note: Parse raw YAML dict into TaskfileConfig.
 - name: _validate_dependent_files
   fan_out: 19
   note: Check all files referenced by the Taskfile and report status.
-- name: RegistryClient._install_from_github
-  fan_out: 18
-  note: Install package from GitHub repository.
-- name: run
-  fan_out: 17
-  note: '**Run one or more tasks** defined in Taskfile.yml.
-
-
-    ## Usage
-
-
-    ```bash
-
-    taskfile r'
 refactoring:
   priorities:
-  - action: Split god module src/taskfile/cli/main.py (637L, 0 classes)
+  - action: Split print_teach_report (CC=31 → target CC<10)
+    impact: high
+    effort: low
+    module: explainer.py
+  - action: Split explain (CC=26 → target CC<10)
+    impact: high
+    effort: low
+    module: explain_cmd.py
+  - action: Split god module src/taskfile/cli/main.py (679L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/diagnostics/checks.py (743L, 0 classes)
+  - action: Split god module src/taskfile/runner/commands.py (680L, 0 classes)
+    impact: high
+    effort: high
+  - action: Split god module src/taskfile/diagnostics/checks.py (961L, 0 classes)
+    impact: high
+    effort: high
+  - action: Split god module src/taskfile/models.py (552L, 9 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)
@@ -1611,48 +1748,34 @@ refactoring:
   - action: Split god module src/taskfile/api/app.py (559L, 0 classes)
     impact: high
     effort: high
-  - action: Split check_unresolved_variables (CC=20 → target CC<10)
+  - action: Split expand_deploy_recipe (CC=17 → target CC<10)
     impact: medium
     effort: low
-    module: checks.py
+    module: deploy_recipes.py
   - action: Split check_ports (CC=17 → target CC<10)
     impact: medium
     effort: low
     module: checks.py
-  - action: Split validate_before_run (CC=21 → target CC<10)
-    impact: medium
-    effort: low
-    module: checks.py
-  - action: Split _print_layered_report (CC=19 → target CC<10)
+  - action: Split _print_summary (CC=17 → target CC<10)
     impact: medium
     effort: low
     module: report.py
-  - action: Split prompt (CC=18 → target CC<10)
+  - action: Split _validate_command_files (CC=21 → target CC<10)
     impact: medium
     effort: low
-    module: click_compat.py
-  - action: Split _validate_dependent_files (CC=22 → target CC<10)
+    module: commands.py
+  - action: Split _handle_failure (CC=15 → target CC<10)
     impact: medium
     effort: low
-    module: main.py
-  - action: Split _check_containers_running (CC=20 → target CC<10)
+    module: commands.py
+  - action: Split execute_commands (CC=20 → target CC<10)
     impact: medium
     effort: low
-    module: e2e_cmd.py
-  - action: Split e2e_cmd (CC=22 → target CC<10)
+    module: commands.py
+  - action: Split TaskfileRunner.run (CC=18 → target CC<10)
     impact: medium
     effort: low
-    module: e2e_cmd.py
-  - action: Split doctor (CC=17 → target CC<10)
-    impact: medium
-    effort: low
-    module: wizards.py
-  - action: Reduce create_app fan-out (currently 52)
-    impact: medium
-    effort: medium
-  - action: Reduce doctor fan-out (currently 28)
-    impact: medium
-    effort: medium
+    module: core.py
 evolution:
 - date: '2026-03-05'
   cc_avg: 4.3
@@ -1660,7 +1783,7 @@ evolution:
   lines: 17790
   note: Automated analysis
 - date: '2026-03-06'
-  cc_avg: 4.3
-  critical: 38
-  lines: 23666
+  cc_avg: 4.6
+  critical: 55
+  lines: 27421
   note: Automated analysis

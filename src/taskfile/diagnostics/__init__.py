@@ -29,6 +29,7 @@ from taskfile.diagnostics.checks import (
     check_git,
     check_task_commands,
     check_examples,
+    check_placeholder_values,
     validate_before_run,
 )
 from taskfile.diagnostics.fixes import apply_fixes, apply_single_fix
@@ -117,6 +118,11 @@ class ProjectDiagnostics:
         if config:
             self._add_issues(check_unresolved_variables(config))
 
+    def check_placeholder_values(self) -> None:
+        config = self._load_config()
+        if config:
+            self._add_issues(check_placeholder_values(config))
+
     # ─── Layer 3: Diagnostics ───
 
     def check_ports(self) -> None:
@@ -194,8 +200,8 @@ class ProjectDiagnostics:
 
     # ─── Reporting ───
 
-    def print_report(self, categorized: bool = True) -> None:
-        print_report(self._issues, categorized=categorized)
+    def print_report(self, categorized: bool = True, show_teach: bool = False) -> None:
+        print_report(self._issues, categorized=categorized, show_teach=show_teach)
 
     def print_report_json(self) -> None:
         print_report_json(self._issues)
@@ -244,6 +250,7 @@ __all__ = [
     "check_remote_health",
     "check_task_commands",
     "check_examples",
+    "check_placeholder_values",
     "apply_fixes",
     "apply_single_fix",
     "print_report",

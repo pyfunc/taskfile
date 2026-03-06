@@ -1,0 +1,88 @@
+# Example Taskfile demonstrating enhanced error reporting & teach mode
+# Usage:
+#   taskfile doctor --teach    → see educational explanations
+#   taskfile run deploy --explain → preview execution plan
+#   taskfile run deploy --teach   → learn about @local/@remote behavior
+
+version: "2"
+
+variables:
+  APP_NAME: myapp
+  VERSION: ${VERSION:-0.1.0}  # Will warn if VERSION not set in .env
+  REGISTRY: ${REGISTRY:-docker.io}
+
+environments:
+  local:
+    description: "Local development with Docker"
+    env_file: .env.local
+    compose_command: docker compose
+    
+  staging:
+    description: "Staging environment on remote server"
+    env_file: .env.staging
+    ssh_host: ${STAGING_HOST:-staging.example.com}  # Placeholder detection
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_staging
+    compose_command: docker compose
+    
+  prod:
+    description: "Production environment"
+    env_file: .env.prod
+    ssh_host: ${PROD_HOST:-your-server.example.com}  # Placeholder pattern!
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_prod
+
+platforms:
+  web:
+    variables:
+      BUILD_TARGET: web
+  api:
+    variables:
+      BUILD_TARGET: api
+
+tasks:
+  # Task with external script reference (will check if scripts/build.sh exists)
+  build:
+    description: "Build application images"
+    script: scripts/build.sh  # ErrorPresenter will diagnose if missing
+    tags: [ci, docker]
+    
+  # Task with @local/@remote prefix filtering
+  deploy:
+    description: "Deploy to target environment"
+    deps: [build, test]
+    cmds:
+      # Runs locally for local env, skipped on remote envs
+      - "@local echo 'Building locally...' && docker compose build"
+      
+      # Skipped on local env, runs only on remote (staging/prod)
+      - "@remote echo 'Deploying to remote...' && docker compose up -d"
+      
+      # Copy files - @remote version only runs when ssh_host is set
+      - "@remote rsync -avz ./config/ ${SSH_USER}@${SSH_HOST}:/opt/app/config/"
+    tags: [deploy, critical]
+    
+  # Task that depends on another task
+  test:
+    description: "Run test suite"
+    cmds:
+      - "docker compose -f docker-compose.test.yml run --rm test"
+    tags: [ci, test]
+    
+  # Task using inline python
+  info:
+    description: "Show deployment info"
+    cmds:
+      - "@python print(f'App: {APP_NAME}, Version: {VERSION}, Target: {ENV}')"
+      - "@python print('Use --explain to see what commands will run')"
+
+  # Task with placeholder variables (will be detected by check_placeholder_values)
+  setup:
+    description: "Initial setup (shows placeholder detection)"
+    cmds:
+      - echo "Setting up ${APP_NAME}..."
+      - echo "Registry: ${REGISTRY}"
+      - |
+        if [ "${REGISTRY}" = "docker.io" ]; then
+          echo "⚠️  Using default Docker Hub - set REGISTRY in .env for private registry"
+        fi

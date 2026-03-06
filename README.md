@@ -1333,6 +1333,9 @@ pytest tests/ --cov=taskfile --cov-report=html --cov-report=term
 
 # Run only e2e tests
 pytest tests/test_e2e_examples.py -v
+
+# Run DSL command tests (all command types: @local, @remote, @fn, @python, globs, etc.)
+pytest tests/test_dsl_commands.py -v
 ```
 
 ### Code Quality
@@ -1400,6 +1403,64 @@ taskfile --dry-run run <task>
 
 ## Troubleshooting & Debugging
 
+### Step-by-Step Execution Tracing
+
+Every command shows where in your `Taskfile.yml` it comes from:
+
+```
+## 🚀 Running: `deploy`
+- Config: Taskfile.yml
+- Environment: prod
+
+▶ build — Build Docker images [prod] (Taskfile.yml:25)
+### Step 1/1 — 💻 local `Taskfile.yml:28`
+  → docker compose build
+
+▶ deploy — Deploy to target [prod] (Taskfile.yml:30)
+### Step 1/4 — 💻 local `Taskfile.yml:35`
+### Step 2/4 — 🌐 remote `Taskfile.yml:36`
+```
+
+Use `-v` for full YAML snippet context at each step:
+
+```bash
+taskfile -v --env prod run deploy
+```
+
+### Pre-Run File Validation
+
+Before executing `scp`/`rsync` commands, taskfile checks that local files exist:
+
+```
+### Step 3/4 — 🌐 remote `Taskfile.yml:37`
+  ⚠️ **No files match** `deploy/quadlet/*.container` — generate them first
+     (e.g. `taskfile quadlet generate`)
+
+💡 Tip: Generate Quadlet files first
+Run `taskfile quadlet generate --env-file .env.prod -o deploy/quadlet`
+
+### ❌ Pre-run validation failed for task `deploy`
+**Fix:** Create the missing files, then re-run.
+**Diagnose:** `taskfile doctor --fix`
+```
+
+This catches missing deploy artifacts *before* SSH/SCP fails with cryptic errors.
+
+### Learning Tips
+
+Taskfile shows contextual tips as you work, helping you learn best practices:
+
+| Trigger | Tip |
+|---------|-----|
+| `scp` in command | Use `rsync -avz` instead (handles globs, resume) |
+| `quadlet` in command | Generate `.container` files first |
+| `@remote` prefix | Test SSH with `taskfile fleet status` |
+| `docker compose` | Validate with `docker compose config` |
+| `systemctl` | Quadlet auto-generates systemd units |
+| `.env` reference | Keep `.env.prod` gitignored, use `.example` templates |
+
+Tips also appear on failures with exit-code-specific advice (SSH errors, permission denied, command not found).
+
 ### Quick Diagnostics
 
 ```bash
@@ -1430,6 +1491,20 @@ chmod 600 ~/.ssh/id_ed25519
 
 # Test manual SSH
 ssh -i ~/.ssh/id_ed25519 user@host "echo OK"
+```
+
+#### Missing Deploy Artifacts
+
+```bash
+# Generate Quadlet files from docker-compose.yml
+taskfile quadlet generate --env-file .env.prod -o deploy/quadlet
+
+# Verify files were created
+ls -la deploy/quadlet/
+
+# Add as dependency in Taskfile.yml:
+#   deploy:
+#     deps: [build, quadlet-generate]
 ```
 
 #### Taskfile.yml Validation Errors
@@ -1472,10 +1547,10 @@ taskfile auth verify
 
 | Flag | Output |
 |------|--------|
-| `-v` | Verbose - show commands and results |
-| `-vv` | Very verbose - internal debug info |
+| `-v` | Verbose — step-by-step tracing with YAML snippets and learning tips |
+| `-vv` | Very verbose — internal debug info |
 | `--dry-run` | Show commands without executing |
-| `--report` | JSON output for debugging |
+| `--report` | JSON output for CI/debugging |
 
 ### Getting Help
 
@@ -1495,9 +1570,10 @@ taskfile doctor --llm
 ### Reporting Bugs
 
 1. Run diagnostics: `taskfile doctor --report > debug.json`
-2. Check version: `taskfile --version`
-3. Include:
-   - `debug.json` output
+2. Run with verbose: `taskfile -v run <task> 2>&1 | tee debug.log`
+3. Check version: `taskfile --version`
+4. Include:
+   - `debug.json` and `debug.log` output
    - Your `Taskfile.yml` (redact secrets)
    - Python version: `python --version`
    - OS: `uname -a`

@@ -58,6 +58,319 @@ class TestEnvironment:
         assert prod.quadlet_remote_dir == "/etc/containers/systemd"
         assert prod.service_manager == "quadlet"
 
+class TestSmartDefaults:
+    """Test smart defaults in _parse_environments."""
+
+    def test_remote_env_defaults_to_podman_quadlet(self):
+        data = {
+            "environments": {
+                "prod": {"ssh_host": "example.com"},
+            },
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        prod = config.environments["prod"]
+        assert prod.container_runtime == "podman"
+        assert prod.service_manager == "quadlet"
+        assert prod.ssh_key == "~/.ssh/id_ed25519"
+        assert prod.env_file == ".env.prod"
+
+    def test_local_env_defaults_to_docker_compose(self):
+        data = {
+            "environments": {
+                "dev": {},
+            },
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        dev = config.environments["dev"]
+        assert dev.container_runtime == "docker"
+        assert dev.compose_command == "docker compose"
+        assert dev.service_manager == "compose"
+        assert dev.ssh_key is None
+        assert dev.env_file == ".env.dev"
+
+    def test_explicit_override_beats_smart_defaults(self):
+        data = {
+            "environments": {
+                "prod": {
+                    "ssh_host": "example.com",
+                    "container_runtime": "docker",
+                    "service_manager": "compose",
+                    "ssh_key": "~/.ssh/custom_key",
+                    "env_file": ".env.production",
+                },
+            },
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        prod = config.environments["prod"]
+        assert prod.container_runtime == "docker"
+        assert prod.service_manager == "compose"
+        assert prod.ssh_key == "~/.ssh/custom_key"
+        assert prod.env_file == ".env.production"
+
+    def test_empty_env_section_gets_local(self):
+        config = TaskfileConfig.from_dict({"tasks": {}})
+        assert "local" in config.environments
+        local = config.environments["local"]
+        assert local.container_runtime == "docker"
+
+
+class TestAddons:
+    """Test addons: system expansion into tasks."""
+
+    def test_postgres_addon(self):
+        data = {
+            "addons": [
+                {"postgres": {"db_name": "myapp", "backup_dir": "/tmp/bak"}},
+            ],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "db-status" in config.tasks
+        assert "db-backup" in config.tasks
+        assert "db-migrate" in config.tasks
+        assert "db-vacuum" in config.tasks
+        assert "db-prune-backups" in config.tasks
+        assert "/tmp/bak" in config.tasks["db-backup"].commands[0]
+
+    def test_monitoring_addon(self):
+        data = {
+            "addons": [
+                {"monitoring": {"grafana": "http://g:3000"}},
+            ],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "mon-status" in config.tasks
+        assert "mon-alerts" in config.tasks
+        assert "mon-setup" in config.tasks
+
+    def test_redis_addon(self):
+        data = {
+            "addons": [
+                {"redis": {"url": "redis://myredis:6380"}},
+            ],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "redis-status" in config.tasks
+        assert "redis-info" in config.tasks
+        # Check host/port parsing
+        assert "myredis" in config.tasks["redis-status"].commands[0]
+        assert "6380" in config.tasks["redis-status"].commands[0]
+
+    def test_multiple_addons(self):
+        data = {
+            "addons": [
+                {"postgres": {"db_name": "x"}},
+                {"redis": {}},
+            ],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "db-status" in config.tasks
+        assert "redis-status" in config.tasks
+
+    def test_addon_string_shorthand(self):
+        data = {
+            "addons": ["postgres"],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "db-status" in config.tasks
+
+    def test_user_task_overrides_addon(self):
+        data = {
+            "addons": [{"postgres": {}}],
+            "tasks": {
+                "db-status": {"desc": "Custom status", "cmds": ["echo custom"]},
+            },
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert config.tasks["db-status"].description == "Custom status"
+
+    def test_unknown_addon_raises(self):
+        import pytest
+        data = {
+            "addons": ["nonexistent"],
+            "tasks": {},
+        }
+        with pytest.raises(ValueError, match="Unknown addon"):
+            TaskfileConfig.from_dict(data)
+
+
+class TestDeployRecipe:
+    """Test deploy: recipe expansion into tasks."""
+
+    def test_quadlet_recipe_generates_tasks(self):
+        data = {
+            "variables": {"APP_NAME": "myapp", "REGISTRY": "ghcr.io/org"},
+            "deploy": {
+                "strategy": "quadlet",
+                "images": {
+                    "api": "services/api/Dockerfile",
+                    "web": "services/web/Dockerfile",
+                },
+                "registry": "ghcr.io/org",
+                "health_check": "/health",
+            },
+            "tasks": {"lint": {"cmds": ["ruff check ."]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        # Recipe should generate: build-api, build-web, build-all, push-api, push-web, push-all, deploy, health, rollback
+        assert "build-api" in config.tasks
+        assert "build-web" in config.tasks
+        assert "build-all" in config.tasks
+        assert "push-all" in config.tasks
+        assert "deploy" in config.tasks
+        assert "health" in config.tasks
+        assert "rollback" in config.tasks
+        # User-defined task preserved
+        assert "lint" in config.tasks
+        # deploy task uses quadlet strategy
+        assert "quadlet" in config.tasks["deploy"].description.lower()
+
+    def test_compose_recipe(self):
+        data = {
+            "deploy": {
+                "strategy": "compose",
+                "images": {"app": "Dockerfile"},
+                "registry": "ghcr.io/org",
+            },
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "deploy" in config.tasks
+        assert "compose" in config.tasks["deploy"].description.lower()
+
+    def test_user_task_overrides_recipe(self):
+        data = {
+            "deploy": {
+                "strategy": "quadlet",
+                "images": {"api": "Dockerfile"},
+                "registry": "ghcr.io/org",
+            },
+            "tasks": {
+                "deploy": {"desc": "My custom deploy", "cmds": ["echo custom"]},
+            },
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert config.tasks["deploy"].description == "My custom deploy"
+        assert config.tasks["deploy"].commands == ["echo custom"]
+
+    def test_single_image_no_build_all(self):
+        data = {
+            "deploy": {
+                "strategy": "ssh-push",
+                "images": {"app": "Dockerfile"},
+                "registry": "ghcr.io/org",
+            },
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "build-app" in config.tasks
+        assert "build-all" not in config.tasks  # only 1 image, no build-all needed
+
+
+class TestHostsShorthand:
+    """Test hosts: compact syntax expansion."""
+
+    def test_basic_hosts_expansion(self):
+        data = {
+            "hosts": {
+                "_defaults": {"user": "deploy", "runtime": "podman"},
+                "prod-eu": {"host": "eu.example.com", "region": "eu-west-1"},
+                "prod-us": {"host": "us.example.com", "region": "us-east-1"},
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "prod-eu" in config.environments
+        assert "prod-us" in config.environments
+        eu = config.environments["prod-eu"]
+        assert eu.ssh_host == "eu.example.com"
+        assert eu.ssh_user == "deploy"
+        assert eu.container_runtime == "podman"
+        assert eu.variables.get("REGION") == "eu-west-1"
+
+    def test_hosts_with_groups(self):
+        data = {
+            "hosts": {
+                "prod-eu": {"host": "eu.example.com"},
+                "prod-us": {"host": "us.example.com"},
+                "_groups": {
+                    "all-prod": {
+                        "members": ["prod-eu", "prod-us"],
+                        "strategy": "canary",
+                        "canary_count": 1,
+                    },
+                },
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "all-prod" in config.environment_groups
+        grp = config.environment_groups["all-prod"]
+        assert grp.strategy == "canary"
+        assert grp.members == ["prod-eu", "prod-us"]
+
+    def test_hosts_string_shorthand(self):
+        data = {
+            "hosts": {
+                "_defaults": {"user": "pi", "key": "~/.ssh/fleet"},
+                "node-1": "192.168.1.10",
+                "node-2": "192.168.1.11",
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        n1 = config.environments["node-1"]
+        assert n1.ssh_host == "192.168.1.10"
+        assert n1.ssh_user == "pi"
+        assert n1.ssh_key == "~/.ssh/fleet"
+
+    def test_hosts_extra_keys_become_variables(self):
+        data = {
+            "hosts": {
+                "gw": {"host": "10.0.0.1", "gateway_id": "factory-1", "protocol": "mqtt"},
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        gw = config.environments["gw"]
+        assert gw.variables["GATEWAY_ID"] == "factory-1"
+        assert gw.variables["PROTOCOL"] == "mqtt"
+
+    def test_hosts_merged_with_existing_environments(self):
+        data = {
+            "environments": {
+                "local": {"container_runtime": "docker"},
+            },
+            "hosts": {
+                "prod": {"host": "prod.example.com"},
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "local" in config.environments
+        assert "prod" in config.environments
+
+    def test_hosts_entry_overrides_defaults(self):
+        data = {
+            "hosts": {
+                "_defaults": {"user": "deploy", "env_file": ".env.prod"},
+                "special": {"host": "s.example.com", "user": "admin", "env_file": ".env.special"},
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        s = config.environments["special"]
+        assert s.ssh_user == "admin"
+        assert s.env_file == ".env.special"
+
+
 class TestTask:
     def test_should_run_on_all_envs(self):
         task = Task(name="build", env_filter=None)

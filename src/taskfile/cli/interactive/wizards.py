@@ -119,6 +119,7 @@ def _collect_init_choices() -> dict[str, any]:
         "web": "Web app with Docker + Traefik",
         "podman": "Podman Quadlet (low RAM)",
         "full": "All features, multi-env",
+        "saas": "SaaS app — hosts, deploy recipe, addons (120L)",
         "multiplatform": "Desktop+Web × Local+Prod",
         "publish": "Multi-registry publish",
         "kubernetes": "K8s + Helm multi-cluster",
@@ -197,7 +198,8 @@ Thumbs.db
 @click.option("--examples", "check_examples_flag", is_flag=True, help="Validate all examples/ directories")
 @click.option("--llm", is_flag=True, help="Ask AI for help on unresolved issues (requires pip install taskfile[llm])")
 @click.option("--category", type=click.Choice(["config", "env", "infra", "runtime", "all"], case_sensitive=False), default="all", help="Filter by issue category")
-def doctor(fix, verbose, report, check_examples_flag, llm, category):
+@click.option("--teach", is_flag=True, help="Show educational explanations for each issue")
+def doctor(fix, verbose, report, check_examples_flag, llm, category, teach):
     """**🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
 ## Layers
@@ -219,6 +221,7 @@ def doctor(fix, verbose, report, check_examples_flag, llm, category):
 | `--category` | Filter: config, env, infra, runtime, or all |
 | `--report` | JSON output for CI pipelines |
 | `--examples` | Validate all examples/ directories |
+| `--teach` | Show educational explanations for each issue |
 
 ## Examples
 
@@ -234,6 +237,9 @@ taskfile doctor --category config
 
 # JSON report for CI
 taskfile doctor --report
+
+# Educational mode — learn why each issue matters
+taskfile doctor --teach
 ```
 """
     diagnostics = ProjectDiagnostics()
@@ -252,6 +258,7 @@ taskfile doctor --report
         # Layer 3: Diagnostics
         diagnostics.check_env_files()
         diagnostics.validate_taskfile_variables()
+        diagnostics.check_placeholder_values()
         diagnostics.check_dependent_files()
         diagnostics.check_ports()
         diagnostics.check_docker()
@@ -271,7 +278,7 @@ taskfile doctor --report
         diagnostics.print_report_json()
         sys.exit(1 if any(s == "error" for _, s, _ in diagnostics.issues) else 0)
 
-    diagnostics.print_report()
+    diagnostics.print_report(show_teach=teach)
 
     # Layer 4: Algorithmic fix
     if fix and diagnostics.issues:
@@ -401,7 +408,7 @@ def _apply_init_extras(choices: dict) -> None:
 
 @main.command()
 @click.option("--template", type=click.Choice([
-    "minimal", "web", "podman", "codereview", "full",
+    "minimal", "web", "podman", "codereview", "full", "saas",
     "multiplatform", "publish", "kubernetes", "terraform", "iot"
 ]), default=None, help="Project template")
 @click.option("--force", is_flag=True, help="Overwrite existing files")

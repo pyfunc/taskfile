@@ -1,0 +1,57 @@
+version: "1"
+name: database
+description: Database management tasks (included with prefix "db")
+
+variables:
+  DB_HOST: localhost
+  DB_PORT: "5432"
+  DB_USER: mega_saas
+  BACKUP_DIR: /tmp/db-backups
+
+tasks:
+
+  status:
+    desc: Check database connectivity and version
+    tags: [db, ops]
+    silent: true
+    cmds:
+      - psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "SELECT version();" 2>/dev/null && echo "DB OK" || echo "DB FAIL"
+
+  size:
+    desc: Show database size and table stats
+    tags: [db, ops]
+    cmds:
+      - psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "SELECT pg_size_pretty(pg_database_size('${DB_NAME}'));"
+      - psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "SELECT relname, pg_size_pretty(pg_total_relation_size(relid)) FROM pg_catalog.pg_statio_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 10;"
+
+  vacuum:
+    desc: Run VACUUM ANALYZE on production database
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [db, maintenance]
+    timeout: 1800
+    cmds:
+      - "@remote psql -U ${DB_USER} -d ${DB_NAME} -c 'VACUUM ANALYZE;'"
+      - echo "VACUUM ANALYZE complete"
+
+  create-backup-dir:
+    desc: Ensure backup directory exists
+    tags: [db, backup]
+    cmds:
+      - mkdir -p ${BACKUP_DIR}
+
+  full-backup:
+    desc: Full database backup (pg_dump custom format)
+    deps: [create-backup-dir]
+    tags: [db, backup]
+    timeout: 3600
+    register: BACKUP_PATH
+    cmds:
+      - pg_dump -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -Fc ${DB_NAME} > ${BACKUP_DIR}/${DB_NAME}_$(date +%Y%m%d_%H%M%S).dump
+      - ls -lh ${BACKUP_DIR}/${DB_NAME}_*.dump | tail -1
+
+  prune-backups:
+    desc: Remove backups older than 30 days
+    tags: [db, backup, maintenance]
+    cmds:
+      - find ${BACKUP_DIR} -name "*.dump" -mtime +30 -delete
+      - echo "Old backups pruned"

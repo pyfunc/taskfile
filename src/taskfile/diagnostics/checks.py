@@ -51,21 +51,35 @@ def check_preflight() -> list[Issue]:
         if shutil.which(binary):
             continue
         if required:
+            severity = SEVERITY_ERROR if binary in ("python3", "git") else SEVERITY_WARNING
+            teach_text = {
+                "python3": "Python is the runtime for Taskfile itself. Install it via your package manager or from python.org.",
+                "git": "Git tracks code changes and is used by Taskfile for versioning and deployment tracking. Install it to enable version control features.",
+                "ssh": "SSH is required for remote deployments (@remote commands). Install openssh-client to enable deploying to remote servers.",
+            }.get(binary, f"{binary} is required for this Taskfile. Install it with your package manager.")
             issues.append(Issue(
                 category=IssueCategory.DEPENDENCY_MISSING,
                 message=f"{binary}: not found in PATH",
                 fix_strategy=FixStrategy.MANUAL,
-                severity=SEVERITY_ERROR if binary in ("python3", "git") else SEVERITY_WARNING,
+                severity=severity,
                 fix_description=f"Install {binary} (e.g. apt install {binary})",
+                teach=teach_text,
                 layer=1,
             ))
         else:
+            teach_optional = {
+                "docker": "Docker is a container runtime. If your Taskfile uses 'docker compose', install Docker or use Podman as alternative.",
+                "podman": "Podman is a Docker alternative. If your Taskfile uses containers but you prefer rootless operation, install Podman.",
+                "ssh-copy-id": "ssh-copy-id copies SSH keys to remote servers. Required for initial SSH setup before remote deployment.",
+                "rsync": "rsync efficiently syncs files to remote servers. Useful for deployment tasks with file transfers.",
+            }.get(binary, f"{binary} is optional but recommended for some Taskfile features.")
             issues.append(Issue(
                 category=IssueCategory.DEPENDENCY_MISSING,
                 message=f"{binary}: not found (optional)",
                 fix_strategy=FixStrategy.MANUAL,
                 severity=SEVERITY_INFO,
                 fix_description=f"Install {binary} if needed",
+                teach=teach_optional,
                 layer=1,
             ))
     return issues
@@ -143,18 +157,15 @@ def check_env_files() -> list[Issue]:
     return issues
 
 
-def check_unresolved_variables(config: "TaskfileConfig") -> list[Issue]:
-    """Find ${VAR} references without values — most common problem from TEST_REPORT."""
-    issues: list[Issue] = []
-
-    # Collect required variables from global variables section
+def _collect_required_vars(config: "TaskfileConfig") -> set[str]:
+    """Collect all ${VAR} references from config variables and SSH fields."""
     required_vars: set[str] = set()
+    # From global variables
     for var_value in (config.variables or {}).values():
         if isinstance(var_value, str):
             refs = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}', var_value)
             required_vars.update(refs)
-
-    # Check SSH config variables in environments
+    # From SSH config in environments
     for env_name, env_obj in (config.environments or {}).items():
         for field_name in ("ssh_host", "ssh_user", "ssh_key"):
             value = getattr(env_obj, field_name, None) or ""
@@ -162,37 +173,58 @@ def check_unresolved_variables(config: "TaskfileConfig") -> list[Issue]:
                 m = re.match(r'\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)', value)
                 if m:
                     required_vars.add(m.group("var"))
+    return required_vars
 
-    # Check each .env file
+
+def _check_env_file_vars(env_file: str, required_vars: set[str]) -> list[Issue]:
+    """Check a single .env file for missing or empty required variables."""
+    issues: list[Issue] = []
+    env_path = Path(env_file)
+    if not env_path.exists():
+        return issues
+    env_content = env_path.read_text()
+    env_vars: set[str] = set()
+    for line in env_content.splitlines():
+        if "=" in line and not line.startswith("#"):
+            env_vars.add(line.split("=", 1)[0].strip())
+    for var in required_vars:
+        if var not in env_vars:
+            issues.append(Issue(
+                category=IssueCategory.CONFIG_ERROR,
+                message=f"{env_file}: Missing required variable {var}",
+                fix_strategy=FixStrategy.CONFIRM,
+                severity=SEVERITY_WARNING,
+                fix_description=f"Set {var} in {env_file}",
+                teach=(
+                    f"Variable {var} is referenced in Taskfile but not defined in {env_file}. "
+                    "Add it to the env file with a real value."
+                ),
+                layer=3,
+            ))
+        elif f"{var}=\n" in env_content or f"{var}=\r\n" in env_content:
+            issues.append(Issue(
+                category=IssueCategory.CONFIG_ERROR,
+                message=f"{env_file}: {var} is empty",
+                fix_strategy=FixStrategy.CONFIRM,
+                severity=SEVERITY_WARNING,
+                fix_description=f"Set value for {var} in {env_file}",
+                teach=(
+                    f"Variable {var} exists in {env_file} but has no value. "
+                    "Set it to a real value before running the task."
+                ),
+                layer=3,
+            ))
+    return issues
+
+
+def check_unresolved_variables(config: "TaskfileConfig") -> list[Issue]:
+    """Find ${VAR} references without values — most common problem from TEST_REPORT."""
+    required_vars = _collect_required_vars(config)
+    if not required_vars:
+        return []
+    issues: list[Issue] = []
     for env_file in [".env", ".env.local", ".env.prod", ".env.staging"]:
-        env_path = Path(env_file)
-        if not env_path.exists():
-            continue
-        env_content = env_path.read_text()
-        env_vars: set[str] = set()
-        for line in env_content.splitlines():
-            if "=" in line and not line.startswith("#"):
-                env_vars.add(line.split("=", 1)[0].strip())
-
-        for var in required_vars:
-            if var not in env_vars:
-                issues.append(Issue(
-                    category=IssueCategory.CONFIG_ERROR,
-                    message=f"{env_file}: Missing required variable {var}",
-                    fix_strategy=FixStrategy.CONFIRM,
-                    severity=SEVERITY_WARNING,
-                    fix_description=f"Set {var} in {env_file}",
-                    layer=3,
-                ))
-            elif f"{var}=\n" in env_content or f"{var}=\r\n" in env_content:
-                issues.append(Issue(
-                    category=IssueCategory.CONFIG_ERROR,
-                    message=f"{env_file}: {var} is empty",
-                    fix_strategy=FixStrategy.CONFIRM,
-                    severity=SEVERITY_WARNING,
-                    fix_description=f"Set value for {var} in {env_file}",
-                    layer=3,
-                ))
+        issues.extend(_check_env_file_vars(env_file, required_vars))
     return issues
 
 
@@ -236,18 +268,20 @@ def check_ports() -> list[Issue]:
                     severity=SEVERITY_WARNING,
                     fix_command=f"docker stop {process}" if process and _is_docker_process(process) else None,
                     fix_description=f"Set {key}={suggested} in .env or stop the conflicting process",
+                    teach=(
+                        f"Each service needs a unique port to listen on. Port {resolved_port} is already "
+                        "in use by another process. Either stop the existing process or configure a "
+                        "different port in your .env file. Use 'lsof -i :<port>' to find what's using it."
+                    ),
                     context={"port_fixes": {key: suggested}},
                     layer=3,
                 ))
     return issues
 
 
-def check_dependent_files(config: "TaskfileConfig") -> list[Issue]:
-    """Check that all files referenced in Taskfile (scripts, env_files) exist."""
+def _check_script_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Issue]:
+    """Check that all script: references point to existing files."""
     issues: list[Issue] = []
-    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
-
-    # Check script files
     for task_name, task in config.tasks.items():
         if not task.script:
             continue
@@ -259,10 +293,19 @@ def check_dependent_files(config: "TaskfileConfig") -> list[Issue]:
                 fix_strategy=FixStrategy.MANUAL,
                 severity=SEVERITY_ERROR,
                 fix_description=f"Create the script file: {task.script}",
+                teach=(
+                    "The 'script:' directive runs an external script file. "
+                    "If the file doesn't exist, create it or use 'cmds:' "
+                    "with inline commands instead of 'script:'."
+                ),
                 layer=3,
             ))
+    return issues
 
-    # Check env_file references in environments
+
+def _check_env_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Issue]:
+    """Check that environment files referenced in env.env_file exist."""
+    issues: list[Issue] = []
     for env_name, env in config.environments.items():
         if env.env_file:
             env_file_path = taskfile_dir / env.env_file
@@ -277,6 +320,10 @@ def check_dependent_files(config: "TaskfileConfig") -> list[Issue]:
                         fix_command=f"cp {env.env_file}.example {env.env_file}",
                         fix_description=f"Copy {env.env_file}.example → {env.env_file}",
                         context={"env_file": str(env_file_path), "example": str(example_path)},
+                        teach=(
+                            "Environment files (.env) contain variables specific to each environment "
+                            "(passwords, addresses, keys). Create one from .env.example as a template."
+                        ),
                         layer=3,
                     ))
                 else:
@@ -286,10 +333,19 @@ def check_dependent_files(config: "TaskfileConfig") -> list[Issue]:
                         fix_strategy=FixStrategy.MANUAL,
                         severity=SEVERITY_WARNING,
                         fix_description=f"Create {env.env_file} with required variables",
+                        teach=(
+                            "Environment files (.env) contain variables specific to each environment "
+                            "(passwords, addresses, keys). Each environment in Taskfile can have its own "
+                            ".env file."
+                        ),
                         layer=3,
                     ))
+    return issues
 
-    # Check circular dependencies
+
+def _check_circular_deps(config: "TaskfileConfig") -> list[Issue]:
+    """Check for circular dependencies in task definitions."""
+    issues: list[Issue] = []
     from taskfile.parser import validate_taskfile
     for warning in validate_taskfile(config):
         if "Circular dependency" in warning:
@@ -304,6 +360,16 @@ def check_dependent_files(config: "TaskfileConfig") -> list[Issue]:
     return issues
 
 
+def check_dependent_files(config: "TaskfileConfig") -> list[Issue]:
+    """Check that all files referenced in Taskfile (scripts, env_files) exist."""
+    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
+    return (
+        _check_script_files(config, taskfile_dir) +
+        _check_env_files(config, taskfile_dir) +
+        _check_circular_deps(config)
+    )
+
+
 def check_docker() -> list[Issue]:
     """Check if Docker is available."""
     issues: list[Issue] = []
@@ -316,6 +382,11 @@ def check_docker() -> list[Issue]:
             fix_strategy=FixStrategy.MANUAL,
             severity=SEVERITY_WARNING,
             fix_description="Install Docker: https://docs.docker.com/get-docker/",
+            teach=(
+                "Docker is a container runtime used by most Taskfile projects. "
+                "If your Taskfile uses 'docker compose' commands, Docker must be installed. "
+                "Alternatively, use Podman as a drop-in replacement."
+            ),
             layer=1,
         ))
     return issues
@@ -332,6 +403,11 @@ def check_ssh_keys() -> list[Issue]:
             fix_strategy=FixStrategy.CONFIRM,
             severity=SEVERITY_ERROR,
             fix_command="mkdir -p ~/.ssh && chmod 700 ~/.ssh",
+            teach=(
+                "SSH directory (~/.ssh) stores your SSH keys and config. "
+                "It must exist before generating keys. The chmod 700 ensures "
+                "only you can access it — SSH refuses to use insecure directories."
+            ),
             layer=3,
         ))
         return issues
@@ -345,6 +421,11 @@ def check_ssh_keys() -> list[Issue]:
             severity=SEVERITY_WARNING,
             fix_command="ssh-keygen -t ed25519 -N ''",
             fix_description="Generate an SSH key pair",
+            teach=(
+                "SSH keys authenticate you to remote servers without passwords. "
+                "Generate a key pair, then copy the public key to the server "
+                "with 'ssh-copy-id'. Ed25519 is the modern, secure key format."
+            ),
             layer=3,
         ))
     return issues
@@ -366,6 +447,11 @@ def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
                 severity=SEVERITY_WARNING,
                 fix_command=f"ssh-keygen -t ed25519 -f {ssh_key} -N ''",
                 context={"env": env_name, "host": env.ssh_host},
+                teach=(
+                    "SSH keys authenticate you to remote servers. "
+                    "Generate a key pair, then use 'ssh-copy-id' to authorize it "
+                    "on the remote server before attempting remote deployment."
+                ),
                 layer=3,
             ))
             continue
@@ -378,6 +464,12 @@ def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
                 fix_strategy=FixStrategy.LLM,
                 severity=SEVERITY_ERROR,
                 context={"host": env.ssh_host, "env": env_name, "error": "connection_refused"},
+                teach=(
+                    "Connection refused means the server is reachable but SSH daemon "
+                    "is not running or the port is blocked. Check: 1) Is the server "
+                    "up? 2) Is SSH service running? 3) Is firewall blocking port 22? "
+                    "4) Is the correct hostname/IP configured in Taskfile?"
+                ),
                 layer=3,
             ))
         elif rc == 5:  # auth failed
@@ -388,6 +480,11 @@ def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
                 severity=SEVERITY_ERROR,
                 fix_command=f"ssh-copy-id -i {ssh_key} {env.ssh_user}@{env.ssh_host}",
                 context={"host": env.ssh_host, "env": env_name},
+                teach=(
+                    "SSH authentication failed — the key is not authorized on the server. "
+                    "Copy your public key to the server with 'ssh-copy-id'. "
+                    "Ensure the remote server has your key in ~/.ssh/authorized_keys."
+                ),
                 layer=3,
             ))
         elif rc != 0 and rc is not None:
@@ -430,6 +527,11 @@ def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
                 severity=SEVERITY_WARNING,
                 fix_command=f"ssh {env.ssh_user}@{env.ssh_host} 'apt install -y podman'",
                 fix_description="Install podman on the remote server",
+                teach=(
+                    "Podman is a container runtime used on the remote server to run containers. "
+                    "It's a Docker alternative preferred for rootless operation. "
+                    "Install it via your distribution's package manager."
+                ),
                 context={"host": env.ssh_host, "env": env_name},
                 layer=3,
             ))
@@ -449,6 +551,11 @@ def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
                         fix_strategy=FixStrategy.MANUAL,
                         severity=SEVERITY_WARNING,
                         fix_description="Free disk space or expand volume",
+                        teach=(
+                            "Low disk space on the remote server may cause deployment failures "
+                            "when pulling new images or writing files. Clean up unused images "
+                            "with 'podman system prune' or expand the disk."
+                        ),
                         context={"host": env.ssh_host, "disk": disk},
                         layer=3,
                     ))
@@ -459,6 +566,11 @@ def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
                         fix_strategy=FixStrategy.MANUAL,
                         severity=SEVERITY_ERROR,
                         fix_description="Immediately free disk space",
+                        teach=(
+                            "Critical disk space on the remote server will prevent any new "
+                            "deployments and may crash existing services. Urgent cleanup needed "
+                            "with 'podman system prune' and removing logs."
+                        ),
                         context={"host": env.ssh_host, "disk": disk},
                         layer=3,
                     ))
@@ -480,6 +592,11 @@ def check_git() -> list[Issue]:
             fix_strategy=FixStrategy.CONFIRM,
             severity=SEVERITY_INFO,
             fix_command="git init",
+            teach=(
+                "Git tracks changes to your code. While not required for Taskfile, "
+                "it's recommended for version control. Run 'git init' to start tracking "
+                "changes, then 'git add' and 'git commit' to save your work."
+            ),
             layer=3,
         ))
     return issues
@@ -498,6 +615,11 @@ def check_task_commands(config: "TaskfileConfig") -> list[Issue]:
                     fix_strategy=FixStrategy.LLM,
                     severity=SEVERITY_WARNING,
                     context={"binary": binary, "task": task_name, "cmd": cmd},
+                    teach=(
+                        f"The command '{binary}' is used in your Taskfile but not "
+                        "installed on your system. Each tool in 'cmds:' must be available. "
+                        "Install missing tools with your package manager (apt, brew, etc.)."
+                    ),
                     layer=3,
                 ))
     return issues
@@ -542,16 +664,70 @@ def check_examples(examples_dir: Path) -> list[dict]:
 # ─── Pre-run validation (called by runner) ────────────────────────
 
 
-def validate_before_run(
-    config: "TaskfileConfig",
-    env_name: str | None = None,
-    task_names: list[str] | None = None,
-) -> list[Issue]:
-    """Quick pre-run validation — returns issues that would cause task failure."""
-    issues: list[Issue] = []
-    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
+PLACEHOLDER_PATTERNS = [
+    re.compile(r'your-.*\.example\.com', re.I),
+    re.compile(r'\.example\.com$', re.I),
+    re.compile(r'xxx+', re.I),
+    re.compile(r'changeme', re.I),
+    re.compile(r'replace[_-]me', re.I),
+    re.compile(r'\bTODO\b'),
+    re.compile(r'^0\.0\.0\.0$'),
+    re.compile(r'^placeholder', re.I),
+]
 
-    # 1. Check env_file for target environment
+
+def check_placeholder_values(config: "TaskfileConfig") -> list[Issue]:
+    """Detect variables with placeholder values (example.com, changeme, etc.)."""
+    issues: list[Issue] = []
+    for env_name, env_obj in (config.environments or {}).items():
+        resolved = env_obj.resolve_variables(config.variables or {})
+        # Also check ssh_host directly (may contain ${VAR:-default})
+        fields_to_check = dict(resolved)
+        for attr in ("ssh_host", "ssh_user"):
+            raw = getattr(env_obj, attr, None)
+            if raw and isinstance(raw, str):
+                # Extract default value from ${VAR:-default}
+                m = re.match(r'\$\{[^}]*:-([^}]+)\}', raw)
+                if m:
+                    fields_to_check[f"_{attr}_default"] = m.group(1)
+                else:
+                    fields_to_check[attr] = raw
+
+        for key, val in fields_to_check.items():
+            if not isinstance(val, str) or key.startswith("_"):
+                # For internal keys (_ssh_host_default), use the attr name
+                display_key = key.lstrip("_").replace("_default", "")
+                display_val = val
+            else:
+                display_key = key
+                display_val = val
+
+            if not isinstance(val, str):
+                continue
+            if any(p.search(val) for p in PLACEHOLDER_PATTERNS):
+                real_key = key.lstrip("_").replace("_default", "").upper()
+                issues.append(Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=f"'{real_key}' in env '{env_name}' looks like a placeholder: \"{val}\"",
+                    fix_strategy=FixStrategy.MANUAL,
+                    severity=SEVERITY_WARNING,
+                    fix_description=f"Set real value: export {real_key}=... or add to .env",
+                    teach=(
+                        f"Variables with values like 'example.com' or 'your-*' are placeholders "
+                        f"— replace them with real data before deploying."
+                    ),
+                    layer=2,
+                ))
+    return issues
+
+
+def _check_env_file_for_target(
+    config: "TaskfileConfig",
+    env_name: str | None,
+    taskfile_dir: Path,
+) -> list[Issue]:
+    """Check that the target environment's env_file exists."""
+    issues: list[Issue] = []
     target_env = env_name or config.default_env or "local"
     env_obj = config.environments.get(target_env)
     if env_obj and env_obj.env_file:
@@ -565,10 +741,23 @@ def validate_before_run(
                 fix_strategy=FixStrategy.AUTO if example.exists() else FixStrategy.MANUAL,
                 severity=SEVERITY_ERROR,
                 context={"env_file": str(env_path), "example": str(example) if example.exists() else None},
+                teach=(
+                    "Environment files (.env) contain variables specific to each environment "
+                    "(passwords, addresses, keys). Each environment in Taskfile can have its own "
+                    ".env file. Create one from .env.example as a template."
+                ),
                 layer=2,
             ))
+    return issues
 
-    # 2. Check scripts and deps for requested tasks
+
+def _check_tasks_and_deps(
+    config: "TaskfileConfig",
+    task_names: list[str] | None,
+    taskfile_dir: Path,
+) -> list[Issue]:
+    """Check that requested tasks and their dependencies exist and scripts are present."""
+    issues: list[Issue] = []
     for tname in (task_names or []):
         task = config.tasks.get(tname)
         if not task:
@@ -586,6 +775,12 @@ def validate_before_run(
                     category=IssueCategory.CONFIG_ERROR,
                     message=f"Task '{tname}' script not found: {task.script}",
                     severity=SEVERITY_ERROR,
+                    fix_description=f"Create the script: mkdir -p {Path(task.script).parent} && touch {task.script}",
+                    teach=(
+                        "The 'script:' directive runs an external script file. "
+                        "If the file doesn't exist, create it or use 'cmds:' "
+                        "with inline commands instead of 'script:'."
+                    ),
                     layer=2,
                 ))
         for dep in task.deps:
@@ -596,8 +791,17 @@ def validate_before_run(
                     severity=SEVERITY_ERROR,
                     layer=2,
                 ))
+    return issues
 
-    # 3. Check SSH key for remote env
+
+def _check_ssh_key_for_env(
+    config: "TaskfileConfig",
+    env_name: str | None,
+) -> list[Issue]:
+    """Check that SSH key exists for remote environment."""
+    issues: list[Issue] = []
+    target_env = env_name or config.default_env or "local"
+    env_obj = config.environments.get(target_env)
     if env_obj and env_obj.ssh_host:
         ssh_key = env_obj.ssh_key
         if ssh_key:
@@ -611,7 +815,21 @@ def validate_before_run(
                     fix_command=f"ssh-keygen -t ed25519 -f {ssh_key} -N ''",
                     layer=3,
                 ))
+    return issues
 
+
+def validate_before_run(
+    config: "TaskfileConfig",
+    env_name: str | None = None,
+    task_names: list[str] | None = None,
+) -> list[Issue]:
+    """Quick pre-run validation — returns issues that would cause task failure."""
+    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
+    issues: list[Issue] = []
+    issues.extend(_check_env_file_for_target(config, env_name, taskfile_dir))
+    issues.extend(_check_tasks_and_deps(config, task_names, taskfile_dir))
+    issues.extend(check_placeholder_values(config))
+    issues.extend(_check_ssh_key_for_env(config, env_name))
     return issues
 
 

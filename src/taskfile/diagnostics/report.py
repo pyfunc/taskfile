@@ -35,7 +35,7 @@ LAYER_NAMES = {
 }
 
 
-def print_report(issues: list[Issue], categorized: bool = True) -> None:
+def print_report(issues: list[Issue], categorized: bool = True, show_teach: bool = False) -> None:
     """Print diagnostic report to console."""
     if not issues:
         console.print(Panel(
@@ -46,54 +46,93 @@ def print_report(issues: list[Issue], categorized: bool = True) -> None:
         return
 
     if categorized:
-        _print_layered_report(issues)
+        _print_layered_report(issues, show_teach=show_teach)
     else:
         _print_flat_report(issues)
 
 
-def _print_layered_report(issues: list[Issue]) -> None:
-    """Print issues grouped by layer (1-5) with category sub-groups."""
-    by_layer: dict[int, list[Issue]] = defaultdict(list)
+def _group_issues_by_layer(issues: list[Issue]) -> dict[str, list[Issue]]:
+    """Group issues by logical display layer (Config, Dependencies, Runtime)."""
+    DISPLAY_LAYERS = {
+        IssueCategory.CONFIG_ERROR: ("Konfiguracja", "⚙️"),
+        IssueCategory.TASKFILE_BUG: ("Konfiguracja", "⚙️"),
+        IssueCategory.DEPENDENCY_MISSING: ("Zależności", "📦"),
+        IssueCategory.RUNTIME_ERROR: ("Runtime", "🔧"),
+        IssueCategory.EXTERNAL_ERROR: ("Runtime", "🔧"),
+    }
+    by_display: dict[str, list[Issue]] = defaultdict(list)
     for iss in issues:
-        by_layer[iss.layer].append(iss)
+        layer_name = DISPLAY_LAYERS.get(iss.category, ("Inne", "❓"))[0]
+        by_display[layer_name].append(iss)
+    return by_display
 
-    for layer_num in sorted(by_layer.keys()):
-        layer_issues = by_layer[layer_num]
-        layer_name = LAYER_NAMES.get(layer_num, f"Layer {layer_num}")
-        error_count = sum(1 for i in layer_issues if i.severity == SEVERITY_ERROR)
 
-        header_style = "red" if error_count else "yellow" if layer_issues else "green"
-        console.print(f"\n[bold blue]🔍 Layer {layer_num}: {layer_name}[/]")
+def _print_layer_issues(layer_name: str, layer_issues: list[Issue], show_teach: bool) -> None:
+    """Print all issues for a single layer with formatting."""
+    icon = {"Konfiguracja": "⚙️", "Zależności": "📦", "Runtime": "🔧"}.get(layer_name, "❓")
+    error_count = sum(1 for i in layer_issues if i.severity == SEVERITY_ERROR)
+    style = "red" if error_count else "yellow"
 
-        # Group by category within layer
-        by_cat: dict[IssueCategory, list[Issue]] = defaultdict(list)
-        for iss in layer_issues:
-            by_cat[iss.category].append(iss)
+    console.print(f"\n[bold blue]{icon} {layer_name}[/]")
 
-        for cat in IssueCategory:
-            items = by_cat.get(cat)
-            if not items:
-                continue
+    for iss in layer_issues:
+        sev_icon = _severity_icon(iss.severity)
+        console.print(f"  {sev_icon} {iss.message}")
+        if iss.fix_command:
+            console.print(f"     → [cyan]{iss.fix_command}[/]")
+        elif iss.fix_description:
+            console.print(f"     → {iss.fix_description}")
+        if show_teach and iss.teach:
+            console.print(f"     [dim]ℹ️  {iss.teach}[/]")
+        if iss.context and iss.context.get("llm_suggestion"):
+            console.print(f"     💡 AI: {iss.context['llm_suggestion']}")
 
-            label = CATEGORY_LABELS[cat]
-            hint = CATEGORY_HINTS[cat]
-            cat_errors = sum(1 for i in items if i.severity == SEVERITY_ERROR)
-            style = "red" if cat_errors else "yellow"
 
-            console.print(f"  [{style}]{label}[/] [dim]({len(items)} issue{'s' if len(items) > 1 else ''})[/]")
+def _print_summary(issues: list[Issue], show_teach: bool) -> None:
+    """Print summary footer with counts and hints."""
+    error_count = sum(1 for i in issues if i.severity == SEVERITY_ERROR)
+    warn_count = sum(1 for i in issues if i.severity == "warning")
+    info_count = sum(1 for i in issues if i.severity == "info")
+    fixable = sum(1 for i in issues if i.auto_fixable)
 
-            for iss in items:
-                icon = _severity_icon(iss.severity)
-                fix_tag = _fix_tag(iss)
-                console.print(f"    {icon} {iss.message}")
-                if iss.fix_command:
-                    console.print(f"       → FIX: [cyan]{iss.fix_command}[/]")
-                elif iss.fix_description:
-                    console.print(f"       → {iss.fix_description}")
-                if iss.context and iss.context.get("llm_suggestion"):
-                    console.print(f"       💡 AI: {iss.context['llm_suggestion']}")
+    parts = []
+    if error_count:
+        parts.append(f"[red]❌ Errors: {error_count}[/]")
+    if warn_count:
+        parts.append(f"[yellow]⚠ Warnings: {warn_count}[/]")
+    if info_count:
+        parts.append(f"[blue]ℹ Info: {info_count}[/]")
+    if fixable:
+        parts.append(f"[green]🔧 Auto-fixable: {fixable}[/]")
 
-            console.print(f"    [dim]{hint}[/]")
+    console.print(f"\n{'  '.join(parts)}")
+    if fixable:
+        console.print("  [cyan]taskfile doctor --fix[/]    ← napraw automatycznie co się da")
+    if not show_teach and any(i.teach for i in issues):
+        console.print("  [cyan]taskfile doctor --teach[/]  ← szczegółowe wyjaśnienia")
+
+
+def _print_layered_report(issues: list[Issue], show_teach: bool = False) -> None:
+    """Print issues in 3 logical layers: Config, Dependencies, Runtime."""
+    by_display = _group_issues_by_layer(issues)
+
+    # Print main layers in order
+    layer_order = ["Konfiguracja", "Zależności", "Runtime"]
+    for layer_name in layer_order:
+        layer_issues = by_display.get(layer_name)
+        if layer_issues:
+            _print_layer_issues(layer_name, layer_issues, show_teach)
+
+    # Handle any uncategorized issues
+    for layer_name, layer_issues in by_display.items():
+        if layer_name not in layer_order and layer_issues:
+            console.print(f"\n[bold blue]❓ {layer_name}[/]")
+            for iss in layer_issues:
+                sev_icon = _severity_icon(iss.severity)
+                console.print(f"  {sev_icon} {iss.message}")
+
+    # Summary footer
+    _print_summary(issues, show_teach)
 
 
 def _print_flat_report(issues: list[Issue]) -> None:

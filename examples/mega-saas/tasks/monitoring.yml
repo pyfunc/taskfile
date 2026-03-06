@@ -1,0 +1,53 @@
+version: "1"
+name: monitoring
+description: Monitoring and alerting tasks (included with prefix "mon")
+
+variables:
+  GRAFANA_URL: http://grafana.mega-saas.example.com:3000
+  PROMETHEUS_URL: http://prometheus.mega-saas.example.com:9090
+  ALERT_EMAIL: ops@mega-saas.example.com
+
+tasks:
+
+  status:
+    desc: Show Prometheus + Grafana status
+    tags: [ops, monitoring]
+    silent: true
+    cmds:
+      - curl -sf ${PROMETHEUS_URL}/-/healthy && echo "Prometheus OK" || echo "Prometheus FAIL"
+      - curl -sf ${GRAFANA_URL}/api/health && echo "Grafana OK" || echo "Grafana FAIL"
+
+  alerts:
+    desc: List active Prometheus alerts
+    tags: [ops, monitoring]
+    cmds:
+      - curl -sf ${PROMETHEUS_URL}/api/v1/alerts | python3 -m json.tool
+
+  metrics:
+    desc: Query key application metrics
+    tags: [ops, monitoring]
+    cmds:
+      - >-
+        curl -sf "${PROMETHEUS_URL}/api/v1/query?query=up{job='mega-saas'}"
+        | python3 -c "import sys,json; d=json.load(sys.stdin); [print(f\"{r['metric'].get('instance','?')}: {r['value'][1]}\") for r in d.get('data',{}).get('result',[])]"
+
+  dashboard-export:
+    desc: Export Grafana dashboards as JSON backup
+    tags: [ops, monitoring, backup]
+    cmds:
+      - mkdir -p backups/grafana
+      - >-
+        curl -sf ${GRAFANA_URL}/api/search?type=dash-db
+        | python3 -c "import sys,json; [print(d['uid']) for d in json.load(sys.stdin)]"
+        | while read uid; do
+          curl -sf ${GRAFANA_URL}/api/dashboards/uid/$uid > backups/grafana/$uid.json;
+        done
+      - echo "Dashboards exported to backups/grafana/"
+
+  setup:
+    desc: Deploy Prometheus + Grafana stack via compose
+    tags: [ops, monitoring, setup]
+    timeout: 300
+    cmds:
+      - docker compose -f docker-compose.monitoring.yml up -d
+      - echo "Monitoring stack running"

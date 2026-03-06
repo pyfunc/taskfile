@@ -1,6 +1,54 @@
 ## [Unreleased]
 
 ### Features
+- **Step-by-step execution tracing** — Each command shows `Step 2/4 — 🌐 remote Taskfile.yml:37` with source line reference. Use `-v` for full YAML snippet context.
+- **Pre-run file validation** — `scp`/`rsync`/`cp` commands are checked for missing local files *before* execution. Catches missing `deploy/quadlet/*.container` with actionable hints.
+- **Learning tips system** — Contextual tips shown during execution and on failures:
+  - `scp` → suggests `rsync` instead
+  - `quadlet` → reminds to generate first
+  - `@remote` → suggests `taskfile fleet status`
+  - Exit 255 → SSH troubleshooting checklist
+  - Exit 126/127 → permission/PATH tips
+- **ErrorPresenter** — Rich contextual error diagnosis with:
+  - Command, exit code, first error line
+  - Category-based diagnosis panel (hostname, command not found, permission denied, etc.)
+  - Install hints for missing binaries (docker, rsync, etc.)
+  - Placeholder detection (example.com, your-*, changeme)
+  - Polish-language diagnosis with actionable fix steps
+- **Enhanced failure reporting** — Failures now show config location (`Taskfile.yml:37`), the failing YAML command, contextual tip, and actionable next steps — all rendered via clickmd markdown
+- **Run context header** — `taskfile run` shows config file, environment, platform, and dry-run mode at start
+- **Run summary** — `✅ All tasks completed (2.3s)` or `❌ Run failed` with diagnosis commands
+- **Task header with source location** — `▶ deploy — Deploy (Taskfile.yml:30)` shows where task is defined
+- **@local/@remote skip messages** — Clear indicators when commands are skipped due to environment mismatch (e.g., "⏭ Pominięto @local (env 'prod' jest zdalny)")
+
+### Bug Fixes
+- **Fix `python` → `sys.executable` in `@fn` (lang=python) and `@python` commands** — On systems where only `python3` is available (no `python` symlink), `@fn` and `@python` commands failed with `python: not found`. Now uses `sys.executable` for reliable Python discovery.
+- **Fix glob expansion mangling `@fn`/`@python` arguments** — `shlex.split`/`shlex.quote` in `_expand_globs_in_command` was incorrectly applied to `@fn` and `@python` commands, breaking semicolons and special Python syntax. Glob expansion is now skipped for these prefixes.
+
+### Tests
+- **117 new DSL command E2E tests** in `tests/test_dsl_commands.py` covering:
+  - Basic commands (echo, exit codes, pipes, subshells)
+  - Variable expansion (`${VAR}`, `{{VAR}}`, env overrides, CLI overrides, built-ins)
+  - `@local` / `@remote` prefix routing (env-aware skip/execute, SSH wrapping)
+  - `@fn` execution (shell, python, args, dry-run, shorthand, unknown function)
+  - `@python` inline execution (simple, imports, syntax errors)
+  - Glob expansion (`*.txt`, `?` patterns, nested paths, edge cases)
+  - `script:` external script execution (success, failure, not-found, dry-run)
+  - Dependencies (`deps:` — sequential, chain, parallel, failure propagation)
+  - Conditions (`condition:` — true/false, variable expansion, with deps)
+  - Environment filters (`env:` — match, no-match, multiple)
+  - Platform filters (`platform:` — match, no-match)
+  - Error handling (`ignore_errors`, `continue_on_error` alias, `retries`, `timeout`)
+  - `register:` (capture stdout into variable, use in next task)
+  - `tags:` (list, comma-string, empty default)
+  - `dir:` / working directory
+  - `silent:` mode
+  - YAML command normalization (dict-as-cmd, shorthand list, numeric coercion)
+  - Dry-run mode (all command types)
+  - Real-world scenarios (full workflows, mixed prefixes, register chains)
+  - Edge cases (hyphens/dots in names, special chars, long commands)
+
+### Features
 - **5-layer self-healing diagnostics** — Preflight → Validation → Diagnostics → Algorithmic fix → LLM assist
 - **5-category error system** — `taskfile_bug`, `config_error`, `dep_missing`, `runtime_error`, `external_error`
 - **4 fix strategies** — `auto`, `confirm`, `manual`, `llm` — each issue tagged with how it can be resolved
@@ -81,6 +129,39 @@
   - Consolidated `converters.py` ↔ `importer.py` duplication (shared `_FILENAME_TYPE_MAP`)
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
+
+## [0.3.63] - 2026-03-06
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update TODO.md
+- Update examples/enhanced-error-reporting/README.md
+- Update examples/iac-ansible/README.md
+- Update examples/iac-argocd/README.md
+- Update examples/iac-bicep/README.md
+- Update examples/iac-cdk-aws/README.md
+- Update examples/iac-cdktf/README.md
+- Update examples/iac-cloudformation/README.md
+- ... and 18 more files
+
+### Test
+- Update tests/test_docker_e2e.py
+- Update tests/test_dsl_commands.py
+- Update tests/test_models.py
+
+### Other
+- Update VERSION
+- Update examples/enhanced-error-reporting/Taskfile.yml
+- Update examples/mega-saas-v2/Taskfile.yml
+- Update examples/mega-saas-v2/scripts/health.sh
+- Update examples/mega-saas-v2/scripts/report.py
+- Update examples/mega-saas/Taskfile.yml
+- Update examples/mega-saas/scripts/health.sh
+- Update examples/mega-saas/scripts/report.py
+- Update examples/mega-saas/tasks/database.yml
+- Update examples/mega-saas/tasks/monitoring.yml
+- ... and 14 more files
 
 ## [0.3.61] - 2026-03-06
 

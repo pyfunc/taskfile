@@ -1,0 +1,987 @@
+version: "1"
+name: mega-saas
+description: >
+  Ultimate SaaS platform — multi-region, multi-platform, fleet deploy,
+  embedded functions, CI/CD pipeline, compose overrides, includes,
+  Quadlet, canary/rolling/parallel strategies. Showcases EVERY Taskfile feature.
+
+default_env: local
+default_platform: web
+
+# ─── Include — split into sub-files ──────────────────
+include:
+  - path: ./tasks/monitoring.yml
+    prefix: mon
+  - path: ./tasks/database.yml
+    prefix: db
+
+# ─── Global Variables ────────────────────────────────
+variables:
+  APP_NAME: mega-saas
+  ORG: myorg
+  REGISTRY: ghcr.io/${ORG}
+  IMAGE_API: ${REGISTRY}/mega-saas-api
+  IMAGE_WEB: ${REGISTRY}/mega-saas-web
+  IMAGE_WORKER: ${REGISTRY}/mega-saas-worker
+  TAG: latest
+  DOMAIN: mega-saas.example.com
+  SLACK_WEBHOOK: ${SLACK_WEBHOOK:-}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  DB_NAME: mega_saas
+  REDIS_URL: redis://localhost:6379
+  S3_BUCKET: mega-saas-assets
+  CDN_DISTRIBUTION: ${CDN_DISTRIBUTION:-}
+  LOG_LEVEL: info
+  REPLICAS: "2"
+
+# ─── Compose — Docker Compose integration ────────────
+compose:
+  file: docker-compose.yml
+  override_files:
+    - docker-compose.override.yml
+    - docker-compose.monitoring.yml
+  network: proxy
+  auto_update: true
+
+# ─── Environments (WHERE to deploy) ──────────────────
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    compose_file: docker-compose.yml
+    env_file: .env.local
+    variables:
+      DOMAIN: localhost
+      LOG_LEVEL: debug
+      REDIS_URL: redis://localhost:6379
+
+  staging:
+    ssh_host: staging.mega-saas.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: docker
+    compose_command: docker compose
+    service_manager: compose
+    env_file: .env.staging
+    compose_file: docker-compose.yml
+    variables:
+      DOMAIN: staging.mega-saas.example.com
+      LOG_LEVEL: info
+      REPLICAS: "1"
+
+  prod-eu:
+    ssh_host: eu.mega-saas.example.com
+    ssh_user: deploy
+    ssh_port: 2222
+    ssh_key: ~/.ssh/prod_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod-eu
+    compose_file: docker-compose.yml
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+    variables:
+      DOMAIN: eu.mega-saas.example.com
+      AWS_REGION: eu-west-1
+      LOG_LEVEL: warn
+      REPLICAS: "4"
+
+  prod-us:
+    ssh_host: us.mega-saas.example.com
+    ssh_user: deploy
+    ssh_port: 2222
+    ssh_key: ~/.ssh/prod_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod-us
+    compose_file: docker-compose.yml
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+    variables:
+      DOMAIN: us.mega-saas.example.com
+      AWS_REGION: us-east-1
+      LOG_LEVEL: warn
+      REPLICAS: "4"
+
+  prod-asia:
+    ssh_host: asia.mega-saas.example.com
+    ssh_user: deploy
+    ssh_port: 2222
+    ssh_key: ~/.ssh/prod_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod-asia
+    compose_file: docker-compose.yml
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+    variables:
+      DOMAIN: asia.mega-saas.example.com
+      AWS_REGION: ap-southeast-1
+      LOG_LEVEL: warn
+      REPLICAS: "3"
+
+  edge-cdn-eu:
+    ssh_host: cdn-eu.mega-saas.example.com
+    ssh_user: edge
+    ssh_key: ~/.ssh/edge_ed25519
+    container_runtime: podman
+    variables:
+      NODE_TYPE: cdn
+      REGION: eu
+
+  edge-cdn-us:
+    ssh_host: cdn-us.mega-saas.example.com
+    ssh_user: edge
+    ssh_key: ~/.ssh/edge_ed25519
+    container_runtime: podman
+    variables:
+      NODE_TYPE: cdn
+      REGION: us
+
+# ─── Environment Groups (fleet / batch deploy) ───────
+environment_groups:
+  all-prod:
+    members: [prod-eu, prod-us, prod-asia]
+    strategy: canary
+    canary_count: 1
+
+  prod-west:
+    members: [prod-eu, prod-us]
+    strategy: rolling
+    max_parallel: 1
+
+  all-edge:
+    members: [edge-cdn-eu, edge-cdn-us]
+    strategy: parallel
+
+  global:
+    members: [staging, prod-eu, prod-us, prod-asia]
+    strategy: rolling
+    max_parallel: 1
+
+# ─── Platforms (WHAT to deploy) ──────────────────────
+platforms:
+  web:
+    desc: Web application (React SPA + API)
+    variables:
+      BUILD_DIR: dist/web
+      BUILD_TARGET: web
+      PORT: "3000"
+
+  desktop:
+    desc: Electron desktop application
+    variables:
+      BUILD_DIR: dist/desktop
+      BUILD_TARGET: desktop
+      PORT: "3100"
+
+  mobile-api:
+    desc: Mobile backend (REST + GraphQL)
+    variables:
+      BUILD_DIR: dist/mobile
+      BUILD_TARGET: mobile
+      PORT: "3200"
+
+# ─── Embedded Functions ──────────────────────────────
+functions:
+  # Inline Python — Slack notification
+  notify:
+    lang: python
+    desc: Send Slack notification with deploy status
+    code: |
+      import os, json, urllib.request, datetime
+      webhook = os.environ.get("SLACK_WEBHOOK", "")
+      if not webhook:
+          print("SLACK_WEBHOOK not set — skipping notification")
+      else:
+          args = os.environ.get("FN_ARGS", "Deploy event")
+          env = os.environ.get("TASKFILE_ENV", "unknown")
+          ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+          payload = {
+              "blocks": [
+                  {"type": "header", "text": {"type": "plain_text", "text": f"🚀 {args}"}},
+                  {"type": "section", "text": {"type": "mrkdwn",
+                      "text": f"*Env:* {env}\n*Time:* {ts}\n*App:* {os.environ.get('APP_NAME', '?')}"}},
+              ]
+          }
+          data = json.dumps(payload).encode()
+          req = urllib.request.Request(webhook, data=data,
+                headers={"Content-Type": "application/json"})
+          urllib.request.urlopen(req)
+          print(f"Slack notified: {args}")
+
+  # Inline Python — Sentry release tracking
+  sentry-release:
+    lang: python
+    desc: Register Sentry release and associate commits
+    code: |
+      import os, subprocess
+      dsn = os.environ.get("SENTRY_DSN", "")
+      if not dsn:
+          print("SENTRY_DSN not set — skipping")
+      else:
+          tag = os.environ.get("TAG", "latest")
+          app = os.environ.get("APP_NAME", "mega-saas")
+          print(f"Registering Sentry release: {app}@{tag}")
+
+  # Inline shell — quick port check
+  check-port:
+    lang: shell
+    desc: Check if a TCP port is open on localhost
+    code: |
+      PORT=${1:-3000}
+      nc -z localhost $PORT 2>/dev/null && echo "✅ Port $PORT is open" || echo "❌ Port $PORT is closed"
+
+  # External shell script — health check with retries
+  health-check:
+    lang: shell
+    desc: Health check with configurable retries and backoff
+    file: scripts/health.sh
+
+  # Inline Node.js — generate deployment manifest
+  generate-manifest:
+    lang: node
+    desc: Generate JSON deployment manifest
+    code: |
+      const app = process.env.APP_NAME || 'mega-saas';
+      const tag = process.env.TAG || 'latest';
+      const env = process.env.TASKFILE_ENV || 'local';
+      const platform = process.env.TASKFILE_PLATFORM || 'web';
+      const manifest = {
+        app, version: tag, environment: env, platform,
+        timestamp: new Date().toISOString(),
+        images: {
+          api: `${process.env.IMAGE_API}:${tag}`,
+          web: `${process.env.IMAGE_WEB}:${tag}`,
+          worker: `${process.env.IMAGE_WORKER}:${tag}`,
+        },
+        config: { replicas: parseInt(process.env.REPLICAS || '2'), logLevel: process.env.LOG_LEVEL || 'info' }
+      };
+      console.log(JSON.stringify(manifest, null, 2));
+
+  # External Python — deployment report generator
+  generate-report:
+    lang: python
+    desc: Generate HTML deployment report
+    file: scripts/report.py
+
+  # Binary tool — YAML linting
+  lint-yaml:
+    lang: binary
+    desc: Lint YAML files with yamllint
+    file: yamllint
+
+# ─── Pipeline — CI/CD generation ─────────────────────
+pipeline:
+  python_version: "3.12"
+  runner_image: ubuntu-latest
+  docker_in_docker: true
+  branches: [main, develop, "release/*"]
+  install_cmd: "pip install taskfile"
+  secrets:
+    - GHCR_TOKEN
+    - DEPLOY_SSH_KEY
+    - SLACK_WEBHOOK
+    - SENTRY_DSN
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+  cache:
+    - ~/.cache/pip
+    - node_modules
+    - .next/cache
+  artifacts:
+    - dist/
+    - coverage/
+    - deploy/quadlet/
+
+  stages:
+    - name: lint
+      tasks: [lint, lint-types, security-scan]
+      cache: [~/.cache/pip, node_modules]
+
+    - name: test
+      tasks: [test-unit, test-integration, test-e2e]
+      artifacts: [coverage/]
+      cache: [~/.cache/pip]
+
+    - name: build
+      tasks: [build-api, build-web, build-worker]
+      docker_in_docker: true
+      artifacts: [dist/]
+
+    - name: push
+      tasks: [push-all]
+      docker_in_docker: true
+
+    - name: deploy-staging
+      tasks: [deploy-compose]
+      env: staging
+      when: "branch:develop"
+
+    - name: deploy-prod
+      tasks: [deploy-quadlet]
+      env: prod-eu
+      when: manual
+
+    - name: post-deploy
+      tasks: [smoke-test, notify-release]
+      when: auto
+
+# ─── Tasks ───────────────────────────────────────────
+
+tasks:
+
+  # ═══════════════════════════════════════════════════
+  #  LINT & STATIC ANALYSIS
+  # ═══════════════════════════════════════════════════
+
+  lint:
+    desc: Run all linters (ruff + eslint + prettier)
+    stage: lint
+    tags: [ci, lint, quality]
+    ignore_errors: true
+    cmds:
+      - ruff check src/ --fix
+      - npm --prefix frontend run lint
+      - npm --prefix frontend run prettier -- --check .
+
+  lint-types:
+    desc: Type checking (mypy + TypeScript)
+    stage: lint
+    tags: [ci, lint, quality]
+    ignore_errors: true
+    cmds:
+      - mypy src/ --strict --no-error-summary
+      - npm --prefix frontend run tsc -- --noEmit
+
+  security-scan:
+    desc: Scan for vulnerabilities (pip-audit + npm audit + bandit)
+    stage: lint
+    tags: [ci, security]
+    ignore_errors: true
+    cmds:
+      - pip-audit --strict
+      - bandit -r src/ -ll
+      - npm --prefix frontend audit --production
+
+  lint-yaml-task:
+    desc: Lint all YAML files in the project
+    tags: [lint, quality]
+    cmds:
+      - "@fn lint-yaml *.yml **/*.yml"
+
+  # ═══════════════════════════════════════════════════
+  #  TESTING
+  # ═══════════════════════════════════════════════════
+
+  test-unit:
+    desc: Run unit tests with coverage
+    stage: test
+    tags: [ci, test]
+    timeout: 300
+    register: TEST_RESULT
+    cmds:
+      - pytest tests/unit/ -v --cov=src/ --cov-report=html:coverage/unit/ --cov-report=term-missing
+      - "@python import json; print(json.dumps({'suite': 'unit', 'status': 'passed'}))"
+
+  test-integration:
+    desc: Run integration tests (requires Docker services)
+    stage: test
+    tags: [ci, test, integration]
+    timeout: 600
+    condition: "docker info >/dev/null 2>&1"
+    cmds:
+      - docker compose -f docker-compose.test.yml up -d postgres redis
+      - sleep 3
+      - pytest tests/integration/ -v --cov=src/ --cov-report=html:coverage/integration/
+      - docker compose -f docker-compose.test.yml down -v
+
+  test-e2e:
+    desc: Run end-to-end tests (Playwright)
+    stage: test
+    tags: [ci, test, e2e]
+    timeout: 900
+    condition: "command -v npx >/dev/null 2>&1"
+    cmds:
+      - docker compose -f docker-compose.test.yml up -d
+      - sleep 5
+      - npx playwright test --reporter=html
+      - docker compose -f docker-compose.test.yml down -v
+
+  test-smoke:
+    desc: Quick smoke test against running instance
+    tags: [test, smoke]
+    silent: true
+    retries: 3
+    retry_delay: 5
+    cmds:
+      - curl -sf https://${DOMAIN}/health || exit 1
+      - curl -sf https://${DOMAIN}/api/v1/status || exit 1
+      - "@fn check-port 3000"
+
+  # ═══════════════════════════════════════════════════
+  #  BUILD
+  # ═══════════════════════════════════════════════════
+
+  build-api:
+    desc: Build API Docker image
+    stage: build
+    tags: [ci, build]
+    deps: [test-unit]
+    platform: [web, mobile-api]
+    dir: services/api
+    cmds:
+      - docker build -t ${IMAGE_API}:${TAG} --build-arg LOG_LEVEL=${LOG_LEVEL} .
+    register: BUILD_API_SHA
+
+  build-web:
+    desc: Build Web frontend Docker image
+    stage: build
+    tags: [ci, build]
+    deps: [test-unit]
+    platform: [web]
+    dir: services/web
+    cmds:
+      - docker build -t ${IMAGE_WEB}:${TAG} --build-arg BUILD_TARGET=${BUILD_TARGET} .
+    register: BUILD_WEB_SHA
+
+  build-worker:
+    desc: Build async worker Docker image
+    stage: build
+    tags: [ci, build]
+    deps: [test-unit]
+    cmds:
+      - docker build -t ${IMAGE_WORKER}:${TAG} -f services/worker/Dockerfile .
+
+  build-desktop:
+    desc: Build Electron desktop app
+    tags: [build]
+    platform: [desktop]
+    dir: services/desktop
+    cmds:
+      - npm install
+      - npm run build
+      - npm run package -- --linux --mac --win
+
+  build-all:
+    desc: Build all images (parallel deps)
+    deps: [build-api, build-web, build-worker]
+    parallel: true
+    tags: [build]
+    cmds:
+      - echo "All images built successfully"
+      - "@fn generate-manifest"
+
+  # ═══════════════════════════════════════════════════
+  #  PUSH / REGISTRY
+  # ═══════════════════════════════════════════════════
+
+  registry-login:
+    desc: Login to GHCR
+    tags: [ci, registry]
+    silent: true
+    cmds:
+      - echo ${GHCR_TOKEN} | docker login ghcr.io -u ${ORG} --password-stdin
+
+  push-api:
+    desc: Push API image to registry
+    deps: [build-api, registry-login]
+    tags: [ci, push]
+    cmds:
+      - docker push ${IMAGE_API}:${TAG}
+
+  push-web:
+    desc: Push Web image to registry
+    deps: [build-web, registry-login]
+    tags: [ci, push]
+    cmds:
+      - docker push ${IMAGE_WEB}:${TAG}
+
+  push-worker:
+    desc: Push Worker image to registry
+    deps: [build-worker, registry-login]
+    tags: [ci, push]
+    cmds:
+      - docker push ${IMAGE_WORKER}:${TAG}
+
+  push-all:
+    desc: Push all images (parallel)
+    stage: push
+    deps: [push-api, push-web, push-worker]
+    parallel: true
+    tags: [ci, push]
+    cmds:
+      - echo "All images pushed to ${REGISTRY}"
+
+  # ═══════════════════════════════════════════════════
+  #  DEPLOY — LOCAL (compose)
+  # ═══════════════════════════════════════════════════
+
+  dev:
+    desc: Start full local environment with hot-reload
+    env: [local]
+    tags: [dev]
+    cmds:
+      - ${COMPOSE} up -d --build
+      - echo ""
+      - "echo '  API:     http://localhost:3000'"
+      - "echo '  Web:     http://localhost:8080'"
+      - "echo '  Worker:  running in background'"
+      - "echo '  Redis:   localhost:6379'"
+      - "echo '  Postgres: localhost:5432'"
+
+  dev-stop:
+    desc: Stop local environment
+    env: [local]
+    tags: [dev]
+    cmds:
+      - ${COMPOSE} down
+
+  dev-logs:
+    desc: Tail local container logs
+    env: [local]
+    tags: [dev]
+    cmds:
+      - ${COMPOSE} logs -f --tail=200
+
+  # ═══════════════════════════════════════════════════
+  #  DEPLOY — STAGING (compose via SSH)
+  # ═══════════════════════════════════════════════════
+
+  deploy-compose:
+    desc: Deploy to staging via docker compose over SSH
+    stage: deploy-staging
+    env: [staging]
+    deps: [push-all]
+    tags: [ci, deploy, staging]
+    retries: 2
+    retry_delay: 10
+    timeout: 300
+    cmds:
+      - "@fn notify Deploying to staging..."
+      - "@remote docker compose pull"
+      - "@remote docker compose up -d --remove-orphans"
+      - "@fn health-check"
+      - "@fn notify Staging deploy complete"
+
+  # ═══════════════════════════════════════════════════
+  #  DEPLOY — PRODUCTION (Quadlet / Podman)
+  # ═══════════════════════════════════════════════════
+
+  quadlet-generate:
+    desc: Generate Quadlet .container files from docker-compose.yml
+    tags: [deploy, quadlet]
+    cmds:
+      - taskfile quadlet generate --compose docker-compose.yml --env-file .env.prod-eu -o deploy/quadlet
+      - echo "Generated Quadlet files:"
+      - ls -la deploy/quadlet/
+
+  quadlet-upload:
+    desc: Upload Quadlet files to remote host
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [deploy, quadlet]
+    deps: [quadlet-generate]
+    cmds:
+      - taskfile quadlet upload
+      - "@remote systemctl --user daemon-reload"
+
+  deploy-quadlet:
+    desc: "Full production deploy: Quadlet generate → upload → pull → restart"
+    stage: deploy-prod
+    env: [prod-eu, prod-us, prod-asia]
+    deps: [push-all, quadlet-generate]
+    tags: [ci, deploy, prod]
+    retries: 2
+    retry_delay: 15
+    timeout: 600
+    cmds:
+      - "@fn notify Production deploy starting on ${DOMAIN}..."
+      - taskfile quadlet upload
+      - "@remote systemctl --user daemon-reload"
+      - "@remote podman pull ${IMAGE_API}:${TAG}"
+      - "@remote podman pull ${IMAGE_WEB}:${TAG}"
+      - "@remote podman pull ${IMAGE_WORKER}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}-api"
+      - "@remote systemctl --user restart ${APP_NAME}-web"
+      - "@remote systemctl --user restart ${APP_NAME}-worker"
+      - "@remote podman image prune -f"
+      - "@fn health-check"
+      - "@fn notify Production deploy complete on ${DOMAIN}"
+      - "@fn sentry-release"
+
+  deploy-quick:
+    desc: Quick prod deploy — pull + restart only (skip Quadlet regen)
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [deploy, prod]
+    retries: 1
+    retry_delay: 10
+    cmds:
+      - "@remote podman pull ${IMAGE_API}:${TAG}"
+      - "@remote podman pull ${IMAGE_WEB}:${TAG}"
+      - "@remote podman pull ${IMAGE_WORKER}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}-api"
+      - "@remote systemctl --user restart ${APP_NAME}-web"
+      - "@remote systemctl --user restart ${APP_NAME}-worker"
+      - "@remote podman image prune -f"
+
+  deploy-service:
+    desc: Deploy single service (--var SVC=api|web|worker)
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [deploy, prod]
+    cmds:
+      - "@remote podman pull ${REGISTRY}/mega-saas-${SVC}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}-${SVC}"
+
+  # ═══════════════════════════════════════════════════
+  #  DEPLOY — EDGE CDN NODES
+  # ═══════════════════════════════════════════════════
+
+  deploy-edge:
+    desc: Deploy static assets to edge CDN nodes
+    env: [edge-cdn-eu, edge-cdn-us]
+    tags: [deploy, edge]
+    retries: 2
+    retry_delay: 5
+    cmds:
+      - "@remote mkdir -p /var/www/mega-saas/static"
+      - "@remote podman pull ${IMAGE_WEB}:${TAG}"
+      - "@remote podman cp mega-saas-web-tmp:/app/dist/static/ /var/www/mega-saas/static/"
+      - "@remote nginx -s reload"
+
+  # ═══════════════════════════════════════════════════
+  #  ROLLBACK
+  # ═══════════════════════════════════════════════════
+
+  rollback:
+    desc: Rollback to previous version (--var TAG=<prev_tag>)
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [deploy, rollback]
+    cmds:
+      - "@fn notify Rolling back ${DOMAIN} to ${TAG}..."
+      - "@remote podman pull ${IMAGE_API}:${TAG}"
+      - "@remote podman pull ${IMAGE_WEB}:${TAG}"
+      - "@remote podman pull ${IMAGE_WORKER}:${TAG}"
+      - "@remote systemctl --user restart ${APP_NAME}-api"
+      - "@remote systemctl --user restart ${APP_NAME}-web"
+      - "@remote systemctl --user restart ${APP_NAME}-worker"
+      - "@fn health-check"
+      - "@fn notify Rollback to ${TAG} complete on ${DOMAIN}"
+
+  # ═══════════════════════════════════════════════════
+  #  RELEASE PIPELINE
+  # ═══════════════════════════════════════════════════
+
+  release:
+    desc: "Full release: bump version → build → push → deploy staging → manual prod"
+    deps: [lint, test-unit]
+    parallel: true
+    tags: [release]
+    cmds:
+      - taskfile version bump patch
+      - "@fn generate-manifest"
+      - echo "Release manifest generated — review and run deploy tasks"
+
+  release-major:
+    desc: Major version bump + full pipeline
+    deps: [lint, test-unit, test-integration]
+    parallel: true
+    tags: [release]
+    cmds:
+      - taskfile version bump major
+      - "@fn notify Major release started"
+
+  # ═══════════════════════════════════════════════════
+  #  OPERATIONS & MONITORING
+  # ═══════════════════════════════════════════════════
+
+  status:
+    desc: Show service status on target environment
+    env: [local, staging, prod-eu, prod-us, prod-asia]
+    tags: [ops]
+    cmds:
+      - "@remote podman ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'"
+
+  logs:
+    desc: Tail logs (--var SVC=api|web|worker)
+    env: [staging, prod-eu, prod-us, prod-asia]
+    tags: [ops]
+    cmds:
+      - "@remote journalctl --user -u ${APP_NAME}-${SVC:-api} -f --no-pager -n 200"
+
+  logs-local:
+    desc: Tail local docker compose logs
+    env: [local]
+    tags: [ops, dev]
+    cmds:
+      - ${COMPOSE} logs -f --tail=200 ${SVC:-}
+
+  health:
+    desc: Check application health endpoints
+    tags: [ops, health]
+    silent: true
+    retries: 3
+    retry_delay: 5
+    cmds:
+      - curl -sf https://${DOMAIN}/health && echo "API OK" || echo "API FAIL"
+      - curl -sf https://${DOMAIN}/api/v1/status && echo "Status OK" || echo "Status FAIL"
+      - "@fn check-port ${PORT:-3000}"
+
+  ram:
+    desc: Show memory usage on remote host
+    env: [staging, prod-eu, prod-us, prod-asia]
+    tags: [ops]
+    cmds:
+      - "@remote free -h"
+      - "@remote podman stats --no-stream --format 'table {{.Name}}\\t{{.MemUsage}}\\t{{.MemPerc}}'"
+
+  disk:
+    desc: Show disk usage on remote host
+    env: [staging, prod-eu, prod-us, prod-asia]
+    tags: [ops]
+    cmds:
+      - "@remote df -h / | tail -1"
+      - "@remote du -sh /var/lib/containers/ 2>/dev/null || true"
+
+  uptime-check:
+    desc: Check uptime of all production nodes
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [ops]
+    silent: true
+    cmds:
+      - "@remote uptime"
+      - "@remote cat /proc/loadavg"
+
+  # ═══════════════════════════════════════════════════
+  #  MAINTENANCE
+  # ═══════════════════════════════════════════════════
+
+  cleanup:
+    desc: Prune unused images, volumes, and logs on remote
+    env: [staging, prod-eu, prod-us, prod-asia]
+    tags: [ops, maintenance]
+    cmds:
+      - "@remote podman image prune -af"
+      - "@remote podman volume prune -f"
+      - "@remote sudo journalctl --vacuum-size=50M"
+      - echo "Cleanup complete"
+
+  update-os:
+    desc: Update OS packages on remote hosts
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [maintenance]
+    timeout: 600
+    cmds:
+      - "@remote sudo apt-get update -qq"
+      - "@remote sudo apt-get upgrade -y -qq"
+      - "@remote sudo apt-get autoremove -y -qq"
+
+  reboot:
+    desc: Reboot remote host (use with caution)
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [maintenance]
+    cmds:
+      - "@fn notify Rebooting ${DOMAIN}..."
+      - "@remote sudo reboot"
+
+  rotate-logs:
+    desc: Force log rotation on remote hosts
+    env: [staging, prod-eu, prod-us, prod-asia]
+    tags: [maintenance]
+    cmds:
+      - "@remote sudo logrotate -f /etc/logrotate.conf"
+
+  # ═══════════════════════════════════════════════════
+  #  PROVISIONING — FIRST-TIME SERVER SETUP
+  # ═══════════════════════════════════════════════════
+
+  provision:
+    desc: First-time server provisioning (Podman + systemd + firewall)
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [setup, provision]
+    timeout: 900
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y podman podman-compose"
+      - "@remote sudo loginctl enable-linger deploy"
+      - "@remote mkdir -p ~/.config/containers/systemd"
+      - "@remote podman network create proxy 2>/dev/null || true"
+      - "@remote podman network create ${APP_NAME}-backend 2>/dev/null || true"
+      - "@remote sudo ufw allow 22/tcp comment 'SSH'"
+      - "@remote sudo ufw allow 80/tcp comment 'HTTP'"
+      - "@remote sudo ufw allow 443/tcp comment 'HTTPS'"
+      - "@remote sudo ufw --force enable"
+      - "@fn notify Server provisioned: ${DOMAIN}"
+
+  provision-edge:
+    desc: Provision edge CDN nodes (nginx + Podman)
+    env: [edge-cdn-eu, edge-cdn-us]
+    tags: [setup, provision, edge]
+    timeout: 600
+    cmds:
+      - "@remote sudo apt-get update && sudo apt-get install -y nginx podman"
+      - "@remote sudo loginctl enable-linger edge"
+      - "@remote mkdir -p /var/www/mega-saas/static"
+      - "@remote sudo ufw allow 80/tcp"
+      - "@remote sudo ufw allow 443/tcp"
+
+  # ═══════════════════════════════════════════════════
+  #  DATABASE
+  # ═══════════════════════════════════════════════════
+
+  db-migrate:
+    desc: Run database migrations
+    tags: [db, deploy]
+    condition: "test -d migrations/"
+    cmds:
+      - alembic upgrade head
+      - "@python import datetime; print(f'Migration completed at {datetime.datetime.utcnow()}')"
+
+  db-seed:
+    desc: Seed database with initial data
+    tags: [db, setup]
+    condition: "test -f seeds/seed.sql"
+    cmds:
+      - psql ${DATABASE_URL} -f seeds/seed.sql
+      - echo "Database seeded"
+
+  db-backup:
+    desc: Backup production database
+    env: [prod-eu, prod-us, prod-asia]
+    tags: [db, ops, backup]
+    register: BACKUP_FILE
+    cmds:
+      - >-
+        @remote pg_dump -Fc ${DB_NAME}
+        > /tmp/${DB_NAME}_$(date +%Y%m%d_%H%M%S).dump
+      - echo "/tmp/${DB_NAME}_$(date +%Y%m%d_%H%M%S).dump"
+
+  db-restore:
+    desc: Restore database from backup (--var BACKUP_FILE=path)
+    env: [staging]
+    tags: [db, ops]
+    cmds:
+      - "@remote pg_restore -d ${DB_NAME} --clean --if-exists ${BACKUP_FILE}"
+      - echo "Database restored from ${BACKUP_FILE}"
+
+  # ═══════════════════════════════════════════════════
+  #  STATIC ASSETS & CDN
+  # ═══════════════════════════════════════════════════
+
+  assets-build:
+    desc: Build and optimize static assets
+    tags: [build, assets]
+    platform: [web]
+    dir: services/web
+    cmds:
+      - npm run build
+      - npx imagemin dist/static/img/* --out-dir=dist/static/img/
+
+  assets-upload:
+    desc: Upload assets to S3
+    tags: [deploy, assets]
+    cmds:
+      - aws s3 sync dist/web/static/ s3://${S3_BUCKET}/static/ --delete --cache-control "max-age=31536000"
+
+  cdn-invalidate:
+    desc: Invalidate CloudFront CDN cache
+    tags: [deploy, cdn]
+    condition: "test -n \"${CDN_DISTRIBUTION}\""
+    cmds:
+      - >-
+        aws cloudfront create-invalidation
+        --distribution-id ${CDN_DISTRIBUTION}
+        --paths "/*"
+
+  # ═══════════════════════════════════════════════════
+  #  CI HELPERS
+  # ═══════════════════════════════════════════════════
+
+  ci-generate:
+    desc: Generate CI configs for all platforms
+    tags: [ci]
+    cmds:
+      - taskfile ci generate --target github
+      - taskfile ci generate --target gitlab
+      - echo "CI configs generated in .github/ and .gitlab-ci.yml"
+
+  ci-run-local:
+    desc: Run full CI pipeline locally
+    tags: [ci]
+    cmds:
+      - taskfile ci run
+
+  ci-preview:
+    desc: Preview generated GitHub Actions YAML
+    tags: [ci]
+    cmds:
+      - taskfile ci preview --target github
+
+  # ═══════════════════════════════════════════════════
+  #  SMOKE / POST-DEPLOY
+  # ═══════════════════════════════════════════════════
+
+  smoke-test:
+    desc: Post-deploy smoke test suite
+    stage: post-deploy
+    tags: [ci, test, smoke]
+    retries: 3
+    retry_delay: 10
+    timeout: 120
+    cmds:
+      - curl -sf https://${DOMAIN}/health || exit 1
+      - curl -sf https://${DOMAIN}/api/v1/status || exit 1
+      - "@fn check-port 443"
+      - "@fn health-check"
+
+  notify-release:
+    desc: Send release notification (Slack + Sentry)
+    stage: post-deploy
+    tags: [ci, notify]
+    cmds:
+      - "@fn notify Release ${TAG} deployed to ${DOMAIN}"
+      - "@fn sentry-release"
+      - "@fn generate-report"
+
+  # ═══════════════════════════════════════════════════
+  #  META / INFO
+  # ═══════════════════════════════════════════════════
+
+  info:
+    desc: Show project info and current config
+    tags: [meta]
+    cmds:
+      - taskfile info build-api
+      - taskfile info deploy-quadlet
+      - taskfile list
+
+  validate:
+    desc: Validate this Taskfile
+    tags: [meta]
+    cmds:
+      - taskfile validate
+
+  manifest:
+    desc: Generate and display deployment manifest
+    tags: [meta]
+    cmds:
+      - "@fn generate-manifest"
+
+  version-show:
+    desc: Show current application version
+    tags: [meta]
+    register: CURRENT_VERSION
+    cmds:
+      - taskfile version show
+
+  dry-run-prod:
+    desc: Preview full production deploy without executing
+    tags: [meta]
+    cmds:
+      - taskfile --env prod-eu --dry-run run deploy-quadlet
+
+  clean:
+    desc: Remove all build artifacts and generated files
+    tags: [maintenance]
+    cmds:
+      - rm -rf dist/ coverage/ deploy/quadlet/ .next/
+      - docker rmi ${IMAGE_API}:${TAG} ${IMAGE_WEB}:${TAG} ${IMAGE_WORKER}:${TAG} 2>/dev/null || true
+      - echo "All artifacts cleaned"

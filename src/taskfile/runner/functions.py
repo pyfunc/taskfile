@@ -63,21 +63,27 @@ def _exec_function_shell(fn, fn_args: str, env: dict, task: Task) -> int:
     return result.returncode
 
 
+def _python_cmd() -> str:
+    """Return the best available Python command (sys.executable or python3 fallback)."""
+    return sys.executable or "python3"
+
+
 def _exec_function_python(fn, fn_args: str, env: dict, task: Task) -> int:
     """Execute a Python function (inline code or file)."""
+    py = _python_cmd()
     if fn.file:
         entry = f" -c \"import runpy; runpy.run_path('{fn.file}')\"" if not fn.function else f" {fn.file}"
         if fn.function:
-            actual_cmd = f"python -c \"import importlib.util, sys; spec=importlib.util.spec_from_file_location('m','{fn.file}'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); m.{fn.function}({repr(fn_args)})\""
+            actual_cmd = f"{py} -c \"import importlib.util, sys; spec=importlib.util.spec_from_file_location('m','{fn.file}'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); m.{fn.function}({repr(fn_args)})\""
         else:
-            actual_cmd = f"python {fn.file} {fn_args}".strip()
+            actual_cmd = f"{py} {fn.file} {fn_args}".strip()
     elif fn.code:
         # Write inline code to temp and execute
         import tempfile
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
             tmp.write(fn.code)
             tmp_path = tmp.name
-        actual_cmd = f"python {tmp_path} {fn_args}".strip()
+        actual_cmd = f"{py} {tmp_path} {fn_args}".strip()
     else:
         return 0
     try:
@@ -126,8 +132,9 @@ def run_inline_python(runner, cmd: str, task: Task) -> int:
         console.print("  [dim](dry run — skipped)[/]")
         return 0
     env = {**os.environ, **runner.variables}
+    py = _python_cmd()
     result = subprocess.run(
-        f"python -c {repr(code)}",
+        f"{py} -c {repr(code)}",
         shell=True, env=env, cwd=task.working_dir, text=True,
     )
     return result.returncode
