@@ -4,10 +4,10 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 668
+- **Total Functions**: 669
 - **Total Classes**: 86
-- **Modules**: 93
-- **Entry Points**: 333
+- **Modules**: 94
+- **Entry Points**: 334
 
 ## Architecture by Module
 
@@ -136,6 +136,10 @@ All-in-one interactive production setup:
 - **Time estimate** —
 - **Calls**: main.command, click.argument, src.taskfile.parser.load_taskfile, src.taskfile.cli.main._check_unknown_tasks, TaskResolver, TaskExplainer, explainer.explain, console.print
 
+### src.taskfile.models.TaskfileConfig.from_dict
+> Parse raw YAML dict into TaskfileConfig.
+- **Calls**: cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups, cls._parse_platforms, cls._parse_functions, cls._parse_tasks, cls._parse_pipeline
+
 ### src.taskfile.cli.interactive.wizards.doctor
 > **🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
@@ -154,10 +158,6 @@ Examples:
     taskfile ci generate --target github
     taskfile ci generate --targe
 - **Calls**: ci.command, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, console.print, None.join, console.print
-
-### src.taskfile.models.TaskfileConfig.from_dict
-> Parse raw YAML dict into TaskfileConfig.
-- **Calls**: cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups, cls._parse_platforms, cls._parse_functions, cls._parse_tasks, cls._parse_pipeline
 
 ### src.taskfile.runner.error_presenter.ErrorPresenter._build_diagnosis
 > Build diagnosis text with category, specifics, and fix steps.
@@ -373,23 +373,23 @@ explain [src.taskfile.cli.explain_cmd]
       └─> _suggest_similar_tasks
 ```
 
-### Flow 4: doctor
+### Flow 4: from_dict
+```
+from_dict [src.taskfile.models.TaskfileConfig]
+```
+
+### Flow 5: doctor
 ```
 doctor [src.taskfile.cli.interactive.wizards]
 ```
 
-### Flow 5: ci_generate
+### Flow 6: ci_generate
 ```
 ci_generate [src.taskfile.cli.ci]
   └─ →> load_taskfile
       └─> _resolve_includes
           └─> _parse_include_entry
           └─> _load_include_file
-```
-
-### Flow 6: from_dict
-```
-from_dict [src.taskfile.models.TaskfileConfig]
 ```
 
 ### Flow 7: _build_diagnosis
@@ -724,9 +724,9 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.e2e_cmd.e2e_cmd` - 56 calls
 - `src.taskfile.cli.interactive.menu.prod` - 55 calls
 - `src.taskfile.cli.explain_cmd.explain` - 50 calls
+- `src.taskfile.models.TaskfileConfig.from_dict` - 48 calls
 - `src.taskfile.cli.interactive.wizards.doctor` - 43 calls
 - `src.taskfile.cli.ci.ci_generate` - 41 calls
-- `src.taskfile.models.TaskfileConfig.from_dict` - 39 calls
 - `src.taskfile.cli.main.run` - 36 calls
 - `src.taskfile.cli.quadlet.quadlet_generate` - 35 calls
 - `src.taskfile.fleet.FleetConfig.from_dict` - 32 calls
@@ -740,8 +740,8 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.import_export.import_cmd` - 27 calls
 - `src.taskfile.cli.import_export.export_cmd` - 27 calls
 - `src.taskfile.runner.commands.execute_commands` - 26 calls
-- `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
 - `src.taskfile.cli.version.set` - 26 calls
+- `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
 - `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
 - `src.taskfile.cli.main.validate` - 25 calls
 - `src.taskfile.runner.core.TaskfileRunner.run` - 23 calls
@@ -779,16 +779,16 @@ graph TD
     explain --> load_taskfile
     explain --> _check_unknown_tasks
     explain --> TaskResolver
-    doctor --> command
-    doctor --> option
-    ci_generate --> command
-    ci_generate --> option
-    ci_generate --> load_taskfile
     from_dict --> cls
     from_dict --> _parse_compose
     from_dict --> _parse_environments
     from_dict --> _parse_environment_g
     from_dict --> _parse_platforms
+    doctor --> command
+    doctor --> option
+    ci_generate --> command
+    ci_generate --> option
+    ci_generate --> load_taskfile
     _build_diagnosis --> get
     _build_diagnosis --> append
     _build_diagnosis --> lower

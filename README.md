@@ -121,29 +121,43 @@ variables:
   IMAGE: ghcr.io/myorg/my-project
   TAG: latest
 
+# ─── Hosts (compact environment declaration) ─────
+# Extra keys (region, role) become uppercase variables.
+hosts:
+  _defaults:
+    user: deploy
+    key: ~/.ssh/id_ed25519
+    runtime: podman
+  prod-eu:   { host: eu.example.com, region: eu-west-1 }
+  prod-us:   { host: us.example.com, region: us-east-1 }
+  _groups:
+    all-prod: { members: [prod-eu, prod-us], strategy: canary }
+
 # ─── Environments (WHERE to deploy) ──────────────
+# Smart defaults: ssh_host → podman/quadlet/~/.ssh/id_ed25519
+# env_file defaults to .env.{env_name}
 environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
-    variables:
-      DOMAIN: localhost
+  local: {}                        # docker/compose auto-detected
 
-  prod:
-    ssh_host: prod.example.com
-    ssh_user: deploy
-    ssh_key: ~/.ssh/id_ed25519
-    container_runtime: podman
-    service_manager: quadlet
+  staging:
+    ssh_host: staging.example.com  # → podman, quadlet, .env.staging
     variables:
-      DOMAIN: app.example.com
+      DOMAIN: staging.example.com
 
-# ─── Environment Groups (fleet / batch deploy) ───
-environment_groups:
-  kiosks:
-    members: [kiosk-1, kiosk-2, kiosk-3]
-    strategy: rolling        # rolling | canary | parallel
-    max_parallel: 2
+# ─── Deploy recipe (auto-generates tasks) ────────
+deploy:
+  strategy: quadlet                # compose | quadlet | ssh-push
+  images:
+    api: services/api/Dockerfile
+    web: services/web/Dockerfile
+  registry: ${REGISTRY}
+  health_check: /health
+
+# ─── Addons (pluggable task generators) ──────────
+addons:
+  - postgres: { db_name: myapp }
+  - monitoring: { grafana: http://grafana:3000 }
+  - redis: { url: redis://localhost:6379 }
 
 # ─── Platforms (WHAT to deploy) ───────────────────
 platforms:
@@ -195,7 +209,12 @@ functions:
 
 ### Key Concepts
 
+- **`hosts`** — compact environment + group declaration with `_defaults` and `_groups`
 - **`environments`** — WHERE to deploy (local machine, remote server via SSH)
+- **Smart defaults** — `ssh_host` present → podman/quadlet/`~/.ssh/id_ed25519`; absent → docker/compose; `env_file` → `.env.{name}`
+- **`environment_defaults`** — shared SSH/runtime config applied to all environments
+- **`deploy`** — recipe that auto-generates build/push/deploy/rollback/health tasks
+- **`addons`** — pluggable task generators (postgres, monitoring, redis)
 - **`platforms`** — WHAT to deploy (web, desktop, mobile)
 - **`environment_groups`** — batch of environments for fleet/group deploy
 - **`tasks`** — commands to execute, with deps, filters, conditions
@@ -212,6 +231,135 @@ functions:
 ---
 
 ## New Syntax Features
+
+### Smart Defaults
+
+When `ssh_host` is present, taskfile auto-detects remote deploy settings — no need to repeat boilerplate:
+
+```yaml
+# Before (verbose):
+environments:
+  prod:
+    ssh_host: prod.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    env_file: .env.prod
+    quadlet_dir: deploy/quadlet
+    quadlet_remote_dir: ~/.config/containers/systemd
+
+# After (smart defaults):
+environments:
+  prod:
+    ssh_host: prod.example.com
+```
+
+| Condition | Default |
+|-----------|---------|
+| `ssh_host` present | `container_runtime: podman`, `service_manager: quadlet`, `ssh_key: ~/.ssh/id_ed25519` |
+| `ssh_host` absent | `container_runtime: docker`, `compose_command: docker compose` |
+| Always | `env_file: .env.{env_name}`, `ssh_user: deploy` |
+
+Explicit values always override defaults.
+
+### `hosts:` — Compact Environment Declaration
+
+Declare fleets and multi-region deploys in a fraction of the YAML:
+
+```yaml
+# Before (50+ lines):
+environments:
+  prod-eu:
+    ssh_host: eu.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    variables: { REGION: eu-west-1 }
+  prod-us:
+    ssh_host: us.example.com
+    ssh_user: deploy
+    ssh_key: ~/.ssh/id_ed25519
+    container_runtime: podman
+    service_manager: quadlet
+    variables: { REGION: us-east-1 }
+environment_groups:
+  all-prod:
+    members: [prod-eu, prod-us]
+    strategy: canary
+
+# After (10 lines):
+hosts:
+  _defaults: { user: deploy, runtime: podman }
+  prod-eu:   { host: eu.example.com, region: eu-west-1 }
+  prod-us:   { host: us.example.com, region: us-east-1 }
+  _groups:
+    all-prod: { members: [prod-eu, prod-us], strategy: canary }
+```
+
+- **`_defaults`** — shared config for all hosts (short aliases: `host`, `user`, `key`, `port`, `runtime`, `manager`)
+- **Extra keys** (like `region`, `role`) automatically become uppercase variables (`REGION`, `ROLE`)
+- **`_groups`** — same format as `environment_groups`
+- Works alongside `environments:` — both are merged
+
+### `deploy:` — Recipe-Based Task Generation
+
+Auto-generate build, push, deploy, rollback, and health tasks from a recipe:
+
+```yaml
+deploy:
+  strategy: quadlet       # compose | quadlet | ssh-push
+  images:
+    api: services/api/Dockerfile
+    web: services/web/Dockerfile
+  registry: ${REGISTRY}
+  health_check: /health
+  health_retries: 5
+  rollback: auto
+```
+
+This generates: `build-api`, `build-web`, `build-all`, `push-api`, `push-web`, `push-all`, `deploy`, `health`, `rollback`. User-defined tasks with the same names override generated ones.
+
+### `addons:` — Pluggable Infrastructure Tasks
+
+Add common operations in one line instead of writing 20+ tasks manually:
+
+```yaml
+addons:
+  - postgres: { db_name: myapp, backup_dir: /tmp/bak }
+  - monitoring: { grafana: http://grafana:3000 }
+  - redis: { url: redis://redis:6379 }
+```
+
+| Addon | Generated tasks |
+|-------|----------------|
+| **postgres** | `db-status`, `db-size`, `db-migrate`, `db-backup`, `db-restore`, `db-vacuum`, `db-prune-backups` |
+| **monitoring** | `mon-status`, `mon-alerts`, `mon-metrics`, `mon-dashboard-export`, `mon-setup` |
+| **redis** | `redis-status`, `redis-info`, `redis-flush`, `redis-monitor` |
+
+String shorthand also works: `addons: ["postgres"]` (uses all defaults).
+
+### `taskfile explain <task>` — Execution Plan Preview
+
+See exactly what a task will do without running it:
+
+```bash
+$ taskfile --env prod-eu explain deploy
+
+📋 deploy (env: prod-eu)
+   Deploy via Podman Quadlet
+
+  Steps:
+    1. 💻 docker build -t ghcr.io/org/api:latest ...
+    2. 💻 docker push ghcr.io/org/api:latest
+    3. 🌐 @remote systemctl --user daemon-reload
+    4. 🌐 @remote podman pull ghcr.io/org/api:latest
+    ...
+
+  Variables:  APP_NAME=myapp  REGION=eu-west-1  TAG=latest
+  Requires:   Docker, SSH to eu.example.com
+```
 
 ### Embedded Functions
 
@@ -373,6 +521,7 @@ Options:
 | `taskfile list` | List tasks, environments, groups, platforms, variables |
 | `taskfile info <task>` | Show detailed info about a task (incl. tags, retries, timeout) |
 | `taskfile validate` | Check Taskfile.yml for errors |
+| `taskfile explain <task>` | Show detailed execution plan without running |
 | `taskfile init [--template T]` | Create Taskfile.yml from template |
 | `taskfile import <file>` | Import CI/CD config, Makefile, or script INTO Taskfile.yml |
 | `taskfile export <format>` | Export Taskfile.yml to other formats (GitHub Actions, GitLab CI) |
@@ -618,27 +767,38 @@ Manage fleets of devices (Raspberry Pi, edge nodes, kiosks) using `environment_g
 
 ### Defining a Fleet
 
+Using `hosts:` shorthand (recommended for fleets):
+
 ```yaml
+hosts:
+  _defaults: { user: pi, runtime: podman }
+  kiosk-lobby:    { host: 192.168.1.10, kiosk_id: lobby }
+  kiosk-cafe:     { host: 192.168.1.11, kiosk_id: cafe }
+  kiosk-entrance: { host: 192.168.1.12, kiosk_id: entrance }
+  _groups:
+    kiosks:
+      members: [kiosk-lobby, kiosk-cafe, kiosk-entrance]
+      strategy: rolling       # rolling | canary | parallel
+      max_parallel: 2         # for rolling: how many at a time
+```
+
+Or using classic `environments` + `environment_groups`:
+
+```yaml
+environment_defaults:
+  ssh_user: pi
+  container_runtime: podman
+
 environments:
-  kiosk-lobby:
-    ssh_host: 192.168.1.10
-    ssh_user: pi
-    container_runtime: podman
-  kiosk-cafe:
-    ssh_host: 192.168.1.11
-    ssh_user: pi
-    container_runtime: podman
-  kiosk-entrance:
-    ssh_host: 192.168.1.12
-    ssh_user: pi
-    container_runtime: podman
+  kiosk-lobby:    { ssh_host: 192.168.1.10 }
+  kiosk-cafe:     { ssh_host: 192.168.1.11 }
+  kiosk-entrance: { ssh_host: 192.168.1.12 }
 
 environment_groups:
   kiosks:
     members: [kiosk-lobby, kiosk-cafe, kiosk-entrance]
-    strategy: rolling       # rolling | canary | parallel
-    max_parallel: 2         # for rolling: how many at a time
-    canary_count: 1         # for canary: how many to test first
+    strategy: rolling
+    max_parallel: 2
 ```
 
 ### Group Deploy Strategies
@@ -958,6 +1118,7 @@ taskfile init --template <name>
 | `codereview` | 3-stage: local(Docker) → staging → prod(Podman Quadlet) |
 | `multiplatform` | Desktop + Web × Local + Prod deployment matrix |
 | `publish` | Multi-registry publishing: PyPI, npm, Docker, GitHub |
+| `saas` | SaaS app with `hosts:`, `deploy:`, `addons:`, smart defaults |
 | `kubernetes` | Kubernetes + Helm multi-cluster deployment |
 | `terraform` | Terraform IaC with multi-environment state management |
 | `iot` | IoT/edge fleet with rolling, canary, and parallel strategies |
@@ -1030,8 +1191,8 @@ my-project/
 
 | Example | Features |
 |---------|----------|
-| [fleet-rpi](examples/fleet-rpi/) | 6 RPi, `environment_defaults`, rolling/canary groups |
-| [edge-iot](examples/edge-iot/) | IoT gateways, `ssh_port: 2200`, all 3 group strategies, `condition` |
+| [fleet-rpi](examples/fleet-rpi/) | 6 RPi, `hosts:` shorthand, rolling/canary groups |
+| [edge-iot](examples/edge-iot/) | IoT gateways, `hosts:`, `ssh_port: 2200`, all 3 group strategies, `condition` |
 
 ### Infrastructure & Cloud
 
@@ -1059,6 +1220,7 @@ my-project/
 |---------|----------|
 | [monorepo-microservices](examples/monorepo-microservices/) | `platforms`, `build_cmd`/`deploy_cmd`, `condition`, `dir`, `stage`, `platform` filter |
 | [fullstack-deploy](examples/fullstack-deploy/) | **ALL CLI commands**: deploy, setup, release, init, validate, info, ci, --dry-run |
+| [mega-saas-v2](examples/mega-saas-v2/) | `hosts:`, `deploy:`, `addons:`, smart defaults — **70% less YAML** vs mega-saas |
 
 ```bash
 # CI pipeline — generate + run locally
@@ -1223,20 +1385,33 @@ docker run -d --name "$1-validate" -p 9999:3000 "$1-validate:$2"
 curl -sf http://localhost:9999/health || exit 1
 ```
 
-### Use environment_defaults to reduce duplication
+### Use `hosts:` or smart defaults to reduce duplication
 
 ```yaml
-# ✅ DRY — shared config in defaults
+# ✅ Best — hosts: shorthand (for fleets)
+hosts:
+  _defaults: { user: pi, key: ~/.ssh/fleet_ed25519, runtime: podman }
+  node-1: { host: 192.168.1.10 }
+  node-2: { host: 192.168.1.11 }
+```
+
+```yaml
+# ✅ Good — smart defaults (for 2-3 environments)
+environments:
+  prod:
+    ssh_host: prod.example.com   # → auto: podman, quadlet, .env.prod
+```
+
+```yaml
+# ✅ Also good — environment_defaults (explicit shared config)
 environment_defaults:
   ssh_user: pi
   ssh_key: ~/.ssh/fleet_ed25519
   container_runtime: podman
 
 environments:
-  node-1:
-    ssh_host: 192.168.1.10
-  node-2:
-    ssh_host: 192.168.1.11
+  node-1: { ssh_host: 192.168.1.10 }
+  node-2: { ssh_host: 192.168.1.11 }
 ```
 
 ```yaml

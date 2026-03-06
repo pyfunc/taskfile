@@ -56,32 +56,20 @@ compose:
   network: proxy
   auto_update: true
 
-environment_defaults:
-  container_runtime: docker
-
+# Smart defaults: ssh_host → podman/quadlet, env_file → .env.{name}
 environments:
-  local:
-    compose_command: docker compose
-    env_file: .env.local
-    compose_file: docker-compose.yml
+  local: {}
 
   staging:
     ssh_host: staging.example.com
-    ssh_user: deploy
-    ssh_key: ~/.ssh/id_ed25519
-    env_file: .env.staging
-    compose_file: docker-compose.yml
+    container_runtime: docker
+    compose_command: docker compose
+    service_manager: compose
     variables:
       DOMAIN: staging.example.com
 
   prod:
     ssh_host: prod.example.com
-    ssh_user: deploy
-    ssh_key: ~/.ssh/id_ed25519
-    container_runtime: podman
-    service_manager: quadlet
-    env_file: .env.prod
-    quadlet_dir: deploy/quadlet
     variables:
       DOMAIN: example.com
 

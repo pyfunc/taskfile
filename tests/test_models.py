@@ -117,6 +117,65 @@ class TestSmartDefaults:
         assert local.container_runtime == "docker"
 
 
+class TestEnvironmentDefaults:
+    """Test environment_defaults merging into environments."""
+
+    def test_defaults_applied_to_all_envs(self):
+        data = {
+            "environment_defaults": {
+                "ssh_user": "pi",
+                "ssh_key": "~/.ssh/fleet",
+                "container_runtime": "podman",
+            },
+            "environments": {
+                "node-1": {"ssh_host": "10.0.0.1"},
+                "node-2": {"ssh_host": "10.0.0.2"},
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        for name in ("node-1", "node-2"):
+            env = config.environments[name]
+            assert env.ssh_user == "pi"
+            assert env.ssh_key == "~/.ssh/fleet"
+            assert env.container_runtime == "podman"
+
+    def test_env_overrides_defaults(self):
+        data = {
+            "environment_defaults": {
+                "ssh_user": "pi",
+                "container_runtime": "podman",
+            },
+            "environments": {
+                "local": {"container_runtime": "docker"},
+                "node-1": {"ssh_host": "10.0.0.1", "ssh_user": "admin"},
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert config.environments["local"].container_runtime == "docker"
+        assert config.environments["node-1"].ssh_user == "admin"
+
+    def test_variables_deep_merged(self):
+        data = {
+            "environment_defaults": {
+                "variables": {"COMMON": "shared", "LEVEL": "info"},
+            },
+            "environments": {
+                "gw-1": {
+                    "ssh_host": "10.0.0.1",
+                    "variables": {"GATEWAY_ID": "gw-1", "LEVEL": "debug"},
+                },
+            },
+            "tasks": {"t": {"cmds": ["echo"]}},
+        }
+        config = TaskfileConfig.from_dict(data)
+        gw = config.environments["gw-1"]
+        assert gw.variables["COMMON"] == "shared"
+        assert gw.variables["GATEWAY_ID"] == "gw-1"
+        assert gw.variables["LEVEL"] == "debug"  # env overrides default
+
+
 class TestAddons:
     """Test addons: system expansion into tasks."""
 

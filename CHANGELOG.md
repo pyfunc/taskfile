@@ -130,6 +130,29 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.64] - 2026-03-06
+
+### Docs
+- Update README.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/test_models.py
+
+### Other
+- Update examples/ci-pipeline/.env.local
+- Update examples/ci-pipeline/.env.local.example
+- Update examples/ci-pipeline/.env.prod.example
+- Update examples/ci-pipeline/.env.staging
+- Update examples/ci-pipeline/.env.staging.example
+- Update examples/cloud-aws/.env.dev
+- Update examples/cloud-aws/.env.dev.example
+- Update examples/cloud-aws/.env.local
+- Update examples/cloud-aws/.env.local.example
+- Update examples/cloud-aws/.env.prod-eu
+- ... and 98 more files
+
 ## [0.3.63] - 2026-03-06
 
 ### Docs

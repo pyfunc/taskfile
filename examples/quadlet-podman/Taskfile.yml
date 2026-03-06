@@ -15,23 +15,14 @@ compose:
   network: proxy
   auto_update: true
 
+# Smart defaults: ssh_host → podman/quadlet/~/.ssh/id_ed25519
+# env_file defaults to .env.{env_name}
 environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
-    env_file: .env.local
+  local: {}
 
   prod:
     ssh_host: vps.example.com
-    ssh_user: deploy
     ssh_port: 2222
-    ssh_key: ~/.ssh/id_ed25519
-    container_runtime: podman
-    service_manager: quadlet
-    env_file: .env.prod
-    compose_file: docker-compose.yml
-    quadlet_dir: deploy/quadlet
-    quadlet_remote_dir: ~/.config/containers/systemd
 
 tasks:
 

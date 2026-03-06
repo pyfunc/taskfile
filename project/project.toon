@@ -1,4 +1,4 @@
-# taskfile | 116f 27887L | python:116
+# taskfile | 116f 27961L | python:116
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[116]:
   examples/functions-embed/scripts/report.py,16
@@ -67,7 +67,7 @@ M[116]:
   src/taskfile/health.py,330
   src/taskfile/importer.py,319
   src/taskfile/landing.py,326
-  src/taskfile/models.py,469
+  src/taskfile/models.py,481
   src/taskfile/notifications.py,83
   src/taskfile/parser.py,269
   src/taskfile/provisioner.py,237
@@ -108,7 +108,7 @@ M[116]:
   tests/test_fleet.py,208
   tests/test_health.py,166
   tests/test_landing.py,197
-  tests/test_models.py,617
+  tests/test_models.py,671
   tests/test_parser.py,94
   tests/test_provisioner.py,268
   tests/test_quadlet.py,188
@@ -807,12 +807,12 @@ D:
     TestLandingTemplate: test_template_contains_placeholders(0),test_template_is_valid_html(0)  # Tests for the landing page template i...
   tests/test_models.py:
     i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
-    e: TestEnvironment,TestSmartDefaults,TestAddons,TestDeployRecipe,TestHostsShorthand,TestTask,TestTaskfileConfig,TestEnvFile
+    e: TestEnvironment,TestSmartDefaults,TestEnvironmentDefaults,TestAddons,TestDeployRecipe,TestHostsShorthand,TestTask,TestTaskfileConfig
     TestEnvironment: test_ssh_target(0),test_ssh_target_none_when_no_host(0),test_resolve_variables(0),test_new_fields_defaults(0),test_new_fields_from_dict(0)
     TestSmartDefaults: test_remote_env_defaults_to_podman_quadlet(0),test_local_env_defaults_to_docker_compose(0),test_explicit_override_beats_smart_defaults(0),test_empty_env_section_gets_local(0)  # Test smart defaults in _parse_environ...
+    TestEnvironmentDefaults: test_defaults_applied_to_all_envs(0),test_env_overrides_defaults(0),test_variables_deep_merged(0)  # Test environment_defaults merging int...
     TestAddons: test_postgres_addon(0),test_monitoring_addon(0),test_redis_addon(0),test_multiple_addons(0),test_addon_string_shorthand(0)  # Test addons: system expansion into ta...
     TestDeployRecipe: test_quadlet_recipe_generates_tasks(0),test_compose_recipe(0),test_user_task_overrides_recipe(0),test_single_image_no_build_all(0)  # Test deploy: recipe expansion into ta...
-    TestHostsShorthand: test_basic_hosts_expansion(0),test_hosts_with_groups(0),test_hosts_string_shorthand(0),test_hosts_extra_keys_become_variables(0),test_hosts_merged_with_existing_environments(0)  # Test hosts: compact syntax expansion.
   tests/test_parser.py:
     i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
     e: TestParser

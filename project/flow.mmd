@@ -5,6 +5,9 @@ flowchart TD
     subgraph examples_mega_saas
         examples__generate_report["generate_report"]
     end
+    subgraph examples_mega_saas_v2
+        examples__generate_report["generate_report"]
+    end
     subgraph examples_script_extraction
         examples__script_extraction__scripts__release__run["run"]
         examples__main["main"]
@@ -14,6 +17,17 @@ flowchart TD
         examples__script_extraction__scripts__report__main["main"]
     end
     subgraph src_taskfile
+        src__expand_deploy_recipe{{expand_deploy_recipe CC=17}}
+        src__taskfile__deploy_recipes___compose_deploy["_compose_deploy"]
+        src__taskfile__deploy_recipes___quadlet_deploy["_quadlet_deploy"]
+        src__taskfile__deploy_recipes___ssh_push_deploy["_ssh_push_deploy"]
+        src__taskfile__watch__FileWatcher____init__["__init__"]
+        src__taskfile__watch__FileWatcher___should_ignore("_should_ignore CC=8")
+        src__taskfile__watch__FileWatcher___get_files("_get_files CC=10")
+        src__taskfile__watch__FileWatcher___detect_changes["_detect_changes"]
+        src__taskfile__watch__FileWatcher__start["start"]
+        src__taskfile__watch__FileWatcher__stop["stop"]
+        src__taskfile__watch__watch_tasks["watch_tasks"]
         src__import_makefile["import_makefile"]
         src__export_makefile("export_makefile CC=8")
         src__import_workflow["import_workflow"]
@@ -25,10 +39,10 @@ flowchart TD
         src__taskfile__converters__detect_format("detect_format CC=8")
         src__taskfile__converters__import_file["import_file"]
         src__taskfile__converters__export_file["export_file"]
-        src__expand_deploy_recipe{{expand_deploy_recipe CC=17}}
-        src__taskfile__deploy_recipes___compose_deploy["_compose_deploy"]
-        src__taskfile__deploy_recipes___quadlet_deploy["_quadlet_deploy"]
-        src__taskfile__deploy_recipes___ssh_push_deploy["_ssh_push_deploy"]
+        src__taskfile__landing__generate_landing_page["generate_landing_page"]
+        src__taskfile__landing__build_landing_page["build_landing_page"]
+        src__create_landing_nginx_config["create_landing_nginx_config"]
+        src__create_landing_compose_service["create_landing_compose_service"]
         src__taskfile__registry__TaskPackage____init__["__init__"]
         src__taskfile__registry__TaskPackage__to_dict["to_dict"]
         src__taskfile__registry__TaskPackage__from_dict["from_dict"]
@@ -43,17 +57,12 @@ flowchart TD
         src__list_installed["list_installed"]
         src__taskfile__registry__RegistryClient__uninstall["uninstall"]
         src__taskfile__registry__include_installed_tasks["include_installed_tasks"]
-        src__taskfile__watch__FileWatcher____init__["__init__"]
-        src__taskfile__watch__FileWatcher___should_ignore("_should_ignore CC=8")
-        src__taskfile__watch__FileWatcher___get_files("_get_files CC=10")
-        src__taskfile__watch__FileWatcher___detect_changes["_detect_changes"]
-        src__taskfile__watch__FileWatcher__start["start"]
-        src__taskfile__watch__FileWatcher__stop["stop"]
-        src__taskfile__watch__watch_tasks["watch_tasks"]
-        src__taskfile__landing__generate_landing_page["generate_landing_page"]
-        src__taskfile__landing__build_landing_page["build_landing_page"]
-        src__create_landing_nginx_config["create_landing_nginx_config"]
-        src__create_landing_compose_service["create_landing_compose_service"]
+        src__taskfile__graph__build_dependency_graph["build_dependency_graph"]
+        src__taskfile__graph__detect_cycles["detect_cycles"]
+        src__taskfile__graph__print_task_tree("print_task_tree CC=10")
+        src__taskfile__graph___add_deps_to_tree("_add_deps_to_tree CC=9")
+        src__taskfile__graph__print_dependency_list["print_dependency_list"]
+        src__taskfile__graph__export_to_dot["export_to_dot"]
         src__taskfile__importer__import_file("import_file CC=8")
         src___detect_type_from_yaml_content["_detect_type_from_yaml_content"]
         src__taskfile__importer___detect_type("_detect_type CC=8")
@@ -68,13 +77,9 @@ flowchart TD
         src__taskfile__importer___build_gl_pipeline["_build_gl_pipeline"]
         src__taskfile__importer__parse_gitlab_ci("parse_gitlab_ci CC=9")
         src__taskfile__importer___import_gitlab_ci["_import_gitlab_ci"]
-        src__taskfile__importer__parse_makefile("parse_makefile CC=12")
-        src__taskfile__importer___import_makefile["_import_makefile"]
-        src__taskfile__importer___import_shell_script("_import_shell_script CC=12")
-        src__taskfile__importer___import_dockerfile["_import_dockerfile"]
-        src__taskfile__importer___slugify["_slugify"]
-        src__taskfile__importer___dump_taskfile["_dump_taskfile"]
     end
+    src__expand_deploy_recipe --> src__taskfile__deploy_recipes___compose_deploy
+    src__expand_deploy_recipe --> src__taskfile__deploy_recipes___quadlet_deploy
     src__import_makefile --> src__taskfile__importer__parse_makefile
     src__import_workflow --> src__taskfile__importer__parse_github_actions
     src__import_gitlab_ci --> src__taskfile__importer__parse_gitlab_ci
@@ -87,9 +92,14 @@ flowchart TD
     src__taskfile__converters__export_file --> src__export_workflow
     src__taskfile__converters__export_file --> src__export_package_json
     src__taskfile__converters__export_file --> src__export_docker_compose
-    src__expand_deploy_recipe --> src__taskfile__deploy_recipes___compose_deploy
-    src__expand_deploy_recipe --> src__taskfile__deploy_recipes___quadlet_deploy
     src__taskfile__landing__build_landing_page --> src__taskfile__landing__generate_landing_page
+    src__taskfile__graph__detect_cycles --> src__taskfile__cli__version__set
+    src__taskfile__graph__print_task_tree --> src__taskfile__graph__build_dependency_graph
+    src__taskfile__graph__print_task_tree --> src__taskfile__graph__detect_cycles
+    src__taskfile__graph__print_task_tree --> src__taskfile__graph___add_deps_to_tree
+    src__taskfile__graph__print_task_tree --> src__taskfile__cli__version__set
+    src__taskfile__graph__print_dependency_list --> src__taskfile__graph__build_dependency_graph
+    src__taskfile__graph__export_to_dot --> src__taskfile__graph__build_dependency_graph
     src__taskfile__importer__import_file --> src__taskfile__importer___detect_type
     src__taskfile__importer__import_file --> src__taskfile__importer___import_github_actions
     src__taskfile__importer__import_file --> src__taskfile__importer___import_gitlab_ci
@@ -120,13 +130,6 @@ flowchart TD
     src__taskfile__importer___import_shell_script --> src__taskfile__importer___slugify
     src__taskfile__importer___import_dockerfile --> src__taskfile__importer___dump_taskfile
     src__taskfile__importer___import_dockerfile --> src__taskfile__importer___slugify
-    src__taskfile__graph__detect_cycles --> src__taskfile__cli__version__set
-    src__taskfile__graph__print_task_tree --> src__taskfile__graph__build_dependency_graph
-    src__taskfile__graph__print_task_tree --> src__taskfile__graph__detect_cycles
-    src__taskfile__graph__print_task_tree --> src__taskfile__graph___add_deps_to_tree
-    src__taskfile__graph__print_task_tree --> src__taskfile__cli__version__set
-    src__taskfile__graph__print_dependency_list --> src__taskfile__graph__build_dependency_graph
-    src__taskfile__graph__export_to_dot --> src__taskfile__graph__build_dependency_graph
     src__taskfile__compose__resolve_dict --> src__taskfile__compose__resolve_variables
     src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__resolve_dict
     src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__load_env_file
@@ -168,12 +171,12 @@ flowchart TD
     src__taskfile__ssh___get_connection --> src__taskfile__ssh___pool_key
     src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___ssh_exec_subprocess
     src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___get_connection
-    src__taskfile__models__TaskfileConfig__from_dict --> src__taskfile__addons__expand_addons
-    src___parse_tasks --> src__taskfile__models___normalize_commands
-    src___parse_pipeline --> src__taskfile__models__PipelineConfig__from_dict
     src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_macos
     src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_linux
     src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_windows
+    src__taskfile__models__TaskfileConfig__from_dict --> src__taskfile__addons__expand_addons
+    src___parse_tasks --> src__taskfile__models___normalize_commands
+    src___parse_pipeline --> src__taskfile__models__PipelineConfig__from_dict
     src__taskfile__scaffold__generate_taskfile --> src__taskfile__scaffold___load_template
     src__taskfile__cache__TaskCache__get_stats --> src__taskfile__cli__version__set
     src__taskfile__cache__get_project_hash --> src__taskfile__parser__find_taskfile
@@ -316,13 +319,23 @@ flowchart TD
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_container_files
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_network_file
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_volume_files
-    src__taskfile__runner__ssh__wrap_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
-    src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
-    src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__ssh__ssh_exec
     src__from_path --> src__taskfile__parser__load_taskfile
     src___load_dotenv --> src__taskfile__compose__load_env_file
     src__get_dependency_order --> src__taskfile__cli__version__set
-    src__taskfile__cli__registry_cmds__pkg_uninstall --> src__taskfile__cli__click_compat__confirm
+    src__taskfile__runner__ssh__wrap_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
+    src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
+    src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__ssh__ssh_exec
+    src__taskfile__cli__version__bump --> src__taskfile__cli__version___increment_version
+    src__taskfile__cli__version__bump --> src___update_taskfile_version
+    src__taskfile__cli__version__bump --> src___update_pyproject_version
+    src__taskfile__cli__version__bump --> src__taskfile__cli__version___has_git
+    src__taskfile__cli__version__bump --> src__taskfile__parser__find_taskfile
+    src__taskfile__cli__version__show --> src__taskfile__parser__find_taskfile
+    src__taskfile__cli__version__show --> src__taskfile__cli__version___get_version_from_git
+    src__taskfile__cli__version__set --> src___update_taskfile_version
+    src__taskfile__cli__version__set --> src___update_pyproject_version
+    src__taskfile__cli__version__set --> src__taskfile__cli__version___is_valid_version
+    src__taskfile__cli__version__set --> src__taskfile__parser__find_taskfile
     src__explain --> src__taskfile__cli__version__set
     src___analyze_command --> src__taskfile__runner__ssh__is_local_command
     src___analyze_command --> src__taskfile__runner__ssh__is_remote_command
@@ -350,6 +363,7 @@ flowchart TD
     src__taskfile__cli__import_export__import_cmd --> src__taskfile__converters__import_file
     src__taskfile__cli__import_export__export_cmd --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__import_export__export_cmd --> src__taskfile__converters__export_file
+    src__taskfile__cli__registry_cmds__pkg_uninstall --> src__taskfile__cli__click_compat__confirm
     src__taskfile__cli__health__health_cmd --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__health__health_cmd --> src__taskfile__health__run_health_checks
     src__taskfile__cli__health__health_cmd --> src__taskfile__health__print_health_report
@@ -358,39 +372,14 @@ flowchart TD
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_env
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_files
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___run_upload_commands
+    src__taskfile__cli__cache_cmds__cache_show --> src__taskfile__cache__get_project_hash
+    src__taskfile__cli__cache_cmds__cache_clear --> src__taskfile__cache__get_project_hash
     src__taskfile__cli__ci__ci_generate --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_run --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_list --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_preview --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_preview --> src__taskfile__cigen__preview_ci
     src__taskfile__cli__ci__ci_targets --> src__taskfile__cigen__list_targets
-    src__taskfile__cli__cache_cmds__cache_show --> src__taskfile__cache__get_project_hash
-    src__taskfile__cli__cache_cmds__cache_clear --> src__taskfile__cache__get_project_hash
-    src__taskfile__deploy_utils__setup_ssh_key --> src__taskfile__deploy_utils__test_ssh_connection
-    src__taskfile__deploy_utils__check_remote_podman --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__check_remote_disk --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__list_remote_images --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_podman
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_disk
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__list_remote_images
-    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
-    src__transfer_images_via_ssh --> src__transfer_image_via_ssh
-    src__deploy_container_remote --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__stop_container_remote --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__get_remote_logs --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__get_remote_status --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__cli__version__bump --> src__taskfile__cli__version___increment_version
-    src__taskfile__cli__version__bump --> src___update_taskfile_version
-    src__taskfile__cli__version__bump --> src___update_pyproject_version
-    src__taskfile__cli__version__bump --> src__taskfile__cli__version___has_git
-    src__taskfile__cli__version__bump --> src__taskfile__parser__find_taskfile
-    src__taskfile__cli__version__show --> src__taskfile__parser__find_taskfile
-    src__taskfile__cli__version__show --> src__taskfile__cli__version___get_version_from_git
-    src__taskfile__cli__version__set --> src___update_taskfile_version
-    src__taskfile__cli__version__set --> src___update_pyproject_version
-    src__taskfile__cli__version__set --> src__taskfile__cli__version___is_valid_version
-    src__taskfile__cli__version__set --> src__taskfile__parser__find_taskfile
     src__taskfile__cli__api_cmd__api_openapi --> src__taskfile__api__app__create_app
     src___resolve_release_config --> src__taskfile__parser__load_taskfile
     src___resolve_release_config --> src__taskfile__cli__release___get_current_tag
@@ -429,6 +418,20 @@ flowchart TD
     src__taskfile__cli__completion__get_task_names --> src__taskfile__parser__load_taskfile
     src__get_environment_names --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__completion__get_platform_names --> src__taskfile__parser__load_taskfile
+    src__taskfile__deploy_utils__setup_ssh_key --> src__taskfile__deploy_utils__test_ssh_connection
+    src__taskfile__deploy_utils__check_remote_podman --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__check_remote_disk --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__list_remote_images --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_podman
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_disk
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__list_remote_images
+    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
+    src__transfer_images_via_ssh --> src__transfer_image_via_ssh
+    src__deploy_container_remote --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__stop_container_remote --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__get_remote_logs --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__get_remote_status --> src__taskfile__deploy_utils__ssh_exec
     src__taskfile__cli__deploy___ssh --> src__taskfile__cli__deploy___run
     src__taskfile__cli__deploy___deploy_local_compose --> src__taskfile__cli__deploy___run
     src__taskfile__cli__deploy___deploy_ssh_push --> src___discover_compose_images
@@ -474,17 +477,17 @@ flowchart TD
     src__taskfile__cli__fleet__fleet_repair_cmd --> src__taskfile__cli__fleet___apply_repair_fixes
     src__taskfile__cli__fleet__fleet_repair_cmd --> src__taskfile__cli__fleet___ping
     src__taskfile__cli__fleet__fleet_list_cmd --> src__taskfile__cli__fleet___load_config_or_exit
+    src__taskfile__cli__info_cmd__info --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__info_cmd__info --> src___print_task_attributes
+    src__taskfile__cli__info_cmd__info --> src__taskfile__cli__info_cmd___print_task_body
+    src__taskfile__cli__info_cmd__info --> src__taskfile__cli__main___print_nearby_taskfiles
+    src__generate --> src__taskfile__cigen__base___yaml_dump
     src__taskfile__cli__e2e_cmd___check_taskfile_valid --> src__taskfile__parser__validate_taskfile
     src__taskfile__cli__e2e_cmd___check_env_file --> src__taskfile__compose__load_env_file
     src___check_containers_running --> src__taskfile__deploy_utils__test_ssh_connection
     src___check_ssh_connectivity --> src__taskfile__deploy_utils__test_ssh_connection
     src__taskfile__cli__e2e_cmd___check_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
     src__taskfile__cli__e2e_cmd___check_remote_disk --> src__taskfile__deploy_utils__check_remote_disk
-    src__taskfile__cli__info_cmd__info --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__info_cmd__info --> src___print_task_attributes
-    src__taskfile__cli__info_cmd__info --> src__taskfile__cli__info_cmd___print_task_body
-    src__taskfile__cli__info_cmd__info --> src__taskfile__cli__main___print_nearby_taskfiles
-    src__generate --> src__taskfile__cigen__base___yaml_dump
     src__generate --> src__taskfile__cigen__base___sanitize_id
     src__taskfile__cli__main___print_nearby_taskfiles --> src__taskfile__cli__main___format_nearby_path
     src__taskfile__cli__main___print_nearby_taskfiles --> src__taskfile__cli__main___nearby_cd_hint
@@ -540,5 +543,5 @@ flowchart TD
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
-    class src__expand_deploy_recipe,src__taskfile__diagnostics__checks__check_ports,src__taskfile__diagnostics__report___print_summary,src___validate_command_files,src__taskfile__runner__commands___handle_failure,src__taskfile__runner__commands__execute_commands,src__taskfile__runner__core__TaskfileRunner__run,src__print_teach_report,src__taskfile__cli__explain_cmd__explain,src___check_containers_running,src__taskfile__cli__e2e_cmd__e2e_cmd,src__taskfile__cli__click_compat__prompt,src__taskfile__cli__main__run,src___validate_dependent_files,src__taskfile__cli__interactive__wizards__doctor highCC
-    class src__export_makefile,src__export_workflow,src__export_docker_compose,src__taskfile__converters__detect_format,src___install_from_github,src__taskfile__watch__FileWatcher___should_ignore,src__taskfile__watch__FileWatcher___get_files,src__taskfile__importer__import_file,src__taskfile__importer___detect_type,src___extract_gh_steps_as_commands,src__taskfile__importer__parse_github_actions,src__taskfile__importer__parse_gitlab_ci,src__taskfile__importer__parse_makefile,src__taskfile__importer___import_shell_script,src__taskfile__graph__print_task_tree,src__taskfile__graph___add_deps_to_tree,src__taskfile__compose__load_env_file,src__taskfile__cirunner__PipelineRunner__run,src__taskfile__health__check_http_endpoint,src__taskfile__health__run_health_checks,src__taskfile__fleet__save_fleet,src__taskfile__fleet___parse_status_output,src__taskfile__fleet__deploy_to_device,src__taskfile__fleet__deploy_to_group,src__taskfile__parser___scan_subdirectories,src__taskfile__parser___merge_include_sections,src__taskfile__parser___validate_referenced_files,src__taskfile__models__TaskfileConfig__from_dict,src___expand_hosts,src__taskfile__notifications__notify_task_complete medCC
+    class src__expand_deploy_recipe,src__taskfile__models__TaskfileConfig__from_dict,src__taskfile__diagnostics__checks__check_ports,src__taskfile__diagnostics__report___print_summary,src___validate_command_files,src__taskfile__runner__commands___handle_failure,src__taskfile__runner__commands__execute_commands,src__taskfile__runner__core__TaskfileRunner__run,src__print_teach_report,src__taskfile__cli__explain_cmd__explain,src__taskfile__cli__click_compat__prompt,src___check_containers_running,src__taskfile__cli__e2e_cmd__e2e_cmd,src__taskfile__cli__main__run,src___validate_dependent_files,src__taskfile__cli__interactive__wizards__doctor highCC
+    class src__taskfile__watch__FileWatcher___should_ignore,src__taskfile__watch__FileWatcher___get_files,src__export_makefile,src__export_workflow,src__export_docker_compose,src__taskfile__converters__detect_format,src___install_from_github,src__taskfile__graph__print_task_tree,src__taskfile__graph___add_deps_to_tree,src__taskfile__importer__import_file,src__taskfile__importer___detect_type,src___extract_gh_steps_as_commands,src__taskfile__importer__parse_github_actions,src__taskfile__importer__parse_gitlab_ci,src__taskfile__importer__parse_makefile,src__taskfile__importer___import_shell_script,src__taskfile__compose__load_env_file,src__taskfile__cirunner__PipelineRunner__run,src__taskfile__health__check_http_endpoint,src__taskfile__health__run_health_checks,src__taskfile__fleet__save_fleet,src__taskfile__fleet___parse_status_output,src__taskfile__fleet__deploy_to_device,src__taskfile__fleet__deploy_to_group,src__taskfile__parser___scan_subdirectories,src__taskfile__parser___merge_include_sections,src__taskfile__parser___validate_referenced_files,src__taskfile__notifications__notify_task_complete,src___expand_hosts,src__taskfile__cache__TaskCache__is_fresh medCC

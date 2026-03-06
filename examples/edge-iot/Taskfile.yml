@@ -11,92 +11,49 @@ variables:
   MQTT_BROKER: mqtt.example.com
   MQTT_PORT: "1883"
 
-# ─── Defaults ─────────────────────────────────────────
-# All gateways share SSH config, custom port 2200, Podman runtime.
+# ─── Hosts (compact gateway fleet) ───────────────────
+# Extra keys (gateway_id, gateway_type, sensor_protocol, log_level)
+# automatically become uppercase variables.
 
-environment_defaults:
-  ssh_user: edge
-  ssh_key: ~/.ssh/iot_ed25519
-  ssh_port: 2200
-  container_runtime: podman
-  variables:
-    MQTT_BROKER: mqtt.example.com
-    MQTT_PORT: "1883"
-    LOG_LEVEL: info
+hosts:
+  _defaults:
+    user: edge
+    key: ~/.ssh/iot_ed25519
+    port: 2200
+    runtime: podman
+    mqtt_broker: mqtt.example.com
+    mqtt_port: "1883"
+    log_level: info
+
+  gw-factory-1:   { host: 10.0.1.10, env_file: .env.factory, gateway_id: factory-1, gateway_type: industrial, sensor_protocol: modbus, log_level: debug }
+  gw-factory-2:   { host: 10.0.1.11, env_file: .env.factory, gateway_id: factory-2, gateway_type: industrial, sensor_protocol: modbus }
+  gw-warehouse-1: { host: 10.0.2.10, env_file: .env.warehouse, gateway_id: warehouse-1, gateway_type: storage, sensor_protocol: mqtt }
+  gw-warehouse-2: { host: 10.0.2.11, env_file: .env.warehouse, gateway_id: warehouse-2, gateway_type: storage, sensor_protocol: mqtt }
+  gw-office-1:    { host: 10.0.3.10, env_file: .env.office, gateway_id: office-1, gateway_type: environment, sensor_protocol: zigbee }
+
+  _groups:
+    # Rolling: update 2 at a time, all gateways
+    all-gateways:
+      members: [gw-factory-1, gw-factory-2, gw-warehouse-1, gw-warehouse-2, gw-office-1]
+      strategy: rolling
+      max_parallel: 2
+    # Parallel: factory gateways updated simultaneously (downtime window)
+    factory:
+      members: [gw-factory-1, gw-factory-2]
+      strategy: parallel
+    # Canary: test on 1 warehouse gateway first, then the rest
+    warehouse:
+      members: [gw-warehouse-1, gw-warehouse-2]
+      strategy: canary
+      canary_count: 1
+    # Critical: factory only during maintenance window
+    critical:
+      members: [gw-factory-1, gw-factory-2]
+      strategy: rolling
+      max_parallel: 1
 
 environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
-    env_file: .env.local
-
-  gw-factory-1:
-    ssh_host: 10.0.1.10
-    env_file: .env.factory
-    variables:
-      GATEWAY_ID: factory-1
-      GATEWAY_TYPE: industrial
-      SENSOR_PROTOCOL: modbus
-      LOG_LEVEL: debug
-
-  gw-factory-2:
-    ssh_host: 10.0.1.11
-    env_file: .env.factory
-    variables:
-      GATEWAY_ID: factory-2
-      GATEWAY_TYPE: industrial
-      SENSOR_PROTOCOL: modbus
-
-  gw-warehouse-1:
-    ssh_host: 10.0.2.10
-    env_file: .env.warehouse
-    variables:
-      GATEWAY_ID: warehouse-1
-      GATEWAY_TYPE: storage
-      SENSOR_PROTOCOL: mqtt
-
-  gw-warehouse-2:
-    ssh_host: 10.0.2.11
-    env_file: .env.warehouse
-    variables:
-      GATEWAY_ID: warehouse-2
-      GATEWAY_TYPE: storage
-      SENSOR_PROTOCOL: mqtt
-
-  gw-office-1:
-    ssh_host: 10.0.3.10
-    env_file: .env.office
-    variables:
-      GATEWAY_ID: office-1
-      GATEWAY_TYPE: environment
-      SENSOR_PROTOCOL: zigbee
-
-# ─── Groups ───────────────────────────────────────────
-# Three different strategies for different risk profiles.
-
-environment_groups:
-  # Rolling: update 2 at a time, all gateways
-  all-gateways:
-    members: [gw-factory-1, gw-factory-2, gw-warehouse-1, gw-warehouse-2, gw-office-1]
-    strategy: rolling
-    max_parallel: 2
-
-  # Parallel: factory gateways updated simultaneously (downtime window)
-  factory:
-    members: [gw-factory-1, gw-factory-2]
-    strategy: parallel
-
-  # Canary: test on 1 warehouse gateway first, then the rest
-  warehouse:
-    members: [gw-warehouse-1, gw-warehouse-2]
-    strategy: canary
-    canary_count: 1
-
-  # Critical: factory only during maintenance window
-  critical:
-    members: [gw-factory-1, gw-factory-2]
-    strategy: rolling
-    max_parallel: 1
+  local: {}
 
 tasks:
 

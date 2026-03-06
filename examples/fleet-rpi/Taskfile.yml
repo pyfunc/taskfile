@@ -9,61 +9,39 @@ variables:
   IMAGE: ghcr.io/myorg/kiosk-app
   TAG: latest
 
-# ─── Environments ─────────────────────────────────────
-# Shared defaults avoid repeating ssh_user/ssh_key/runtime on every device.
+# ─── Hosts (compact fleet declaration) ───────────────
+# Smart defaults: ssh_host → podman + quadlet + ~/.ssh/id_ed25519
+# Extra keys (kiosk_id, kiosk_display) → uppercase variables
 
-environment_defaults:
-  ssh_user: pi
-  ssh_key: ~/.ssh/fleet_ed25519
-  container_runtime: podman
-  variables:
-    KIOSK_DISPLAY: ":0"
+hosts:
+  _defaults:
+    user: pi
+    key: ~/.ssh/fleet_ed25519
+    runtime: podman
+    kiosk_display: ":0"
+
+  kiosk-lobby:            { host: 192.168.1.10, kiosk_id: lobby }
+  kiosk-cafe:             { host: 192.168.1.11, kiosk_id: cafe }
+  kiosk-entrance-north:   { host: 192.168.1.12, kiosk_id: entrance-north }
+  kiosk-entrance-south:   { host: 192.168.1.13, kiosk_id: entrance-south }
+  kiosk-food-court:       { host: 192.168.1.14, kiosk_id: food-court }
+  kiosk-parking:          { host: 192.168.1.15, kiosk_id: parking }
+
+  _groups:
+    all-kiosks:
+      members: [kiosk-lobby, kiosk-cafe, kiosk-entrance-north, kiosk-entrance-south, kiosk-food-court, kiosk-parking]
+      strategy: rolling
+      max_parallel: 2
+    entrances:
+      members: [kiosk-entrance-north, kiosk-entrance-south]
+      strategy: parallel
+    high-traffic:
+      members: [kiosk-lobby, kiosk-cafe, kiosk-food-court]
+      strategy: canary
+      canary_count: 1
 
 environments:
-  local:
-    container_runtime: docker
-    compose_command: docker compose
-
-  kiosk-lobby:
-    ssh_host: 192.168.1.10
-    variables: { KIOSK_ID: lobby }
-
-  kiosk-cafe:
-    ssh_host: 192.168.1.11
-    variables: { KIOSK_ID: cafe }
-
-  kiosk-entrance-north:
-    ssh_host: 192.168.1.12
-    variables: { KIOSK_ID: entrance-north }
-
-  kiosk-entrance-south:
-    ssh_host: 192.168.1.13
-    variables: { KIOSK_ID: entrance-south }
-
-  kiosk-food-court:
-    ssh_host: 192.168.1.14
-    variables: { KIOSK_ID: food-court }
-
-  kiosk-parking:
-    ssh_host: 192.168.1.15
-    variables: { KIOSK_ID: parking }
-
-# ─── Groups ──────────────────────────────────────────
-
-environment_groups:
-  all-kiosks:
-    members: [kiosk-lobby, kiosk-cafe, kiosk-entrance-north, kiosk-entrance-south, kiosk-food-court, kiosk-parking]
-    strategy: rolling
-    max_parallel: 2
-
-  entrances:
-    members: [kiosk-entrance-north, kiosk-entrance-south]
-    strategy: parallel
-
-  high-traffic:
-    members: [kiosk-lobby, kiosk-cafe, kiosk-food-court]
-    strategy: canary
-    canary_count: 1
+  local: {}
 
 # ─── Tasks ────────────────────────────────────────────
 

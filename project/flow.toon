@@ -1,4 +1,4 @@
-# taskfile/flow | 668 func | 12 pipelines | 18 hub-types | 2026-03-06
+# taskfile/flow | 669 func | 12 pipelines | 18 hub-types | 2026-03-06
 
 PIPELINES[12] (IO:12):
   Src [IO]: list[str] → paramiko.SSHClient
@@ -143,18 +143,18 @@ TRANSFORMS (fan-out ≥10):
   create_app(taskfile_path:str | None) → FastAPI          fan=52   !! mutation-heavy
   doctor(fix, verbose, report, check_examples_flag, llm, category, teach) fan=29   !! side-effects
   e2e_cmd(ctx, check_only, url, port_web, port_landing)   fan=25   !! side-effects
+  from_dict(cls, data:dict[str, Any]) → TaskfileConfig    fan=24   !! side-effects
   run(ctx, tasks, run_tags, explain, teach)               fan=23   !! side-effects
   explain(ctx, task_name)                                 fan=21   !! side-effects
   _check_containers_running(env, config) → E2EResult      fan=21   !! side-effects
   prod(env_file)                                          fan=21   !! side-effects
   bump(ctx, part, dry_run, force)                         fan=20   !! side-effects
-  from_dict(cls, data:dict[str, Any]) → TaskfileConfig    fan=19   PIPELINE:TaskfileConfig.entry
   _validate_dependent_files(config) → None                fan=19   fan=19
   _install_from_github(repo:str, version:str | None, save:bool) → Path fan=18   PIPELINE:RegistryClient.entry
   _validate_command_files(cmd:str, cwd:str | Path | None) → list[str] fan=17   fan=17
   check_placeholder_values(config:TaskfileConfig) → list[Issue] fan=16   fan=16
+  set(ctx, new_version, dry_run, force)                   fan=16   fan=16
   auth_setup(registry)                                    fan=16   fan=16
-  quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services, dry_run) fan=16   fan=16
 
 CONTRACTS:
   Pipeline: Src
@@ -675,7 +675,7 @@ CONTRACTS:
       SIDE-EFFECT: pure
 
 
-DATA_TYPES (by cross-function usage) [602 annotated, 0 inferred / 668 functions]:
+DATA_TYPES (by cross-function usage) [602 annotated, 0 inferred / 669 functions]:
   str                  consumed:362 produced:75   !! HUB-TYPE → split interface
   bool                 consumed:80  produced:79   !! HUB-TYPE → split interface
   int                  consumed:64  produced:24   !! HUB-TYPE → split interface
@@ -688,9 +688,9 @@ DATA_TYPES (by cross-function usage) [602 annotated, 0 inferred / 668 functions]
   list[Issue]          consumed:10  produced:21   !! HUB-TYPE → split interface
   dict[str, str]       consumed:15  produced:11   !! HUB-TYPE → split interface
   list[str] | None     consumed:18  produced:1    !! HUB-TYPE → split interface
-  FleetConfig          consumed:11  produced:2    !! HUB-TYPE → split interface
-  dict[str, str] | None consumed:13  produced:0    !! HUB-TYPE → split interface
   str | Path           consumed:13  produced:0    !! HUB-TYPE → split interface
+  dict[str, str] | None consumed:13  produced:0    !! HUB-TYPE → split interface
+  FleetConfig          consumed:11  produced:2    !! HUB-TYPE → split interface
   Issue                consumed:11  produced:1    !! HUB-TYPE → split interface
   str | Path | None    consumed:12  produced:0    !! HUB-TYPE → split interface
   ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
@@ -722,11 +722,11 @@ DATA_TYPES (by cross-function usage) [602 annotated, 0 inferred / 668 functions]
       - (analyze consumers to suggest sub-interfaces)
     list[str] | None → 18 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    FleetConfig → 11 consumers → split into:
+    str | Path → 13 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     dict[str, str] | None → 13 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    str | Path → 13 consumers → split into:
+    FleetConfig → 11 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     Issue → 11 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
@@ -736,10 +736,10 @@ DATA_TYPES (by cross-function usage) [602 annotated, 0 inferred / 668 functions]
       - (analyze consumers to suggest sub-interfaces)
 
 SIDE_EFFECTS:
-  IO:        GitHubActionsConverter.export_workflow, NpmScriptsConverter.import_package_json, NpmScriptsConverter.export_package_json, DockerComposeConverter.export_docker_compose, import_file, RegistryClient.__init__, RegistryClient._search_github, RegistryClient._install_from_github, RegistryClient._install_from_url, RegistryClient._save_dependency
+  IO:        FileWatcher.start, FileWatcher.stop, watch_tasks, GitHubActionsConverter.export_workflow, NpmScriptsConverter.import_package_json, NpmScriptsConverter.export_package_json, DockerComposeConverter.export_docker_compose, import_file, build_landing_page, RegistryClient.__init__
   Cache:     TaskCache.__init__, TaskCache.save, TaskCache.clear, TaskCache.get_stats
-  Mutation:  MakefileConverter.export_makefile, expand_deploy_recipe, _quadlet_deploy, _ssh_push_deploy, TaskPackage.__init__, RegistryClient.search, FileWatcher.__init__, FileWatcher._detect_changes, _extract_gh_steps_as_commands, parse_github_actions
-  Pure:      MakefileConverter.import_makefile, GitHubActionsConverter.import_workflow, GitLabCIConverter.import_gitlab_ci, detect_format, export_file, _compose_deploy, TaskPackage.to_dict, TaskPackage.from_dict, RegistryClient.install, RegistryClient._parse_package_name
+  Mutation:  expand_deploy_recipe, _quadlet_deploy, _ssh_push_deploy, FileWatcher.__init__, FileWatcher._detect_changes, MakefileConverter.export_makefile, TaskPackage.__init__, RegistryClient.search, _add_deps_to_tree, _extract_gh_steps_as_commands
+  Pure:      _compose_deploy, FileWatcher._should_ignore, FileWatcher._get_files, MakefileConverter.import_makefile, GitHubActionsConverter.import_workflow, GitLabCIConverter.import_gitlab_ci, detect_format, export_file, generate_landing_page, create_landing_nginx_config
 
   PIPELINE PURITY:
     Src             █░░░ 30% pure

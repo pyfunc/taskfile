@@ -1,7 +1,8 @@
-# taskfile | 93f 20327L | python:93
+# taskfile | 94f 20417L | python:94
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[93]:
+M[94]:
   examples/functions-embed/scripts/report.py,22
+  examples/mega-saas-v2/scripts/report.py,75
   examples/mega-saas/scripts/report.py,75
   examples/script-extraction/scripts/migrate.py,32
   examples/script-extraction/scripts/provision.py,55
@@ -66,7 +67,7 @@ M[93]:
   src/taskfile/health.py,408
   src/taskfile/importer.py,442
   src/taskfile/landing.py,365
-  src/taskfile/models.py,552
+  src/taskfile/models.py,567
   src/taskfile/notifications.py,109
   src/taskfile/parser.py,344
   src/taskfile/provisioner.py,308
@@ -167,6 +168,18 @@ D:
     _classify_exit_code(returncode)
     _handle_failure(returncode;task;task_name;start;label;cmd;source_path;runner)
     execute_commands(runner;task;task_name;start)
+  src/taskfile/models.py:
+    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
+    Environment: resolve_variables(2)  # Deployment environment configuration...
+    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
+    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
+    ComposeConfig:  # Compose-based deployment configuration...
+    Function:  # Embedded function callable from tasks via @fn prefix...
+    Task: should_run_on(1),should_run_on_platform(1)  # Single task definition...
+    PipelineStage:  # A stage in the CI/CD pipeline...
+    PipelineConfig: from_dict(1),infer_from_tasks(1)  # CI/CD pipeline configuration...
+    TaskfileConfig: from_dict(1),_expand_hosts(0),_parse_compose(0),_parse_environments(0),_parse_environment_groups(0),_parse_platforms(0),_parse_functions(0),_parse_tasks(0),_parse_pipeline(1)  # Parsed Taskfile configuration...
+    _normalize_commands(cmds)
   src/taskfile/runner/core.py:
     e: TaskRunError,TaskfileRunner
     TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
@@ -248,18 +261,6 @@ Composes:
     _run_examples_check(diagnostics;report)
     _apply_init_extras(choices)
     init(template;force;interactive)
-  src/taskfile/models.py:
-    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
-    Environment: resolve_variables(2)  # Deployment environment configuration...
-    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
-    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
-    ComposeConfig:  # Compose-based deployment configuration...
-    Function:  # Embedded function callable from tasks via @fn prefix...
-    Task: should_run_on(1),should_run_on_platform(1)  # Single task definition...
-    PipelineStage:  # A stage in the CI/CD pipeline...
-    PipelineConfig: from_dict(1),infer_from_tasks(1)  # CI/CD pipeline configuration...
-    TaskfileConfig: from_dict(1),_expand_hosts(0),_parse_compose(0),_parse_environments(0),_parse_environment_groups(0),_parse_platforms(0),_parse_functions(0),_parse_tasks(0),_parse_pipeline(1)  # Parsed Taskfile configuration...
-    _normalize_commands(cmds)
   src/taskfile/diagnostics/llm_repair.py:
     e: is_available,ask_llm_for_fix,classify_runtime_error,_extract_missing_binary
     is_available()
@@ -401,14 +402,6 @@ Composes:
     _exec_function_node(fn;fn_args;env;task)
     _exec_function_binary(fn;fn_args;env;task)
     run_inline_python(runner;cmd;task)
-  src/taskfile/cli/ci.py:
-    e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
-    ci()
-    ci_generate(ctx;targets;gen_all;output_dir)
-    ci_run(ctx;stages;skip_stages;stop_at)
-    ci_list(ctx)
-    ci_preview(ctx;target)
-    ci_targets()
   src/taskfile/cli/version.py:
     e: version,bump,show,set,_increment_version,_is_valid_version,_get_version_from_git,_has_git,_git_commit_version,_update_taskfile_version,_update_pyproject_version
     version()
@@ -422,6 +415,14 @@ Composes:
     _git_commit_version(project_dir;version)
     _update_taskfile_version(taskfile_path;version)
     _update_pyproject_version(pyproject_path;version)
+  src/taskfile/cli/ci.py:
+    e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
+    ci()
+    ci_generate(ctx;targets;gen_all;output_dir)
+    ci_run(ctx;stages;skip_stages;stop_at)
+    ci_list(ctx)
+    ci_preview(ctx;target)
+    ci_targets()
   src/taskfile/cli/setup.py:
     e: SetupConfig,_validate_ip,_validate_ssh_key,_collect_interactive_setup,_write_env_files,_provision_ssh_key,_test_ssh_connection,_provision_vps,_is_vps_ready,_deploy_application,_print_summary,_parse_ports,_build_config_from_args,_execute_setup_steps,setup
     SetupConfig: __init__(7)  # Configuration collected during setup process...
@@ -562,6 +563,11 @@ Th...
     _notify_linux(title;message)
     _notify_windows(title;message)
     is_notification_available()
+  src/taskfile/cli/import_export.py:
+    e: import_cmd,export_cmd,detect
+    import_cmd(source;source_type;output_path;force)
+    export_cmd(ctx;target_type;output_path;workflow_name;project_name;taskfile_path)
+    detect()
   src/taskfile/cli/registry_cmds.py:
     e: pkg,pkg_search,pkg_install,pkg_list,pkg_uninstall,pkg_info
     pkg()
@@ -570,11 +576,6 @@ Th...
     pkg_list(all)
     pkg_uninstall(package_name;yes)
     pkg_info(package_name)
-  src/taskfile/cli/import_export.py:
-    e: import_cmd,export_cmd,detect
-    import_cmd(source;source_type;output_path;force)
-    export_cmd(ctx;target_type;output_path;workflow_name;project_name;taskfile_path)
-    detect()
   src/taskfile/cli/api_cmd.py:
     e: api,api_serve,api_openapi
     api()
@@ -765,6 +766,9 @@ Ne...
     e: main
     main()
   examples/mega-saas/scripts/report.py:
+    e: generate_report
+    generate_report()
+  examples/mega-saas-v2/scripts/report.py:
     e: generate_report
     generate_report()
   src/taskfile/__init__.py:

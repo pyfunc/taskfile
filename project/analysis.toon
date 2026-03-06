@@ -1,9 +1,10 @@
-# code2llm | 87f 20052L | py:87 | 2026-03-06
-# CC̄=4.6 | critical:55/668 | dups:0 | cycles:0
+# code2llm | 87f 20067L | py:87 | 2026-03-06
+# CC̄=4.6 | critical:55/669 | dups:0 | cycles:0
 
-HEALTH[16]:
-  🔴 GOD   src/taskfile/models.py = 552L, 9 classes, 16m, max CC=14
+HEALTH[17]:
+  🔴 GOD   src/taskfile/models.py = 567L, 9 classes, 16m, max CC=18
   🟡 CC    expand_deploy_recipe CC=17 (limit:15)
+  🟡 CC    from_dict CC=18 (limit:15)
   🟡 CC    check_ports CC=17 (limit:15)
   🟡 CC    _print_summary CC=17 (limit:15)
   🟡 CC    _validate_command_files CC=21 (limit:15)
@@ -12,16 +13,16 @@ HEALTH[16]:
   🟡 CC    run CC=18 (limit:15)
   🟡 CC    print_teach_report CC=31 (limit:15)
   🟡 CC    explain CC=26 (limit:15)
+  🟡 CC    prompt CC=18 (limit:15)
   🟡 CC    _check_containers_running CC=20 (limit:15)
   🟡 CC    e2e_cmd CC=22 (limit:15)
-  🟡 CC    prompt CC=18 (limit:15)
   🟡 CC    run CC=15 (limit:15)
   🟡 CC    _validate_dependent_files CC=22 (limit:15)
   🟡 CC    doctor CC=17 (limit:15)
 
 REFACTOR[2]:
   1. split src/taskfile/models.py  (god module)
-  2. split 15 high-CC methods  (CC>15)
+  2. split 16 high-CC methods  (CC>15)
 
 COUPLING: no cross-package imports detected
 
@@ -30,8 +31,8 @@ LAYERS:
   │ !! checks                     961L  0C   31m  CC=17     ←2
   │ !! commands                   680L  0C   20m  CC=21     ←1
   │ !! main                       679L  0C   19m  CC=22     ←3
+  │ !! models                     567L  9C   16m  CC=18     ←1
   │ !! app                        559L  0C    3m  CC=7      ←1
-  │ !! models                     552L  9C   16m  CC=14     ←1
   │ !! menu                       552L  0C    9m  CC=8      ←0
   │ deploy_utils               492L  2C   18m  CC=6      ←4
   │ !  fleet                      483L  5C   16m  CC=10     ←0
@@ -126,6 +127,7 @@ FUNCTIONS (CC≥10, 55 of 660):
    21.0  _validate_command_files                    26n   3exit  loops+cond+ret  !! split
    20.0  execute_commands                           32n   5exit  loops+cond+ret  !! split
    20.0  _check_containers_running                  20n   6exit  loops+cond+ret  !! split
+   18.0  TaskfileConfig.from_dict                   22n   2exit  loops+cond+ret  !! split
    18.0  TaskfileRunner.run                         16n   3exit  loops+cond+ret  !! split
    18.0  prompt                                     13n   2exit  cond+ret  !! split
    17.0  expand_deploy_recipe                       22n   3exit  loops+cond+ret  !! split
@@ -162,13 +164,12 @@ FUNCTIONS (CC≥10, 55 of 660):
    10.0  print_task_tree                            14n   3exit  loops+cond+ret
    10.0  save_fleet                                 18n   2exit  loops+cond+ret
    10.0  _parse_status_output                       12n   1exit  cond
-   10.0  TaskfileConfig.from_dict                   15n   2exit  loops+cond+ret
    10.0  check_examples                             13n   3exit  loops+cond+ret
    10.0  run_function                               22n   7exit  cond+ret
    10.0  _get_tip_for_failure                       17n   6exit  cond+ret
    10.0  _dispatch_special_prefix                   28n   9exit  cond+ret
-   10.0  ci_generate                                 2n   1exit  
    10.0  bump                                       12n   1exit  cond
+   10.0  ci_generate                                 2n   1exit  
 
   summary:
     critical(≥10): 55 | high(5-10): 205 | medium(2-5): 267 | low(<2): 133
@@ -178,12 +179,12 @@ HOTSPOTS:
   #1  create_app                           fan=52   "calls 52 functions"
   #2  doctor                               fan=29   "calls 29 functions"
   #3  e2e_cmd                              fan=25   "calls 25 functions"
-  #4  run                                  fan=23   "calls 23 functions"
-  #5  explain                              fan=21   "calls 21 functions"
-  #6  _check_containers_running            fan=21   "calls 21 functions"
-  #7  prod                                 fan=21   "calls 21 functions"
-  #8  bump                                 fan=20   "calls 20 functions"
-  #9  TaskfileConfig.from_dict             fan=19   "TaskfileConfig method, fan-out=19"
+  #4  TaskfileConfig.from_dict             fan=24   "TaskfileConfig method, fan-out=24"
+  #5  run                                  fan=23   "calls 23 functions"
+  #6  explain                              fan=21   "calls 21 functions"
+  #7  _check_containers_running            fan=21   "calls 21 functions"
+  #8  prod                                 fan=21   "calls 21 functions"
+  #9  bump                                 fan=20   "calls 20 functions"
   #10 _validate_dependent_files            fan=19   "calls 19 functions"
 
 CLASSES:
@@ -196,7 +197,7 @@ CLASSES:
   RegistryClient                 ████████                  10m  CC̄=3.9   max=9   
   TaskfileHandler                ████████                  10m  CC̄=2.5   max=8   
   ComposeFile                    ███████                    9m  CC̄=3.3   max=6   
-  TaskfileConfig                 ███████                    9m  CC̄=5.7   max=14  
+  TaskfileConfig                 ███████                    9m  CC̄=6.6   max=18    !!
   GitLabCITarget                 ██████                     8m  CC̄=2.6   max=5   
   PipelineRunner                 █████                      7m  CC̄=5.0   max=8   
   TaskExplainer                  █████                      7m  CC̄=7.6   max=12  
@@ -228,9 +229,9 @@ CLASSES:
   TaskRunError                                              1m  CC̄=1.0   max=1   
   SetupConfig                                               1m  CC̄=1.0   max=1   
   DeployStrategy                                            1m  CC̄=1.0   max=1   
-  E2EResult                                                 1m  CC̄=1.0   max=1   
   BadParameter                                              1m  CC̄=1.0   max=1   
   ClickException                                            1m  CC̄=1.0   max=1   
+  E2EResult                                                 1m  CC̄=1.0   max=1   
   MakefileTarget                                            1m  CC̄=7.0   max=7   
   ProvisionConfig                                           0m  CC̄=0.0   max=0.0 
   PortMapping                                               0m  CC̄=0.0   max=0.0 
@@ -349,6 +350,32 @@ D:
     _classify_exit_code(returncode)
     _handle_failure(returncode,task,task_name,start,label,cmd,source_path,runner)
     execute_commands(runner,task,task_name,start)
+  src/taskfile/models.py:
+    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
+    Environment  # Deployment environment configuration....
+      resolve_variables(2)  CC=3.0
+    Platform  # Target platform configuration (e.g. desktop, web, mobile)....
+      resolve_variables(2)  CC=3.0
+    EnvironmentGroup  # Group of environments sharing an update strategy (e.g. RPi f...
+    ComposeConfig  # Compose-based deployment configuration....
+    Function  # Embedded function callable from tasks via @fn prefix....
+    Task  # Single task definition....
+      should_run_on(1)  CC=2.0
+    PipelineStage  # A stage in the CI/CD pipeline....
+    PipelineConfig  # CI/CD pipeline configuration....
+      from_dict(1)  CC=4.0
+    TaskfileConfig  # Parsed Taskfile configuration....
+      from_dict(1)  CC=18.0  !
+        → _parse_compose(0)  CC=2.0
+        → _parse_environments(0)  CC=6.0
+        → _parse_environment_groups(0)  CC=3.0
+        → _parse_platforms(0)  CC=3.0
+        → _parse_functions(0)  CC=5.0
+        → _parse_tasks(0)  CC=6.0
+        → _parse_pipeline(1)  CC=2.0
+        → from_dict(1)  CC=18.0  !
+        → _expand_hosts(0)  CC=14.0
+    _normalize_commands(cmds)
   src/taskfile/runner/core.py:
     e: TaskRunError,TaskfileRunner
     TaskRunError  # Raised when a task command fails....
@@ -438,32 +465,6 @@ Composes:
     _run_examples_check(diagnostics,report)
     _apply_init_extras(choices)
     init(template,force,interactive)
-  src/taskfile/models.py:
-    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
-    Environment  # Deployment environment configuration....
-      resolve_variables(2)  CC=3.0
-    Platform  # Target platform configuration (e.g. desktop, web, mobile)....
-      resolve_variables(2)  CC=3.0
-    EnvironmentGroup  # Group of environments sharing an update strategy (e.g. RPi f...
-    ComposeConfig  # Compose-based deployment configuration....
-    Function  # Embedded function callable from tasks via @fn prefix....
-    Task  # Single task definition....
-      should_run_on(1)  CC=2.0
-    PipelineStage  # A stage in the CI/CD pipeline....
-    PipelineConfig  # CI/CD pipeline configuration....
-      from_dict(1)  CC=4.0
-    TaskfileConfig  # Parsed Taskfile configuration....
-      from_dict(1)  CC=10.0
-        → _parse_compose(0)  CC=2.0
-        → _parse_environments(0)  CC=6.0
-        → _parse_environment_groups(0)  CC=3.0
-        → _parse_platforms(0)  CC=3.0
-        → _parse_functions(0)  CC=5.0
-        → _parse_tasks(0)  CC=6.0
-        → _parse_pipeline(1)  CC=2.0
-        → from_dict(1)  CC=10.0
-        → _expand_hosts(0)  CC=14.0
-    _normalize_commands(cmds)
   src/taskfile/diagnostics/llm_repair.py:
     e: is_available,ask_llm_for_fix,classify_runtime_error,_extract_missing_binary
     is_available()
@@ -621,14 +622,6 @@ Composes:
     _exec_function_node(fn,fn_args,env,task)
     _exec_function_binary(fn,fn_args,env,task)
     run_inline_python(runner,cmd,task)
-  src/taskfile/cli/ci.py:
-    e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
-    ci()
-    ci_generate(ctx,targets,gen_all,output_dir)
-    ci_run(ctx,stages,skip_stages,stop_at)
-    ci_list(ctx)
-    ci_preview(ctx,target)
-    ci_targets()
   src/taskfile/cli/version.py:
     e: version,bump,show,set,_increment_version,_is_valid_version,_get_version_from_git,_has_git,_git_commit_version,_update_taskfile_version,_update_pyproject_version
     version()
@@ -642,6 +635,14 @@ Composes:
     _git_commit_version(project_dir,version)
     _update_taskfile_version(taskfile_path,version)
     _update_pyproject_version(pyproject_path,version)
+  src/taskfile/cli/ci.py:
+    e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
+    ci()
+    ci_generate(ctx,targets,gen_all,output_dir)
+    ci_run(ctx,stages,skip_stages,stop_at)
+    ci_list(ctx)
+    ci_preview(ctx,target)
+    ci_targets()
   src/taskfile/cli/setup.py:
     e: SetupConfig,_validate_ip,_validate_ssh_key,_collect_interactive_setup,_write_env_files,_provision_ssh_key,_test_ssh_connection,_provision_vps,_is_vps_ready,_deploy_application,_print_summary,_parse_ports,_build_config_from_args,_execute_setup_steps,setup
     SetupConfig  # Configuration collected during setup process....
@@ -799,6 +800,11 @@ Th...
     _notify_linux(title,message)
     _notify_windows(title,message)
     is_notification_available()
+  src/taskfile/cli/import_export.py:
+    e: import_cmd,export_cmd,detect
+    import_cmd(source,source_type,output_path,force)
+    export_cmd(ctx,target_type,output_path,workflow_name,project_name,taskfile_path)
+    detect()
   src/taskfile/cli/registry_cmds.py:
     e: pkg,pkg_search,pkg_install,pkg_list,pkg_uninstall,pkg_info
     pkg()
@@ -807,11 +813,6 @@ Th...
     pkg_list(all)
     pkg_uninstall(package_name,yes)
     pkg_info(package_name)
-  src/taskfile/cli/import_export.py:
-    e: import_cmd,export_cmd,detect
-    import_cmd(source,source_type,output_path,force)
-    export_cmd(ctx,target_type,output_path,workflow_name,project_name,taskfile_path)
-    detect()
   src/taskfile/cli/api_cmd.py:
     e: api,api_serve,api_openapi
     api()
@@ -1022,6 +1023,9 @@ Ne...
     e: main
     main()
   examples/mega-saas/scripts/report.py:
+    e: generate_report
+    generate_report()
+  examples/mega-saas-v2/scripts/report.py:
     e: generate_report
     generate_report()
   src/taskfile/__init__.py:

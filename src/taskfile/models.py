@@ -259,6 +259,21 @@ class TaskfileConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TaskfileConfig:
         """Parse raw YAML dict into TaskfileConfig."""
+        # Apply environment_defaults to all environments
+        if "environment_defaults" in data:
+            defaults = data.pop("environment_defaults") or {}
+            if isinstance(defaults, dict):
+                env_section = data.get("environments", {})
+                for env_name, env_data in env_section.items():
+                    if isinstance(env_data, dict):
+                        # defaults are base, env_data overrides
+                        merged_vars = {**defaults.get("variables", {}), **env_data.get("variables", {})}
+                        for k, v in defaults.items():
+                            if k != "variables":
+                                env_data.setdefault(k, v)
+                        if merged_vars:
+                            env_data["variables"] = merged_vars
+
         # Expand hosts: shorthand into environments + environment_groups
         if "hosts" in data:
             env_section, groups_section = cls._expand_hosts(data.pop("hosts"))

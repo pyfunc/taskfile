@@ -1,4 +1,4 @@
-# code2llm/evolution | 668 func | 78f | 2026-03-06
+# code2llm/evolution | 669 func | 79f | 2026-03-06
 
 NEXT[10] (ranked by impact):
   [1] !! SPLIT           src/taskfile/diagnostics/checks.py
@@ -17,29 +17,29 @@ NEXT[10] (ranked by impact):
       WHY: CC=17 exceeds 15
       EFFORT: ~1h  IMPACT: 493
 
-  [5] !  SPLIT-FUNC      _check_containers_running  CC=20  fan=21
+  [5] !  SPLIT-FUNC      TaskfileConfig.from_dict  CC=18  fan=24
+      WHY: CC=18 exceeds 15
+      EFFORT: ~1h  IMPACT: 432
+
+  [6] !  SPLIT-FUNC      _check_containers_running  CC=20  fan=21
       WHY: CC=20 exceeds 15
       EFFORT: ~1h  IMPACT: 420
 
-  [6] !  SPLIT-FUNC      _validate_dependent_files  CC=22  fan=19
+  [7] !  SPLIT-FUNC      _validate_dependent_files  CC=22  fan=19
       WHY: CC=22 exceeds 15
       EFFORT: ~1h  IMPACT: 418
 
-  [7] !  SPLIT-FUNC      _validate_command_files  CC=21  fan=17
+  [8] !  SPLIT-FUNC      _validate_command_files  CC=21  fan=17
       WHY: CC=21 exceeds 15
       EFFORT: ~1h  IMPACT: 357
 
-  [8] !  SPLIT-FUNC      run  CC=15  fan=23
+  [9] !  SPLIT-FUNC      run  CC=15  fan=23
       WHY: CC=15 exceeds 15
       EFFORT: ~1h  IMPACT: 345
 
-  [9] !  SPLIT-FUNC      execute_commands  CC=20  fan=15
+  [10] !  SPLIT-FUNC      execute_commands  CC=20  fan=15
       WHY: CC=20 exceeds 15
       EFFORT: ~1h  IMPACT: 300
-
-  [10] !  SPLIT-FUNC      TaskfileRunner.run  CC=18  fan=15
-      WHY: CC=18 exceeds 15
-      EFFORT: ~1h  IMPACT: 270
 
 
 RISKS[3]:
@@ -48,11 +48,11 @@ RISKS[3]:
   ⚠ Splitting src/taskfile/diagnostics/checks.py may break 31 import paths
 
 METRICS-TARGET:
-  CC̄:          4.5 → ≤3.1
+  CC̄:          4.6 → ≤3.2
   max-CC:      31 → ≤15
   god-modules: 10 → 0
-  high-CC(≥15): 15 → ≤7
+  high-CC(≥15): 16 → ≤8
   hub-types:   0 → ≤0
 
 HISTORY:
-  prev CC̄=4.3 → now CC̄=4.5
+  prev CC̄=4.5 → now CC̄=4.6

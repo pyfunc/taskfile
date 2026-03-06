@@ -12,12 +12,9 @@ variables:
   ECS_SERVICE: ${APP_NAME}-api
   TAG: latest
 
-environment_defaults:
-  container_runtime: docker
-
+# Smart defaults: env_file → .env.{env_name} (no need to repeat)
 environments:
   dev:
-    env_file: .env.dev
     variables:
       AWS_REGION: eu-west-1
       AWS_PROFILE: dev
@@ -26,7 +23,6 @@ environments:
       DOMAIN: dev.example.com
 
   staging:
-    env_file: .env.staging
     variables:
       AWS_REGION: eu-west-1
       AWS_PROFILE: staging
@@ -35,7 +31,6 @@ environments:
       DOMAIN: staging.example.com
 
   prod-eu:
-    env_file: .env.prod-eu
     variables:
       AWS_REGION: eu-west-1
       AWS_PROFILE: prod
@@ -44,7 +39,6 @@ environments:
       DOMAIN: eu.example.com
 
   prod-us:
-    env_file: .env.prod-us
     variables:
       AWS_REGION: us-east-1
       AWS_PROFILE: prod-us
