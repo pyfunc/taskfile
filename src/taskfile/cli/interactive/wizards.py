@@ -370,7 +370,7 @@ def _run_remote_diagnostics(diagnostics: ProjectDiagnostics) -> None:
     # Test SSH first
     ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
     if not ssh_result.success:
-        console.print(f"[red]  SSH connection failed: {ssh_result.error}[/]")
+        console.print(f"[red]  SSH connection failed: {ssh_result.output}[/]")
         return
     
     console.print(f"[green]  ✓ SSH connected to {env.ssh_host}[/]")
@@ -378,7 +378,7 @@ def _run_remote_diagnostics(diagnostics: ProjectDiagnostics) -> None:
     # Check remote containers
     try:
         import subprocess
-        ssh_cmd = f"ssh -p {env.ssh_port or 22} -i {env.ssh_key or '~/.ssh/id_ed25519'} {env.ssh_user}@{env.ssh_host}"
+        ssh_cmd = f"ssh {env.ssh_opts} {env.ssh_user}@{env.ssh_host}"
         
         # Check podman containers
         result = subprocess.run(
