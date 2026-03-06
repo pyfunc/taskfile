@@ -58,13 +58,19 @@ class Environment:
         """Merge global variables with environment-specific ones.
         Environment variables override global ones.
         CLI --var overrides are applied separately in the runner.
+
+        Priority (highest wins): env-specific vars > global vars > dotenv.
+        Dotenv only fills in values that still contain ${VAR} patterns.
         """
         merged = {**global_vars, **self.variables}
         resolved = {}
-        # Use dotenv_vars if provided, otherwise fall back to os.environ
         env_source = dotenv_vars if dotenv_vars is not None else os.environ
         for key, value in merged.items():
-            resolved[key] = env_source.get(key, value)
+            # Only use dotenv to fill values containing ${...} or when value is empty
+            if isinstance(value, str) and ("${" in value or "$" in value or value == ""):
+                resolved[key] = env_source.get(key, value)
+            else:
+                resolved[key] = value
         return resolved
 
 

@@ -296,53 +296,8 @@ def check_unresolved_variables(config: "TaskfileConfig") -> list[Issue]:
 
 def check_ports() -> list[Issue]:
     """Check docker-compose port conflicts and suggest .env fixes."""
-    issues: list[Issue] = []
-    compose_path = Path("docker-compose.yml")
-    if not compose_path.exists():
-        return issues
-
-    try:
-        compose = yaml.safe_load(compose_path.read_text()) or {}
-    except Exception:
-        return issues
-
-    services = (compose or {}).get("services") or {}
-    if not isinstance(services, dict):
-        return issues
-
-    from taskfile.compose import load_env_file, resolve_variables
-
-    env_path = Path(".env")
-    env_vars = load_env_file(env_path) if env_path.exists() else {}
-    ctx = {**os.environ, **env_vars}
-
-    for svc_name, svc in services.items():
-        if not isinstance(svc, dict):
-            continue
-        for port_entry in (svc.get("ports") or []):
-            if not isinstance(port_entry, str):
-                continue
-            conflict = _resolve_port_conflict(svc_name, port_entry, ctx)
-            if conflict:
-                key, resolved_port, suggested = conflict
-                pid, process = _who_uses_port(resolved_port)
-                issues.append(Issue(
-                    category=IssueCategory.RUNTIME_ERROR,
-                    message=f"Port {resolved_port} for service '{svc_name}' is in use"
-                            + (f" by '{process}' (pid {pid})" if process else ""),
-                    fix_strategy=FixStrategy.CONFIRM,
-                    severity=SEVERITY_WARNING,
-                    fix_command=f"docker stop {process}" if process and _is_docker_process(process) else None,
-                    fix_description=f"Set {key}={suggested} in .env or stop the conflicting process",
-                    teach=(
-                        f"Each service needs a unique port to listen on. Port {resolved_port} is already "
-                        "in use by another process. Either stop the existing process or configure a "
-                        "different port in your .env file. Use 'lsof -i :<port>' to find what's using it."
-                    ),
-                    context={"port_fixes": {key: suggested}},
-                    layer=3,
-                ))
-    return issues
+    from taskfile.diagnostics.checks_ports import check_ports as _check_ports
+    return _check_ports()
 
 
 def _check_script_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Issue]:
@@ -478,6 +433,87 @@ def _check_registry_reachable(host: str, timeout: float = 3.0) -> bool:
         return False
 
 
+def _is_image_var(key: str) -> bool:
+    """Check if a variable name looks like an image reference."""
+    upper = key.upper()
+    return "IMAGE" in upper or upper.startswith("IMG")
+
+
+def _collect_image_vars_from_config(config: "TaskfileConfig") -> dict[str, str]:
+    """Collect IMAGE_* variables from global config variables."""
+    return {
+        key: val
+        for key, val in (config.variables or {}).items()
+        if isinstance(val, str) and _is_image_var(key)
+    }
+
+
+def _collect_image_vars_from_envs(config: "TaskfileConfig") -> dict[str, str]:
+    """Collect IMAGE_* variables from environment-specific variables."""
+    result: dict[str, str] = {}
+    for env_name, env_obj in (config.environments or {}).items():
+        for key, val in (env_obj.variables or {}).items():
+            if isinstance(val, str) and _is_image_var(key):
+                result[f"{key} (env:{env_name})"] = val
+    return result
+
+
+def _collect_image_vars_from_compose() -> dict[str, str]:
+    """Collect image references from docker-compose.yml services."""
+    compose_path = Path("docker-compose.yml")
+    if not compose_path.exists():
+        return {}
+    try:
+        data = yaml.safe_load(compose_path.read_text()) or {}
+        return {
+            f"service:{svc_name}": svc["image"]
+            for svc_name, svc in (data.get("services") or {}).items()
+            if isinstance(svc, dict) and svc.get("image")
+        }
+    except Exception:
+        return {}
+
+
+def _group_by_registry(image_vars: dict[str, str]) -> dict[str, list[str]]:
+    """Group image references by their registry hostname."""
+    registries: dict[str, list[str]] = {}
+    for var_key, image_ref in image_vars.items():
+        host = _extract_registry_host(image_ref)
+        if host:
+            registries.setdefault(host, []).append(f"{var_key}={image_ref}")
+    return registries
+
+
+def _build_unreachable_registry_issue(registry: str, refs: list[str]) -> Issue:
+    """Create an Issue for an unreachable container registry."""
+    ref_list = ", ".join(refs[:3])
+    if len(refs) > 3:
+        ref_list += f" (+{len(refs) - 3} more)"
+    return Issue(
+        category=IssueCategory.DEPENDENCY_MISSING,
+        message=f"Container registry '{registry}' is not reachable ({ref_list})",
+        fix_strategy=FixStrategy.MANUAL,
+        severity=SEVERITY_WARNING,
+        fix_description=(
+            f"Options:\n"
+            f"  1. Transfer images via SSH: taskfile push IMAGE [IMAGE...]\n"
+            f"  2. Use local images: change registry to 'localhost/' prefix\n"
+            f"  3. Check network/VPN connection to {registry}"
+        ),
+        teach=(
+            f"Your images reference registry '{registry}' which is not reachable. "
+            "This may be due to network issues, VPN not connected, or the registry being down.\n\n"
+            "**Alternative: SSH transfer (no registry needed)**\n"
+            "Use `taskfile push` to transfer locally-built images directly to the remote server "
+            "via `docker save | ssh podman load`:\n"
+            "```\ntaskfile push myapp-web:latest myapp-landing:latest\n```\n\n"
+            "**Alternative: localhost images**\n"
+            "Change IMAGE_* variables to use `localhost/` prefix for local-only images."
+        ),
+        layer=3,
+    )
+
+
 def check_registry_access(config: "TaskfileConfig") -> list[Issue]:
     """Check if container image registries are reachable.
 
@@ -485,69 +521,17 @@ def check_registry_access(config: "TaskfileConfig") -> list[Issue]:
     network connectivity. Suggests 'taskfile push' as an alternative
     when registry is unreachable.
     """
-    issues: list[Issue] = []
-
-    # Collect all image references from variables
     image_vars: dict[str, str] = {}
-    for key, val in (config.variables or {}).items():
-        if isinstance(val, str) and ("IMAGE" in key.upper() or key.upper().startswith("IMG")):
-            image_vars[key] = val
+    image_vars.update(_collect_image_vars_from_config(config))
+    image_vars.update(_collect_image_vars_from_envs(config))
+    image_vars.update(_collect_image_vars_from_compose())
 
-    # Also check environment-specific variables
-    for env_name, env_obj in (config.environments or {}).items():
-        for key, val in (env_obj.variables or {}).items():
-            if isinstance(val, str) and ("IMAGE" in key.upper() or key.upper().startswith("IMG")):
-                image_vars[f"{key} (env:{env_name})"] = val
-
-    # Also check compose services for image references
-    compose_path = Path("docker-compose.yml")
-    if compose_path.exists():
-        try:
-            data = yaml.safe_load(compose_path.read_text()) or {}
-            for svc_name, svc in (data.get("services") or {}).items():
-                if isinstance(svc, dict) and svc.get("image"):
-                    image_vars[f"service:{svc_name}"] = svc["image"]
-        except Exception:
-            pass
-
-    # Group by registry to avoid duplicate checks
-    registries: dict[str, list[str]] = {}
-    for var_key, image_ref in image_vars.items():
-        host = _extract_registry_host(image_ref)
-        if host:
-            registries.setdefault(host, []).append(f"{var_key}={image_ref}")
-
-    # Check each registry
-    for registry, refs in registries.items():
-        if not _check_registry_reachable(registry):
-            ref_list = ", ".join(refs[:3])
-            if len(refs) > 3:
-                ref_list += f" (+{len(refs) - 3} more)"
-            issues.append(Issue(
-                category=IssueCategory.DEPENDENCY_MISSING,
-                message=f"Container registry '{registry}' is not reachable ({ref_list})",
-                fix_strategy=FixStrategy.MANUAL,
-                severity=SEVERITY_WARNING,
-                fix_description=(
-                    f"Options:\n"
-                    f"  1. Transfer images via SSH: taskfile push IMAGE [IMAGE...]\n"
-                    f"  2. Use local images: change registry to 'localhost/' prefix\n"
-                    f"  3. Check network/VPN connection to {registry}"
-                ),
-                teach=(
-                    f"Your images reference registry '{registry}' which is not reachable. "
-                    "This may be due to network issues, VPN not connected, or the registry being down.\n\n"
-                    "**Alternative: SSH transfer (no registry needed)**\n"
-                    "Use `taskfile push` to transfer locally-built images directly to the remote server "
-                    "via `docker save | ssh podman load`:\n"
-                    "```\ntaskfile push myapp-web:latest myapp-landing:latest\n```\n\n"
-                    "**Alternative: localhost images**\n"
-                    "Change IMAGE_* variables to use `localhost/` prefix for local-only images."
-                ),
-                layer=3,
-            ))
-
-    return issues
+    registries = _group_by_registry(image_vars)
+    return [
+        _build_unreachable_registry_issue(registry, refs)
+        for registry, refs in registries.items()
+        if not _check_registry_reachable(registry)
+    ]
 
 
 def check_docker() -> list[Issue]:
@@ -574,194 +558,20 @@ def check_docker() -> list[Issue]:
 
 def check_ssh_keys() -> list[Issue]:
     """Check SSH keys exist."""
-    issues: list[Issue] = []
-    ssh_dir = Path.home() / ".ssh"
-    if not ssh_dir.exists():
-        issues.append(Issue(
-            category=IssueCategory.CONFIG_ERROR,
-            message="~/.ssh directory not found",
-            fix_strategy=FixStrategy.CONFIRM,
-            severity=SEVERITY_ERROR,
-            fix_command="mkdir -p ~/.ssh && chmod 700 ~/.ssh",
-            teach=(
-                "SSH directory (~/.ssh) stores your SSH keys and config. "
-                "It must exist before generating keys. The chmod 700 ensures "
-                "only you can access it — SSH refuses to use insecure directories."
-            ),
-            layer=3,
-        ))
-        return issues
-
-    keys = list(ssh_dir.glob("id_*"))
-    if not keys:
-        issues.append(Issue(
-            category=IssueCategory.CONFIG_ERROR,
-            message="No SSH keys found (~/.ssh/id_*)",
-            fix_strategy=FixStrategy.CONFIRM,
-            severity=SEVERITY_WARNING,
-            fix_command="ssh-keygen -t ed25519 -N ''",
-            fix_description="Generate an SSH key pair",
-            teach=(
-                "SSH keys authenticate you to remote servers without passwords. "
-                "Generate a key pair, then copy the public key to the server "
-                "with 'ssh-copy-id'. Ed25519 is the modern, secure key format."
-            ),
-            layer=3,
-        ))
-    return issues
+    from taskfile.diagnostics.checks_ssh import check_ssh_keys as _check_ssh_keys
+    return _check_ssh_keys()
 
 
 def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
     """Check SSH connectivity — distinguish: missing key vs refused vs auth fail."""
-    issues: list[Issue] = []
-    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
-    for env_name, env in config.environments.items():
-        if not env.is_remote:
-            continue
-        _resolve_env_fields(env, taskfile_dir)
-        ssh_key = env.ssh_key or "~/.ssh/id_ed25519"
-        key_path = Path(os.path.expanduser(ssh_key))
-        if not key_path.exists():
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"SSH key {ssh_key} not found for env '{env_name}'",
-                fix_strategy=FixStrategy.CONFIRM,
-                severity=SEVERITY_WARNING,
-                fix_command=f"ssh-keygen -t ed25519 -f {ssh_key} -N ''",
-                context={"env": env_name, "host": env.ssh_host},
-                teach=(
-                    "SSH keys authenticate you to remote servers. "
-                    "Generate a key pair, then use 'ssh-copy-id' to authorize it "
-                    "on the remote server before attempting remote deployment."
-                ),
-                layer=3,
-            ))
-            continue
-
-        rc = _test_ssh(env)
-        if rc == 255:  # connection refused
-            issues.append(Issue(
-                category=IssueCategory.EXTERNAL_ERROR,
-                message=f"SSH to {env.ssh_host}: connection refused",
-                fix_strategy=FixStrategy.LLM,
-                severity=SEVERITY_ERROR,
-                context={"host": env.ssh_host, "env": env_name, "error": "connection_refused"},
-                teach=(
-                    "Connection refused means the server is reachable but SSH daemon "
-                    "is not running or the port is blocked. Check: 1) Is the server "
-                    "up? 2) Is SSH service running? 3) Is firewall blocking port 22? "
-                    "4) Is the correct hostname/IP configured in Taskfile?"
-                ),
-                layer=3,
-            ))
-        elif rc == 5:  # auth failed
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"SSH auth failed for {env.ssh_host}",
-                fix_strategy=FixStrategy.CONFIRM,
-                severity=SEVERITY_ERROR,
-                fix_command=f"ssh-copy-id -i {ssh_key} {env.ssh_user}@{env.ssh_host}",
-                context={"host": env.ssh_host, "env": env_name},
-                teach=(
-                    "SSH authentication failed — the key is not authorized on the server. "
-                    "Copy your public key to the server with 'ssh-copy-id'. "
-                    "Ensure the remote server has your key in ~/.ssh/authorized_keys."
-                ),
-                layer=3,
-            ))
-        elif rc != 0 and rc is not None:
-            issues.append(Issue(
-                category=IssueCategory.EXTERNAL_ERROR,
-                message=f"SSH to {env.ssh_host}: failed (exit {rc})",
-                fix_strategy=FixStrategy.LLM,
-                severity=SEVERITY_WARNING,
-                context={"host": env.ssh_host, "env": env_name, "exit_code": rc},
-                layer=3,
-            ))
-    return issues
+    from taskfile.diagnostics.checks_ssh import check_ssh_connectivity as _check
+    return _check(config)
 
 
 def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
     """Check remote host health — podman, disk space, container status."""
-    issues: list[Issue] = []
-    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
-    for env_name, env in config.environments.items():
-        if not env.is_remote:
-            continue
-        _resolve_env_fields(env, taskfile_dir)
-
-        from taskfile.deploy_utils import (
-            check_remote_podman,
-            check_remote_disk,
-            test_ssh_connection,
-        )
-
-        # Quick SSH check first
-        ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
-        if not ssh_result.success:
-            continue  # SSH checks are handled by check_ssh_connectivity
-
-        # Podman
-        podman_ok, podman_ver = check_remote_podman(env.ssh_host, env.ssh_user, env.ssh_port)
-        if not podman_ok:
-            issues.append(Issue(
-                category=IssueCategory.DEPENDENCY_MISSING,
-                message=f"Podman not installed on {env.ssh_host} (env: {env_name})",
-                fix_strategy=FixStrategy.CONFIRM,
-                severity=SEVERITY_WARNING,
-                fix_command=f"ssh {env.ssh_user}@{env.ssh_host} 'apt install -y podman'",
-                fix_description="Install podman on the remote server",
-                teach=(
-                    "Podman is a container runtime used on the remote server to run containers. "
-                    "It's a Docker alternative preferred for rootless operation. "
-                    "Install it via your distribution's package manager."
-                ),
-                context={"host": env.ssh_host, "env": env_name},
-                layer=3,
-            ))
-
-        # Disk space
-        disk = check_remote_disk(env.ssh_host, env.ssh_user, env.ssh_port)
-        if disk and disk != "unknown":
-            # Parse disk value — warn if < 1G
-            try:
-                val = disk.rstrip("GMKTBgmktb")
-                unit = disk[len(val):].upper()
-                num = float(val)
-                if unit.startswith("M") and num < 500:
-                    issues.append(Issue(
-                        category=IssueCategory.EXTERNAL_ERROR,
-                        message=f"Low disk on {env.ssh_host}: {disk} free",
-                        fix_strategy=FixStrategy.MANUAL,
-                        severity=SEVERITY_WARNING,
-                        fix_description="Free disk space or expand volume",
-                        teach=(
-                            "Low disk space on the remote server may cause deployment failures "
-                            "when pulling new images or writing files. Clean up unused images "
-                            "with 'podman system prune' or expand the disk."
-                        ),
-                        context={"host": env.ssh_host, "disk": disk},
-                        layer=3,
-                    ))
-                elif unit.startswith("K"):
-                    issues.append(Issue(
-                        category=IssueCategory.EXTERNAL_ERROR,
-                        message=f"Critical disk on {env.ssh_host}: {disk} free",
-                        fix_strategy=FixStrategy.MANUAL,
-                        severity=SEVERITY_ERROR,
-                        fix_description="Immediately free disk space",
-                        teach=(
-                            "Critical disk space on the remote server will prevent any new "
-                            "deployments and may crash existing services. Urgent cleanup needed "
-                            "with 'podman system prune' and removing logs."
-                        ),
-                        context={"host": env.ssh_host, "disk": disk},
-                        layer=3,
-                    ))
-            except (ValueError, IndexError):
-                pass
-
-    return issues
+    from taskfile.diagnostics.checks_ssh import check_remote_health as _check
+    return _check(config)
 
 
 def check_git() -> list[Issue]:
@@ -885,70 +695,88 @@ def _load_env_file_vars(env_file_path: Path) -> set[str]:
     return names
 
 
+def _extract_fields_to_check(
+    env_obj, resolved: dict[str, str],
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Build fields dict and fallback_var_map from resolved vars + SSH attributes.
+
+    Returns (fields_to_check, fallback_var_map) where fallback_var_map maps
+    synthetic keys like '_ssh_host_default' to the VAR name from ${VAR:-default}.
+    """
+    fields = dict(resolved)
+    fallback_map: dict[str, str] = {}
+    for attr in ("ssh_host", "ssh_user"):
+        raw = getattr(env_obj, attr, None)
+        if not raw or not isinstance(raw, str):
+            continue
+        m = re.match(r'\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]+)\}', raw)
+        if m:
+            fallback_key = f"_{attr}_default"
+            fields[fallback_key] = m.group(2)
+            fallback_map[fallback_key] = m.group(1)
+        else:
+            fields[attr] = raw
+    return fields, fallback_map
+
+
+def _is_placeholder(val: str) -> bool:
+    """Check if a value matches any known placeholder pattern."""
+    return any(p.search(val) for p in PLACEHOLDER_PATTERNS)
+
+
+def _should_skip_placeholder(
+    key: str, fallback_var_map: dict[str, str], env_file_vars: set[str],
+) -> bool:
+    """Return True if the placeholder should be skipped (overridden by env_file)."""
+    if key in fallback_var_map:
+        return fallback_var_map[key] in env_file_vars
+    return key in env_file_vars and not key.startswith("_")
+
+
+def _check_env_placeholders(
+    env_name: str, env_obj, config: "TaskfileConfig", taskfile_dir: Path,
+) -> list[Issue]:
+    """Check a single environment for placeholder values."""
+    issues: list[Issue] = []
+    resolved = env_obj.resolve_variables(config.variables or {})
+
+    env_file_vars: set[str] = set()
+    if env_obj.env_file:
+        env_file_vars = _load_env_file_vars((taskfile_dir / env_obj.env_file).resolve())
+
+    fields, fallback_map = _extract_fields_to_check(env_obj, resolved)
+
+    for key, val in fields.items():
+        if not isinstance(val, str) or not _is_placeholder(val):
+            continue
+        if _should_skip_placeholder(key, fallback_map, env_file_vars):
+            continue
+
+        real_key = key.lstrip("_").replace("_default", "").upper()
+        env_file_hint = ""
+        if env_obj.env_file:
+            env_file_hint = f" or edit {(taskfile_dir / env_obj.env_file).resolve()}"
+        issues.append(Issue(
+            category=IssueCategory.CONFIG_ERROR,
+            message=f"'{real_key}' in env '{env_name}' looks like a placeholder: \"{val}\"",
+            fix_strategy=FixStrategy.MANUAL,
+            severity=SEVERITY_WARNING,
+            fix_description=f"Set real value: export {real_key}=...{env_file_hint}",
+            teach=(
+                f"Variables with values like 'example.com' or 'your-*' are placeholders "
+                f"— replace them with real data before deploying."
+            ),
+            layer=2,
+        ))
+    return issues
+
+
 def check_placeholder_values(config: "TaskfileConfig") -> list[Issue]:
     """Detect variables with placeholder values (example.com, changeme, etc.)."""
     taskfile_dir = Path(config.source_path).parent.resolve() if config.source_path else Path.cwd().resolve()
     issues: list[Issue] = []
     for env_name, env_obj in (config.environments or {}).items():
-        resolved = env_obj.resolve_variables(config.variables or {})
-
-        # Load env_file variables (if file exists) to check if fallbacks are overridden
-        env_file_vars: set[str] = set()
-        if env_obj.env_file:
-            env_file_abs = (taskfile_dir / env_obj.env_file).resolve()
-            env_file_vars = _load_env_file_vars(env_file_abs)
-
-        # Also check ssh_host directly (may contain ${VAR:-default})
-        fields_to_check = dict(resolved)
-        fallback_var_map: dict[str, str] = {}  # key -> VAR name from ${VAR:-default}
-        for attr in ("ssh_host", "ssh_user"):
-            raw = getattr(env_obj, attr, None)
-            if raw and isinstance(raw, str):
-                # Extract default value from ${VAR:-default}
-                m = re.match(r'\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]+)\}', raw)
-                if m:
-                    fallback_key = f"_{attr}_default"
-                    fields_to_check[fallback_key] = m.group(2)
-                    fallback_var_map[fallback_key] = m.group(1)
-                else:
-                    fields_to_check[attr] = raw
-
-        for key, val in fields_to_check.items():
-            if not isinstance(val, str):
-                continue
-
-            if not any(p.search(val) for p in PLACEHOLDER_PATTERNS):
-                continue
-
-            # Skip fallback placeholders when env_file defines the variable
-            # e.g. ${STAGING_HOST:-staging.example.com} — if .env.staging has STAGING_HOST, skip
-            if key in fallback_var_map:
-                var_name = fallback_var_map[key]
-                if var_name in env_file_vars:
-                    continue
-
-            # Skip resolved variables when env_file overrides them at runtime
-            # e.g. DOMAIN_WEB=app-staging.example.com in Taskfile but .env.staging has DOMAIN_WEB=real.com
-            if key in env_file_vars and not key.startswith("_"):
-                continue
-
-            real_key = key.lstrip("_").replace("_default", "").upper()
-            env_file_hint = ""
-            if env_obj.env_file:
-                env_file_abs = (taskfile_dir / env_obj.env_file).resolve()
-                env_file_hint = f" or edit {env_file_abs}"
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"'{real_key}' in env '{env_name}' looks like a placeholder: \"{val}\"",
-                fix_strategy=FixStrategy.MANUAL,
-                severity=SEVERITY_WARNING,
-                fix_description=f"Set real value: export {real_key}=...{env_file_hint}",
-                teach=(
-                    f"Variables with values like 'example.com' or 'your-*' are placeholders "
-                    f"— replace them with real data before deploying."
-                ),
-                layer=2,
-            ))
+        issues.extend(_check_env_placeholders(env_name, env_obj, config, taskfile_dir))
     return issues
 
 
@@ -1067,107 +895,19 @@ def validate_before_run(
 # ─── Private helpers ──────────────────────────────────────────────
 
 
-def _resolve_port_conflict(
-    svc_name: str, port_entry: str, ctx: dict
-) -> tuple[str, int, int] | None:
-    """Check a single port entry for conflicts. Returns (key, port, suggested) or None."""
-    host_port, var_name = _parse_compose_host_port(port_entry)
-    if host_port is None:
-        return None
-
-    from taskfile.compose import resolve_variables
-    expanded = resolve_variables(str(host_port), ctx)
-    try:
-        resolved = int(expanded)
-    except ValueError:
-        return None
-
-    if _is_port_free(resolved):
-        return None
-
-    suggested = _find_free_port_near(resolved)
-    if suggested is None:
-        return None
-
-    key = var_name or f"PORT_{svc_name.upper()}"
-    return key, resolved, suggested
+# Port helpers — delegated to checks_ports.py (backward-compat re-exports)
+from taskfile.diagnostics.checks_ports import (  # noqa: E402, F401
+    _resolve_port_conflict,
+    _parse_compose_host_port,
+    _is_port_free,
+    _find_free_port_near,
+    _who_uses_port,
+    _is_docker_process,
+)
 
 
-def _parse_compose_host_port(port_entry: str) -> tuple[str | None, str | None]:
-    entry = port_entry.strip()
-    if not entry:
-        return None, None
-    entry = entry.split("/", 1)[0]
-    parts = entry.split(":")
-    if len(parts) < 2:
-        return None, None
-    host_port_expr = parts[-2]
-    var_name = None
-    m = re.match(r"^\$\{(?P<name>[A-Za-z_][A-Za-z0-9_]*)", host_port_expr)
-    if m:
-        var_name = m.group("name")
-    return host_port_expr, var_name
-
-
-def _is_port_free(port: int, host: str = "0.0.0.0") -> bool:
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((host, port))
-        return True
-    except OSError:
-        return False
-
-
-def _find_free_port_near(start: int, span: int = 50) -> int | None:
-    for p in range(start, start + span + 1):
-        if _is_port_free(p):
-            return p
-    for p in range(max(1024, start - span), start):
-        if _is_port_free(p):
-            return p
-    return None
-
-
-def _who_uses_port(port: int) -> tuple[int | None, str | None]:
-    """Find pid and process name using a port. Returns (pid, name) or (None, None)."""
-    try:
-        result = subprocess.run(
-            ["lsof", "-i", f":{port}", "-t"],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            pid = int(result.stdout.strip().split("\n")[0])
-            ps = subprocess.run(
-                ["ps", "-p", str(pid), "-o", "comm="],
-                capture_output=True, text=True, timeout=5,
-            )
-            name = ps.stdout.strip() if ps.returncode == 0 else None
-            return pid, name
-    except Exception:
-        pass
-    return None, None
-
-
-def _is_docker_process(process_name: str | None) -> bool:
-    if not process_name:
-        return False
-    return any(x in (process_name or "").lower() for x in ("docker", "containerd", "podman"))
-
-
-def _test_ssh(env) -> int | None:
-    """Quick SSH connection test. Returns exit code or None on exception."""
-    try:
-        result = subprocess.run(
-            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
-             "-o", "StrictHostKeyChecking=no",
-             f"-p", str(env.ssh_port),
-             f"{env.ssh_user}@{env.ssh_host}", "true"],
-            capture_output=True, timeout=10,
-        )
-        return result.returncode
-    except Exception:
-        return None
+# SSH helpers — delegated to checks_ssh.py (backward-compat re-export)
+from taskfile.diagnostics.checks_ssh import _test_ssh  # noqa: E402, F401
 
 
 def _extract_binary(cmd: str) -> str | None:

@@ -342,11 +342,118 @@ def _run_llm_assist(diagnostics: ProjectDiagnostics) -> None:
         console.print(f"  💡 {suggestion}")
 
 
+def _ssh_run(ssh_cmd: str, remote_cmd: str, timeout: int = 10) -> subprocess.CompletedProcess | None:
+    """Run a single command over SSH. Returns CompletedProcess or None on timeout/error."""
+    try:
+        return subprocess.run(
+            f"{ssh_cmd} '{remote_cmd}'",
+            shell=True, capture_output=True, text=True, timeout=timeout,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def _check_remote_podman(ssh_cmd: str, host: str) -> None:
+    """Check podman version on remote host."""
+    result = _ssh_run(ssh_cmd, 'podman --version 2>/dev/null || echo "NOT_INSTALLED"')
+    if result and result.returncode == 0 and "NOT_INSTALLED" not in result.stdout:
+        version = result.stdout.strip().replace("podman version ", "").replace("Version: ", "")
+        console.print(f"[green]  ✓ Podman: {version}[/]")
+    else:
+        console.print(f"[yellow]  ⚠ Podman not installed on {host}[/]")
+
+
+def _check_remote_disk(ssh_cmd: str) -> None:
+    """Check disk space on remote host."""
+    result = _ssh_run(ssh_cmd, 'df -h / | tail -1')
+    if result and result.returncode == 0:
+        parts = result.stdout.strip().split()
+        if len(parts) >= 5:
+            console.print(f"[dim]  Disk: {parts[4]} used ({parts[2]} / {parts[1]})[/]")
+
+
+def _check_remote_memory(ssh_cmd: str) -> None:
+    """Check memory on remote host."""
+    result = _ssh_run(ssh_cmd, 'free -h 2>/dev/null | grep Mem || echo "N/A"')
+    if result and result.returncode == 0 and result.stdout.strip() != "N/A":
+        mem_parts = result.stdout.strip().split()
+        if len(mem_parts) >= 4:
+            console.print(f"[dim]  Memory: {mem_parts[2]} used / {mem_parts[1]} total[/]")
+
+
+def _check_remote_containers(ssh_cmd: str) -> None:
+    """Check running container and image counts on remote host."""
+    result = _ssh_run(ssh_cmd, 'podman ps -q 2>/dev/null | wc -l')
+    if result and result.returncode == 0:
+        console.print(f"[dim]  Running containers: {result.stdout.strip()}[/]")
+
+    result = _ssh_run(ssh_cmd, 'podman images -q 2>/dev/null | wc -l')
+    if result and result.returncode == 0:
+        console.print(f"[dim]  Stored images: {result.stdout.strip()}[/]")
+
+
+def _resolve_selected_env() -> str | None:
+    """Read --env flag from parent click context (taskfile --env prod doctor --remote)."""
+    ctx = click.get_current_context(silent=True)
+    if not ctx:
+        return None
+    parent = ctx.parent
+    while parent:
+        selected = (parent.params or {}).get("env_name")
+        if selected:
+            return selected
+        parent = parent.parent
+    return None
+
+
+def _collect_remote_envs(config, selected_env: str | None) -> list[tuple] | None:
+    """Build list of remote environments to check. Returns None on user-facing error."""
+    if selected_env:
+        env_obj = config.environments.get(selected_env)
+        if env_obj and env_obj.is_remote:
+            return [(selected_env, env_obj)]
+        if env_obj:
+            console.print(f"[yellow]  Environment '{selected_env}' is not remote (no ssh_host)[/]")
+        else:
+            console.print(f"[yellow]  Environment '{selected_env}' not found in Taskfile.yml[/]")
+        return None
+    envs = [(name, env) for name, env in config.environments.items() if env.is_remote]
+    if not envs:
+        console.print("[yellow]  No remote environments configured in Taskfile.yml[/]")
+        return None
+    return envs
+
+
+def _diagnose_single_remote_env(env_name, env, taskfile_dir) -> None:
+    """Run all remote diagnostics for a single environment."""
+    from taskfile.deploy_utils import test_ssh_connection
+    from taskfile.diagnostics.checks import _resolve_env_fields
+
+    _resolve_env_fields(env, taskfile_dir)
+    console.print(f"\n[bold]Environment: {env_name}[/] ({env.ssh_host})")
+
+    ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
+    if not ssh_result.success:
+        detail = ssh_result.output.strip() if ssh_result.output and ssh_result.output.strip() else f"exit code {ssh_result.exit_code}"
+        console.print(f"[red]  ✗ SSH connection failed: {detail}[/]")
+        console.print(f"[dim]    ssh {env.ssh_opts} {env.ssh_user}@{env.ssh_host} 'echo ok'[/]")
+        return
+
+    console.print(f"[green]  ✓ SSH connected to {env.ssh_host}[/]")
+    ssh_cmd = f"ssh {env.ssh_opts} {env.ssh_user}@{env.ssh_host}"
+
+    try:
+        _check_remote_podman(ssh_cmd, env.ssh_host)
+        _check_remote_disk(ssh_cmd)
+        _check_remote_memory(ssh_cmd)
+        _check_remote_containers(ssh_cmd)
+    except Exception as e:
+        console.print(f"[yellow]  Remote diagnostics error: {e}[/]")
+
+
 def _run_remote_diagnostics(diagnostics: ProjectDiagnostics) -> None:
     """Extended remote diagnostics — check containers, images, system status on remote server."""
     from taskfile.parser import find_taskfile, load_taskfile
-    from taskfile.deploy_utils import test_ssh_connection
-    from taskfile.diagnostics.checks import _resolve_env_fields
 
     console.print("\n[bold cyan]🔍 Remote Server Diagnostics[/]")
 
@@ -357,111 +464,13 @@ def _run_remote_diagnostics(diagnostics: ProjectDiagnostics) -> None:
         console.print("[yellow]  Could not load Taskfile config for remote diagnostics[/]")
         return
 
-    # Respect --env flag from parent group (taskfile --env prod doctor --remote)
-    ctx = click.get_current_context(silent=True)
-    selected_env = None
-    if ctx:
-        parent = ctx.parent
-        while parent:
-            selected_env = (parent.params or {}).get("env_name")
-            if selected_env:
-                break
-            parent = parent.parent
-
-    # Build list of remote environments to check
-    remote_envs = []
-    if selected_env:
-        env_obj = config.environments.get(selected_env)
-        if env_obj and env_obj.is_remote:
-            remote_envs = [(selected_env, env_obj)]
-        elif env_obj:
-            console.print(f"[yellow]  Environment '{selected_env}' is not remote (no ssh_host)[/]")
-            return
-        else:
-            console.print(f"[yellow]  Environment '{selected_env}' not found in Taskfile.yml[/]")
-            return
-    else:
-        remote_envs = [(name, env) for name, env in config.environments.items() if env.is_remote]
-
-    if not remote_envs:
-        console.print("[yellow]  No remote environments configured in Taskfile.yml[/]")
+    selected_env = _resolve_selected_env()
+    remote_envs = _collect_remote_envs(config, selected_env)
+    if remote_envs is None:
         return
 
-    taskfile_dir = tf.parent
-
     for env_name, env in remote_envs:
-        # Resolve ${VAR:-default} patterns in SSH fields using .env file
-        _resolve_env_fields(env, taskfile_dir)
-
-        console.print(f"\n[bold]Environment: {env_name}[/] ({env.ssh_host})")
-
-        # Test SSH first
-        ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
-        if not ssh_result.success:
-            detail = ssh_result.output.strip() if ssh_result.output and ssh_result.output.strip() else f"exit code {ssh_result.exit_code}"
-            console.print(f"[red]  ✗ SSH connection failed: {detail}[/]")
-            console.print(f"[dim]    ssh {env.ssh_opts} {env.ssh_user}@{env.ssh_host} 'echo ok'[/]")
-            continue
-
-        console.print(f"[green]  ✓ SSH connected to {env.ssh_host}[/]")
-
-        # Use env.ssh_opts for consistent SSH options
-        ssh_cmd = f"ssh {env.ssh_opts} {env.ssh_user}@{env.ssh_host}"
-
-        try:
-            # Check podman version
-            result = subprocess.run(
-                f"{ssh_cmd} 'podman --version 2>/dev/null || echo \"NOT_INSTALLED\"'",
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0 and "NOT_INSTALLED" not in result.stdout:
-                version = result.stdout.strip().replace("podman version ", "").replace("Version: ", "")
-                console.print(f"[green]  ✓ Podman: {version}[/]")
-            else:
-                console.print(f"[yellow]  ⚠ Podman not installed on {env.ssh_host}[/]")
-
-            # Check disk space
-            result = subprocess.run(
-                f"{ssh_cmd} 'df -h / | tail -1'",
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                parts = result.stdout.strip().split()
-                if len(parts) >= 5:
-                    console.print(f"[dim]  Disk: {parts[4]} used ({parts[2]} / {parts[1]})[/]")
-
-            # Check memory
-            result = subprocess.run(
-                f"{ssh_cmd} 'free -h 2>/dev/null | grep Mem || echo \"N/A\"'",
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0 and result.stdout.strip() != "N/A":
-                mem_parts = result.stdout.strip().split()
-                if len(mem_parts) >= 4:
-                    console.print(f"[dim]  Memory: {mem_parts[2]} used / {mem_parts[1]} total[/]")
-
-            # Check running containers count
-            result = subprocess.run(
-                f"{ssh_cmd} 'podman ps -q 2>/dev/null | wc -l'",
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                container_count = result.stdout.strip()
-                console.print(f"[dim]  Running containers: {container_count}[/]")
-
-            # Check images
-            result = subprocess.run(
-                f"{ssh_cmd} 'podman images -q 2>/dev/null | wc -l'",
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                image_count = result.stdout.strip()
-                console.print(f"[dim]  Stored images: {image_count}[/]")
-
-        except subprocess.TimeoutExpired:
-            console.print(f"[yellow]  ⚠ Remote check timed out for {env.ssh_host}[/]")
-        except Exception as e:
-            console.print(f"[yellow]  Remote diagnostics error: {e}[/]")
+        _diagnose_single_remote_env(env_name, env, tf.parent)
 
 
 class _nullcontext:

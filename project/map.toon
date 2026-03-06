@@ -1,4 +1,4 @@
-# taskfile | 94f 20417L | python:94
+# taskfile | 94f 21262L | python:94
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[94]:
   examples/functions-embed/scripts/report.py,22
@@ -15,8 +15,8 @@ M[94]:
   src/taskfile/addons/postgres.py,80
   src/taskfile/addons/redis_addon.py,61
   src/taskfile/api/__init__.py,13
-  src/taskfile/api/app.py,559
-  src/taskfile/api/models.py,180
+  src/taskfile/api/app.py,713
+  src/taskfile/api/models.py,225
   src/taskfile/cache.py,231
   src/taskfile/cigen/__init__.py,58
   src/taskfile/cigen/base.py,67
@@ -37,16 +37,16 @@ M[94]:
   src/taskfile/cli/deploy.py,383
   src/taskfile/cli/diagnostics.py,132
   src/taskfile/cli/docker_cmds.py,187
-  src/taskfile/cli/e2e_cmd.py,383
-  src/taskfile/cli/explain_cmd.py,206
+  src/taskfile/cli/e2e_cmd.py,415
+  src/taskfile/cli/explain_cmd.py,208
   src/taskfile/cli/fleet.py,408
   src/taskfile/cli/health.py,70
   src/taskfile/cli/import_export.py,220
   src/taskfile/cli/info_cmd.py,72
   src/taskfile/cli/interactive/__init__.py,8
   src/taskfile/cli/interactive/menu.py,552
-  src/taskfile/cli/interactive/wizards.py,480
-  src/taskfile/cli/main.py,679
+  src/taskfile/cli/interactive/wizards.py,619
+  src/taskfile/cli/main.py,698
   src/taskfile/cli/quadlet.py,268
   src/taskfile/cli/registry_cmds.py,230
   src/taskfile/cli/release.py,368
@@ -56,10 +56,10 @@ M[94]:
   src/taskfile/converters.py,306
   src/taskfile/deploy_recipes.py,188
   src/taskfile/deploy_utils.py,492
-  src/taskfile/diagnostics/__init__.py,260
-  src/taskfile/diagnostics/checks.py,961
+  src/taskfile/diagnostics/__init__.py,266
+  src/taskfile/diagnostics/checks.py,1192
   src/taskfile/diagnostics/fixes.py,204
-  src/taskfile/diagnostics/llm_repair.py,176
+  src/taskfile/diagnostics/llm_repair.py,222
   src/taskfile/diagnostics/models.py,147
   src/taskfile/diagnostics/report.py,204
   src/taskfile/fleet.py,483
@@ -67,20 +67,20 @@ M[94]:
   src/taskfile/health.py,408
   src/taskfile/importer.py,442
   src/taskfile/landing.py,365
-  src/taskfile/models.py,567
+  src/taskfile/models.py,592
   src/taskfile/notifications.py,109
   src/taskfile/parser.py,344
   src/taskfile/provisioner.py,308
   src/taskfile/quadlet.py,350
   src/taskfile/registry.py,349
   src/taskfile/runner/__init__.py,10
-  src/taskfile/runner/commands.py,680
+  src/taskfile/runner/commands.py,752
   src/taskfile/runner/core.py,476
   src/taskfile/runner/error_presenter.py,280
-  src/taskfile/runner/explainer.py,380
+  src/taskfile/runner/explainer.py,395
   src/taskfile/runner/functions.py,140
   src/taskfile/runner/resolver.py,197
-  src/taskfile/runner/ssh.py,62
+  src/taskfile/runner/ssh.py,121
   src/taskfile/scaffold/__init__.py,33
   src/taskfile/scaffold/codereview.py,207
   src/taskfile/scaffold/full.py,181
@@ -96,90 +96,72 @@ M[94]:
   src/taskfile/webui/handlers.py,147
   src/taskfile/webui/server.py,43
 D:
-  src/taskfile/runner/explainer.py:
-    e: StepIssue,ExplainStep,ExplainReport,TaskExplainer,print_explain_report,print_teach_report,_cmd_type_icon
-    StepIssue:  # A potential problem detected in a step...
-    ExplainStep:  # Analysis of a single command in the execution plan...
-    ExplainReport:  # Full pre-run analysis report...
-    TaskExplainer: __init__(1),explain(1),_analyze_command(4),_analyze_script(3),_check_placeholders(2),_check_binary(3),_check_files(2)  # Analyzes execution plan and explains what will happen...
-    print_explain_report(report;task_names;env_name)
-    print_teach_report(report;task_names;env_name;config)
-    _cmd_type_icon(cmd_type)
-  src/taskfile/cli/explain_cmd.py:
-    e: _format_time_estimate,_collect_requirements,explain,_check_env_files
-    _format_time_estimate(task)
-    _collect_requirements(steps;env)
-    explain(ctx;task_name)
-    _check_env_files(config;resolver;task)
-  src/taskfile/cli/e2e_cmd.py:
-    e: E2EResult,_check_taskfile_valid,_check_env_file,_check_compose_file,_check_quadlet_files,_check_local_tools,_check_http_endpoint,_check_containers_running,_check_ssh_connectivity,_check_remote_podman,_check_remote_disk,e2e_cmd
-    E2EResult: __init__(4)  # Single e2e test result...
-    _check_taskfile_valid(config)
-    _check_env_file(env_file)
-    _check_compose_file(config)
-    _check_quadlet_files()
-    _check_local_tools()
-    _check_http_endpoint(url;expected_status;timeout)
-    _check_containers_running(env;config)
-    _check_ssh_connectivity(env)
-    _check_remote_podman(env)
-    _check_remote_disk(env)
-    e2e_cmd(ctx;check_only;url;port_web;port_landing)
-  src/taskfile/cli/main.py:
-    e: _format_nearby_path,_nearby_cd_hint,_print_nearby_taskfiles,_suggest_similar_tasks,_check_unknown_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,validate,_validate_dependent_files,_print_dependency_tree,_print_transitive_deps,import_cmd
-    _format_nearby_path(path;level)
-    _nearby_cd_hint(path;level)
-    _print_nearby_taskfiles(nearby)
-    _suggest_similar_tasks(unknown;available;max_suggestions)
-    _check_unknown_tasks(task_list;available_tasks)
-    _run_env_group(taskfile_path;env_group;task_names;platform_name;var_overrides;dry_run;verbose)
-    _group_rolling(members;run_fn)
-    _group_canary(members;run_fn;canary_count)
-    _group_parallel(members;run_fn;max_parallel)
-    parse_var(ctx;param;value)
-    main(ctx;taskfile_path;env_name;env_group;platform_name;var;dry_run;verbose)
-    run(ctx;tasks;run_tags;explain;teach)
-    _filter_tasks_by_tags(config;task_names;tags)
-    list_tasks(ctx)
-    validate(ctx;check_files;show_deps)
-    _validate_dependent_files(config)
-    _print_dependency_tree(config)
-    _print_transitive_deps(config;deps;visited;depth)
-    import_cmd(source;source_type;output_path;force)
-  src/taskfile/runner/commands.py:
-    e: _md,_find_task_line,_find_cmd_line,_source_ref,_render_step_header,_validate_command_files,_validate_all_commands,_get_tip_for_command,_get_tip_for_failure,_expand_globs_in_command,_dispatch_special_prefix,_render_output,_run_subprocess,_run_local,run_command,execute_script,_run_with_retries,_classify_exit_code,_handle_failure,execute_commands
-    _md(text)
-    _find_task_line(source_path;task_name)
-    _find_cmd_line(source_path;task_name;cmd)
-    _source_ref(source_path;line)
-    _render_step_header(runner;task_name;cmd;step;total;task)
-    _validate_command_files(cmd;cwd)
-    _validate_all_commands(runner;task;task_name)
-    _get_tip_for_command(cmd)
-    _get_tip_for_failure(cmd;returncode;category)
-    _expand_globs_in_command(cmd;cwd)
-    _dispatch_special_prefix(runner;expanded;task)
-    _render_output(output;task)
-    _run_subprocess(runner;cmd_str;task;label)
-    _run_local(runner;actual_cmd;task;remote)
-    run_command(runner;cmd;task)
-    execute_script(runner;task;task_name)
-    _run_with_retries(fn;task)
-    _classify_exit_code(returncode)
-    _handle_failure(returncode;task;task_name;start;label;cmd;source_path;runner)
-    execute_commands(runner;task;task_name;start)
-  src/taskfile/models.py:
-    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
-    Environment: resolve_variables(2)  # Deployment environment configuration...
-    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
-    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
-    ComposeConfig:  # Compose-based deployment configuration...
-    Function:  # Embedded function callable from tasks via @fn prefix...
-    Task: should_run_on(1),should_run_on_platform(1)  # Single task definition...
-    PipelineStage:  # A stage in the CI/CD pipeline...
-    PipelineConfig: from_dict(1),infer_from_tasks(1)  # CI/CD pipeline configuration...
-    TaskfileConfig: from_dict(1),_expand_hosts(0),_parse_compose(0),_parse_environments(0),_parse_environment_groups(0),_parse_platforms(0),_parse_functions(0),_parse_tasks(0),_parse_pipeline(1)  # Parsed Taskfile configuration...
-    _normalize_commands(cmds)
+  src/taskfile/cli/interactive/wizards.py:
+    e: _nullcontext,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_run_llm_assist,_run_remote_diagnostics,_run_examples_check,_apply_init_extras,init
+    _nullcontext: __enter__(0),__exit__(0)  # Minimal no-op context manager for Python <3.10 compat...
+    _detect_project_type()
+    _suggest_template(project_type)
+    _collect_env_config_interactive()
+    _write_env_file(config;env_name)
+    _collect_init_choices()
+    _create_gitignore()
+    doctor(fix;verbose;report;check_examples_flag;llm;category;teach;remote)
+    _run_llm_assist(diagnostics)
+    _run_remote_diagnostics(diagnostics)
+    _run_examples_check(diagnostics;report)
+    _apply_init_extras(choices)
+    init(template;force;interactive)
+  src/taskfile/api/app.py:
+    e: _load_config,_config_to_info,_register_health_routes,_register_taskfile_routes,_register_task_routes,_register_run_routes,_register_metadata_routes,_register_doctor_routes,_run_doctor,create_app
+    _load_config(taskfile_path)
+    _config_to_info(config)
+    _register_health_routes(app)
+    _register_taskfile_routes(app)
+    _register_task_routes(app)
+    _register_run_routes(app)
+    _register_metadata_routes(app)
+    _register_doctor_routes(app)
+    _run_doctor(app)
+    create_app(taskfile_path)
+  src/taskfile/diagnostics/checks.py:
+    e: _load_dotenv_vars,_resolve_env_fields,check_preflight,check_taskfile,check_env_files,_collect_required_vars,_check_env_file_vars,check_unresolved_variables,check_ports,_check_script_files,_check_env_files,_check_circular_deps,check_dependent_files,_extract_registry_host,_check_registry_reachable,check_registry_access,check_docker,check_ssh_keys,check_ssh_connectivity,check_remote_health,check_git,check_task_commands,check_examples,_load_env_file_vars,check_placeholder_values,_check_env_file_for_target,_check_tasks_and_deps,_check_ssh_key_for_env,validate_before_run,_resolve_port_conflict,_parse_compose_host_port,_is_port_free,_find_free_port_near,_who_uses_port,_is_docker_process,_test_ssh,_extract_binary
+    _load_dotenv_vars(env_file_path)
+    _resolve_env_fields(env;taskfile_dir)
+    check_preflight()
+    check_taskfile()
+    check_env_files()
+    _collect_required_vars(config)
+    _check_env_file_vars(env_file;required_vars)
+    check_unresolved_variables(config)
+    check_ports()
+    _check_script_files(config;taskfile_dir)
+    _check_env_files(config;taskfile_dir)
+    _check_circular_deps(config)
+    check_dependent_files(config)
+    _extract_registry_host(image)
+    _check_registry_reachable(host;timeout)
+    check_registry_access(config)
+    check_docker()
+    check_ssh_keys()
+    check_ssh_connectivity(config)
+    check_remote_health(config)
+    check_git()
+    check_task_commands(config)
+    check_examples(examples_dir)
+    _load_env_file_vars(env_file_path)
+    check_placeholder_values(config)
+    _check_env_file_for_target(config;env_name;taskfile_dir)
+    _check_tasks_and_deps(config;task_names;taskfile_dir)
+    _check_ssh_key_for_env(config;env_name)
+    validate_before_run(config;env_name;task_names)
+    _resolve_port_conflict(svc_name;port_entry;ctx)
+    _parse_compose_host_port(port_entry)
+    _is_port_free(port;host)
+    _find_free_port_near(start;span)
+    _who_uses_port(port)
+    _is_docker_process(process_name)
+    _test_ssh(env)
+    _extract_binary(cmd)
   src/taskfile/runner/core.py:
     e: TaskRunError,TaskfileRunner
     TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
@@ -201,39 +183,13 @@ Composes:
     _compose_deploy(deps)
     _quadlet_deploy(deps;images;registry;tag_var)
     _ssh_push_deploy(deps;images;registry;tag_var)
-  src/taskfile/diagnostics/checks.py:
-    e: check_preflight,check_taskfile,check_env_files,_collect_required_vars,_check_env_file_vars,check_unresolved_variables,check_ports,_check_script_files,_check_env_files,_check_circular_deps,check_dependent_files,check_docker,check_ssh_keys,check_ssh_connectivity,check_remote_health,check_git,check_task_commands,check_examples,check_placeholder_values,_check_env_file_for_target,_check_tasks_and_deps,_check_ssh_key_for_env,validate_before_run,_resolve_port_conflict,_parse_compose_host_port,_is_port_free,_find_free_port_near,_who_uses_port,_is_docker_process,_test_ssh,_extract_binary
-    check_preflight()
-    check_taskfile()
-    check_env_files()
-    _collect_required_vars(config)
-    _check_env_file_vars(env_file;required_vars)
-    check_unresolved_variables(config)
-    check_ports()
-    _check_script_files(config;taskfile_dir)
-    _check_env_files(config;taskfile_dir)
-    _check_circular_deps(config)
-    check_dependent_files(config)
-    check_docker()
-    check_ssh_keys()
-    check_ssh_connectivity(config)
-    check_remote_health(config)
-    check_git()
-    check_task_commands(config)
-    check_examples(examples_dir)
-    check_placeholder_values(config)
-    _check_env_file_for_target(config;env_name;taskfile_dir)
-    _check_tasks_and_deps(config;task_names;taskfile_dir)
-    _check_ssh_key_for_env(config;env_name)
-    validate_before_run(config;env_name;task_names)
-    _resolve_port_conflict(svc_name;port_entry;ctx)
-    _parse_compose_host_port(port_entry)
-    _is_port_free(port;host)
-    _find_free_port_near(start;span)
-    _who_uses_port(port)
-    _is_docker_process(process_name)
-    _test_ssh(env)
-    _extract_binary(cmd)
+  src/taskfile/diagnostics/llm_repair.py:
+    e: is_available,ask_llm_for_fix,classify_runtime_error,_extract_image_name,_extract_missing_binary
+    is_available()
+    ask_llm_for_fix(issue;project_context)
+    classify_runtime_error(exit_code;stderr;cmd)
+    _extract_image_name(cmd;stderr)
+    _extract_missing_binary(stderr)
   src/taskfile/diagnostics/report.py:
     e: print_report,_group_issues_by_layer,_print_layer_issues,_print_summary,_print_layered_report,_print_flat_report,print_report_json,get_report_dict,format_summary,_severity_icon,_fix_tag
     print_report(issues;categorized;show_teach)
@@ -247,26 +203,82 @@ Composes:
     format_summary(report)
     _severity_icon(severity)
     _fix_tag(issue)
-  src/taskfile/cli/interactive/wizards.py:
-    e: _nullcontext,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_run_llm_assist,_run_examples_check,_apply_init_extras,init
-    _nullcontext: __enter__(0),__exit__(0)  # Minimal no-op context manager for Python <3.10 compat...
-    _detect_project_type()
-    _suggest_template(project_type)
-    _collect_env_config_interactive()
-    _write_env_file(config;env_name)
-    _collect_init_choices()
-    _create_gitignore()
-    doctor(fix;verbose;report;check_examples_flag;llm;category;teach)
-    _run_llm_assist(diagnostics)
-    _run_examples_check(diagnostics;report)
-    _apply_init_extras(choices)
-    init(template;force;interactive)
-  src/taskfile/diagnostics/llm_repair.py:
-    e: is_available,ask_llm_for_fix,classify_runtime_error,_extract_missing_binary
-    is_available()
-    ask_llm_for_fix(issue;project_context)
-    classify_runtime_error(exit_code;stderr;cmd)
-    _extract_missing_binary(stderr)
+  src/taskfile/runner/commands.py:
+    e: _md,_find_task_line,_find_cmd_line,_source_ref,_render_step_header,_strip_cmd_prefix,_check_file_arg,_validate_command_files,_validate_all_commands,_get_tip_for_command,_get_tip_for_failure,_expand_globs_in_command,_dispatch_special_prefix,_render_output,_run_subprocess,_run_local,run_command,execute_script,_run_with_retries,_classify_exit_code,_handle_failure,_execute_script_step,_execute_cmd_step,execute_commands
+    _md(text)
+    _find_task_line(source_path;task_name)
+    _find_cmd_line(source_path;task_name;cmd)
+    _source_ref(source_path;line)
+    _render_step_header(runner;task_name;cmd;step;total;task)
+    _strip_cmd_prefix(cmd)
+    _check_file_arg(part;base)
+    _validate_command_files(cmd;cwd)
+    _validate_all_commands(runner;task;task_name)
+    _get_tip_for_command(cmd)
+    _get_tip_for_failure(cmd;returncode;category)
+    _expand_globs_in_command(cmd;cwd)
+    _dispatch_special_prefix(runner;expanded;task)
+    _render_output(output;task)
+    _run_subprocess(runner;cmd_str;task;label)
+    _run_local(runner;actual_cmd;task;remote;display_cmd)
+    run_command(runner;cmd;task)
+    execute_script(runner;task;task_name)
+    _run_with_retries(fn;task)
+    _classify_exit_code(returncode)
+    _handle_failure(returncode;task;task_name;start;label;cmd;source_path;runner)
+    _execute_script_step(runner;task;task_name;start;step;total_steps)
+    _execute_cmd_step(runner;task;task_name;cmd;start;step;total_steps)
+    execute_commands(runner;task;task_name;start)
+  src/taskfile/runner/explainer.py:
+    e: StepIssue,ExplainStep,ExplainReport,TaskExplainer,print_explain_report,_print_teach_deps,_print_teach_prefix_info,_print_teach_current_env,_print_teach_alt_env,print_teach_report,_cmd_type_icon
+    StepIssue:  # A potential problem detected in a step...
+    ExplainStep:  # Analysis of a single command in the execution plan...
+    ExplainReport:  # Full pre-run analysis report...
+    TaskExplainer: __init__(1),explain(1),_analyze_command(4),_analyze_script(3),_check_placeholders(2),_check_binary(3),_check_files(2)  # Analyzes execution plan and explains what will happen...
+    print_explain_report(report;task_names;env_name)
+    _print_teach_deps(task_names;config)
+    _print_teach_prefix_info(has_local;has_remote)
+    _print_teach_current_env(report;env_name)
+    _print_teach_alt_env(report;env_name;config)
+    print_teach_report(report;task_names;env_name;config)
+    _cmd_type_icon(cmd_type)
+  src/taskfile/cli/main.py:
+    e: _format_nearby_path,_nearby_cd_hint,_print_nearby_taskfiles,_suggest_similar_tasks,_check_unknown_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,validate,_check_script_files_status,_check_env_files_status,_check_compose_services,_check_common_files,_validate_dependent_files,_print_dependency_tree,_print_transitive_deps,import_cmd
+    _format_nearby_path(path;level)
+    _nearby_cd_hint(path;level)
+    _print_nearby_taskfiles(nearby)
+    _suggest_similar_tasks(unknown;available;max_suggestions)
+    _check_unknown_tasks(task_list;available_tasks)
+    _run_env_group(taskfile_path;env_group;task_names;platform_name;var_overrides;dry_run;verbose)
+    _group_rolling(members;run_fn)
+    _group_canary(members;run_fn;canary_count)
+    _group_parallel(members;run_fn;max_parallel)
+    parse_var(ctx;param;value)
+    main(ctx;taskfile_path;env_name;env_group;platform_name;var;dry_run;verbose)
+    run(ctx;tasks;run_tags;explain;teach)
+    _filter_tasks_by_tags(config;task_names;tags)
+    list_tasks(ctx)
+    validate(ctx;check_files;show_deps)
+    _check_script_files_status(config;taskfile_dir)
+    _check_env_files_status(config;taskfile_dir)
+    _check_compose_services(taskfile_dir)
+    _check_common_files(taskfile_dir)
+    _validate_dependent_files(config)
+    _print_dependency_tree(config)
+    _print_transitive_deps(config;deps;visited;depth)
+    import_cmd(source;source_type;output_path;force)
+  src/taskfile/models.py:
+    e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig,TaskfileConfig,_normalize_commands
+    Environment: resolve_variables(2)  # Deployment environment configuration...
+    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
+    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
+    ComposeConfig:  # Compose-based deployment configuration...
+    Function:  # Embedded function callable from tasks via @fn prefix...
+    Task: should_run_on(1),should_run_on_platform(1)  # Single task definition...
+    PipelineStage:  # A stage in the CI/CD pipeline...
+    PipelineConfig: from_dict(1),infer_from_tasks(1)  # CI/CD pipeline configuration...
+    TaskfileConfig: from_dict(1),_apply_environment_defaults(0),_expand_hosts_section(1),_expand_addons_section(0),_expand_deploy_section(0),_expand_hosts(0),_parse_compose(0),_parse_environments(0),_parse_environment_groups(0),_parse_platforms(0),_parse_functions(0),_parse_tasks(0),_parse_pipeline(1)  # Parsed Taskfile configuration...
+    _normalize_commands(cmds)
   src/taskfile/runner/error_presenter.py:
     e: ErrorPresenter
     ErrorPresenter: present(6),_build_diagnosis(5),_diagnose_hostname(2),_diagnose_command_not_found(2),_diagnose_permission_denied(2),_diagnose_file_not_found(2),_first_meaningful_line(0),_extract_hostname(0),_extract_missing_binary(0),_find_variable_for_value(1),_looks_like_placeholder(0),_first_word(0)  # Formats runtime errors with context, diagnosis, and fix sugg...
@@ -359,6 +371,16 @@ Composes:
     _validate_circular_dependencies(config)
     _validate_referenced_files(config)
     validate_taskfile(config)
+  src/taskfile/cli/explain_cmd.py:
+    e: _format_time_estimate,_collect_requirements,_print_explain_header,_print_explain_steps,_print_explain_variables,_print_explain_problems,explain,_check_env_files
+    _format_time_estimate(task)
+    _collect_requirements(steps;env)
+    _print_explain_header(task_name;task;env_name;env;report)
+    _print_explain_steps(report)
+    _print_explain_variables(variables)
+    _print_explain_problems(report)
+    explain(ctx;task_name)
+    _check_env_files(config;resolver;task)
   src/taskfile/watch.py:
     e: FileWatcher,watch_tasks
     FileWatcher: __init__(4),_should_ignore(1),_get_files(0),_detect_changes(0),start(0),stop(0)  # Watch files for changes and trigger callbacks...
@@ -480,6 +502,26 @@ Composes:
     fleet_status_cmd(ctx;group)
     fleet_repair_cmd(ctx;env_name;auto_fix)
     fleet_list_cmd(ctx)
+  src/taskfile/cli/e2e_cmd.py:
+    e: E2EResult,_check_taskfile_valid,_check_env_file,_check_compose_file,_check_quadlet_files,_check_local_tools,_check_http_endpoint,_get_running_containers_remote,_get_running_containers_local,_match_containers,_check_containers_running,_check_ssh_connectivity,_check_remote_podman,_check_remote_disk,_run_iac_checks,_run_service_checks,_print_e2e_results,e2e_cmd
+    E2EResult: __init__(4)  # Single e2e test result...
+    _check_taskfile_valid(config)
+    _check_env_file(env_file)
+    _check_compose_file(config)
+    _check_quadlet_files()
+    _check_local_tools()
+    _check_http_endpoint(url;expected_status;timeout)
+    _get_running_containers_remote(env)
+    _get_running_containers_local()
+    _match_containers(expected;running)
+    _check_containers_running(env;config)
+    _check_ssh_connectivity(env)
+    _check_remote_podman(env)
+    _check_remote_disk(env)
+    _run_iac_checks(config;env)
+    _run_service_checks(env;config;is_remote;url;port_web;port_landing)
+    _print_e2e_results(results)
+    e2e_cmd(ctx;check_only;url;port_web;port_landing)
   src/taskfile/converters.py:
     e: MakefileConverter,GitHubActionsConverter,NpmScriptsConverter,GitLabCIConverter,DockerComposeConverter,detect_format,import_file,export_file
     MakefileConverter: import_makefile(0),export_makefile(0)  # Convert between Taskfile and Makefile...
@@ -508,7 +550,7 @@ Composes:
     get_project_hash(taskfile_path)
   src/taskfile/diagnostics/__init__.py:
     e: ProjectDiagnostics
-    ProjectDiagnostics: __init__(0),_add_issue(4),_add_issues(1),_load_config(0),check_preflight(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_placeholder_values(0),check_ports(0),check_docker(0),check_ssh_keys(0),check_ssh_connectivity(0),check_dependent_files(0),check_git(0),check_task_commands(0),check_remote_health(0),auto_fix(0),llm_repair(1),print_report(2),print_report_json(0),get_report_dict(0),check_examples(0),generate_env_example(2)  # Facade composing checks + fixes + report — backward compatib...
+    ProjectDiagnostics: __init__(0),_add_issue(4),_add_issues(1),_load_config(0),check_preflight(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_placeholder_values(0),check_ports(0),check_docker(0),check_registry_access(0),check_ssh_keys(0),check_ssh_connectivity(0),check_dependent_files(0),check_git(0),check_task_commands(0),check_remote_health(0),auto_fix(0),llm_repair(1),print_report(2),print_report_json(0),get_report_dict(0),check_examples(0),generate_env_example(2)  # Facade composing checks + fixes + report — backward compatib...
   src/taskfile/diagnostics/fixes.py:
     e: apply_fixes,apply_single_fix,_fix_copy_env_example,_fix_create_taskfile,_fix_init_git,_fix_rename_port,_fix_missing_variable,_fix_run_command,_mark_fixed,_upsert_env_value
     apply_fixes(issues;interactive)
@@ -563,11 +605,6 @@ Th...
     _notify_linux(title;message)
     _notify_windows(title;message)
     is_notification_available()
-  src/taskfile/cli/import_export.py:
-    e: import_cmd,export_cmd,detect
-    import_cmd(source;source_type;output_path;force)
-    export_cmd(ctx;target_type;output_path;workflow_name;project_name;taskfile_path)
-    detect()
   src/taskfile/cli/registry_cmds.py:
     e: pkg,pkg_search,pkg_install,pkg_list,pkg_uninstall,pkg_info
     pkg()
@@ -576,6 +613,11 @@ Th...
     pkg_list(all)
     pkg_uninstall(package_name;yes)
     pkg_info(package_name)
+  src/taskfile/cli/import_export.py:
+    e: import_cmd,export_cmd,detect
+    import_cmd(source;source_type;output_path;force)
+    export_cmd(ctx;target_type;output_path;workflow_name;project_name;taskfile_path)
+    detect()
   src/taskfile/cli/api_cmd.py:
     e: api,api_serve,api_openapi
     api()
@@ -624,11 +666,6 @@ Th...
   src/taskfile/cigen/github.py:
     e: GitHubActionsTarget
     GitHubActionsTarget(CITarget): _tag_var(0),_build_steps(1),_apply_conditions(2),_has_tag_stages(0),_build_on_triggers(1),generate(0),_apply_secrets_env(2)
-  src/taskfile/api/app.py:
-    e: _load_config,_config_to_info,create_app
-    _load_config(taskfile_path)
-    _config_to_info(config)
-    create_app(taskfile_path)
   src/taskfile/runner/resolver.py:
     e: TaskResolver
     TaskResolver: __init__(4),from_path(4),_load_dotenv(0),_resolve_environment(0),_resolve_env_fields(1),_resolve_platform(0),_resolve_variables(0),expand_variables(1),get_task(1),available_task_names(0),should_skip_task(2),get_dependency_order(2),env_is_defined(0),platform_is_defined(0)  # Pure-logic task resolver: variable expansion, filtering, dep...
@@ -684,12 +721,18 @@ Th...
     e: GitLabCITarget
     GitLabCITarget(CITarget): _tag_var(0),_build_base_doc(0),_build_job(1),_apply_dind(3),_apply_when_rules(3),_apply_ssh_setup(2),_apply_artifacts(3),generate(0)
   src/taskfile/runner/ssh.py:
-    e: is_local_command,strip_local_prefix,is_remote_command,strip_remote_prefix,wrap_ssh,run_embedded_ssh
+    e: is_local_command,strip_local_prefix,is_remote_command,strip_remote_prefix,wrap_ssh,is_push_command,strip_push_prefix,is_pull_command,strip_pull_prefix,wrap_scp_push,wrap_scp_pull,run_embedded_ssh
     is_local_command(cmd)
     strip_local_prefix(cmd)
     is_remote_command(cmd)
     strip_remote_prefix(cmd)
     wrap_ssh(cmd;env)
+    is_push_command(cmd)
+    strip_push_prefix(cmd)
+    is_pull_command(cmd)
+    strip_pull_prefix(cmd)
+    wrap_scp_push(cmd;env)
+    wrap_scp_pull(cmd;env)
     run_embedded_ssh(runner;cmd;task)
   src/taskfile/cli/cache_cmds.py:
     e: cache,cache_show,cache_clear
@@ -776,17 +819,17 @@ Ne...
   src/taskfile/scaffold/web.py:
   src/taskfile/scaffold/minimal.py:
   src/taskfile/scaffold/publish.py:
-  src/taskfile/scaffold/full.py:
   src/taskfile/scaffold/podman.py:
-  src/taskfile/scaffold/multiplatform.py:
+  src/taskfile/scaffold/full.py:
   src/taskfile/scaffold/codereview.py:
+  src/taskfile/scaffold/multiplatform.py:
   src/taskfile/runner/__init__.py:
   src/taskfile/cli/__init__.py:
   src/taskfile/webui/__init__.py:
   src/taskfile/api/__init__.py:
   src/taskfile/cli/interactive/__init__.py:
   src/taskfile/api/models.py:
-    e: TaskStatus,DeployStrategy,RunTaskRequest,ValidateRequest,TaskInfo,EnvironmentInfo,EnvironmentGroupInfo,PlatformInfo,FunctionInfo,PipelineStageInfo,TaskfileInfo,ValidationResult,CommandOutput,TaskRunResult,RunResult,HealthResponse,ErrorResponse
+    e: TaskStatus,DeployStrategy,RunTaskRequest,ValidateRequest,TaskInfo,EnvironmentInfo,EnvironmentGroupInfo,PlatformInfo,FunctionInfo,PipelineStageInfo,TaskfileInfo,ValidationResult,CommandOutput,TaskRunResult,RunResult,HealthResponse,DoctorIssueInfo,DoctorRequest,DoctorResponse,ErrorResponse
     TaskStatus(str,Enum):
     DeployStrategy(str,Enum):
     RunTaskRequest(BaseModel):  # Request to run one or more tasks...
@@ -803,4 +846,7 @@ Ne...
     TaskRunResult(BaseModel):  # Result of a single task execution...
     RunResult(BaseModel):  # Result of a task run request...
     HealthResponse(BaseModel):  # API health check response...
+    DoctorIssueInfo(BaseModel):  # Single diagnostic issue from doctor...
+    DoctorRequest(BaseModel):  # Request options for the doctor endpoint...
+    DoctorResponse(BaseModel):  # Full doctor diagnostics result...
     ErrorResponse(BaseModel):  # Error response...

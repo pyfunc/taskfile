@@ -60,12 +60,12 @@
 </p>
 
 <div class="grid">
-  <div class="card"><div class="value">4.6</div><div class="label">Avg CC</div></div>
-  <div class="card"><div class="value">55</div><div class="label">Critical (CC≥10)</div></div>
-  <div class="card"><div class="value">660</div><div class="label">Functions</div></div>
-  <div class="card"><div class="value">86</div><div class="label">Classes</div></div>
+  <div class="card"><div class="value">4.5</div><div class="label">Avg CC</div></div>
+  <div class="card"><div class="value">57</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">708</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">89</div><div class="label">Classes</div></div>
   <div class="card"><div class="value">72</div><div class="label">Files</div></div>
-  <div class="card"><div class="value">27495</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">29857</div><div class="label">Lines</div></div>
   <div class="card"><div class="value">2</div><div class="label">Duplicates</div></div>
   <div class="card"><div class="value">0</div><div class="label">Cycles</div></div>
 </div>
@@ -74,9 +74,9 @@
   <div class="chart-container">
     <h2 style="border:none;margin:0 0 .5rem;">Evolution (2026-03-06)</h2>
     <div class="evo-cards">
-      <div class="card"><div class="value">4.6</div><div class="label">CC̄ ↑</div></div>
-      <div class="card"><div class="value">55</div><div class="label">Critical ↑</div></div>
-      <div class="card"><div class="value">27495</div><div class="label">Lines</div></div>
+      <div class="card"><div class="value">4.5</div><div class="label">CC̄ ↑</div></div>
+      <div class="card"><div class="value">57</div><div class="label">Critical ↑</div></div>
+      <div class="card"><div class="value">29857</div><div class="label">Lines</div></div>
     </div>
     <p class="trend" style="margin-top:.5rem;">Run analysis multiple times to build a trend chart (≥3 data points needed).</p>
   </div>
@@ -93,45 +93,38 @@
   <tbody>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>create_app</td>
-                <td>high_fan_out</td>
-                <td>52</td>
-                <td>10</td>
-            </tr>
-            <tr class="critical">
-                <td><span class="badge critical">critical</span></td>
-                <td>print_teach_report</td>
-                <td>cc_exceeded</td>
-                <td>31</td>
-                <td>15</td>
-            </tr>
-            <tr class="critical">
-                <td><span class="badge critical">critical</span></td>
                 <td>doctor</td>
                 <td>high_fan_out</td>
-                <td>29</td>
+                <td>31</td>
                 <td>10</td>
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>explain</td>
+                <td>_run_remote_diagnostics</td>
                 <td>cc_exceeded</td>
-                <td>26</td>
+                <td>28</td>
                 <td>15</td>
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>e2e_cmd</td>
+                <td>_run_doctor</td>
+                <td>cc_exceeded</td>
+                <td>28</td>
+                <td>15</td>
+            </tr>
+            <tr class="critical">
+                <td><span class="badge critical">critical</span></td>
+                <td>_run_doctor</td>
                 <td>high_fan_out</td>
-                <td>25</td>
+                <td>28</td>
                 <td>10</td>
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>TaskfileConfig.from_dict</td>
-                <td>high_fan_out</td>
-                <td>24</td>
-                <td>10</td>
+                <td>check_registry_access</td>
+                <td>cc_exceeded</td>
+                <td>25</td>
+                <td>15</td>
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
@@ -142,16 +135,16 @@
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>explain</td>
+                <td>_register_run_routes</td>
                 <td>high_fan_out</td>
-                <td>21</td>
+                <td>23</td>
                 <td>10</td>
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>_check_containers_running</td>
+                <td>check_placeholder_values</td>
                 <td>high_fan_out</td>
-                <td>21</td>
+                <td>22</td>
                 <td>10</td>
             </tr>
             <tr class="critical">
@@ -163,6 +156,13 @@
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
+                <td>check_registry_access</td>
+                <td>high_fan_out</td>
+                <td>20</td>
+                <td>10</td>
+            </tr>
+            <tr class="critical">
+                <td><span class="badge critical">critical</span></td>
                 <td>bump</td>
                 <td>high_fan_out</td>
                 <td>20</td>
@@ -170,31 +170,31 @@
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
-                <td>e2e_cmd</td>
-                <td>cc_exceeded</td>
-                <td>22</td>
-                <td>15</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>_validate_dependent_files</td>
-                <td>cc_exceeded</td>
-                <td>22</td>
-                <td>15</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>_validate_command_files</td>
-                <td>cc_exceeded</td>
-                <td>21</td>
-                <td>15</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>execute_commands</td>
+                <td>doctor</td>
                 <td>cc_exceeded</td>
                 <td>20</td>
                 <td>15</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>RegistryClient._install_from_github</td>
+                <td>high_fan_out</td>
+                <td>18</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>_dispatch_special_prefix</td>
+                <td>high_fan_out</td>
+                <td>18</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>e2e_cmd</td>
+                <td>high_fan_out</td>
+                <td>18</td>
+                <td>10</td>
             </tr></tbody>
 </table>
 </div></div>
@@ -207,13 +207,8 @@
   <thead><tr><th>Function</th><th>Fan-out</th><th>Note</th></tr></thead>
   <tbody>
             <tr>
-                <td><strong>create_app</strong></td>
-                <td>52</td>
-                <td>Create and configure the FastAPI application.</td>
-            </tr>
-            <tr>
                 <td><strong>doctor</strong></td>
-                <td>29</td>
+                <td>31</td>
                 <td>**🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
 ## Layers
@@ -221,16 +216,9 @@
 | Layer |</td>
             </tr>
             <tr>
-                <td><strong>e2e_cmd</strong></td>
-                <td>25</td>
-                <td>**🧪 End-to-end tests** for services and IaC.
-
-Validates infrastructure-as-code a</td>
-            </tr>
-            <tr>
-                <td><strong>TaskfileConfig.from_dict</strong></td>
-                <td>24</td>
-                <td>Parse raw YAML dict into TaskfileConfig.</td>
+                <td><strong>_run_doctor</strong></td>
+                <td>28</td>
+                <td>Shared doctor logic for GET and POST endpoints.</td>
             </tr>
             <tr>
                 <td><strong>run</strong></td>
@@ -243,16 +231,14 @@ Validates infrastructure-as-code a</td>
 taskfile r</td>
             </tr>
             <tr>
-                <td><strong>explain</strong></td>
-                <td>21</td>
-                <td>**Explain what a task will do** — full execution plan without running.
-
-## Shows</td>
+                <td><strong>_register_run_routes</strong></td>
+                <td>23</td>
+                <td>Register task execution endpoint.</td>
             </tr>
             <tr>
-                <td><strong>_check_containers_running</strong></td>
-                <td>21</td>
-                <td>Check expected containers are running (local or remote).</td>
+                <td><strong>check_placeholder_values</strong></td>
+                <td>22</td>
+                <td>Detect variables with placeholder values (example.com, changeme, etc.).</td>
             </tr>
             <tr>
                 <td><strong>prod</strong></td>
@@ -262,6 +248,13 @@ taskfile r</td>
 All-in-one interac</td>
             </tr>
             <tr>
+                <td><strong>check_registry_access</strong></td>
+                <td>20</td>
+                <td>Check if container image registries are reachable.
+
+Finds IMAGE_* variables poin</td>
+            </tr>
+            <tr>
                 <td><strong>bump</strong></td>
                 <td>20</td>
                 <td>Bump version number (patch, minor, or major).
@@ -269,9 +262,14 @@ All-in-one interac</td>
 Updates VERSION file and optional</td>
             </tr>
             <tr>
-                <td><strong>_validate_dependent_files</strong></td>
-                <td>19</td>
-                <td>Check all files referenced by the Taskfile and report status.</td>
+                <td><strong>RegistryClient._install_from_github</strong></td>
+                <td>18</td>
+                <td>Install package from GitHub repository.</td>
+            </tr>
+            <tr>
+                <td><strong>_dispatch_special_prefix</strong></td>
+                <td>18</td>
+                <td>18-way dispatch</td>
             </tr></tbody>
 </table>
 </div></div>
@@ -285,70 +283,70 @@ Updates VERSION file and optional</td>
   <tbody>
             <tr>
                 <td>1</td>
-                <td>Split print_teach_report (CC=31 → target CC<10)</td>
+                <td>Split check_registry_access (CC=25 → target CC<10)</td>
                 <td><span class="badge high">high</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>2</td>
-                <td>Split explain (CC=26 → target CC<10)</td>
+                <td>Split _run_remote_diagnostics (CC=28 → target CC<10)</td>
                 <td><span class="badge high">high</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>3</td>
-                <td>Split god module src/taskfile/cli/main.py (679L, 0 classes)</td>
+                <td>Split _run_doctor (CC=28 → target CC<10)</td>
                 <td><span class="badge high">high</span></td>
-                <td>high</td>
+                <td>low</td>
             </tr>
             <tr>
                 <td>4</td>
-                <td>Split god module src/taskfile/runner/commands.py (680L, 0 classes)</td>
+                <td>Split god module src/taskfile/api/app.py (713L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>5</td>
-                <td>Split god module src/taskfile/models.py (567L, 9 classes)</td>
+                <td>Split god module src/taskfile/cli/interactive/wizards.py (619L, 1 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>6</td>
-                <td>Split god module src/taskfile/diagnostics/checks.py (961L, 0 classes)</td>
+                <td>Split god module src/taskfile/diagnostics/checks.py (1192L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>7</td>
-                <td>Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)</td>
+                <td>Split god module src/taskfile/runner/commands.py (752L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>8</td>
-                <td>Split god module src/taskfile/api/app.py (559L, 0 classes)</td>
+                <td>Split god module src/taskfile/cli/main.py (698L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>9</td>
-                <td>Split expand_deploy_recipe (CC=17 → target CC<10)</td>
-                <td><span class="badge medium">medium</span></td>
-                <td>low</td>
+                <td>Split god module src/taskfile/models.py (592L, 9 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
             </tr>
             <tr>
                 <td>10</td>
-                <td>Split TaskfileConfig.from_dict (CC=18 → target CC<10)</td>
-                <td><span class="badge medium">medium</span></td>
-                <td>low</td>
+                <td>Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
             </tr></tbody>
 </table>
 </div></div>
 </div>
 </div>
 
-<footer>Generated by code2llm on 2026-03-06 19:54</footer>
+<footer>Generated by code2llm on 2026-03-06 21:54</footer>
 
 <script>
 // Evolution chart disabled — fewer than 3 data points
@@ -357,9 +355,9 @@ const modCtx = document.getElementById('modChart').getContext('2d');
 new Chart(modCtx, {
   type: 'bar',
   data: {
-    labels: ['explainer.py', 'explain_cmd.py', 'e2e_cmd.py', 'main.py', 'commands.py', 'click_compat.py', 'models.py', 'core.py', 'wizards.py', 'deploy_recipes.py', 'checks.py', 'report.py', 'quadlet.py', 'llm_repair.py', 'error_presenter.py'],
-    datasets: [{ label: 'Max CC', data: [31, 26, 22, 22, 21, 18, 18, 18, 17, 17, 17, 17, 13, 13, 13],
-      backgroundColor: [31, 26, 22, 22, 21, 18, 18, 18, 17, 17, 17, 17, 13, 13, 13].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    labels: ['app.py', 'wizards.py', 'checks.py', 'click_compat.py', 'core.py', 'deploy_recipes.py', 'llm_repair.py', 'report.py', 'commands.py', 'main.py', 'explainer.py', 'models.py', 'quadlet.py', 'error_presenter.py', 'auth.py'],
+    datasets: [{ label: 'Max CC', data: [28, 28, 25, 18, 18, 17, 17, 17, 16, 15, 15, 14, 13, 13, 12],
+      backgroundColor: [28, 28, 25, 18, 18, 17, 17, 17, 16, 15, 15, 14, 13, 13, 12].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
     }]
   },
   options: {

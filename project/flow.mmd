@@ -133,13 +133,13 @@ flowchart TD
     src__taskfile__compose__resolve_dict --> src__taskfile__compose__resolve_variables
     src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__resolve_dict
     src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__load_env_file
-    src___resolve_stages --> src__taskfile__cli__version__set
     src__taskfile__health__check_http_endpoint --> src__taskfile__health___unhealthy_result
     src__taskfile__health__run_health_checks --> src__taskfile__health__check_http_endpoint
     src__taskfile__health__run_health_checks --> src__taskfile__health__check_ssh_service
     src__taskfile__health__run_health_checks --> src__taskfile__health__check_traefik_dashboard
     src__taskfile__health__health_check_all --> src__taskfile__health__run_health_checks
     src__taskfile__health__health_check_all --> src__taskfile__health__print_health_report
+    src___resolve_stages --> src__taskfile__cli__version__set
     src__taskfile__fleet__load_fleet --> src__taskfile__fleet__FleetConfig__from_dict
     src__taskfile__fleet__check_device_status --> src__taskfile__fleet___ping_device
     src__taskfile__fleet__check_device_status --> src__taskfile__fleet___ssh_cmd
@@ -174,13 +174,15 @@ flowchart TD
     src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_macos
     src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_linux
     src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_windows
-    src__taskfile__models__TaskfileConfig__from_dict --> src__taskfile__addons__expand_addons
+    src__taskfile__cache__TaskCache__get_stats --> src__taskfile__cli__version__set
+    src__taskfile__cache__get_project_hash --> src__taskfile__parser__find_taskfile
+    src___expand_addons_section --> src__taskfile__addons__expand_addons
+    src___expand_deploy_section --> src__expand_deploy_recipe
     src___parse_tasks --> src__taskfile__models___normalize_commands
     src___parse_pipeline --> src__taskfile__models__PipelineConfig__from_dict
     src__taskfile__scaffold__generate_taskfile --> src__taskfile__scaffold___load_template
-    src__taskfile__cache__TaskCache__get_stats --> src__taskfile__cli__version__set
-    src__taskfile__cache__get_project_hash --> src__taskfile__parser__find_taskfile
     src__classify_runtime_error --> src___extract_missing_binary
+    src__classify_runtime_error --> src___extract_image_name
     src___load_config --> src__taskfile__parser__find_taskfile
     src___load_config --> src__taskfile__parser__load_taskfile
     src__validate_taskfile_variables --> src__check_unresolved_variables
@@ -201,6 +203,7 @@ flowchart TD
     src___fix_missing_variable --> src___upsert_env_value
     src___fix_missing_variable --> src__taskfile__diagnostics__fixes___mark_fixed
     src___fix_run_command --> src__taskfile__diagnostics__fixes___mark_fixed
+    src___resolve_env_fields --> src___load_dotenv_vars
     src__taskfile__diagnostics__checks__check_taskfile --> src__taskfile__parser__find_taskfile
     src__taskfile__diagnostics__checks__check_taskfile --> src__taskfile__parser__load_taskfile
     src___collect_required_vars --> src__taskfile__cli__version__set
@@ -214,12 +217,20 @@ flowchart TD
     src__check_dependent_files --> src___check_circular_deps
     src__check_dependent_files --> src___check_script_files
     src__check_dependent_files --> src___check_env_files
+    src__check_registry_access --> src___extract_registry_host
+    src__check_registry_access --> src___check_registry_reachable
+    src__check_ssh_connectivity --> src___resolve_env_fields
     src__check_ssh_connectivity --> src__taskfile__diagnostics__checks___test_ssh
+    src__check_remote_health --> src___resolve_env_fields
     src__check_remote_health --> src__taskfile__deploy_utils__test_ssh_connection
     src__check_remote_health --> src__taskfile__deploy_utils__check_remote_podman
     src__check_remote_health --> src__taskfile__deploy_utils__check_remote_disk
     src__check_task_commands --> src___extract_binary
+    src__check_task_commands --> src___load_dotenv_vars
     src__taskfile__diagnostics__checks__check_examples --> src__taskfile__parser__load_taskfile
+    src___load_env_file_vars --> src__taskfile__cli__version__set
+    src__check_placeholder_values --> src__taskfile__cli__version__set
+    src__check_placeholder_values --> src___load_env_file_vars
     src__validate_before_run --> src___check_env_file_for_target
     src__validate_before_run --> src___check_tasks_and_deps
     src__validate_before_run --> src__check_placeholder_values
@@ -246,56 +257,14 @@ flowchart TD
     src__taskfile__runner__functions__run_function --> src___exec_function_shell
     src___exec_function_python --> src__taskfile__runner__functions___python_cmd
     src__run_inline_python --> src__taskfile__runner__functions___python_cmd
-    src___render_step_header --> src__taskfile__runner__commands___find_cmd_line
-    src___render_step_header --> src__taskfile__runner__commands___source_ref
-    src___render_step_header --> src__taskfile__runner__commands___md
-    src___validate_all_commands --> src___validate_command_files
-    src___dispatch_special_prefix --> src__taskfile__runner__ssh__is_local_command
-    src___dispatch_special_prefix --> src__taskfile__runner__ssh__is_remote_command
-    src___dispatch_special_prefix --> src__taskfile__runner__functions__run_function
-    src___dispatch_special_prefix --> src__run_inline_python
-    src___dispatch_special_prefix --> src__taskfile__runner__ssh__strip_local_prefix
-    src___dispatch_special_prefix --> src__taskfile__runner__commands___run_local
-    src___dispatch_special_prefix --> src__taskfile__runner__ssh__run_embedded_ssh
-    src___dispatch_special_prefix --> src__taskfile__runner__ssh__wrap_ssh
-    src__taskfile__runner__commands___run_subprocess --> src__taskfile__runner__commands___render_output
-    src__taskfile__runner__commands___run_local --> src__taskfile__runner__commands___run_subprocess
-    src__taskfile__runner__commands__run_command --> src___dispatch_special_prefix
-    src__taskfile__runner__commands__run_command --> src__taskfile__runner__commands___run_local
-    src__taskfile__runner__commands__run_command --> src___expand_globs_in_command
-    src__taskfile__runner__commands__execute_script --> src__taskfile__runner__commands___run_subprocess
-    src__taskfile__runner__commands___handle_failure --> src___classify_exit_code
-    src__taskfile__runner__commands___handle_failure --> src__taskfile__runner__commands___source_ref
-    src__taskfile__runner__commands___handle_failure --> src__taskfile__runner__commands___md
-    src__taskfile__runner__commands___handle_failure --> src___get_tip_for_failure
-    src__taskfile__runner__commands___handle_failure --> src__taskfile__runner__commands___find_cmd_line
-    src__taskfile__runner__commands__execute_commands --> src___validate_all_commands
-    src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___run_with_retries
-    src__taskfile__runner__commands__execute_commands --> src___render_step_header
-    src__taskfile__runner__commands__execute_commands --> src___validate_command_files
-    src__taskfile__runner__commands__execute_commands --> src___get_tip_for_command
-    src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___md
-    src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___source_ref
-    src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___handle_failure
-    src____init__ --> src__taskfile__cli__version__set
-    src____init__ --> src__taskfile__parser__load_taskfile
-    src____init__ --> src__taskfile__ssh__has_paramiko
-    src___is_remote_command --> src__taskfile__runner__ssh__is_remote_command
-    src___strip_remote_prefix --> src__taskfile__runner__ssh__strip_remote_prefix
-    src___wrap_ssh --> src__taskfile__runner__ssh__wrap_ssh
-    src___run_embedded_ssh --> src__taskfile__runner__ssh__run_embedded_ssh
-    src___run_function --> src__taskfile__runner__functions__run_function
-    src___run_inline_python --> src__run_inline_python
-    src___execute_script --> src__taskfile__runner__commands__execute_script
-    src___execute_commands --> src__taskfile__runner__commands__execute_commands
-    src___print_task_header --> src__taskfile__runner__commands___find_task_line
-    src___print_task_header --> src__taskfile__runner__commands___source_ref
-    src___run_tasks_plain --> src__taskfile__notifications__notify_task_complete
-    src___run_tasks_with_progress --> src__taskfile__notifications__notify_task_complete
-    src__taskfile__runner__core__TaskfileRunner__run --> src__taskfile__runner__commands___md
-    src__taskfile__runner__core__TaskfileRunner__run --> src__taskfile__parser__validate_taskfile
-    src__taskfile__runner__core__TaskfileRunner__run --> src__validate_before_run
-    src__taskfile__runner__core__TaskfileRunner__run --> src__taskfile__notifications__notify_task_complete
+    src__explain --> src__taskfile__cli__version__set
+    src___analyze_command --> src__taskfile__runner__ssh__is_local_command
+    src___analyze_command --> src__taskfile__runner__ssh__is_remote_command
+    src__print_explain_report --> src__taskfile__runner__explainer___cmd_type_icon
+    src__print_teach_report --> src___print_teach_deps
+    src__print_teach_report --> src___print_teach_prefix_info
+    src__print_teach_report --> src___print_teach_current_env
+    src__print_teach_report --> src___print_teach_alt_env
     src__taskfile__quadlet___build_container_ports --> src__taskfile__quadlet___parse_port
     src__taskfile__quadlet___build_container_ports --> src__taskfile__quadlet___resolve_env_in_port
     src___build_container_podman_args --> src__taskfile__quadlet___parse_memory_limit
@@ -319,12 +288,61 @@ flowchart TD
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_container_files
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_network_file
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_volume_files
+    src___render_step_header --> src__taskfile__runner__commands___find_cmd_line
+    src___render_step_header --> src__taskfile__runner__commands___source_ref
+    src___render_step_header --> src__taskfile__runner__commands___md
+    src___validate_command_files --> src__taskfile__runner__commands___strip_cmd_prefix
+    src___validate_command_files --> src__taskfile__runner__commands___check_file_arg
+    src___validate_all_commands --> src___validate_command_files
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__is_local_command
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__is_remote_command
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__is_push_command
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__is_pull_command
+    src___dispatch_special_prefix --> src__taskfile__runner__functions__run_function
+    src___dispatch_special_prefix --> src__run_inline_python
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__strip_local_prefix
+    src___dispatch_special_prefix --> src__taskfile__runner__commands___run_local
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__strip_remote_prefix
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__wrap_scp_push
+    src___dispatch_special_prefix --> src__taskfile__runner__ssh__strip_push_prefix
+    src__taskfile__runner__commands___run_subprocess --> src__taskfile__runner__commands___render_output
+    src__taskfile__runner__commands___run_local --> src__taskfile__runner__commands___run_subprocess
+    src__taskfile__runner__commands__run_command --> src___dispatch_special_prefix
+    src__taskfile__runner__commands__run_command --> src__taskfile__runner__commands___run_local
+    src__taskfile__runner__commands__run_command --> src___expand_globs_in_command
+    src__taskfile__runner__commands__execute_script --> src__taskfile__runner__commands___run_subprocess
+    src__taskfile__runner__commands___handle_failure --> src___classify_exit_code
+    src__taskfile__runner__commands___handle_failure --> src__taskfile__runner__commands___source_ref
+    src__taskfile__runner__commands___handle_failure --> src__taskfile__runner__commands___md
+    src__taskfile__runner__commands___handle_failure --> src___get_tip_for_failure
+    src__taskfile__runner__commands___handle_failure --> src__taskfile__runner__commands___find_cmd_line
+    src___execute_script_step --> src__taskfile__runner__commands___run_with_retries
+    src___execute_script_step --> src__taskfile__runner__commands___handle_failure
+    src___execute_script_step --> src__taskfile__runner__commands___source_ref
+    src___execute_script_step --> src__taskfile__runner__commands___md
+    src___execute_script_step --> src__taskfile__runner__commands___find_task_line
+    src___execute_script_step --> src__taskfile__runner__commands__execute_script
+    src__taskfile__runner__commands___execute_cmd_step --> src___render_step_header
+    src__taskfile__runner__commands___execute_cmd_step --> src___validate_command_files
+    src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands___run_with_retries
+    src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands___handle_failure
+    src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands___md
+    src__taskfile__runner__commands___execute_cmd_step --> src___get_tip_for_command
+    src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands__run_command
+    src__taskfile__runner__commands__execute_commands --> src___validate_all_commands
+    src__taskfile__runner__commands__execute_commands --> src___get_tip_for_command
+    src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___md
+    src__taskfile__runner__commands__execute_commands --> src___execute_script_step
+    src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___execute_cmd_step
     src__from_path --> src__taskfile__parser__load_taskfile
     src___load_dotenv --> src__taskfile__compose__load_env_file
     src__get_dependency_order --> src__taskfile__cli__version__set
     src__taskfile__runner__ssh__wrap_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
+    src__taskfile__runner__ssh__wrap_scp_push --> src__taskfile__runner__ssh__strip_push_prefix
+    src__taskfile__runner__ssh__wrap_scp_pull --> src__taskfile__runner__ssh__strip_pull_prefix
     src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
     src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__ssh__ssh_exec
+    src__taskfile__cli__registry_cmds__pkg_uninstall --> src__taskfile__cli__click_compat__confirm
     src__taskfile__cli__version__bump --> src__taskfile__cli__version___increment_version
     src__taskfile__cli__version__bump --> src___update_taskfile_version
     src__taskfile__cli__version__bump --> src___update_pyproject_version
@@ -336,19 +354,43 @@ flowchart TD
     src__taskfile__cli__version__set --> src___update_pyproject_version
     src__taskfile__cli__version__set --> src__taskfile__cli__version___is_valid_version
     src__taskfile__cli__version__set --> src__taskfile__parser__find_taskfile
-    src__explain --> src__taskfile__cli__version__set
-    src___analyze_command --> src__taskfile__runner__ssh__is_local_command
-    src___analyze_command --> src__taskfile__runner__ssh__is_remote_command
-    src__print_explain_report --> src__taskfile__runner__explainer___cmd_type_icon
+    src____init__ --> src__taskfile__cli__version__set
+    src____init__ --> src__taskfile__parser__load_taskfile
+    src____init__ --> src__taskfile__ssh__has_paramiko
+    src___is_remote_command --> src__taskfile__runner__ssh__is_remote_command
+    src___strip_remote_prefix --> src__taskfile__runner__ssh__strip_remote_prefix
+    src___wrap_ssh --> src__taskfile__runner__ssh__wrap_ssh
+    src___run_embedded_ssh --> src__taskfile__runner__ssh__run_embedded_ssh
+    src___run_function --> src__taskfile__runner__functions__run_function
+    src___run_inline_python --> src__run_inline_python
+    src___execute_script --> src__taskfile__runner__commands__execute_script
+    src___execute_commands --> src__taskfile__runner__commands__execute_commands
+    src___print_task_header --> src__taskfile__runner__commands___find_task_line
+    src___print_task_header --> src__taskfile__runner__commands___source_ref
+    src___run_tasks_plain --> src__taskfile__notifications__notify_task_complete
+    src___run_tasks_with_progress --> src__taskfile__notifications__notify_task_complete
+    src__taskfile__runner__core__TaskfileRunner__run --> src__taskfile__runner__commands___md
+    src__taskfile__runner__core__TaskfileRunner__run --> src__taskfile__parser__validate_taskfile
+    src__taskfile__runner__core__TaskfileRunner__run --> src__validate_before_run
+    src__taskfile__runner__core__TaskfileRunner__run --> src__taskfile__notifications__notify_task_complete
     src__taskfile__cli__auth___write_env_var --> src__taskfile__cli__auth___read_env_file
     src__taskfile__cli__auth__auth_setup --> src__taskfile__cli__auth___ensure_gitignore
     src__taskfile__cli__auth__auth_setup --> src__taskfile__cli__click_compat__prompt
     src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___read_env_file
     src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___check_tool
-    src__validate_before_run --> src___map_new_to_old_category
+    src___print_explain_header --> src___collect_requirements
+    src___print_explain_header --> src___format_time_estimate
     src__taskfile__cli__explain_cmd__explain --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__main___check_unknown_tasks
-    src__taskfile__cli__explain_cmd__explain --> src___collect_requirements
+    src__taskfile__cli__explain_cmd__explain --> src___print_explain_header
+    src__taskfile__cli__explain_cmd__explain --> src___print_explain_steps
+    src__taskfile__cli__explain_cmd__explain --> src___print_explain_variables
+    src__taskfile__cli__explain_cmd__explain --> src___print_explain_problems
+    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__explain_cmd___check_env_files
+    src__taskfile__cli__import_export__import_cmd --> src__taskfile__converters__detect_format
+    src__taskfile__cli__import_export__import_cmd --> src__taskfile__converters__import_file
+    src__taskfile__cli__import_export__export_cmd --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__import_export__export_cmd --> src__taskfile__converters__export_file
     src___containers_using_port --> src__taskfile__cli__docker_cmds___docker_ps
     src___containers_using_port --> src___container_publishes_port
     src__taskfile__cli__docker_cmds__docker_ps_cmd --> src__taskfile__cli__docker_cmds___docker_ps
@@ -359,11 +401,6 @@ flowchart TD
     src__docker_stop_all_cmd --> src__taskfile__cli__docker_cmds___docker_stop
     src__docker_stop_all_cmd --> src__taskfile__cli__click_compat__confirm
     src__docker_compose_down_cmd --> src__taskfile__cli__click_compat__confirm
-    src__taskfile__cli__import_export__import_cmd --> src__taskfile__converters__detect_format
-    src__taskfile__cli__import_export__import_cmd --> src__taskfile__converters__import_file
-    src__taskfile__cli__import_export__export_cmd --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__import_export__export_cmd --> src__taskfile__converters__export_file
-    src__taskfile__cli__registry_cmds__pkg_uninstall --> src__taskfile__cli__click_compat__confirm
     src__taskfile__cli__health__health_cmd --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__health__health_cmd --> src__taskfile__health__run_health_checks
     src__taskfile__cli__health__health_cmd --> src__taskfile__health__print_health_report
@@ -372,15 +409,46 @@ flowchart TD
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_env
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_files
     src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___run_upload_commands
-    src__taskfile__cli__cache_cmds__cache_show --> src__taskfile__cache__get_project_hash
-    src__taskfile__cli__cache_cmds__cache_clear --> src__taskfile__cache__get_project_hash
     src__taskfile__cli__ci__ci_generate --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_run --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_list --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_preview --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_preview --> src__taskfile__cigen__preview_ci
     src__taskfile__cli__ci__ci_targets --> src__taskfile__cigen__list_targets
+    src__taskfile__cli__cache_cmds__cache_show --> src__taskfile__cache__get_project_hash
+    src__taskfile__cli__cache_cmds__cache_clear --> src__taskfile__cache__get_project_hash
+    src__taskfile__deploy_utils__setup_ssh_key --> src__taskfile__deploy_utils__test_ssh_connection
+    src__taskfile__deploy_utils__check_remote_podman --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__check_remote_disk --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__list_remote_images --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_podman
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_disk
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__list_remote_images
+    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
+    src__transfer_images_via_ssh --> src__transfer_image_via_ssh
+    src__deploy_container_remote --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__stop_container_remote --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__get_remote_logs --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__get_remote_status --> src__taskfile__deploy_utils__ssh_exec
+    src__validate_before_run --> src___map_new_to_old_category
     src__taskfile__cli__api_cmd__api_openapi --> src__taskfile__api__app__create_app
+    src___collect_interactive_setup --> src__taskfile__cli__setup___validate_ip
+    src__taskfile__cli__setup___build_config_from_args --> src__taskfile__cli__setup___validate_ip
+    src__taskfile__cli__setup___build_config_from_args --> src__taskfile__cli__setup___validate_ssh_key
+    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___provision_ssh_key
+    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___test_ssh_connection
+    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___is_vps_ready
+    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___deploy_application
+    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___provision_vps
+    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___parse_ports
+    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___write_env_files
+    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___execute_setup_steps
+    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___print_summary
+    src__taskfile__cli__setup__setup --> src___collect_interactive_setup
+    src__taskfile__cli__completion__get_task_names --> src__taskfile__parser__load_taskfile
+    src__get_environment_names --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__completion__get_platform_names --> src__taskfile__parser__load_taskfile
     src___resolve_release_config --> src__taskfile__parser__load_taskfile
     src___resolve_release_config --> src__taskfile__cli__release___get_current_tag
     src__taskfile__cli__release___confirm_release --> src__taskfile__cli__click_compat__confirm
@@ -402,36 +470,6 @@ flowchart TD
     src__taskfile__cli__release__rollback --> src__taskfile__cli__release___run_command
     src__taskfile__cli__release__rollback --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__release__rollback --> src__taskfile__cli__release___get_previous_tag
-    src___collect_interactive_setup --> src__taskfile__cli__setup___validate_ip
-    src__taskfile__cli__setup___build_config_from_args --> src__taskfile__cli__setup___validate_ip
-    src__taskfile__cli__setup___build_config_from_args --> src__taskfile__cli__setup___validate_ssh_key
-    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___provision_ssh_key
-    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___test_ssh_connection
-    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___is_vps_ready
-    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___deploy_application
-    src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___provision_vps
-    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___parse_ports
-    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___write_env_files
-    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___execute_setup_steps
-    src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___print_summary
-    src__taskfile__cli__setup__setup --> src___collect_interactive_setup
-    src__taskfile__cli__completion__get_task_names --> src__taskfile__parser__load_taskfile
-    src__get_environment_names --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__completion__get_platform_names --> src__taskfile__parser__load_taskfile
-    src__taskfile__deploy_utils__setup_ssh_key --> src__taskfile__deploy_utils__test_ssh_connection
-    src__taskfile__deploy_utils__check_remote_podman --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__check_remote_disk --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__list_remote_images --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_podman
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_disk
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__list_remote_images
-    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
-    src__transfer_images_via_ssh --> src__transfer_image_via_ssh
-    src__deploy_container_remote --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__stop_container_remote --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__get_remote_logs --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__get_remote_status --> src__taskfile__deploy_utils__ssh_exec
     src__taskfile__cli__deploy___ssh --> src__taskfile__cli__deploy___run
     src__taskfile__cli__deploy___deploy_local_compose --> src__taskfile__cli__deploy___run
     src__taskfile__cli__deploy___deploy_ssh_push --> src___discover_compose_images
@@ -481,14 +519,26 @@ flowchart TD
     src__taskfile__cli__info_cmd__info --> src___print_task_attributes
     src__taskfile__cli__info_cmd__info --> src__taskfile__cli__info_cmd___print_task_body
     src__taskfile__cli__info_cmd__info --> src__taskfile__cli__main___print_nearby_taskfiles
-    src__generate --> src__taskfile__cigen__base___yaml_dump
     src__taskfile__cli__e2e_cmd___check_taskfile_valid --> src__taskfile__parser__validate_taskfile
     src__taskfile__cli__e2e_cmd___check_env_file --> src__taskfile__compose__load_env_file
-    src___check_containers_running --> src__taskfile__deploy_utils__test_ssh_connection
+    src___get_running_containers_remote --> src__taskfile__deploy_utils__test_ssh_connection
+    src___get_running_containers_remote --> src__taskfile__cli__version__set
+    src___get_running_containers_local --> src__taskfile__cli__version__set
+    src___check_containers_running --> src__taskfile__cli__e2e_cmd___match_containers
+    src___check_containers_running --> src___get_running_containers_remote
+    src___check_containers_running --> src___get_running_containers_local
     src___check_ssh_connectivity --> src__taskfile__deploy_utils__test_ssh_connection
     src__taskfile__cli__e2e_cmd___check_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
     src__taskfile__cli__e2e_cmd___check_remote_disk --> src__taskfile__deploy_utils__check_remote_disk
-    src__generate --> src__taskfile__cigen__base___sanitize_id
+    src__taskfile__cli__e2e_cmd___run_iac_checks --> src__taskfile__cli__e2e_cmd___check_taskfile_valid
+    src__taskfile__cli__e2e_cmd___run_iac_checks --> src__taskfile__cli__e2e_cmd___check_compose_file
+    src__taskfile__cli__e2e_cmd___run_iac_checks --> src__taskfile__cli__e2e_cmd___check_quadlet_files
+    src__taskfile__cli__e2e_cmd___run_iac_checks --> src__taskfile__cli__e2e_cmd___check_env_file
+    src__taskfile__cli__e2e_cmd___run_service_checks --> src___check_containers_running
+    src__taskfile__cli__e2e_cmd___run_service_checks --> src__taskfile__cli__e2e_cmd___check_http_endpoint
+    src__taskfile__cli__e2e_cmd__e2e_cmd --> src__taskfile__cli__e2e_cmd___print_e2e_results
+    src__taskfile__cli__e2e_cmd__e2e_cmd --> src__taskfile__parser__load_taskfile
+    src__generate --> src__taskfile__cigen__base___yaml_dump
     src__taskfile__cli__main___print_nearby_taskfiles --> src__taskfile__cli__main___format_nearby_path
     src__taskfile__cli__main___print_nearby_taskfiles --> src__taskfile__cli__main___nearby_cd_hint
     src__taskfile__cli__main___check_unknown_tasks --> src__taskfile__cli__main___suggest_similar_tasks
@@ -504,14 +554,23 @@ flowchart TD
     src__taskfile__cli__main__validate --> src__taskfile__parser__validate_taskfile
     src__taskfile__cli__main__validate --> src___validate_dependent_files
     src__taskfile__cli__main__validate --> src__taskfile__cli__main___print_dependency_tree
+    src___validate_dependent_files --> src___check_script_files_status
+    src___validate_dependent_files --> src__taskfile__cli__main___check_env_files_status
+    src___validate_dependent_files --> src__taskfile__cli__main___check_compose_services
+    src___validate_dependent_files --> src__taskfile__cli__main___check_common_files
     src__taskfile__cli__main___print_dependency_tree --> src__taskfile__cli__version__set
     src__taskfile__cli__main___print_dependency_tree --> src__taskfile__cli__main___print_transitive_deps
     src__taskfile__cli__main__import_cmd --> src__taskfile__converters__import_file
+    src__generate --> src__taskfile__cigen__base___sanitize_id
     src__taskfile__cigen__generate_all_ci --> src__taskfile__cigen__generate_ci
     src__taskfile__addons__expand_addons --> src__taskfile__addons___load_registry
     src___collect_init_choices --> src___detect_project_type
     src___collect_init_choices --> src___suggest_template
     src___collect_init_choices --> src___collect_env_config_interactive
+    src___run_remote_diagnostics --> src__taskfile__parser__find_taskfile
+    src___run_remote_diagnostics --> src__taskfile__parser__load_taskfile
+    src___run_remote_diagnostics --> src___resolve_env_fields
+    src___run_remote_diagnostics --> src__taskfile__deploy_utils__test_ssh_connection
     src___run_examples_check --> src__check_examples
     src___run_examples_check --> src__taskfile__parser__find_taskfile
     src___apply_init_extras --> src___write_env_file
@@ -540,8 +599,23 @@ flowchart TD
     src___serve_config_json --> src__taskfile__parser__load_taskfile
     src___get_dashboard_html --> src__get_dashboard_html
     src__taskfile__api__app___load_config --> src__taskfile__parser__load_taskfile
+    src__taskfile__api__app___register_health_routes --> src__taskfile__parser__find_taskfile
+    src__taskfile__api__app___register_health_routes --> src__taskfile__parser__load_taskfile
+    src__taskfile__api__app___register_taskfile_routes --> src__taskfile__api__app___load_config
+    src__taskfile__api__app___register_taskfile_routes --> src__taskfile__api__app___config_to_info
+    src__taskfile__api__app___register_taskfile_routes --> src__taskfile__parser__validate_taskfile
+    src__taskfile__api__app___register_task_routes --> src__taskfile__api__app___load_config
+    src__taskfile__api__app___register_run_routes --> src__taskfile__api__app___load_config
+    src__taskfile__api__app___register_metadata_routes --> src__taskfile__api__app___load_config
+    src__taskfile__api__app___register_doctor_routes --> src__taskfile__api__app___run_doctor
+    src__taskfile__api__app__create_app --> src__taskfile__api__app___register_health_routes
+    src__taskfile__api__app__create_app --> src__taskfile__api__app___register_taskfile_routes
+    src__taskfile__api__app__create_app --> src__taskfile__api__app___register_task_routes
+    src__taskfile__api__app__create_app --> src__taskfile__api__app___register_run_routes
+    src__taskfile__api__app__create_app --> src__taskfile__api__app___register_metadata_routes
+    src__taskfile__api__app__create_app --> src__taskfile__api__app___register_doctor_routes
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
-    class src__expand_deploy_recipe,src__taskfile__models__TaskfileConfig__from_dict,src__taskfile__diagnostics__checks__check_ports,src__taskfile__diagnostics__report___print_summary,src___validate_command_files,src__taskfile__runner__commands___handle_failure,src__taskfile__runner__commands__execute_commands,src__taskfile__runner__core__TaskfileRunner__run,src__print_teach_report,src__taskfile__cli__explain_cmd__explain,src__taskfile__cli__click_compat__prompt,src___check_containers_running,src__taskfile__cli__e2e_cmd__e2e_cmd,src__taskfile__cli__main__run,src___validate_dependent_files,src__taskfile__cli__interactive__wizards__doctor highCC
-    class src__taskfile__watch__FileWatcher___should_ignore,src__taskfile__watch__FileWatcher___get_files,src__export_makefile,src__export_workflow,src__export_docker_compose,src__taskfile__converters__detect_format,src___install_from_github,src__taskfile__graph__print_task_tree,src__taskfile__graph___add_deps_to_tree,src__taskfile__importer__import_file,src__taskfile__importer___detect_type,src___extract_gh_steps_as_commands,src__taskfile__importer__parse_github_actions,src__taskfile__importer__parse_gitlab_ci,src__taskfile__importer__parse_makefile,src__taskfile__importer___import_shell_script,src__taskfile__compose__load_env_file,src__taskfile__cirunner__PipelineRunner__run,src__taskfile__health__check_http_endpoint,src__taskfile__health__run_health_checks,src__taskfile__fleet__save_fleet,src__taskfile__fleet___parse_status_output,src__taskfile__fleet__deploy_to_device,src__taskfile__fleet__deploy_to_group,src__taskfile__parser___scan_subdirectories,src__taskfile__parser___merge_include_sections,src__taskfile__parser___validate_referenced_files,src__taskfile__notifications__notify_task_complete,src___expand_hosts,src__taskfile__cache__TaskCache__is_fresh medCC
+    class src__expand_deploy_recipe,src__classify_runtime_error,src__taskfile__diagnostics__checks__check_ports,src__check_registry_access,src__check_placeholder_values,src__taskfile__diagnostics__report___print_summary,src___print_teach_alt_env,src__taskfile__runner__commands___check_file_arg,src___expand_globs_in_command,src___dispatch_special_prefix,src__taskfile__runner__commands___handle_failure,src__taskfile__runner__core__TaskfileRunner__run,src__taskfile__cli__click_compat__prompt,src__taskfile__cli__main__run,src__taskfile__cli__interactive__wizards__doctor,src___run_remote_diagnostics,src__taskfile__api__app___run_doctor highCC
+    class src__taskfile__watch__FileWatcher___should_ignore,src__taskfile__watch__FileWatcher___get_files,src__export_makefile,src__export_workflow,src__export_docker_compose,src__taskfile__converters__detect_format,src___install_from_github,src__taskfile__graph__print_task_tree,src__taskfile__graph___add_deps_to_tree,src__taskfile__importer__import_file,src__taskfile__importer___detect_type,src___extract_gh_steps_as_commands,src__taskfile__importer__parse_github_actions,src__taskfile__importer__parse_gitlab_ci,src__taskfile__importer__parse_makefile,src__taskfile__importer___import_shell_script,src__taskfile__compose__load_env_file,src__taskfile__health__check_http_endpoint,src__taskfile__health__run_health_checks,src__taskfile__cirunner__PipelineRunner__run,src__taskfile__fleet__save_fleet,src__taskfile__fleet___parse_status_output,src__taskfile__fleet__deploy_to_device,src__taskfile__fleet__deploy_to_group,src__taskfile__parser___scan_subdirectories,src__taskfile__parser___merge_include_sections,src__taskfile__parser___validate_referenced_files,src__taskfile__notifications__notify_task_complete,src__taskfile__cache__TaskCache__is_fresh,src___apply_environment_defaults medCC

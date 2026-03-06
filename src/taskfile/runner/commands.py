@@ -20,8 +20,10 @@ except ImportError:
 
 from taskfile.models import Task
 from taskfile.runner.ssh import (
-    is_remote_command, is_local_command, strip_local_prefix, wrap_ssh, run_embedded_ssh,
-    is_push_command, is_pull_command, wrap_scp_push, wrap_scp_pull,
+    is_remote_command, is_local_command, strip_local_prefix, strip_remote_prefix,
+    wrap_ssh, run_embedded_ssh,
+    is_push_command, is_pull_command, strip_push_prefix, strip_pull_prefix,
+    wrap_scp_push, wrap_scp_pull,
 )
 from taskfile.runner.functions import run_function, run_inline_python
 
@@ -354,6 +356,52 @@ def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
     return ' '.join(expanded_parts)
 
 
+def _skip_msg(runner, prefix: str, reason: str, task: Task) -> int:
+    """Print skip message for a prefix command and return 0 (success/skip)."""
+    if not task.silent:
+        console.print(f"  [dim]⏭ Pominięto {prefix} (env '{runner.env_name}' {reason})[/]")
+    return 0
+
+
+def _handle_local(runner, expanded: str, task: Task) -> int:
+    """Handle @local prefix — run only on non-SSH environments."""
+    if runner.env.is_remote:
+        return _skip_msg(runner, "@local", "jest zdalny — ma ssh_host", task)
+    return _run_local(runner, strip_local_prefix(expanded), task)
+
+
+def _handle_remote(runner, expanded: str, task: Task) -> int:
+    """Handle @remote prefix — run only on SSH environments."""
+    if not runner.env.ssh_target:
+        return _skip_msg(runner, "@remote", "nie ma ssh_host", task)
+    if runner.use_embedded_ssh:
+        return run_embedded_ssh(runner, expanded, task)
+    remote_cmd = strip_remote_prefix(expanded)
+    display = f"{runner.env.ssh_target} '{remote_cmd}'"
+    return _run_local(runner, wrap_ssh(expanded, runner.env), task,
+                      remote=True, display_cmd=display)
+
+
+def _handle_push(runner, expanded: str, task: Task) -> int:
+    """Handle @push prefix — scp local→remote, only on SSH environments."""
+    if not runner.env.ssh_target:
+        return _skip_msg(runner, "@push", "nie ma ssh_host", task)
+    scp_cmd = wrap_scp_push(expanded, runner.env)
+    args = strip_push_prefix(expanded)
+    display = f"@push {args} → {runner.env.ssh_target}"
+    return _run_local(runner, scp_cmd, task, remote=True, display_cmd=display)
+
+
+def _handle_pull(runner, expanded: str, task: Task) -> int:
+    """Handle @pull prefix — scp remote→local, only on SSH environments."""
+    if not runner.env.ssh_target:
+        return _skip_msg(runner, "@pull", "nie ma ssh_host", task)
+    scp_cmd = wrap_scp_pull(expanded, runner.env)
+    args = strip_pull_prefix(expanded)
+    display = f"@pull {runner.env.ssh_target}:{args}"
+    return _run_local(runner, scp_cmd, task, remote=True, display_cmd=display)
+
+
 def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
     """Check for special command prefixes (@fn, @python, @local, @remote/@ssh, @push, @pull).
 
@@ -369,59 +417,16 @@ def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
 
     if stripped.startswith("@fn "):
         return run_function(runner, expanded, task)
-
     if stripped.startswith("@python "):
         return run_inline_python(runner, expanded, task)
-
-    # @local — execute only on local (non-SSH) environments
     if is_local_command(expanded):
-        if runner.env.is_remote:
-            if not task.silent:
-                console.print(
-                    f"  [dim]⏭ Pominięto @local"
-                    f" (env '{runner.env_name}' jest zdalny — ma ssh_host)[/]"
-                )
-            return 0  # skip @local commands on remote envs
-        local_cmd = strip_local_prefix(expanded)
-        return _run_local(runner, local_cmd, task)
-
-    # @remote — execute only on remote (SSH) environments
+        return _handle_local(runner, expanded, task)
     if is_remote_command(expanded):
-        if not runner.env.ssh_target:
-            if not task.silent:
-                console.print(
-                    f"  [dim]⏭ Pominięto @remote"
-                    f" (env '{runner.env_name}' nie ma ssh_host)[/]"
-                )
-            return 0  # skip @remote commands on local envs
-        if runner.use_embedded_ssh:
-            return run_embedded_ssh(runner, expanded, task)
-        return _run_local(runner, wrap_ssh(expanded, runner.env), task, remote=True)
-
-    # @push — scp local files → remote, only on remote envs
+        return _handle_remote(runner, expanded, task)
     if is_push_command(expanded):
-        if not runner.env.ssh_target:
-            if not task.silent:
-                console.print(
-                    f"  [dim]⏭ Pominięto @push"
-                    f" (env '{runner.env_name}' nie ma ssh_host)[/]"
-                )
-            return 0
-        scp_cmd = wrap_scp_push(expanded, runner.env)
-        return _run_local(runner, scp_cmd, task, remote=True)
-
-    # @pull — scp remote files → local, only on remote envs
+        return _handle_push(runner, expanded, task)
     if is_pull_command(expanded):
-        if not runner.env.ssh_target:
-            if not task.silent:
-                console.print(
-                    f"  [dim]⏭ Pominięto @pull"
-                    f" (env '{runner.env_name}' nie ma ssh_host)[/]"
-                )
-            return 0
-        scp_cmd = wrap_scp_pull(expanded, runner.env)
-        return _run_local(runner, scp_cmd, task, remote=True)
-
+        return _handle_pull(runner, expanded, task)
     return None
 
 
@@ -465,11 +470,13 @@ def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") ->
         return 130
 
 
-def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False) -> int:
+def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False,
+               display_cmd: str | None = None) -> int:
     """Execute a command locally (or a wrapped SSH command). Handles dry-run, capture, timeout."""
     if not task.silent:
         prefix = "[magenta]→ SSH[/]" if remote else "[blue]→[/]"
-        console.print(f"  {prefix} {actual_cmd}")
+        shown = display_cmd or actual_cmd
+        console.print(f"  {prefix} {shown}")
 
     if runner.dry_run:
         console.print("  [dim](dry run — skipped)[/]")
@@ -484,9 +491,11 @@ def run_command(runner, cmd: str, task: Task) -> int:
     Expands variables and glob patterns before execution.
     """
     expanded = runner.expand_variables(cmd)
-    # Skip glob expansion for @fn/@python — shlex would mangle their arguments
+    # Skip glob expansion for @fn/@python and multiline shell scripts —
+    # shlex.split would mangle if/then/fi, for loops, etc.
     stripped = expanded.strip()
-    if not (stripped.startswith("@fn ") or stripped.startswith("@python ")):
+    if not (stripped.startswith("@fn ") or stripped.startswith("@python ")
+            or '\n' in stripped):
         # Expand globs locally (e.g., deploy/quadlet/*.container → actual files)
         expanded = _expand_globs_in_command(expanded, cwd=task.working_dir)
 

@@ -1,6 +1,6 @@
-# taskfile | 116f 27961L | python:116
+# taskfile | 117f 30324L | python:117
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[116]:
+M[117]:
   examples/functions-embed/scripts/report.py,16
   examples/mega-saas-v2/scripts/report.py,64
   examples/mega-saas/scripts/report.py,64
@@ -15,8 +15,8 @@ M[116]:
   src/taskfile/addons/postgres.py,74
   src/taskfile/addons/redis_addon.py,52
   src/taskfile/api/__init__.py,8
-  src/taskfile/api/app.py,490
-  src/taskfile/api/models.py,136
+  src/taskfile/api/app.py,635
+  src/taskfile/api/models.py,174
   src/taskfile/cache.py,173
   src/taskfile/cigen/__init__.py,48
   src/taskfile/cigen/base.py,54
@@ -37,16 +37,16 @@ M[116]:
   src/taskfile/cli/deploy.py,316
   src/taskfile/cli/diagnostics.py,102
   src/taskfile/cli/docker_cmds.py,136
-  src/taskfile/cli/e2e_cmd.py,278
-  src/taskfile/cli/explain_cmd.py,149
+  src/taskfile/cli/e2e_cmd.py,305
+  src/taskfile/cli/explain_cmd.py,161
   src/taskfile/cli/fleet.py,309
   src/taskfile/cli/health.py,51
   src/taskfile/cli/import_export.py,173
   src/taskfile/cli/info_cmd.py,59
   src/taskfile/cli/interactive/__init__.py,6
   src/taskfile/cli/interactive/menu.py,387
-  src/taskfile/cli/interactive/wizards.py,346
-  src/taskfile/cli/main.py,520
+  src/taskfile/cli/interactive/wizards.py,449
+  src/taskfile/cli/main.py,539
   src/taskfile/cli/quadlet.py,204
   src/taskfile/cli/registry_cmds.py,175
   src/taskfile/cli/release.py,298
@@ -56,10 +56,10 @@ M[116]:
   src/taskfile/converters.py,216
   src/taskfile/deploy_recipes.py,155
   src/taskfile/deploy_utils.py,402
-  src/taskfile/diagnostics/__init__.py,209
-  src/taskfile/diagnostics/checks.py,837
+  src/taskfile/diagnostics/__init__.py,214
+  src/taskfile/diagnostics/checks.py,1017
   src/taskfile/diagnostics/fixes.py,159
-  src/taskfile/diagnostics/llm_repair.py,146
+  src/taskfile/diagnostics/llm_repair.py,184
   src/taskfile/diagnostics/models.py,117
   src/taskfile/diagnostics/report.py,160
   src/taskfile/fleet.py,376
@@ -67,20 +67,20 @@ M[116]:
   src/taskfile/health.py,330
   src/taskfile/importer.py,319
   src/taskfile/landing.py,326
-  src/taskfile/models.py,481
+  src/taskfile/models.py,510
   src/taskfile/notifications.py,83
   src/taskfile/parser.py,269
   src/taskfile/provisioner.py,237
   src/taskfile/quadlet.py,288
   src/taskfile/registry.py,258
   src/taskfile/runner/__init__.py,7
-  src/taskfile/runner/commands.py,524
+  src/taskfile/runner/commands.py,585
   src/taskfile/runner/core.py,379
   src/taskfile/runner/error_presenter.py,231
-  src/taskfile/runner/explainer.py,296
+  src/taskfile/runner/explainer.py,310
   src/taskfile/runner/functions.py,112
   src/taskfile/runner/resolver.py,154
-  src/taskfile/runner/ssh.py,45
+  src/taskfile/runner/ssh.py,89
   src/taskfile/scaffold/__init__.py,24
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
@@ -103,7 +103,8 @@ M[116]:
   tests/test_compose.py,43
   tests/test_diagnostics.py,426
   tests/test_docker_e2e.py,208
-  tests/test_dsl_commands.py,932
+  tests/test_doctor_e2e.py,1224
+  tests/test_dsl_commands.py,942
   tests/test_e2e_examples.py,847
   tests/test_fleet.py,208
   tests/test_health.py,166
@@ -167,7 +168,12 @@ D:
     e: create_app
     _load_config(taskfile_path:Any=None)
     _config_to_info(config)->TaskfileInfo
-    create_app(taskfile_path:Any=None)->FastAPI
+    _register_health_routes(app:FastAPI)->None
+    _register_taskfile_routes(app:FastAPI)->None
+    _register_task_routes(app:FastAPI)->None
+    _register_run_routes(app:FastAPI)->None
+    _register_metadata_routes(app:FastAPI)->None
+    _register_doctor_routes(app:FastAPI)->None
   src/taskfile/api/models.py:
     i: datetime,enum.Enum,pydantic.{BaseModel,Field},typing.Any
     e: TaskStatus,DeployStrategy,RunTaskRequest,ValidateRequest,TaskInfo,EnvironmentInfo,EnvironmentGroupInfo,PlatformInfo
@@ -313,13 +319,17 @@ D:
     _check_quadlet_files()->E2EResult
     _check_local_tools()->E2EResult
     _check_http_endpoint(url:str;expected_status:int=200;timeout:float=10)->E2EResult
-    _check_containers_running(env;config)->E2EResult
-    _check_ssh_connectivity(env)->E2EResult
+    _get_running_containers_remote(env)->tuple[set[str] | None, str | None]
+    _get_running_containers_local()->set[str]
   src/taskfile/cli/explain_cmd.py:
     i: sys,clickmd,pathlib.Path,taskfile.cli.main,taskfile.cli.main.{_check_unknown_tasks,_print_nearby_taskfiles,console},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
-    e: explain
+    e: _TYPE_ICONS,explain
     _format_time_estimate(task)->str
     _collect_requirements(steps;env)->list[str]
+    _print_explain_header(task_name:str;task;env_name:str;env;report)->None
+    _print_explain_steps(report)->None
+    _print_explain_variables(variables:dict)->None
+    _print_explain_problems(report)->None
     explain(ctx;task_name)
     _check_env_files(config;resolver;task)->None
   src/taskfile/cli/fleet.py:
@@ -480,15 +490,15 @@ D:
     ProjectDiagnostics: __init__(0),_add_issue(4),_add_issues(1),_load_config(0),check_preflight(0)  # Facade composing checks + fixes + rep...
   src/taskfile/diagnostics/checks.py:
     i: os,re,shutil,socket,subprocess,yaml,pathlib.Path,taskfile.diagnostics.models.{Issue,IssueCategory},typing.TYPE_CHECKING
-    e: check_preflight,check_taskfile,check_env_files,check_unresolved_variables,check_ports,check_dependent_files,check_docker,check_ssh_keys
+    e: check_preflight,check_taskfile,check_env_files,check_unresolved_variables,check_ports,check_dependent_files,check_registry_access,check_docker
+    _load_dotenv_vars(env_file_path:Path)->dict[str, str]
+    _resolve_env_fields(env;taskfile_dir:Any=None)->None
     check_preflight()->list[Issue]
     check_taskfile()->list[Issue]
     check_env_files()->list[Issue]
     _collect_required_vars(config:TaskfileConfig)->set[str]
     _check_env_file_vars(env_file:str;required_vars:set[str])->list[Issue]
     check_unresolved_variables(config:TaskfileConfig)->list[Issue]
-    check_ports()->list[Issue]
-    _check_script_files(config:TaskfileConfig;taskfile_dir:Path)->list[Issue]
   src/taskfile/diagnostics/fixes.py:
     i: re,subprocess,pathlib.Path,rich.console.Console,rich.prompt.{Confirm,Prompt},taskfile.diagnostics.models.{FixStrategy,Issue,IssueCategory}
     e: apply_fixes,apply_single_fix
@@ -506,6 +516,7 @@ D:
     is_available()->bool
     ask_llm_for_fix(issue:Issue;project_context:Any=None)->str | None
     classify_runtime_error(exit_code:int;stderr:str;cmd:str)->Issue
+    _extract_image_name(cmd:str;stderr:str)->str
     _extract_missing_binary(stderr:str)->str
   src/taskfile/diagnostics/models.py:
     i: dataclasses.{dataclass,field},enum.Enum
@@ -583,7 +594,7 @@ D:
   src/taskfile/models.py:
     i: os,dataclasses.{dataclass,field},typing.Any
     e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig
-    Environment: ssh_target(0),ssh_opts(0),is_remote(0),resolve_variables(2)  # Deployment environment configuration.
+    Environment: ssh_target(0),ssh_opts(0),scp_opts(0),is_remote(0),resolve_variables(2)  # Deployment environment configuration.
     Platform: resolve_variables(2)  # Target platform configuration (e.g.
     EnvironmentGroup:   # Group of environments sharing an upda...
     ComposeConfig:   # Compose-based deployment configuration.
@@ -642,9 +653,9 @@ D:
     _find_cmd_line(source_path:Any;task_name:str;cmd:str)->int | None
     _source_ref(source_path:Any;line:Any)->str
     _render_step_header(runner;task_name:str;cmd:str;step:int;total:int;task:Task)->None
+    _strip_cmd_prefix(cmd:str)->str
+    _check_file_arg(part:str;base:Path)->str | None
     _validate_command_files(cmd:str;cwd:Any=None)->list[str]
-    _validate_all_commands(runner;task:Task;task_name:str)->list[str]
-    _get_tip_for_command(cmd:str)->tuple[str, str] | None
   src/taskfile/runner/core.py:
     i: os,subprocess,time,concurrent.futures.{ThreadPoolExecutor,as_completed},pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.models.Environment
     e: TaskRunError,TaskfileRunner
@@ -662,6 +673,10 @@ D:
     ExplainReport: has_errors(0)  # Full pre-run analysis report.
     TaskExplainer: __init__(1),explain(1),_analyze_command(4),_analyze_script(3),_check_placeholders(2)  # Analyzes execution plan and explains...
     print_explain_report(report:ExplainReport;task_names:list[str];env_name:str)->None
+    _print_teach_deps(task_names:list[str];config:TaskfileConfig)->None
+    _print_teach_prefix_info(has_local:bool;has_remote:bool)->None
+    _print_teach_current_env(report:ExplainReport;env_name:str)->None
+    _print_teach_alt_env(report:ExplainReport;env_name:str;config:TaskfileConfig)->None
     print_teach_report(report:ExplainReport;task_names:list[str];env_name:str;config:TaskfileConfig)->None
     _cmd_type_icon(cmd_type:str)->str
   src/taskfile/runner/functions.py:
@@ -680,13 +695,15 @@ D:
     TaskResolver: __init__(4),from_path(4),_load_dotenv(0),_resolve_environment(0),_resolve_env_fields(1)  # Pure-logic task resolver: variable ex...
   src/taskfile/runner/ssh.py:
     i: rich.console.Console,taskfile.models.Task,taskfile.ssh.ssh_exec
-    e: is_local_command,strip_local_prefix,is_remote_command,strip_remote_prefix,wrap_ssh,run_embedded_ssh
+    e: is_local_command,strip_local_prefix,is_remote_command,strip_remote_prefix,wrap_ssh,is_push_command,strip_push_prefix,is_pull_command
     is_local_command(cmd:str)->bool
     strip_local_prefix(cmd:str)->str
     is_remote_command(cmd:str)->bool
     strip_remote_prefix(cmd:str)->str
     wrap_ssh(cmd:str;env)->str
-    run_embedded_ssh(runner;cmd:str;task:Task)->int
+    is_push_command(cmd:str)->bool
+    strip_push_prefix(cmd:str)->str
+    is_pull_command(cmd:str)->bool
   src/taskfile/scaffold/__init__.py:
     i: pathlib.Path
     e: _TEMPLATES_DIR,_TEMPLATE_NAMES,generate_taskfile
@@ -765,6 +782,20 @@ D:
     TestDockerHealthCheck: test_health_check_url_construction(0),test_deploy_user_in_ssh_url(0)  # Test Docker deployment health checks.
     TestDockerEnvFileHandling: test_env_file_parsing(1),test_env_file_empty_values(1),test_env_file_with_quotes(1)  # Test .env file handling for Docker de...
     TestDockerPortManagement: test_port_conflict_detection(1),test_container_port_parsing(0)  # Test Docker port management features.
+  tests/test_doctor_e2e.py:
+    i: json,os,shutil,subprocess,pytest,yaml,click.testing.CliRunner,fastapi.testclient.TestClient,pathlib.Path,taskfile.api.app.create_app
+    e: DOCKER_AVAILABLE,EXAMPLE_PROJECT,EXAMPLE_TASKFILE,minimal_taskfile,docker_taskfile,broken_taskfile,api_client,docker_api_client
+    TestDoctorCLI: test_doctor_basic(2),test_doctor_verbose(2),test_doctor_report_json(2),test_doctor_teach(2),test_doctor_category_filter(2)  # E2E: taskfile doctor CLI command with...
+    TestDoctorAPIGet: test_get_doctor_basic(1),test_get_doctor_response_types(1),test_get_doctor_verbose(1),test_get_doctor_category_config(1),test_get_doctor_category_env(1)  # E2E: GET /doctor endpoint.
+    TestDoctorAPIPost: test_post_doctor_default(1),test_post_doctor_verbose(1),test_post_doctor_fix(1),test_post_doctor_category_filter(1),test_post_doctor_combined_options(1)  # E2E: POST /doctor endpoint with options.
+    TestDoctorAPIBrokenProject: test_broken_project_finds_issues(1),test_broken_project_categories(1),test_broken_project_has_teach(1),test_broken_project_summary(1)  # E2E: /doctor on a project with known...
+    TestDoctorDockerChecks: test_check_docker_available(0),test_docker_compose_check(2),test_port_check_with_compose(2),test_docker_api_doctor_verbose(1),test_compose_port_conflict_detection(2)  # E2E: Docker-related diagnostic checks.
+    minimal_taskfile(tmp_path)->Path
+    docker_taskfile(tmp_path)->Path
+    broken_taskfile(tmp_path)->Path
+    api_client(minimal_taskfile)->TestClient
+    docker_api_client(docker_taskfile)->TestClient
+    broken_api_client(broken_taskfile)->TestClient
   tests/test_dsl_commands.py:
     i: os,textwrap,pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.load_taskfile,taskfile.runner.TaskfileRunner
     e: TestBasicCommands,TestVariableExpansion,TestLocalRemoteRouting,TestGlobExpansion,TestFunctionExecution,TestScriptExecution,TestDependencies,TestConditions
