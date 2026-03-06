@@ -24,6 +24,7 @@
 ### Bug Fixes
 - **Fix `python` → `sys.executable` in `@fn` (lang=python) and `@python` commands** — On systems where only `python3` is available (no `python` symlink), `@fn` and `@python` commands failed with `python: not found`. Now uses `sys.executable` for reliable Python discovery.
 - **Fix glob expansion mangling `@fn`/`@python` arguments** — `shlex.split`/`shlex.quote` in `_expand_globs_in_command` was incorrectly applied to `@fn` and `@python` commands, breaking semicolons and special Python syntax. Glob expansion is now skipped for these prefixes.
+- **Fix false `env_file` validation errors** — `_parse_environments` auto-inferred `env_file=".env.{name}"` even when not set by user, causing false "Missing env file" errors in diagnostics. `env_file` is now only set when explicitly configured.
 
 ### Tests
 - **117 new DSL command E2E tests** in `tests/test_dsl_commands.py` covering:
@@ -129,6 +130,15 @@
   - Consolidated `converters.py` ↔ `importer.py` duplication (shared `_FILENAME_TYPE_MAP`)
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
+
+## [0.3.72] - 2026-03-06
+
+### Test
+- Update tests/test_doctor_e2e.py
+- Update tests/test_models.py
+
+### Other
+- Update examples/cloud-aws/Taskfile.yml
 
 ## [0.3.71] - 2026-03-06
 

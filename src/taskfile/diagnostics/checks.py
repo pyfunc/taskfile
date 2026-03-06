@@ -441,11 +441,12 @@ def _extract_registry_host(image: str) -> str | None:
     Examples:
         ghcr.io/user/app:latest → ghcr.io
         docker.io/library/nginx → docker.io
+        registry.example.com:5000/myapp:v1 → registry.example.com:5000
         myapp:latest → None (local)
         localhost/myapp → None (local)
     """
-    # Strip tag/digest
-    img = image.split("@")[0].split(":")[0]
+    # Strip digest first
+    img = image.split("@")[0]
     # Must have at least one slash to be a registry path
     if "/" not in img:
         return None

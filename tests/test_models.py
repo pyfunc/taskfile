@@ -73,7 +73,7 @@ class TestSmartDefaults:
         assert prod.container_runtime == "podman"
         assert prod.service_manager == "quadlet"
         assert prod.ssh_key == "~/.ssh/id_ed25519"
-        assert prod.env_file == ".env.prod"
+        assert prod.env_file is None  # env_file not auto-inferred
 
     def test_local_env_defaults_to_docker_compose(self):
         data = {
@@ -88,7 +88,7 @@ class TestSmartDefaults:
         assert dev.compose_command == "docker compose"
         assert dev.service_manager == "compose"
         assert dev.ssh_key is None
-        assert dev.env_file == ".env.dev"
+        assert dev.env_file is None  # env_file not auto-inferred
 
     def test_explicit_override_beats_smart_defaults(self):
         data = {

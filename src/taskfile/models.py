@@ -442,11 +442,10 @@ class TaskfileConfig:
           container_runtime → podman
           service_manager   → quadlet
           ssh_key           → ~/.ssh/id_ed25519
-          env_file          → .env.{env_name}
         When ssh_host is absent (local-like):
           container_runtime → docker
           compose_command   → docker compose
-          env_file          → .env.{env_name}
+        env_file is NOT auto-inferred — set explicitly if needed.
         """
         environments: dict[str, Environment] = {}
         for env_name, env_data in env_section.items():
@@ -463,7 +462,7 @@ class TaskfileConfig:
                     compose_default = "docker compose"
                     manager_default = "compose"
                     key_default = None
-                env_file_default = f".env.{env_name}" if "env_file" not in env_data else None
+                env_file_default = None
 
                 environments[env_name] = Environment(
                     name=env_name,
