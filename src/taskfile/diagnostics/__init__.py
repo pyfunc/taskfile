@@ -23,6 +23,7 @@ from taskfile.diagnostics.checks import (
     check_ports,
     check_dependent_files,
     check_docker,
+    check_registry_access,
     check_ssh_keys,
     check_ssh_connectivity,
     check_remote_health,
@@ -135,6 +136,11 @@ class ProjectDiagnostics:
 
     def check_docker(self) -> None:
         self._add_issues(check_docker())
+
+    def check_registry_access(self) -> None:
+        config = self._load_config()
+        if config:
+            self._add_issues(check_registry_access(config))
 
     def check_ssh_keys(self) -> None:
         self._add_issues(check_ssh_keys())

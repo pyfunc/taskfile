@@ -262,6 +262,7 @@ taskfile doctor --teach
         diagnostics.check_dependent_files()
         diagnostics.check_ports()
         diagnostics.check_docker()
+        diagnostics.check_registry_access()
         diagnostics.check_ssh_keys()
         diagnostics.check_git()
         # Layer 3+: Task command checks and remote health (if verbose)
