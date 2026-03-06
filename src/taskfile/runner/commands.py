@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import glob
 import os
 import subprocess
 import time
@@ -20,6 +21,61 @@ from taskfile.runner.ssh import is_remote_command, is_local_command, strip_local
 from taskfile.runner.functions import run_function, run_inline_python
 
 console = Console()
+
+
+def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
+    """Expand glob patterns (wildcards) in a command string locally.
+
+    This ensures patterns like 'deploy/quadlet/*.container' are expanded
+    to actual file paths before the command is executed, preventing
+    'No such file or directory' errors when using scp/ssh.
+
+    Args:
+        cmd: Command string potentially containing globs
+        cwd: Working directory for relative glob resolution
+
+    Returns:
+        Command string with globs expanded to matching paths
+    """
+    import shlex
+    try:
+        parts = shlex.split(cmd)
+    except ValueError:
+        # If shlex fails (e.g., unbalanced quotes), return original
+        return cmd
+
+    expanded_parts = []
+    for part in parts:
+        # Skip if it looks like a variable or option
+        if part.startswith('$') or part.startswith('-'):
+            expanded_parts.append(part)
+            continue
+
+        # Check for glob patterns
+        if '*' in part or '?' in part or '[' in part:
+            # Resolve glob relative to cwd if provided
+            glob_path = part
+            if cwd and not part.startswith('/'):
+                matches = glob.glob(part, root_dir=cwd)
+            else:
+                matches = glob.glob(part)
+
+            if matches:
+                # Sort for consistent ordering, quote paths with spaces
+                sorted_matches = sorted(matches)
+                # If cwd was provided, matches are relative to cwd
+                if cwd and not part.startswith('/'):
+                    expanded_parts.extend(sorted_matches)
+                else:
+                    expanded_parts.extend(sorted_matches)
+            else:
+                # No matches found - keep original to let shell handle error
+                expanded_parts.append(part)
+        else:
+            expanded_parts.append(part)
+
+    # Reconstruct command with proper quoting
+    return ' '.join(shlex.quote(p) for p in expanded_parts)
 
 
 def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
@@ -109,8 +165,13 @@ def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False) -> int
 
 
 def run_command(runner, cmd: str, task: Task) -> int:
-    """Execute a single command, locally or via SSH."""
+    """Execute a single command, locally or via SSH.
+
+    Expands variables and glob patterns before execution.
+    """
     expanded = runner.expand_variables(cmd)
+    # Expand globs locally (e.g., deploy/quadlet/*.container → actual files)
+    expanded = _expand_globs_in_command(expanded, cwd=task.working_dir)
 
     # Try special prefix dispatch first (@fn, @python, @remote/@ssh)
     result = _dispatch_special_prefix(runner, expanded, task)

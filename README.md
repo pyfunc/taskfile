@@ -34,6 +34,8 @@ Write your deploy logic once in `Taskfile.yml`, run it from your terminal, GitLa
 - [Scaffold Templates](#scaffold-templates)
 - [Diagnostics & Validation](#diagnostics--validation)
 - [Examples](#examples)
+- [Development](#development)
+- [Troubleshooting & Debugging](#troubleshooting--debugging)
 
 ---
 
@@ -1292,6 +1294,213 @@ test-all:
     - cd packages/rust && cargo test
     - cd packages/node && npm test
 ```
+
+---
+
+## Development
+
+Working with the `taskfile` project itself:
+
+### Setup Development Environment
+
+```bash
+# Clone repository
+git clone https://github.com/pyfunc/taskfile.git
+cd taskfile
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # or: venv\Scripts\activate on Windows
+
+# Install in editable mode with dev dependencies
+pip install -e ".[dev]"
+
+# Verify installation
+taskfile --version
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_parser.py -v
+
+# Run with coverage
+pytest tests/ --cov=taskfile --cov-report=html --cov-report=term
+
+# Run only e2e tests
+pytest tests/test_e2e_examples.py -v
+```
+
+### Code Quality
+
+```bash
+# Lint with ruff
+ruff check src/taskfile/
+
+# Format code
+ruff format src/taskfile/
+
+# Check types (optional, requires mypy)
+mypy src/taskfile/ --ignore-missing-imports
+```
+
+### Project Structure
+
+```
+taskfile/
+├── src/taskfile/           # Main source code
+│   ├── cli/               # CLI commands
+│   ├── runner/            # Task execution engine
+│   ├── diagnostics/       # Diagnostics & doctor
+│   ├── scaffold/          # Template generation
+│   └── cigen/             # CI/CD generators
+├── tests/                  # Test suite
+├── examples/               # Example configurations (24 examples)
+├── docs/                   # Documentation
+└── Taskfile.yml           # Project's own tasks
+```
+
+### Making Changes
+
+```bash
+# 1. Create a branch
+git checkout -b fix/my-feature
+
+# 2. Make changes and run tests
+pytest tests/ -v
+
+# 3. Run project taskfile for validation
+taskfile validate
+
+# 4. Test against examples
+taskfile doctor --examples
+
+# 5. Build and install locally
+pip install -e .
+```
+
+### Debug Mode
+
+```bash
+# Verbose output
+taskfile -v run <task>
+
+# Very verbose (internal debug)
+taskfile -vv run <task>
+
+# Dry run to see commands without executing
+taskfile --dry-run run <task>
+```
+
+---
+
+## Troubleshooting & Debugging
+
+### Quick Diagnostics
+
+```bash
+# Full system diagnostics
+taskfile doctor
+
+# Auto-fix common issues
+taskfile doctor --fix
+
+# Get AI help on unresolved issues
+taskfile doctor --fix --llm
+
+# Check specific category
+taskfile doctor --category config
+taskfile doctor --category runtime
+```
+
+### Common Issues
+
+#### SSH Connection Problems
+
+```bash
+# Test SSH connectivity
+taskfile fleet status
+
+# Check SSH key permissions
+chmod 600 ~/.ssh/id_ed25519
+
+# Test manual SSH
+ssh -i ~/.ssh/id_ed25519 user@host "echo OK"
+```
+
+#### Taskfile.yml Validation Errors
+
+```bash
+# Validate configuration
+taskfile validate
+
+# Check specific task
+taskfile info <task-name>
+
+# List all tasks with their environments
+taskfile list
+```
+
+#### Environment Variable Issues
+
+```bash
+# Check loaded variables
+taskfile list --vars
+
+# Override for testing
+taskfile run <task> --var KEY=VALUE --var DEBUG=1
+```
+
+#### Container Runtime Issues
+
+```bash
+# Check Docker/Podman
+taskfile doctor --category runtime
+
+# Test container runtime manually
+docker ps  # or: podman ps
+
+# Check registry authentication
+taskfile auth verify
+```
+
+### Debug Output Levels
+
+| Flag | Output |
+|------|--------|
+| `-v` | Verbose - show commands and results |
+| `-vv` | Very verbose - internal debug info |
+| `--dry-run` | Show commands without executing |
+| `--report` | JSON output for debugging |
+
+### Getting Help
+
+```bash
+# Command help
+taskfile --help
+taskfile <command> --help
+
+# Task help
+taskfile info <task-name>
+
+# AI-assisted debugging (requires LLM extras)
+pip install taskfile[llm]
+taskfile doctor --llm
+```
+
+### Reporting Bugs
+
+1. Run diagnostics: `taskfile doctor --report > debug.json`
+2. Check version: `taskfile --version`
+3. Include:
+   - `debug.json` output
+   - Your `Taskfile.yml` (redact secrets)
+   - Python version: `python --version`
+   - OS: `uname -a`
 
 ---
 
