@@ -302,38 +302,47 @@ def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
         # If shlex fails (e.g., unbalanced quotes), return original
         return cmd
 
+    # Shell operators that must NOT be quoted
+    _SHELL_OPS = frozenset({
+        '&&', '||', ';', '|', '>', '>>', '<', '<<', '2>', '2>>', '&>', '&',
+    })
+
     expanded_parts = []
     for part in parts:
+        # Preserve shell operators verbatim
+        if part in _SHELL_OPS:
+            expanded_parts.append(part)
+            continue
+
         # Skip if it looks like a variable or option
         if part.startswith('$') or part.startswith('-'):
+            expanded_parts.append(shlex.quote(part))
+            continue
+
+        # Preserve @-prefixes (@remote, @local, @push, etc.)
+        if part.startswith('@'):
             expanded_parts.append(part)
             continue
 
         # Check for glob patterns
         if '*' in part or '?' in part or '[' in part:
             # Resolve glob relative to cwd if provided
-            glob_path = part
             if cwd and not part.startswith('/'):
                 matches = glob.glob(part, root_dir=cwd)
             else:
                 matches = glob.glob(part)
 
             if matches:
-                # Sort for consistent ordering, quote paths with spaces
                 sorted_matches = sorted(matches)
-                # If cwd was provided, matches are relative to cwd
-                if cwd and not part.startswith('/'):
-                    expanded_parts.extend(sorted_matches)
-                else:
-                    expanded_parts.extend(sorted_matches)
+                expanded_parts.extend(shlex.quote(m) for m in sorted_matches)
             else:
                 # No matches found - keep original to let shell handle error
                 expanded_parts.append(part)
         else:
-            expanded_parts.append(part)
+            expanded_parts.append(shlex.quote(part))
 
-    # Reconstruct command with proper quoting
-    return ' '.join(shlex.quote(p) for p in expanded_parts)
+    # Reconstruct command — operators already unquoted, paths quoted
+    return ' '.join(expanded_parts)
 
 
 def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
