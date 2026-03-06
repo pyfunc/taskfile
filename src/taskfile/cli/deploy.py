@@ -33,6 +33,105 @@ def _deploy_local_compose(env, env_file_path, dry_run):
     _run(f"{env.compose_command} {env_flag} up -d --build", "Starting local services...", dry_run)
     console.print("\n[green]✅ Local deploy complete[/]")
 
+
+def _deploy_ssh_push(env, env_name, config, dry_run):
+    """Deploy via docker save | ssh podman load + podman run.
+
+    Strategy for remote hosts without a registry:
+    1. Build images locally (docker compose build)
+    2. Transfer images via SSH pipe (docker save | ssh podman load)
+    3. Run containers on remote (podman run -d --replace)
+    """
+    from taskfile.deploy_utils import (
+        transfer_image_via_ssh,
+        deploy_container_remote,
+    )
+
+    host = env.ssh_host
+    user = env.ssh_user
+    port = env.ssh_port
+    runtime = env.container_runtime if env.container_runtime != "docker" else "podman"
+
+    # Discover images from compose file
+    compose_path = Path(env.compose_file)
+    images = _discover_compose_images(compose_path, config)
+
+    if not images:
+        console.print("[yellow]⚠ No images found to push[/]")
+        return
+
+    # Step 1: Build
+    console.print("\n[bold]Step 1: Build images locally[/]")
+    _run(f"{env.compose_command} build", "", dry_run)
+
+    # Step 2: Transfer
+    console.print(f"\n[bold]Step 2: Transfer images → {host}[/]")
+    if not dry_run:
+        for img in images:
+            transfer_image_via_ssh(img, host, user, port, runtime)
+    else:
+        for img in images:
+            console.print(f"  [dim](dry run) docker save {img} | ssh {user}@{host} '{runtime} load'[/]")
+
+    # Step 3: Run containers
+    console.print(f"\n[bold]Step 3: Start containers on {host}[/]")
+    port_mappings = _discover_compose_ports(compose_path, config)
+    if not dry_run:
+        for img, port_map in zip(images, port_mappings):
+            name = img.split(":")[0].rsplit("/", 1)[-1]  # extract short name
+            full_image = f"docker.io/library/{img}" if "/" not in img else img
+            console.print(f"  → {runtime} run -d --name {name} --replace -p {port_map} {full_image}")
+            deploy_container_remote(host, full_image, name, port_map, user, port, runtime)
+    else:
+        for img, port_map in zip(images, port_mappings):
+            name = img.split(":")[0].rsplit("/", 1)[-1]
+            console.print(f"  [dim](dry run) {runtime} run -d --name {name} -p {port_map} {img}[/]")
+
+    console.print(f"\n[green]✅ SSH push deploy complete ({env_name})[/]")
+
+
+def _discover_compose_images(compose_path: Path, config) -> list[str]:
+    """Discover image names from docker-compose.yml services."""
+    import yaml
+    if not compose_path.exists():
+        return []
+    try:
+        data = yaml.safe_load(compose_path.read_text()) or {}
+    except Exception:
+        return []
+    services = data.get("services") or {}
+    images = []
+    project = config.name or compose_path.parent.name
+    for svc_name, svc in services.items():
+        if isinstance(svc, dict):
+            img = svc.get("image", f"{project}-{svc_name}:latest")
+            if ":" not in img:
+                img = f"{img}:latest"
+            images.append(img)
+    return images
+
+
+def _discover_compose_ports(compose_path: Path, config) -> list[str]:
+    """Discover port mappings from docker-compose.yml services."""
+    import yaml
+    if not compose_path.exists():
+        return []
+    try:
+        data = yaml.safe_load(compose_path.read_text()) or {}
+    except Exception:
+        return []
+    services = data.get("services") or {}
+    mappings = []
+    for svc_name, svc in services.items():
+        if isinstance(svc, dict):
+            ports = svc.get("ports") or []
+            if ports:
+                mappings.append(str(ports[0]))
+            else:
+                mappings.append("8080:8080")
+    return mappings
+
+
 def _deploy_remote_compose(env, env_name, env_file_path, config, dry_run):
     env_flag = f"--env-file {env_file_path}" if env_file_path else ""
     _ssh(f"cd /opt/{config.name or 'app'} && {env.compose_command} {env_flag} pull",
@@ -153,7 +252,7 @@ class DeployStrategy:
 
     def __init__(
         self,
-        strategy: str,  # 'local_compose', 'remote_compose', 'quadlet', 'unknown'
+        strategy: str,  # 'local_compose', 'remote_compose', 'ssh_push', 'quadlet', 'unknown'
         env: Any,
         env_name: str,
         env_file_path: str | None,
@@ -191,8 +290,13 @@ def _select_deploy_strategy(
         strategy = "local_compose"
     elif env.service_manager == "compose" and env.ssh_host:
         strategy = "remote_compose"
+    elif env.service_manager in ("podman", "ssh_push") and env.ssh_host:
+        strategy = "ssh_push"
     elif env.service_manager == "quadlet":
         strategy = "quadlet"
+    elif env.ssh_host and env.container_runtime == "podman":
+        # Auto-detect: remote + podman → ssh_push
+        strategy = "ssh_push"
 
     return DeployStrategy(
         strategy=strategy,
@@ -214,6 +318,11 @@ def _execute_deploy_strategy(strategy: DeployStrategy) -> None:
     if strategy.strategy == "remote_compose":
         _deploy_remote_compose(
             strategy.env, strategy.env_name, strategy.env_file_path, strategy.config, strategy.dry_run
+        )
+        return
+    if strategy.strategy == "ssh_push":
+        _deploy_ssh_push(
+            strategy.env, strategy.env_name, strategy.config, strategy.dry_run
         )
         return
     if strategy.strategy == "quadlet":

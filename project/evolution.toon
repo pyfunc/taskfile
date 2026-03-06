@@ -1,46 +1,58 @@
-# code2llm/evolution | 536 func | 61f | 2026-03-06
+# code2llm/evolution | 607 func | 69f | 2026-03-06
 
-NEXT[7] (ranked by impact):
-  [1] !! SPLIT           src/taskfile/cli/diagnostics.py
-      WHY: 860L, 3 classes, max CC=22
-      EFFORT: ~4h  IMPACT: 18920
+NEXT[10] (ranked by impact):
+  [1] !! SPLIT           src/taskfile/diagnostics/checks.py
+      WHY: 743L, 0 classes, max CC=21
+      EFFORT: ~4h  IMPACT: 15603
 
   [2] !! SPLIT           src/taskfile/cli/main.py
       WHY: 637L, 0 classes, max CC=22
       EFFORT: ~4h  IMPACT: 14014
 
-  [3] !  SPLIT-FUNC      ProjectDiagnostics.validate_taskfile_variables  CC=22  fan=22
+  [3] !  SPLIT-FUNC      e2e_cmd  CC=22  fan=25
       WHY: CC=22 exceeds 15
-      EFFORT: ~1h  IMPACT: 484
+      EFFORT: ~1h  IMPACT: 550
 
-  [4] !  SPLIT-FUNC      _validate_dependent_files  CC=22  fan=19
+  [4] !  SPLIT-FUNC      doctor  CC=17  fan=28
+      WHY: CC=17 exceeds 15
+      EFFORT: ~1h  IMPACT: 476
+
+  [5] !  SPLIT-FUNC      check_unresolved_variables  CC=20  fan=21
+      WHY: CC=20 exceeds 15
+      EFFORT: ~1h  IMPACT: 420
+
+  [6] !  SPLIT-FUNC      _check_containers_running  CC=20  fan=21
+      WHY: CC=20 exceeds 15
+      EFFORT: ~1h  IMPACT: 420
+
+  [7] !  SPLIT-FUNC      _validate_dependent_files  CC=22  fan=19
       WHY: CC=22 exceeds 15
       EFFORT: ~1h  IMPACT: 418
 
-  [5] !  SPLIT-FUNC      validate_before_run  CC=19  fan=11
+  [8] !  SPLIT-FUNC      check_ports  CC=17  fan=15
+      WHY: CC=17 exceeds 15
+      EFFORT: ~1h  IMPACT: 255
+
+  [9] !  SPLIT-FUNC      validate_before_run  CC=21  fan=12
+      WHY: CC=21 exceeds 15
+      EFFORT: ~1h  IMPACT: 252
+
+  [10] !  SPLIT-FUNC      _print_layered_report  CC=19  fan=12
       WHY: CC=19 exceeds 15
-      EFFORT: ~1h  IMPACT: 209
-
-  [6] !  SPLIT-FUNC      prompt  CC=18  fan=10
-      WHY: CC=18 exceeds 15
-      EFFORT: ~1h  IMPACT: 180
-
-  [7] !! SPLIT           tests/test_e2e_examples.py
-      WHY: 1094L, 0 classes, max CC=0
-      EFFORT: ~4h  IMPACT: 0
+      EFFORT: ~1h  IMPACT: 228
 
 
 RISKS[3]:
   ⚠ Splitting tests/test_e2e_examples.py may break 0 import paths
-  ⚠ Splitting src/taskfile/cli/diagnostics.py may break 40 import paths
+  ⚠ Splitting src/taskfile/diagnostics/checks.py may break 22 import paths
   ⚠ Splitting src/taskfile/cli/main.py may break 19 import paths
 
 METRICS-TARGET:
-  CC̄:          4.2 → ≤2.9
+  CC̄:          4.3 → ≤3.0
   max-CC:      22 → ≤11
-  god-modules: 4 → 0
-  high-CC(≥15): 4 → ≤2
+  god-modules: 6 → 0
+  high-CC(≥15): 9 → ≤4
   hub-types:   0 → ≤0
 
 HISTORY:
-  prev CC̄=4.2 → now CC̄=4.2
+  prev CC̄=4.2 → now CC̄=4.3

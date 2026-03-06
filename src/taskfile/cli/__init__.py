@@ -14,5 +14,6 @@ import taskfile.cli.registry_cmds  # pkg install/search
 import taskfile.cli.version  # version management (bump, show, set)
 import taskfile.cli.docker_cmds  # docker management (stop, compose down, ports)
 import taskfile.cli.api_cmd  # REST API server (serve, openapi)
+import taskfile.cli.e2e_cmd  # e2e testing (services + IaC)
 
 __all__ = ["main"]

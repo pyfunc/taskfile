@@ -402,6 +402,72 @@ def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
     return issues
 
 
+def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
+    """Check remote host health — podman, disk space, container status."""
+    issues: list[Issue] = []
+    for env_name, env in config.environments.items():
+        if not env.is_remote:
+            continue
+
+        from taskfile.deploy_utils import (
+            check_remote_podman,
+            check_remote_disk,
+            test_ssh_connection,
+        )
+
+        # Quick SSH check first
+        ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
+        if not ssh_result.success:
+            continue  # SSH checks are handled by check_ssh_connectivity
+
+        # Podman
+        podman_ok, podman_ver = check_remote_podman(env.ssh_host, env.ssh_user, env.ssh_port)
+        if not podman_ok:
+            issues.append(Issue(
+                category=IssueCategory.DEPENDENCY_MISSING,
+                message=f"Podman not installed on {env.ssh_host} (env: {env_name})",
+                fix_strategy=FixStrategy.CONFIRM,
+                severity=SEVERITY_WARNING,
+                fix_command=f"ssh {env.ssh_user}@{env.ssh_host} 'apt install -y podman'",
+                fix_description="Install podman on the remote server",
+                context={"host": env.ssh_host, "env": env_name},
+                layer=3,
+            ))
+
+        # Disk space
+        disk = check_remote_disk(env.ssh_host, env.ssh_user, env.ssh_port)
+        if disk and disk != "unknown":
+            # Parse disk value — warn if < 1G
+            try:
+                val = disk.rstrip("GMKTBgmktb")
+                unit = disk[len(val):].upper()
+                num = float(val)
+                if unit.startswith("M") and num < 500:
+                    issues.append(Issue(
+                        category=IssueCategory.EXTERNAL_ERROR,
+                        message=f"Low disk on {env.ssh_host}: {disk} free",
+                        fix_strategy=FixStrategy.MANUAL,
+                        severity=SEVERITY_WARNING,
+                        fix_description="Free disk space or expand volume",
+                        context={"host": env.ssh_host, "disk": disk},
+                        layer=3,
+                    ))
+                elif unit.startswith("K"):
+                    issues.append(Issue(
+                        category=IssueCategory.EXTERNAL_ERROR,
+                        message=f"Critical disk on {env.ssh_host}: {disk} free",
+                        fix_strategy=FixStrategy.MANUAL,
+                        severity=SEVERITY_ERROR,
+                        fix_description="Immediately free disk space",
+                        context={"host": env.ssh_host, "disk": disk},
+                        layer=3,
+                    ))
+            except (ValueError, IndexError):
+                pass
+
+    return issues
+
+
 def check_git() -> list[Issue]:
     """Check if in git repo."""
     issues: list[Issue] = []

@@ -25,6 +25,7 @@ from taskfile.diagnostics.checks import (
     check_docker,
     check_ssh_keys,
     check_ssh_connectivity,
+    check_remote_health,
     check_git,
     check_task_commands,
     check_examples,
@@ -150,6 +151,11 @@ class ProjectDiagnostics:
         if config:
             self._add_issues(check_task_commands(config))
 
+    def check_remote_health(self) -> None:
+        config = self._load_config()
+        if config:
+            self._add_issues(check_remote_health(config))
+
     # ─── Layer 4: Algorithmic fix ───
 
     def auto_fix(self) -> int:
@@ -235,6 +241,7 @@ __all__ = [
     "check_ssh_keys",
     "check_ssh_connectivity",
     "check_git",
+    "check_remote_health",
     "check_task_commands",
     "check_examples",
     "apply_fixes",

@@ -257,10 +257,11 @@ taskfile doctor --report
         diagnostics.check_docker()
         diagnostics.check_ssh_keys()
         diagnostics.check_git()
-        # Layer 3+: Task command checks (if verbose)
+        # Layer 3+: Task command checks and remote health (if verbose)
         if verbose:
             diagnostics.check_task_commands()
             diagnostics.check_ssh_connectivity()
+            diagnostics.check_remote_health()
 
     # Validate examples/ directory if requested
     if check_examples_flag:
