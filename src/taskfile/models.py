@@ -41,6 +41,16 @@ class Environment:
         return " ".join(parts)
 
     @property
+    def scp_opts(self) -> str:
+        """SCP options — uses -P (uppercase) for port, unlike ssh's -p."""
+        parts = [f"-P {self.ssh_port}"]
+        if self.ssh_key:
+            key_path = os.path.expanduser(self.ssh_key)
+            parts.append(f"-i {key_path}")
+        parts.append("-o StrictHostKeyChecking=accept-new")
+        return " ".join(parts)
+
+    @property
     def is_remote(self) -> bool:
         return self.ssh_host is not None
 

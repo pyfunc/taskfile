@@ -19,7 +19,10 @@ except ImportError:
     _HAS_CLICKMD = False
 
 from taskfile.models import Task
-from taskfile.runner.ssh import is_remote_command, is_local_command, strip_local_prefix, wrap_ssh, run_embedded_ssh
+from taskfile.runner.ssh import (
+    is_remote_command, is_local_command, strip_local_prefix, wrap_ssh, run_embedded_ssh,
+    is_push_command, is_pull_command, wrap_scp_push, wrap_scp_pull,
+)
 from taskfile.runner.functions import run_function, run_inline_python
 
 console = Console()
@@ -334,13 +337,15 @@ def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
 
 
 def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
-    """Check for special command prefixes (@fn, @python, @local, @remote/@ssh).
+    """Check for special command prefixes (@fn, @python, @local, @remote/@ssh, @push, @pull).
 
     Returns the exit code if handled, or None to fall through to local execution.
 
     Routing logic:
         @local  → run only when env has NO ssh_host (skip on remote envs)
         @remote → run only when env HAS ssh_host  (skip on local envs)
+        @push   → scp local→remote, only when env HAS ssh_host
+        @pull   → scp remote→local, only when env HAS ssh_host
     """
     stripped = expanded.strip()
 
@@ -374,6 +379,30 @@ def _dispatch_special_prefix(runner, expanded: str, task: Task) -> int | None:
         if runner.use_embedded_ssh:
             return run_embedded_ssh(runner, expanded, task)
         return _run_local(runner, wrap_ssh(expanded, runner.env), task, remote=True)
+
+    # @push — scp local files → remote, only on remote envs
+    if is_push_command(expanded):
+        if not runner.env.ssh_target:
+            if not task.silent:
+                console.print(
+                    f"  [dim]⏭ Pominięto @push"
+                    f" (env '{runner.env_name}' nie ma ssh_host)[/]"
+                )
+            return 0
+        scp_cmd = wrap_scp_push(expanded, runner.env)
+        return _run_local(runner, scp_cmd, task, remote=True)
+
+    # @pull — scp remote files → local, only on remote envs
+    if is_pull_command(expanded):
+        if not runner.env.ssh_target:
+            if not task.silent:
+                console.print(
+                    f"  [dim]⏭ Pominięto @pull"
+                    f" (env '{runner.env_name}' nie ma ssh_host)[/]"
+                )
+            return 0
+        scp_cmd = wrap_scp_pull(expanded, runner.env)
+        return _run_local(runner, scp_cmd, task, remote=True)
 
     return None
 
