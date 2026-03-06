@@ -386,6 +386,19 @@ class TestGlobExpansion:
         result = _expand_globs_in_command("echo 'unbalanced")
         assert "unbalanced" in result
 
+    def test_expand_preserves_redirects(self):
+        """Shell redirects like 2>/dev/null must not be quoted."""
+        result = _expand_globs_in_command("podman tag img:latest img:prev 2>/dev/null || true")
+        assert "2>/dev/null" in result
+        # Must NOT be quoted (would break podman)
+        assert "'2>/dev/null'" not in result
+
+    def test_expand_preserves_redirect_2_ampersand_1(self):
+        """2>&1 redirect must not be quoted."""
+        result = _expand_globs_in_command("cmd arg 2>&1")
+        assert "2>&1" in result
+        assert "'2>&1'" not in result
+
     def test_glob_in_remote_scp_command(self, tmp_path):
         """Real-world: scp with globs in @remote context."""
         sub = tmp_path / "deploy" / "quadlet"

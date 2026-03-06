@@ -131,6 +131,11 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.75] - 2026-03-06
+
+### Test
+- Update tests/test_dsl_commands.py
+
 ## [0.3.74] - 2026-03-06
 
 ## [0.3.73] - 2026-03-06

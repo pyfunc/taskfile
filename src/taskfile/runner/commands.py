@@ -307,10 +307,19 @@ def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
         '&&', '||', ';', '|', '>', '>>', '<', '<<', '2>', '2>>', '&>', '&',
     })
 
+    import re
+    # Redirect patterns: 2>/dev/null, 2>&1, &>/dev/null, >/dev/null, etc.
+    _REDIRECT_RE = re.compile(r'^[0-9]*[<>]+.*')
+
     expanded_parts = []
     for part in parts:
         # Preserve shell operators verbatim
         if part in _SHELL_OPS:
+            expanded_parts.append(part)
+            continue
+
+        # Preserve shell redirects (2>/dev/null, 2>&1, >/dev/null, etc.)
+        if _REDIRECT_RE.match(part):
             expanded_parts.append(part)
             continue
 
