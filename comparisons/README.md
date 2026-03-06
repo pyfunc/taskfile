@@ -48,6 +48,11 @@ taskfile ≈ Make + Ansible-lite + Dagger orchestration + Fleet management + CI/
 | **`tags` + `--tags`** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **`register` (capture output)** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **`taskfile import`** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (5 formats) |
+| **`doctor` 5-layer diagnostics** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (preflight→validate→check→fix→AI) |
+| **Error classification (5-cat)** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (bug/config/dep/runtime/external) |
+| **Pre-run validation** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **`--report` JSON output** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (CI-friendly) |
+| **`--llm` AI repair** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (litellm, optional) |
 | File-based deps | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
 | Containerized builds | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Idempotent modules | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
@@ -112,6 +117,12 @@ taskfile ≈ Make + Ansible-lite + Dagger orchestration + Fleet management + CI/
 | `tags` + `--tags` | Selective task execution | Run subsets: `--tags ci` |
 | `register` | Capture stdout into variable | Chain command outputs |
 | `taskfile import` | Convert CI/CD → Taskfile.yml | GitHub Actions, GitLab CI, Makefile, shell |
+| `taskfile doctor` | 8-point diagnostics + auto-fix | Config, env, Docker, SSH, ports, git checks |
+| `doctor --report` | JSON diagnostic output for CI | Non-zero exit on errors, machine-readable |
+| `doctor --examples` | Validate all example projects | Missing `.env`, parse errors, task counts |
+| Error classification | Categorize failures: config/env/infra/runtime | User knows what to fix |
+| Pre-run validation | Catch errors before task execution | Missing env files, unknown tasks, broken deps |
+| Exit code hints | Map exit codes to categories + hints | 127→"not found", 137→"OOM", 126→"permission" |
 
 ---
 

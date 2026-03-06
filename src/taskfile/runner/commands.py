@@ -229,6 +229,8 @@ def _handle_failure(
     console.print(f"  [dim]{hint}[/]")
     if category == "config":
         console.print(f"  [dim]Run 'taskfile doctor' to diagnose configuration issues[/]")
+    elif category == "infra":
+        console.print(f"  [dim]Run 'taskfile doctor --llm' for AI-assisted troubleshooting[/]")
     return False
 
 

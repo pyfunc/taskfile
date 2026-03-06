@@ -1,0 +1,162 @@
+version: "1"
+name: ai-cursor
+description: "AI-assisted development with Cursor IDE — rules, composer, review workflows"
+
+variables:
+  APP: myapp
+  SRC: src/
+  TESTS: tests/
+
+environments:
+  local:
+    env_file: .env
+
+tasks:
+
+  # ─── Project Setup for Cursor ──────────────────────────
+
+  init-rules:
+    desc: "Generate .cursor/rules for this project"
+    cmds:
+      - mkdir -p .cursor
+      - |
+        cat > .cursor/rules <<'EOF'
+        You are working on a Python project managed by taskfile.
+        
+        Project structure:
+        - src/ — source code
+        - tests/ — pytest tests
+        - Taskfile.yml — task runner configuration
+        - .env — environment variables
+        
+        Conventions:
+        - Use Google-style docstrings
+        - Type hints on all public functions
+        - pytest for testing, ruff for linting
+        - Keep functions under 30 lines
+        - Use dataclasses or Pydantic models
+        
+        When writing code:
+        - Always add tests for new functions
+        - Use pathlib instead of os.path
+        - Prefer composition over inheritance
+        - Handle errors with specific exceptions
+        
+        Available taskfile commands:
+        - taskfile run test — run tests
+        - taskfile run lint — run linter
+        - taskfile run build — build Docker image
+        - taskfile doctor — diagnose issues
+        - taskfile doctor --fix --llm — auto-fix with AI
+        EOF
+      - echo "✓ Created .cursor/rules"
+
+  init-context:
+    desc: "Generate .cursorrules (legacy) for project context"
+    cmds:
+      - |
+        cat > .cursorrules <<'EOF'
+        # Project: ${APP}
+        
+        ## Stack
+        - Python 3.12, pytest, ruff
+        - Docker, docker compose
+        - taskfile for task automation
+        
+        ## Key Files
+        - Taskfile.yml — all build/test/deploy tasks
+        - src/ — application source
+        - tests/ — test files mirror src/ structure
+        
+        ## Testing
+        Run: taskfile run test
+        Tests use: pytest, pytest-cov, faker
+        
+        ## Deploy
+        Local: taskfile --env local run deploy
+        Staging: taskfile --env staging run deploy
+        Prod: taskfile --env prod run deploy
+        EOF
+      - echo "✓ Created .cursorrules"
+
+  # ─── Composer Workflows ────────────────────────────────
+
+  composer-feature:
+    desc: "Prepare context for Cursor Composer (pass --var FEATURE='...')"
+    cmds:
+      - echo "=== Taskfile Config ==="
+      - cat Taskfile.yml
+      - echo ""
+      - echo "=== Current Tests ==="
+      - find ${TESTS} -name '*.py' -exec echo "--- {} ---" \; -exec head -20 {} \;
+      - echo ""
+      - echo "=== Feature Request ==="
+      - echo "${FEATURE}"
+      - echo ""
+      - echo "Copy the above context into Cursor Composer with your prompt."
+
+  # ─── Quality Gates (run from Cursor terminal) ──────────
+
+  test:
+    desc: "Run tests (use in Cursor terminal)"
+    cmds:
+      - pytest ${TESTS} -v --tb=short --color=yes
+
+  test-watch:
+    desc: "Watch tests (run in Cursor terminal)"
+    cmds:
+      - ptw ${TESTS} -- -v --tb=short
+
+  lint:
+    desc: "Lint + auto-fix"
+    cmds:
+      - ruff check ${SRC} --fix
+      - ruff format ${SRC}
+
+  typecheck:
+    desc: "Type check"
+    cmds:
+      - mypy ${SRC} --pretty
+
+  check-all:
+    desc: "Run all quality checks"
+    deps: [lint, typecheck, test]
+    cmds:
+      - echo "✓ All checks passed"
+
+  # ─── Cursor + Taskfile Integration ─────────────────────
+
+  doctor:
+    desc: "Diagnose project — output useful for Cursor chat"
+    cmds:
+      - taskfile doctor --report 2>&1 | python3 -c "
+        import sys, json;
+        data = json.load(sys.stdin);
+        issues = data.get('issues', []);
+        print(f'Found {len(issues)} issues:');
+        [print(f'  [{i[\"category\"]}] {i[\"message\"]}') for i in issues]
+        " || taskfile doctor
+
+  doctor-fix:
+    desc: "Auto-fix + AI suggestions"
+    cmds:
+      - taskfile doctor --fix --llm
+
+  # ─── Git Workflows ────────────────────────────────────
+
+  pre-commit:
+    desc: "Pre-commit hook (configure in .git/hooks/pre-commit)"
+    cmds:
+      - ruff check ${SRC} --fix --quiet
+      - ruff format ${SRC} --quiet
+      - pytest ${TESTS} -x -q --tb=line
+
+  commit-msg:
+    desc: "Show diff summary for commit message writing"
+    cmds:
+      - echo "=== Staged Changes ==="
+      - git diff --staged --stat
+      - echo ""
+      - git diff --staged --shortstat
+      - echo ""
+      - echo "Paste this into Cursor chat: 'Write a conventional commit message for these changes'"

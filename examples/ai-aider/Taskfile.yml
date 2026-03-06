@@ -1,0 +1,119 @@
+version: "1"
+name: ai-aider
+description: "AI-assisted development with Aider — code review, refactor, tests, bugfix"
+
+variables:
+  APP: myapp
+  MODEL: claude-sonnet-4-20250514
+  AIDER_FLAGS: --yes-always --no-auto-commits
+  SRC: src/
+  TESTS: tests/
+
+environments:
+  local:
+    env_file: .env
+
+tasks:
+
+  # ─── Code Generation ──────────────────────────────────
+
+  feature:
+    desc: "Ask aider to implement a feature (pass --var PROMPT='...')"
+    cmds:
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "${PROMPT}" ${SRC}
+
+  refactor:
+    desc: "Refactor a module with aider (pass --var FILE='src/foo.py')"
+    cmds:
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "Refactor this module for clarity, split large functions, improve naming" ${FILE}
+
+  add-tests:
+    desc: "Generate tests for a module (pass --var FILE='src/foo.py')"
+    cmds:
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "Write comprehensive pytest tests for this module. Cover edge cases and error paths." ${FILE} ${TESTS}
+
+  fix-bug:
+    desc: "Fix a bug described in PROMPT (pass --var PROMPT='...')"
+    cmds:
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "Fix this bug: ${PROMPT}" ${SRC}
+
+  # ─── Code Review ───────────────────────────────────────
+
+  review-diff:
+    desc: "AI review of staged changes"
+    cmds:
+      - git diff --staged > /tmp/aider-diff.txt
+      - |
+        aider ${AIDER_FLAGS} --model ${MODEL} \
+          --message "Review this diff for bugs, security issues, and style. Output a markdown report." \
+          --read /tmp/aider-diff.txt ${SRC}
+
+  review-pr:
+    desc: "AI review of current branch vs main"
+    cmds:
+      - git diff main...HEAD > /tmp/aider-pr.txt
+      - |
+        aider ${AIDER_FLAGS} --model ${MODEL} \
+          --message "Review this PR diff. Check for: bugs, security, performance, test coverage gaps. Output markdown." \
+          --read /tmp/aider-pr.txt ${SRC}
+
+  # ─── Documentation ─────────────────────────────────────
+
+  add-docstrings:
+    desc: "Add docstrings to all functions in FILE"
+    cmds:
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "Add Google-style docstrings to all public functions and classes" ${FILE}
+
+  update-readme:
+    desc: "Update README based on current code"
+    cmds:
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "Update README.md to reflect the current codebase structure and API" README.md ${SRC}
+
+  # ─── Full Workflows ────────────────────────────────────
+
+  tdd:
+    desc: "TDD cycle: write test → implement → verify (pass --var SPEC='...')"
+    cmds:
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "Write a failing test for: ${SPEC}" ${TESTS}
+      - pytest ${TESTS} -x --tb=short || true
+      - aider ${AIDER_FLAGS} --model ${MODEL} --message "Make the failing test pass with minimal implementation" ${SRC} ${TESTS}
+      - pytest ${TESTS} -x --tb=short
+
+  ci-fix:
+    desc: "Auto-fix CI failures — pipe CI log to aider"
+    cmds:
+      - |
+        aider ${AIDER_FLAGS} --model ${MODEL} \
+          --message "The CI pipeline failed. Fix the issues based on this log: $(cat /tmp/ci-log.txt)" \
+          ${SRC} ${TESTS}
+
+  # ─── Quality Gates ─────────────────────────────────────
+
+  lint-fix:
+    desc: "Fix all linting issues with aider"
+    cmds:
+      - ruff check ${SRC} --output-format=text > /tmp/lint.txt 2>&1 || true
+      - |
+        aider ${AIDER_FLAGS} --model ${MODEL} \
+          --message "Fix all linting issues from this ruff output: $(cat /tmp/lint.txt)" \
+          ${SRC}
+
+  type-fix:
+    desc: "Fix type errors with aider"
+    cmds:
+      - mypy ${SRC} --no-color > /tmp/mypy.txt 2>&1 || true
+      - |
+        aider ${AIDER_FLAGS} --model ${MODEL} \
+          --message "Fix all type errors from this mypy output: $(cat /tmp/mypy.txt)" \
+          ${SRC}
+
+  # ─── Diagnostics Integration ───────────────────────────
+
+  doctor:
+    desc: "Run taskfile doctor and auto-fix with aider"
+    cmds:
+      - taskfile doctor --report > /tmp/doctor.json 2>&1 || true
+      - |
+        aider ${AIDER_FLAGS} --model ${MODEL} \
+          --message "Fix the issues found by taskfile doctor: $(cat /tmp/doctor.json)" \
+          Taskfile.yml ${SRC}

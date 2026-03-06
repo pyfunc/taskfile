@@ -1,0 +1,178 @@
+version: "1"
+name: ai-windsurf
+description: "AI-assisted development with Windsurf (Cascade) — rules, flows, review workflows"
+
+variables:
+  APP: myapp
+  SRC: src/
+  TESTS: tests/
+
+environments:
+  local:
+    env_file: .env
+
+tasks:
+
+  # ─── Project Setup for Windsurf ────────────────────────
+
+  init-rules:
+    desc: "Generate .windsurfrules for project context"
+    cmds:
+      - |
+        cat > .windsurfrules <<'EOF'
+        You are working on a Python project managed by taskfile.
+
+        ## Project Structure
+        - src/ — source code (Python 3.12)
+        - tests/ — pytest tests
+        - Taskfile.yml — task runner config
+        - .env — environment variables
+
+        ## Conventions
+        - Google-style docstrings on all public APIs
+        - Type hints on all public functions
+        - pytest + fixtures for testing
+        - ruff for linting and formatting
+        - Keep functions under 30 lines
+        - Prefer dataclasses/Pydantic for models
+
+        ## Task Commands
+        - taskfile run test — run tests
+        - taskfile run lint — lint + format
+        - taskfile run build — build Docker image
+        - taskfile doctor — diagnose project issues
+        - taskfile doctor --fix --llm — auto-fix with AI
+
+        ## Testing Rules
+        - tests/ mirrors src/ structure
+        - Every new function needs tests
+        - Use parametrize for multiple inputs
+        - Mock external calls (subprocess, HTTP, SSH)
+        EOF
+      - echo "✓ Created .windsurfrules"
+
+  init-workflows:
+    desc: "Create .windsurf/workflows for common patterns"
+    cmds:
+      - mkdir -p .windsurf/workflows
+      - |
+        cat > .windsurf/workflows/add-feature.md <<'EOF'
+        ---
+        description: Add a new feature with tests
+        ---
+        1. Create the feature module in src/
+        2. Add type hints and docstrings
+        3. Create test file in tests/ with at least 5 test cases
+        // turbo
+        4. Run tests: pytest tests/ -v --tb=short
+        // turbo
+        5. Run lint: ruff check src/ --fix && ruff format src/
+        6. Update README.md if the feature is user-facing
+        EOF
+      - |
+        cat > .windsurf/workflows/fix-bug.md <<'EOF'
+        ---
+        description: Fix a bug with regression test
+        ---
+        1. Write a failing test that reproduces the bug
+        // turbo
+        2. Run the test to confirm it fails: pytest tests/ -x --tb=short
+        3. Fix the bug in src/
+        // turbo
+        4. Run tests to confirm the fix: pytest tests/ -v --tb=short
+        // turbo
+        5. Run full test suite: pytest tests/ -q
+        EOF
+      - |
+        cat > .windsurf/workflows/refactor.md <<'EOF'
+        ---
+        description: Refactor a module safely
+        ---
+        // turbo
+        1. Run tests to establish baseline: pytest tests/ -q
+        2. Identify functions >30 lines or cyclomatic complexity >10
+        3. Extract helper functions with clear names
+        4. Add/update type hints
+        // turbo
+        5. Run tests to verify no regression: pytest tests/ -v --tb=short
+        // turbo
+        6. Run lint: ruff check src/ --fix
+        EOF
+      - |
+        cat > .windsurf/workflows/doctor.md <<'EOF'
+        ---
+        description: Diagnose and fix project issues
+        ---
+        // turbo
+        1. Run diagnostics: taskfile doctor --report
+        2. Review the JSON output for errors and warnings
+        3. Fix config_error issues first (Taskfile.yml, missing files)
+        4. Fix dep_missing issues (install tools)
+        // turbo
+        5. Run taskfile doctor --fix to auto-fix remaining issues
+        6. If issues remain, run taskfile doctor --llm for AI suggestions
+        EOF
+      - echo "✓ Created .windsurf/workflows/ (4 workflows)"
+
+  # ─── Quality Gates (Cascade terminal) ──────────────────
+
+  test:
+    desc: "Run tests"
+    cmds:
+      - pytest ${TESTS} -v --tb=short --color=yes
+
+  test-fast:
+    desc: "Quick test run (fail fast)"
+    cmds:
+      - pytest ${TESTS} -x -q --tb=line
+
+  lint:
+    desc: "Lint + format"
+    cmds:
+      - ruff check ${SRC} --fix
+      - ruff format ${SRC}
+
+  typecheck:
+    desc: "Type check with mypy"
+    cmds:
+      - mypy ${SRC} --pretty
+
+  check-all:
+    desc: "All quality checks"
+    deps: [lint, typecheck, test]
+    cmds:
+      - echo "✓ All checks passed"
+
+  # ─── Diagnostics ──────────────────────────────────────
+
+  doctor:
+    desc: "Full 5-layer diagnostics"
+    cmds:
+      - taskfile doctor
+
+  doctor-fix:
+    desc: "Auto-fix + AI suggestions"
+    cmds:
+      - taskfile doctor --fix --llm
+
+  doctor-json:
+    desc: "JSON report (useful for Cascade context)"
+    cmds:
+      - taskfile doctor --report
+
+  # ─── Git Workflows ────────────────────────────────────
+
+  pre-commit:
+    desc: "Pre-commit checks"
+    cmds:
+      - ruff check ${SRC} --fix --quiet
+      - ruff format ${SRC} --quiet
+      - pytest ${TESTS} -x -q --tb=line
+
+  diff-summary:
+    desc: "Show staged diff summary for Cascade"
+    cmds:
+      - echo "=== Staged Changes ==="
+      - git diff --staged --stat
+      - echo ""
+      - git diff --staged --shortstat

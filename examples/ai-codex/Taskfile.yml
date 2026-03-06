@@ -1,0 +1,110 @@
+version: "1"
+name: ai-codex
+description: "AI-assisted development with OpenAI Codex CLI — autonomous coding agent"
+
+variables:
+  APP: myapp
+  SRC: src/
+  TESTS: tests/
+  CODEX_FLAGS: --approval-mode suggest
+
+environments:
+  local:
+    env_file: .env
+
+tasks:
+
+  # ─── Autonomous Coding ─────────────────────────────────
+
+  implement:
+    desc: "Implement a feature with Codex (pass --var PROMPT='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "${PROMPT}"
+
+  implement-auto:
+    desc: "Implement with full-auto mode (no confirmation)"
+    cmds:
+      - codex --approval-mode full-auto "${PROMPT}"
+
+  fix:
+    desc: "Fix a bug with Codex (pass --var PROMPT='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "Fix this bug: ${PROMPT}"
+
+  # ─── Code Review ───────────────────────────────────────
+
+  review:
+    desc: "Review staged changes with Codex"
+    cmds:
+      - git diff --staged > /tmp/codex-diff.txt
+      - codex ${CODEX_FLAGS} "Review this diff for bugs, security issues, and style: $(cat /tmp/codex-diff.txt)"
+
+  review-file:
+    desc: "Deep review a file (pass --var FILE='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "Review ${FILE} for bugs, edge cases, and improvements"
+
+  # ─── Testing ───────────────────────────────────────────
+
+  add-tests:
+    desc: "Generate tests for a module (pass --var FILE='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "Write comprehensive pytest tests for ${FILE}. Cover edge cases, error paths, and parametrized tests."
+
+  fix-tests:
+    desc: "Fix failing tests with Codex"
+    cmds:
+      - pytest ${TESTS} -x --tb=long 2>&1 | head -80 > /tmp/test-fail.txt
+      - codex ${CODEX_FLAGS} "Fix the failing tests based on this output: $(cat /tmp/test-fail.txt)"
+
+  # ─── Refactoring ───────────────────────────────────────
+
+  refactor:
+    desc: "Refactor a module (pass --var FILE='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "Refactor ${FILE}: split large functions, improve naming, add type hints, reduce complexity"
+
+  optimize:
+    desc: "Optimize performance of a module (pass --var FILE='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "Optimize ${FILE} for performance. Profile bottlenecks, suggest algorithmic improvements."
+
+  # ─── Documentation ─────────────────────────────────────
+
+  docs:
+    desc: "Generate documentation for a module (pass --var FILE='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "Add Google-style docstrings to all public functions and classes in ${FILE}"
+
+  readme:
+    desc: "Generate/update README.md"
+    cmds:
+      - codex ${CODEX_FLAGS} "Update README.md to reflect the current codebase. Include: overview, install, usage, API reference."
+
+  # ─── Quality + CI ──────────────────────────────────────
+
+  lint-fix:
+    desc: "Fix linting issues with Codex"
+    cmds:
+      - ruff check ${SRC} --output-format=text > /tmp/lint.txt 2>&1 || true
+      - codex ${CODEX_FLAGS} "Fix all linting issues: $(cat /tmp/lint.txt)"
+
+  ci-fix:
+    desc: "Fix CI failures with Codex (pass --var LOG='...')"
+    cmds:
+      - codex ${CODEX_FLAGS} "The CI pipeline failed. Fix the issues: $(cat ${LOG})"
+
+  # ─── Taskfile Diagnostics Integration ──────────────────
+
+  doctor-ai:
+    desc: "Run doctor + pipe to Codex for AI-assisted fixes"
+    cmds:
+      - taskfile doctor --report > /tmp/doctor.json 2>&1 || true
+      - codex ${CODEX_FLAGS} "Fix the issues from taskfile doctor: $(cat /tmp/doctor.json)"
+
+  # ─── Sandboxed Execution ──────────────────────────────
+
+  sandbox:
+    desc: "Run Codex in sandbox mode (network disabled)"
+    cmds:
+      - codex --sandbox networking-off "${PROMPT}"

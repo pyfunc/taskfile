@@ -32,6 +32,7 @@ Write your deploy logic once in `Taskfile.yml`, run it from your terminal, GitLa
 - [Release Pipeline](#release-pipeline)
 - [CI/CD Integration](#cicd-integration)
 - [Scaffold Templates](#scaffold-templates)
+- [Diagnostics & Validation](#diagnostics--validation)
 - [Examples](#examples)
 
 ---
@@ -422,46 +423,67 @@ Options:
 | `taskfile docker stop-all` | Stop all running containers |
 | `taskfile docker compose-down` | Run `docker compose down` in directory |
 
-### Diagnostics & Validation
+### Diagnostics & Validation — 5-Layer Self-Healing
 
 | Command | Description |
 |---------|-------------|
-| `taskfile doctor` | Diagnose project issues (Taskfile, env, Docker, SSH, ports, git) |
-| `taskfile doctor --fix` | Auto-fix issues where possible (copy `.env.example`, init git, etc.) |
+| `taskfile doctor` | Full 5-layer diagnostics (preflight → validation → checks → fix → AI) |
+| `taskfile doctor --fix` | Auto-fix issues where possible (Layer 4) |
+| `taskfile doctor --llm` | Ask AI for help on unresolved issues (Layer 5, requires `pip install taskfile[llm]`) |
+| `taskfile doctor --category config` | Filter by category: config, env, infra, runtime, or all |
 | `taskfile doctor --report` | JSON output for CI pipelines |
 | `taskfile doctor --examples` | Validate all `examples/` directories |
+| `taskfile doctor -v` | Verbose — also check task commands and SSH connectivity |
 
-#### Error Categories
+#### 5 Diagnostic Layers
 
-When something fails, taskfile classifies the error so you know **what to fix**:
+| Layer | Name | What it does |
+|-------|------|--------------|
+| 1 | **Preflight** | Check if tools exist (docker, ssh, git, python3) |
+| 2 | **Validation** | Check if Taskfile.yml is correct YAML with valid references |
+| 3 | **Diagnostics** | Check environment health (ports, SSH keys, .env files, Docker) |
+| 4 | **Algorithmic fix** | Auto-fix deterministic issues (copy .env.example, init git, rename PORT) |
+| 5 | **LLM assist** | Escalate unresolved issues to AI via litellm (optional) |
+
+#### Error Categories (5-category system)
 
 | Category | Meaning | Example |
 |----------|---------|---------|
-| **config** | Your `Taskfile.yml` is wrong | Missing task, broken dependency, script not found |
-| **env** | Missing/invalid `.env` files | `.env.prod` not found, empty variable |
-| **infra** | Infrastructure problem | Docker not running, SSH key missing, port conflict |
-| **runtime** | The software taskfile runs failed | Command returned exit code 1, timeout |
+| **taskfile_bug** | Bug in taskfile itself | Parser crash, internal error |
+| **config_error** | User misconfiguration | Missing task, broken dep, script not found, empty .env |
+| **dep_missing** | Missing tool/dependency | Docker not installed, command not found |
+| **runtime_error** | App/command execution failure | Exit code 1, process crash |
+| **external_error** | Network/infra problem | SSH refused, VPS offline, OOM kill |
 
-The `doctor` command groups issues by category with actionable hints:
+#### Fix Strategies
+
+Each issue has a fix strategy indicating how it can be resolved:
+
+| Strategy | Behavior |
+|----------|----------|
+| **auto** | Fixed automatically without asking |
+| **confirm** | Ask user before applying fix |
+| **manual** | Print instructions — user must act |
+| **llm** | Escalate to AI for suggestion (`--llm` flag) |
 
 ```bash
-# Categorized report
+# Full diagnostics
 taskfile doctor
+
+# Auto-fix + AI suggestions
+taskfile doctor --fix --llm
 
 # JSON for CI (non-zero exit on errors)
 taskfile doctor --report
-
-# Auto-fix: copies .env.example → .env, inits git, resolves ports
-taskfile doctor --fix
 ```
 
 #### Pre-Run Validation
 
-Before executing tasks, taskfile validates the configuration and stops early with clear messages if something is wrong:
+Before executing tasks, taskfile validates the configuration and stops early with clear messages:
 
 ```
-✗ [env] Missing env file for 'prod': .env.prod (copy from .env.prod.example)
-  Create or fix .env files — copy from .env.*.example and customize.
+✗ [config_error] Missing env file for 'prod': .env.prod (copy from .env.prod.example)
+  Fix your configuration — check Taskfile.yml and .env files.
 
 Pre-run validation failed. Run taskfile doctor --fix to resolve.
 ```
@@ -478,6 +500,40 @@ When a command fails, taskfile classifies the exit code:
 | 127 | config | Command not found — check PATH |
 | 124 | infra | Timeout — increase timeout or check network |
 | 137 | infra | Process killed (OOM?) — check resources |
+
+For complex failures, use `taskfile doctor --llm` for AI-assisted troubleshooting.
+
+### AI Tools Integration
+
+Taskfile works great as an orchestration layer for AI coding tools. See `examples/ai-*/` for complete Taskfile.yml configs:
+
+| Tool | Example | Key Tasks |
+|------|---------|-----------|
+| [Aider](https://aider.chat) | `examples/ai-aider/` | `feature`, `tdd`, `review-diff`, `lint-fix`, `type-fix` |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `examples/ai-claude-code/` | `implement`, `review-staged`, `generate-tests`, `ai-commit` |
+| [OpenAI Codex](https://openai.com/index/openai-codex/) | `examples/ai-codex/` | `implement`, `implement-auto`, `sandbox`, `fix-tests` |
+| [GitHub Copilot](https://docs.github.com/en/copilot) | `examples/ai-copilot/` | `suggest`, `explain`, `init-instructions`, `review-pr` |
+| [Cursor](https://cursor.com) | `examples/ai-cursor/` | `init-rules`, `init-context`, `composer-feature` |
+| [Windsurf](https://windsurf.com) | `examples/ai-windsurf/` | `init-rules`, `init-workflows`, `doctor-fix` |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `examples/ai-gemini-cli/` | `implement`, `review-screenshot` (multimodal!), `review-staged` |
+
+```bash
+# Example: AI-assisted TDD with Aider
+cd examples/ai-aider/
+taskfile run tdd --var SPEC="User login returns JWT token"
+
+# Example: Claude Code review of staged changes
+cd examples/ai-claude-code/
+taskfile run review-staged
+
+# Example: Generate IDE rules for Windsurf
+cd examples/ai-windsurf/
+taskfile run init-rules       # → .windsurfrules
+taskfile run init-workflows   # → .windsurf/workflows/ (4 templates)
+
+# Example: Pipe taskfile doctor output to AI
+taskfile doctor --report | claude "Fix these issues"
+```
 
 ---
 

@@ -195,53 +195,61 @@ Thumbs.db
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--report", is_flag=True, help="Output JSON report (for CI pipelines)")
 @click.option("--examples", "check_examples_flag", is_flag=True, help="Validate all examples/ directories")
-def doctor(fix, verbose, report, check_examples_flag):
-    """**🔧 Diagnose project** and suggest fixes.
+@click.option("--llm", is_flag=True, help="Ask AI for help on unresolved issues (requires pip install taskfile[llm])")
+@click.option("--category", type=click.Choice(["config", "env", "infra", "runtime", "all"], case_sensitive=False), default="all", help="Filter by issue category")
+def doctor(fix, verbose, report, check_examples_flag, llm, category):
+    """**🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
-## Checks Performed
+## Layers
 
-- **Taskfile.yml** existence and validity
-- **Environment files** configuration
-- **Docker** availability
-- **SSH keys** setup
-- **Git repository** status
-- **Port conflicts**
+| Layer | What it does |
+|-------|--------------|
+| 1. Preflight | Check if tools exist (docker, ssh, git) |
+| 2. Validation | Check if Taskfile.yml is correct |
+| 3. Diagnostics | Check environment health (ports, SSH, .env) |
+| 4. Algorithmic fix | Auto-fix what can be fixed deterministically |
+| 5. LLM assist | Ask AI for help on unresolved issues (optional) |
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `--fix` | Auto-fix issues where possible |
-| `-v, --verbose` | Verbose output |
+| `--fix` | Auto-fix issues where possible (Layer 4) |
+| `--llm` | Ask AI for suggestions on unresolved issues (Layer 5) |
+| `--category` | Filter: config, env, infra, runtime, or all |
 | `--report` | JSON output for CI pipelines |
 | `--examples` | Validate all examples/ directories |
 
 ## Examples
 
 ```bash
-# Run diagnostics
+# Full 5-layer diagnostics
 taskfile doctor
 
-# Auto-fix issues
-taskfile doctor --fix
+# Auto-fix + AI suggestions
+taskfile doctor --fix --llm
+
+# Only config issues
+taskfile doctor --category config
 
 # JSON report for CI
 taskfile doctor --report
-
-# Validate examples
-taskfile doctor --examples
 ```
 """
     diagnostics = ProjectDiagnostics()
 
     if not report:
         console.print(Panel.fit(
-            "[bold blue]🔧 Taskfile Doctor[/]\n[dim]Running diagnostics...[/]",
+            "[bold blue]🔧 Taskfile Doctor[/]\n[dim]5-layer diagnostics...[/]",
             border_style="blue"
         ))
 
     with console.status("[bold green]Checking project...[/]") if not report else _nullcontext():
+        # Layer 1: Preflight
+        diagnostics.check_preflight()
+        # Layer 2: Validation
         diagnostics.check_taskfile()
+        # Layer 3: Diagnostics
         diagnostics.check_env_files()
         diagnostics.validate_taskfile_variables()
         diagnostics.check_dependent_files()
@@ -249,6 +257,10 @@ taskfile doctor --examples
         diagnostics.check_docker()
         diagnostics.check_ssh_keys()
         diagnostics.check_git()
+        # Layer 3+: Task command checks (if verbose)
+        if verbose:
+            diagnostics.check_task_commands()
+            diagnostics.check_ssh_connectivity()
 
     # Validate examples/ directory if requested
     if check_examples_flag:
@@ -260,11 +272,16 @@ taskfile doctor --examples
 
     diagnostics.print_report()
 
+    # Layer 4: Algorithmic fix
     if fix and diagnostics.issues:
-        console.print("\n[bold]Attempting auto-fix...[/]")
+        console.print("\n[bold]Layer 4: Attempting auto-fix...[/]")
         fixed = diagnostics.auto_fix()
         if fixed > 0:
             console.print(f"[green]✓ Fixed {fixed} issue(s)[/]")
+
+    # Layer 5: LLM assist
+    if llm and diagnostics._issues:
+        _run_llm_assist(diagnostics)
 
     # Summary
     if not diagnostics.issues:
@@ -277,6 +294,27 @@ taskfile doctor --examples
         if error_count > 0:
             console.print(f"\n[red]Found {error_count} error(s) that need attention[/]")
             sys.exit(1)
+
+
+def _run_llm_assist(diagnostics: ProjectDiagnostics) -> None:
+    """Layer 5: Ask LLM for suggestions on unresolved issues."""
+    from taskfile.diagnostics.llm_repair import is_available as llm_available
+    from taskfile.diagnostics.models import FixStrategy
+
+    llm_issues = [i for i in diagnostics._issues if i.fix_strategy == FixStrategy.LLM]
+    if not llm_issues:
+        return
+
+    if not llm_available():
+        console.print("\n[yellow]Layer 5: LLM not available[/]")
+        console.print("  Install with: [cyan]pip install taskfile[llm][/]")
+        console.print(f"  ({len(llm_issues)} issue(s) could benefit from AI suggestions)")
+        return
+
+    console.print(f"\n[bold magenta]Layer 5: Asking AI about {len(llm_issues)} issue(s)...[/]")
+    suggestions = diagnostics.llm_repair()
+    for suggestion in suggestions:
+        console.print(f"  💡 {suggestion}")
 
 
 class _nullcontext:

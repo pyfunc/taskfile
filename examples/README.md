@@ -40,6 +40,18 @@ Kompletne przykłady użycia Taskfile dla różnych scenariuszy.
 | [fleet-rpi/](fleet-rpi/) | ⭐⭐⭐⭐ | 6 RPi, 3 grupy, rolling/canary | Flota IoT/kiosków |
 | [multi-artifact/](multi-artifact/) | ⭐⭐⭐⭐⭐ | Python+Rust+Node+Docker → 5 rejestrów | Monorepo multi-język |
 
+### 🤖 AI Tools — integracja z narzędziami AI
+
+| Przykład | Narzędzie | Cechy | Kiedy użyć |
+|----------|-----------|-------|------------|
+| [ai-aider/](ai-aider/) | [Aider](https://aider.chat) | Pełny TDD cycle, review diff/PR, lint-fix, type-fix, docstrings | CLI AI pair programmer |
+| [ai-claude-code/](ai-claude-code/) | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Piped review, refactoring, changelog, commit-msg, debug-ci | Anthropic CLI agent |
+| [ai-codex/](ai-codex/) | [OpenAI Codex](https://openai.com/index/openai-codex/) | Autonomous coding, sandbox mode, full-auto implement | OpenAI CLI agent |
+| [ai-copilot/](ai-copilot/) | [GitHub Copilot](https://docs.github.com/en/copilot) | `gh copilot explain/suggest`, PR review, `.github/copilot-instructions.md` | VS Code + GitHub |
+| [ai-cursor/](ai-cursor/) | [Cursor](https://cursor.com) | `.cursor/rules`, Composer context, test-watch, pre-commit | Cursor IDE |
+| [ai-windsurf/](ai-windsurf/) | [Windsurf](https://windsurf.com) | `.windsurfrules`, Cascade workflows (`// turbo`), 4 workflow templates | Windsurf IDE |
+| [ai-gemini-cli/](ai-gemini-cli/) | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Multimodal review (screenshots!), sandbox, piped review | Google Gemini |
+
 ---
 
 ## Szybki wybór przykładu
@@ -143,6 +155,60 @@ cd include-split/
 taskfile list                 # tasks from all included files
 taskfile run deploy-prod      # from tasks/deploy.yml (prefixed)
 taskfile run build            # from tasks/build.yml
+```
+
+### 🤖 AI-assisted development z Aider?
+```bash
+cd ai-aider/
+cp .env.example .env          # dodaj ANTHROPIC_API_KEY
+taskfile run feature --var PROMPT="Add user authentication"
+taskfile run review-diff       # AI review staged changes
+taskfile run tdd --var SPEC="Login endpoint returns JWT"
+taskfile run lint-fix          # fix linting issues with AI
+```
+
+### 🤖 AI-assisted development z Claude Code?
+```bash
+cd ai-claude-code/
+cp .env.example .env           # dodaj ANTHROPIC_API_KEY
+taskfile run implement --var PROMPT="Add REST API for users"
+taskfile run review-staged     # AI review staged changes
+taskfile run generate-tests --var FILE=src/api.py
+taskfile run ai-commit         # AI-generated commit message
+```
+
+### 🤖 AI-assisted development z Codex?
+```bash
+cd ai-codex/
+cp .env.example .env           # dodaj OPENAI_API_KEY
+taskfile run implement --var PROMPT="Add caching layer"
+taskfile run implement-auto --var PROMPT="Fix all type errors"
+taskfile run sandbox --var PROMPT="Refactor database module"
+```
+
+### 🤖 AI-assisted development z Copilot?
+```bash
+cd ai-copilot/
+taskfile run suggest --var PROMPT="deploy to kubernetes"
+taskfile run explain --var CMD="git rebase -i HEAD~5"
+taskfile run init-instructions  # .github/copilot-instructions.md
+```
+
+### 🤖 AI-assisted development z Windsurf?
+```bash
+cd ai-windsurf/
+taskfile run init-rules        # .windsurfrules
+taskfile run init-workflows    # .windsurf/workflows/ (4 templates)
+# Then use: /add-feature, /fix-bug, /refactor, /doctor
+```
+
+### 🤖 AI-assisted development z Gemini CLI?
+```bash
+cd ai-gemini-cli/
+cp .env.example .env           # dodaj GOOGLE_API_KEY
+taskfile run implement --var PROMPT="Add search endpoint"
+taskfile run review-screenshot --var IMG=ui.png  # multimodal!
+taskfile run review-staged
 ```
 
 ---
@@ -259,6 +325,15 @@ examples/
 ├── monorepo-microservices/   # 🔧 platforms, condition, dir, stage
 ├── fullstack-deploy/         # 🎯 ALL CLI commands showcase
 │
+│  ─── AI Tools ────────────────────────────
+├── ai-aider/                 # 🤖 Aider — TDD, review, lint-fix
+├── ai-claude-code/           # 🤖 Claude Code — piped review, refactor
+├── ai-codex/                 # 🤖 OpenAI Codex — autonomous, sandbox
+├── ai-copilot/               # 🤖 GitHub Copilot — explain, suggest, PR
+├── ai-cursor/                # 🤖 Cursor — rules, composer, workflows
+├── ai-windsurf/              # 🤖 Windsurf — rules, Cascade workflows
+├── ai-gemini-cli/            # 🤖 Gemini CLI — multimodal, piped review
+│
 ├── Taskfile.softreck.yml
 ├── .github-actions-deploy.yml
 ├── .gitlab-ci.yml
@@ -296,6 +371,16 @@ examples/
 | `include` (import from files) | include-split |
 | Script extraction (shell/Python) | script-extraction |
 | SSH embedded (paramiko) | saas-app, fleet-rpi, edge-iot (when `pip install taskfile[ssh]`) |
+| AI code review | ai-aider, ai-claude-code, ai-codex, ai-copilot, ai-gemini-cli |
+| AI test generation | ai-aider, ai-claude-code, ai-codex, ai-gemini-cli |
+| AI commit messages | ai-claude-code, ai-copilot, ai-gemini-cli |
+| AI lint/type fix | ai-aider, ai-codex |
+| IDE rules generation | ai-cursor (`.cursor/rules`), ai-windsurf (`.windsurfrules`), ai-copilot (`.github/copilot-instructions.md`) |
+| IDE workflow templates | ai-windsurf (`.windsurf/workflows/`), ai-cursor (Composer) |
+| AI TDD cycle | ai-aider (`tdd` task) |
+| Multimodal review | ai-gemini-cli (screenshots, diagrams) |
+| Sandbox/safe mode | ai-codex (`--sandbox`), ai-gemini-cli (`--sandbox`) |
+| `taskfile doctor` + AI | ai-aider, ai-claude-code, ai-codex, ai-gemini-cli (`doctor-ai` task) |
 
 ---
 

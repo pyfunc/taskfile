@@ -1,0 +1,149 @@
+version: "1"
+name: ai-claude-code
+description: "AI-assisted development with Claude Code (claude cli) — review, implement, test, deploy"
+
+variables:
+  APP: myapp
+  SRC: src/
+  TESTS: tests/
+  CLAUDE_FLAGS: --print
+
+environments:
+  local:
+    env_file: .env
+
+tasks:
+
+  # ─── Code Generation ──────────────────────────────────
+
+  implement:
+    desc: "Implement a feature with Claude Code (pass --var PROMPT='...')"
+    cmds:
+      - claude ${CLAUDE_FLAGS} "${PROMPT}"
+
+  edit:
+    desc: "Edit specific files with Claude Code (pass --var FILE='...' --var PROMPT='...')"
+    cmds:
+      - cat ${FILE} | claude ${CLAUDE_FLAGS} "Given this file, ${PROMPT}"
+
+  multi-edit:
+    desc: "Claude Code with full project context"
+    cmds:
+      - |
+        find ${SRC} -name '*.py' | head -20 | xargs cat | \
+        claude ${CLAUDE_FLAGS} "${PROMPT}"
+
+  # ─── Code Review ───────────────────────────────────────
+
+  review-staged:
+    desc: "AI review of staged git changes"
+    cmds:
+      - |
+        git diff --staged | claude ${CLAUDE_FLAGS} \
+          "Review this diff for bugs, security issues, performance problems, and style. Be specific about line numbers. Output markdown."
+
+  review-branch:
+    desc: "AI review of feature branch vs main"
+    cmds:
+      - |
+        git diff main...HEAD | claude ${CLAUDE_FLAGS} \
+          "Review this PR. Check for: 1) Bugs 2) Security 3) Performance 4) Missing tests 5) API design. Output structured markdown."
+
+  review-file:
+    desc: "Deep review of a single file (pass --var FILE='...')"
+    cmds:
+      - |
+        cat ${FILE} | claude ${CLAUDE_FLAGS} \
+          "Deep review this file. Check: error handling, edge cases, naming, complexity, testability. Suggest concrete improvements."
+
+  # ─── Testing ───────────────────────────────────────────
+
+  generate-tests:
+    desc: "Generate tests for a module (pass --var FILE='...')"
+    cmds:
+      - |
+        cat ${FILE} | claude ${CLAUDE_FLAGS} \
+          "Write comprehensive pytest tests for this module. Include: unit tests, edge cases, error paths, parametrized tests. Output only the test code." \
+          > ${TESTS}/test_$(basename ${FILE})
+      - pytest ${TESTS}/test_$(basename ${FILE}) -v
+
+  fix-failing:
+    desc: "Fix failing tests with Claude Code"
+    cmds:
+      - pytest ${TESTS} -x --tb=long 2>&1 | head -100 > /tmp/test-output.txt
+      - |
+        cat /tmp/test-output.txt | claude ${CLAUDE_FLAGS} \
+          "These tests are failing. Analyze the output and fix the source code. Show only the fixes needed."
+
+  # ─── Refactoring ───────────────────────────────────────
+
+  refactor:
+    desc: "Refactor module with Claude Code (pass --var FILE='...')"
+    cmds:
+      - |
+        cat ${FILE} | claude ${CLAUDE_FLAGS} \
+          "Refactor this module: split large functions (>30 lines), improve naming, add type hints, reduce cyclomatic complexity. Preserve all behavior."
+
+  extract-function:
+    desc: "Extract function from code block (pass --var FILE='...' --var LINES='10-30')"
+    cmds:
+      - |
+        sed -n '${LINES}p' ${FILE} | claude ${CLAUDE_FLAGS} \
+          "Extract this code block into a well-named function with proper parameters, return type, and docstring."
+
+  # ─── Documentation ─────────────────────────────────────
+
+  docstrings:
+    desc: "Add/update docstrings (pass --var FILE='...')"
+    cmds:
+      - |
+        cat ${FILE} | claude ${CLAUDE_FLAGS} \
+          "Add Google-style docstrings to all public functions, classes, and methods. Include Args, Returns, Raises sections."
+
+  generate-readme:
+    desc: "Generate README from codebase"
+    cmds:
+      - |
+        find ${SRC} -name '*.py' | head -20 | xargs cat | \
+        claude ${CLAUDE_FLAGS} \
+          "Generate a comprehensive README.md for this project. Include: overview, installation, usage examples, API reference, configuration."
+
+  changelog:
+    desc: "Generate changelog from recent commits"
+    cmds:
+      - |
+        git log --oneline -20 | claude ${CLAUDE_FLAGS} \
+          "Generate a CHANGELOG entry from these commits. Group by: Features, Bug Fixes, Breaking Changes, Docs. Use Keep a Changelog format."
+
+  # ─── Diagnostics + AI ─────────────────────────────────
+
+  doctor-ai:
+    desc: "Run taskfile doctor, pipe issues to Claude Code for suggestions"
+    cmds:
+      - taskfile doctor --report > /tmp/doctor.json 2>&1 || true
+      - |
+        cat /tmp/doctor.json | claude ${CLAUDE_FLAGS} \
+          "Analyze these taskfile doctor diagnostics. For each issue, provide: 1) Root cause 2) Fix command 3) Prevention tip."
+
+  debug-ci:
+    desc: "Debug CI failure with Claude Code (pass --var LOG='/tmp/ci.log')"
+    cmds:
+      - |
+        cat ${LOG} | claude ${CLAUDE_FLAGS} \
+          "This CI pipeline failed. Identify: 1) What failed 2) Root cause 3) Fix 4) How to prevent recurrence."
+
+  # ─── Pipelines ─────────────────────────────────────────
+
+  full-review:
+    desc: "Full AI code review pipeline"
+    deps: [review-staged]
+    cmds:
+      - pytest ${TESTS} --tb=short -q 2>&1 | tail -5
+      - echo "Review complete"
+
+  ai-commit:
+    desc: "Generate commit message with Claude Code"
+    cmds:
+      - |
+        git diff --staged | claude ${CLAUDE_FLAGS} \
+          "Write a conventional commit message for this diff. Format: type(scope): description. Include body if complex. No markdown."

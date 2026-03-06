@@ -1,0 +1,172 @@
+version: "1"
+name: ai-copilot
+description: "AI-assisted development with GitHub Copilot CLI (gh copilot) — explain, suggest, review"
+
+variables:
+  APP: myapp
+  SRC: src/
+  TESTS: tests/
+
+environments:
+  local:
+    env_file: .env
+
+tasks:
+
+  # ─── Copilot CLI Helpers ───────────────────────────────
+
+  explain:
+    desc: "Explain a command with Copilot (pass --var CMD='...')"
+    cmds:
+      - gh copilot explain "${CMD}"
+
+  suggest:
+    desc: "Ask Copilot to suggest a command (pass --var PROMPT='...')"
+    cmds:
+      - gh copilot suggest "${PROMPT}"
+
+  # ─── Code Review with Copilot ──────────────────────────
+
+  review-pr:
+    desc: "Trigger Copilot PR review on current branch"
+    cmds:
+      - gh pr view --json number -q .number > /dev/null 2>&1 || gh pr create --draft --fill
+      - echo "Copilot review will appear on the PR automatically"
+      - gh pr view --web
+
+  review-diff:
+    desc: "Show diff summary for Copilot chat"
+    cmds:
+      - echo "=== Changes for Copilot Review ==="
+      - git diff --staged --stat
+      - echo ""
+      - git diff --staged
+      - echo ""
+      - echo "Paste into Copilot Chat: 'Review these changes for bugs and security issues'"
+
+  # ─── Copilot + Testing ────────────────────────────────
+
+  test:
+    desc: "Run tests"
+    cmds:
+      - pytest ${TESTS} -v --tb=short
+
+  test-coverage:
+    desc: "Run tests with coverage, show uncovered lines for Copilot"
+    cmds:
+      - pytest ${TESTS} --cov=${SRC} --cov-report=term-missing -q
+      - echo ""
+      - echo "Open uncovered files in VS Code → Copilot will suggest tests"
+
+  fix-test:
+    desc: "Show failing test output for Copilot chat"
+    cmds:
+      - pytest ${TESTS} -x --tb=long 2>&1 | tee /tmp/test-fail.txt || true
+      - echo ""
+      - echo "Paste into Copilot Chat: 'Fix the failing test based on this output'"
+
+  # ─── Quality ───────────────────────────────────────────
+
+  lint:
+    desc: "Lint with ruff"
+    cmds:
+      - ruff check ${SRC} --fix
+
+  lint-report:
+    desc: "Generate lint report for Copilot"
+    cmds:
+      - ruff check ${SRC} --output-format=text 2>&1 | tee /tmp/lint.txt || true
+      - echo ""
+      - echo "Open /tmp/lint.txt → ask Copilot to fix issues"
+
+  # ─── Copilot Extensions ───────────────────────────────
+
+  ask-docker:
+    desc: "Ask Copilot about Docker (pass --var PROMPT='...')"
+    cmds:
+      - gh copilot suggest -t shell "docker: ${PROMPT}"
+
+  ask-git:
+    desc: "Ask Copilot about Git (pass --var PROMPT='...')"
+    cmds:
+      - gh copilot suggest -t git "${PROMPT}"
+
+  ask-gh:
+    desc: "Ask Copilot about GitHub CLI (pass --var PROMPT='...')"
+    cmds:
+      - gh copilot suggest -t gh "${PROMPT}"
+
+  # ─── Workspace Setup ──────────────────────────────────
+
+  init-copilot:
+    desc: "Setup VS Code settings for Copilot"
+    cmds:
+      - mkdir -p .vscode
+      - |
+        cat > .vscode/settings.json <<'EOF'
+        {
+          "github.copilot.enable": {
+            "*": true,
+            "yaml": true,
+            "markdown": true,
+            "python": true
+          },
+          "github.copilot.advanced": {},
+          "editor.inlineSuggest.enabled": true
+        }
+        EOF
+      - echo "✓ Created .vscode/settings.json with Copilot enabled"
+
+  init-instructions:
+    desc: "Create .github/copilot-instructions.md for project context"
+    cmds:
+      - mkdir -p .github
+      - |
+        cat > .github/copilot-instructions.md <<'EOF'
+        # Copilot Instructions
+
+        ## Project
+        This is a Python project managed by taskfile.
+
+        ## Conventions
+        - Python 3.12, pytest, ruff
+        - Google-style docstrings
+        - Type hints on all public functions
+        - pathlib over os.path
+        - dataclasses or Pydantic models
+
+        ## Commands
+        - `taskfile run test` — run tests
+        - `taskfile run lint` — run linter
+        - `taskfile doctor` — diagnose project
+        - `taskfile doctor --fix --llm` — auto-fix with AI
+
+        ## Testing
+        - pytest with fixtures
+        - tests/ mirrors src/ structure
+        - Aim for >80% coverage
+        EOF
+      - echo "✓ Created .github/copilot-instructions.md"
+
+  # ─── Diagnostics ──────────────────────────────────────
+
+  doctor:
+    desc: "Run taskfile doctor"
+    cmds:
+      - taskfile doctor
+
+  doctor-json:
+    desc: "Doctor report as JSON (pipe to Copilot chat)"
+    cmds:
+      - taskfile doctor --report
+
+  # ─── Git + Copilot ────────────────────────────────────
+
+  commit:
+    desc: "Stage all and generate commit message suggestion"
+    cmds:
+      - git add -A
+      - echo "=== Staged ==="
+      - git diff --cached --stat
+      - echo ""
+      - gh copilot suggest "write a conventional commit message for: $(git diff --cached --shortstat)"

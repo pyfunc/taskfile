@@ -329,7 +329,8 @@ class TaskfileRunner:
             console.print(f"[yellow]⚠ {w}[/]")
 
         # Pre-run diagnostics — catch config/env errors before execution
-        from taskfile.cli.diagnostics import validate_before_run, IssueCategory, CATEGORY_HINTS
+        from taskfile.diagnostics.checks import validate_before_run
+        from taskfile.diagnostics.models import CATEGORY_HINTS
         pre_issues = validate_before_run(self.config, self.env_name, task_names)
         has_errors = False
         for iss in pre_issues:

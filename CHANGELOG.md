@@ -1,6 +1,68 @@
 ## [Unreleased]
 
+### Features
+- **5-layer self-healing diagnostics** — Preflight → Validation → Diagnostics → Algorithmic fix → LLM assist
+- **5-category error system** — `taskfile_bug`, `config_error`, `dep_missing`, `runtime_error`, `external_error`
+- **4 fix strategies** — `auto`, `confirm`, `manual`, `llm` — each issue tagged with how it can be resolved
+- **`taskfile doctor --llm`** — ask AI for help on unresolved issues via litellm (Layer 5)
+- **`taskfile doctor --category`** — filter diagnostics by category (config, env, infra, runtime, all)
+- **`taskfile doctor -v`** — verbose mode checks task commands and SSH connectivity
+- **`classify_runtime_error()`** — classify command failures by stderr + exit code into 5-category system
+- **`DoctorReport` dataclass** — aggregated report with fixed/pending/external buckets and LLM suggestions
+- **`check_preflight()`** — Layer 1 tool existence checks (python3, docker, git, ssh, rsync, podman)
+- **`check_task_commands()`** — verify binaries referenced in task commands exist
+- **`check_ssh_connectivity()`** — distinguish SSH auth fail vs connection refused vs key missing
+- **`pip install taskfile[llm]`** — optional litellm dependency for AI-assisted diagnostics
+
+### Docs
+- Update README.md — 5-layer architecture, 5-category system, fix strategies, new CLI flags
+- Update comparisons/README.md — add `doctor --report`, error classification to feature matrix
+- Update TEST_REPORT.md — all 24 example warnings resolved (0 issues)
+
+### Tests
+- Rewrite `tests/test_diagnostics.py` — 58 tests covering new package + backward compat
+- New test classes: `TestNewIssueCategory`, `TestIssueModel`, `TestDoctorReport`, `TestNewChecks`, `TestNewValidateBeforeRun`, `TestClassifyRuntimeError`
+- Backward compat tests: `TestOldIssueCategory`, `TestOldDiagnosticIssue`, `TestProjectDiagnosticsBackwardCompat`, `TestOldValidateBeforeRun`
+- Total: 432 → 452 tests
+
+### Examples
+- **7 new AI tool integration examples** — complete Taskfile.yml configs for each tool:
+  - `ai-aider/` — Aider: TDD cycle, review diff/PR, lint-fix, type-fix, docstrings, CI-fix
+  - `ai-claude-code/` — Claude Code: piped review, refactoring, changelog, commit-msg, debug-ci
+  - `ai-codex/` — OpenAI Codex: autonomous coding, sandbox mode, full-auto implement
+  - `ai-copilot/` — GitHub Copilot: `gh copilot explain/suggest`, PR review, `.github/copilot-instructions.md`
+  - `ai-cursor/` — Cursor: `.cursor/rules`, Composer context, test-watch, pre-commit
+  - `ai-windsurf/` — Windsurf: `.windsurfrules`, Cascade workflows (`// turbo`), 4 workflow templates
+  - `ai-gemini-cli/` — Gemini CLI: multimodal review (screenshots!), sandbox, piped review
+- Add missing `.env` files for all examples (copied from `.env.*.example` templates)
+- Add `.env.example` templates for edge-iot (factory, warehouse, office), cloud-aws (dev, prod-eu, prod-us), iac-terraform (prod-us)
+- All 24 example validation warnings resolved → 0 issues
+
 ### Refactor
+- **Phase 6 — Diagnostics package split (5-layer self-healing):**
+  - `cli/diagnostics.py` (557L) → `diagnostics/` package:
+    - `models.py` — `Issue`, `IssueCategory`(5), `FixStrategy`(4), `DoctorReport`
+    - `checks.py` — pure `check_*()` functions returning `list[Issue]`
+    - `fixes.py` — `apply_fixes()`, `apply_single_fix()` with interactive/non-interactive modes
+    - `report.py` — layered + flat + JSON output via Rich
+    - `llm_repair.py` — `classify_runtime_error()`, `ask_llm_for_fix()` via litellm
+    - `__init__.py` — `ProjectDiagnostics` facade + re-exports
+  - `cli/diagnostics.py` → thin backward-compat shim (old 4-category → new 5-category mapping)
+  - `runner/core.py` — imports from `taskfile.diagnostics` directly
+  - `runner/commands.py` — `--llm` hint for infrastructure failures
+  - `wizards.py` — `doctor` command: `--llm`, `--category` flags, preflight layer
+  - `pyproject.toml` — `[llm]` optional dependency group
+  - Backward compatibility preserved: old imports from `taskfile.cli.diagnostics` still work
+- **Phase 5 — Diagnostics refactoring:**
+  - Add `IssueCategory` enum, `DiagnosticIssue` class, `CATEGORY_LABELS`, `CATEGORY_HINTS`
+  - Convert all `self.issues.append()` → `self._add_issue()` with proper categories
+  - Add `_print_categorized_report()`, `_print_flat_report()`, `get_report_dict()`, `print_report_json()`
+  - Add `_fix_missing_env_files()` to auto_fix chain
+  - Add `check_examples()` static method for CI validation
+  - Add `validate_before_run()` module-level function for runner integration
+  - Add `_classify_exit_code()` to `runner/commands.py` for error classification
+  - Backward compatibility preserved: legacy `self.issues` tuple list still maintained
+
 - **Phase 1 — Split god modules into packages:**
   - `runner.py` (711L) → `runner/` package (`core.py`, `commands.py`, `ssh.py`, `functions.py`)
   - `main.py` (490L) → extracted `cli/info_cmd.py`
@@ -19,6 +81,32 @@
   - Consolidated `converters.py` ↔ `importer.py` duplication (shared `_FILENAME_TYPE_MAP`)
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
+
+## [0.3.58] - 2026-03-06
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update TODO.md
+- Update comparisons/README.md
+- Update examples/README.md
+- Update examples/TEST_REPORT.md
+
+### Test
+- Update tests/test_diagnostics.py
+
+### Other
+- Update examples/ai-aider/.env.example
+- Update examples/ai-aider/Taskfile.yml
+- Update examples/ai-claude-code/.env.example
+- Update examples/ai-claude-code/Taskfile.yml
+- Update examples/ai-codex/.env.example
+- Update examples/ai-codex/Taskfile.yml
+- Update examples/ai-copilot/.env.example
+- Update examples/ai-copilot/Taskfile.yml
+- Update examples/ai-cursor/.env.example
+- Update examples/ai-cursor/Taskfile.yml
+- ... and 4 more files
 
 ## [0.3.57] - 2026-03-06
 

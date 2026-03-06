@@ -1,0 +1,105 @@
+version: "1"
+name: ai-gemini-cli
+description: "AI-assisted development with Google Gemini CLI — code generation, review, multimodal"
+
+variables:
+  APP: myapp
+  SRC: src/
+  TESTS: tests/
+
+environments:
+  local:
+    env_file: .env
+
+tasks:
+
+  # ─── Code Generation ──────────────────────────────────
+
+  implement:
+    desc: "Implement a feature with Gemini (pass --var PROMPT='...')"
+    cmds:
+      - gemini "${PROMPT}"
+
+  implement-sandbox:
+    desc: "Implement in sandbox mode (no file writes)"
+    cmds:
+      - gemini --sandbox "${PROMPT}"
+
+  # ─── Code Review ───────────────────────────────────────
+
+  review-staged:
+    desc: "Review staged git changes"
+    cmds:
+      - git diff --staged | gemini "Review this diff for bugs, security issues, performance. Be specific about line numbers."
+
+  review-file:
+    desc: "Deep review a file (pass --var FILE='...')"
+    cmds:
+      - cat ${FILE} | gemini "Deep review this file: error handling, edge cases, naming, complexity, testability."
+
+  review-branch:
+    desc: "Review feature branch vs main"
+    cmds:
+      - git diff main...HEAD | gemini "Review this PR diff. Check bugs, security, performance, missing tests, API design."
+
+  # ─── Testing ───────────────────────────────────────────
+
+  add-tests:
+    desc: "Generate tests for a module (pass --var FILE='...')"
+    cmds:
+      - cat ${FILE} | gemini "Write comprehensive pytest tests for this module. Cover edge cases, error paths, parametrized tests."
+
+  fix-tests:
+    desc: "Fix failing tests"
+    cmds:
+      - pytest ${TESTS} -x --tb=long 2>&1 | head -80 | gemini "Fix these failing tests. Show the exact code changes needed."
+
+  # ─── Multimodal (Gemini unique feature) ────────────────
+
+  review-screenshot:
+    desc: "Review UI from screenshot (pass --var IMG='screenshot.png')"
+    cmds:
+      - gemini "Review this UI screenshot for UX issues, accessibility, and responsiveness" < ${IMG}
+
+  review-diagram:
+    desc: "Review architecture diagram (pass --var IMG='arch.png')"
+    cmds:
+      - gemini "Analyze this architecture diagram. Identify potential bottlenecks, single points of failure, and scalability issues." < ${IMG}
+
+  # ─── Documentation ─────────────────────────────────────
+
+  docstrings:
+    desc: "Add docstrings to a file (pass --var FILE='...')"
+    cmds:
+      - cat ${FILE} | gemini "Add Google-style docstrings to all public functions and classes. Output the complete file."
+
+  readme:
+    desc: "Generate README from codebase"
+    cmds:
+      - find ${SRC} -name '*.py' | head -20 | xargs cat | gemini "Generate a comprehensive README.md: overview, install, usage, API reference."
+
+  changelog:
+    desc: "Generate changelog from recent commits"
+    cmds:
+      - git log --oneline -20 | gemini "Generate CHANGELOG entry. Group by: Features, Bug Fixes, Breaking Changes. Use Keep a Changelog format."
+
+  # ─── Quality ───────────────────────────────────────────
+
+  lint-fix:
+    desc: "Fix linting issues with Gemini"
+    cmds:
+      - ruff check ${SRC} --output-format=text 2>&1 | gemini "Fix all these linting issues. Show the corrected code." || true
+
+  # ─── Taskfile Diagnostics ──────────────────────────────
+
+  doctor-ai:
+    desc: "Run doctor + Gemini analysis"
+    cmds:
+      - taskfile doctor --report 2>&1 | gemini "Analyze these diagnostics. For each issue: root cause, fix command, prevention tip."
+
+  # ─── Git ───────────────────────────────────────────────
+
+  commit-msg:
+    desc: "Generate commit message"
+    cmds:
+      - git diff --staged | gemini "Write a conventional commit message for this diff. Format: type(scope): description. No markdown."
