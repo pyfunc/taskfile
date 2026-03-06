@@ -422,6 +422,63 @@ Options:
 | `taskfile docker stop-all` | Stop all running containers |
 | `taskfile docker compose-down` | Run `docker compose down` in directory |
 
+### Diagnostics & Validation
+
+| Command | Description |
+|---------|-------------|
+| `taskfile doctor` | Diagnose project issues (Taskfile, env, Docker, SSH, ports, git) |
+| `taskfile doctor --fix` | Auto-fix issues where possible (copy `.env.example`, init git, etc.) |
+| `taskfile doctor --report` | JSON output for CI pipelines |
+| `taskfile doctor --examples` | Validate all `examples/` directories |
+
+#### Error Categories
+
+When something fails, taskfile classifies the error so you know **what to fix**:
+
+| Category | Meaning | Example |
+|----------|---------|---------|
+| **config** | Your `Taskfile.yml` is wrong | Missing task, broken dependency, script not found |
+| **env** | Missing/invalid `.env` files | `.env.prod` not found, empty variable |
+| **infra** | Infrastructure problem | Docker not running, SSH key missing, port conflict |
+| **runtime** | The software taskfile runs failed | Command returned exit code 1, timeout |
+
+The `doctor` command groups issues by category with actionable hints:
+
+```bash
+# Categorized report
+taskfile doctor
+
+# JSON for CI (non-zero exit on errors)
+taskfile doctor --report
+
+# Auto-fix: copies .env.example → .env, inits git, resolves ports
+taskfile doctor --fix
+```
+
+#### Pre-Run Validation
+
+Before executing tasks, taskfile validates the configuration and stops early with clear messages if something is wrong:
+
+```
+✗ [env] Missing env file for 'prod': .env.prod (copy from .env.prod.example)
+  Create or fix .env files — copy from .env.*.example and customize.
+
+Pre-run validation failed. Run taskfile doctor --fix to resolve.
+```
+
+#### Exit Code Classification
+
+When a command fails, taskfile classifies the exit code:
+
+| Exit Code | Category | Hint |
+|-----------|----------|------|
+| 1 | runtime | Command error — check logs above |
+| 2 | config | Invalid arguments — check command syntax |
+| 126 | config | Permission denied — check script permissions |
+| 127 | config | Command not found — check PATH |
+| 124 | infra | Timeout — increase timeout or check network |
+| 137 | infra | Process killed (OOM?) — check resources |
+
 ---
 
 ## Multi-Environment Deploy

@@ -20,6 +20,27 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.57] - 2026-03-06
+
+### Docs
+- Update README.md
+
+### Test
+- Update tests/test_diagnostics.py
+
+### Other
+- Update examples/cloud-aws/.env.dev
+- Update examples/cloud-aws/.env.dev.example
+- Update examples/cloud-aws/.env.prod-eu
+- Update examples/cloud-aws/.env.prod-eu.example
+- Update examples/cloud-aws/.env.prod-us
+- Update examples/cloud-aws/.env.prod-us.example
+- Update examples/cloud-aws/.env.staging
+- Update examples/edge-iot/.env.factory
+- Update examples/edge-iot/.env.factory.example
+- Update examples/edge-iot/.env.office
+- ... and 11 more files
+
 ## [0.3.56] - 2026-03-06
 
 ### Docs
