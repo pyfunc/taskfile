@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import click
+import clickmd as click
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt, IntPrompt
@@ -194,22 +194,37 @@ Thumbs.db
 @click.option("--fix", is_flag=True, help="Auto-fix issues where possible")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 def doctor(fix, verbose):
-    """🔧 Diagnose project and suggest fixes.
+    """**🔧 Diagnose project** and suggest fixes.
 
-    Checks:
-        - Taskfile.yml existence and validity
-        - Environment files configuration
-        - Docker availability
-        - SSH keys setup
-        - Git repository status
-        - Port conflicts
+## Checks Performed
 
-    \b
-    Examples:
-        taskfile doctor           # Run diagnostics
-        taskfile doctor --fix     # Auto-fix issues
-        taskfile doctor -v        # Verbose output
-    """
+- **Taskfile.yml** existence and validity
+- **Environment files** configuration
+- **Docker** availability
+- **SSH keys** setup
+- **Git repository** status
+- **Port conflicts**
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--fix` | Auto-fix issues where possible |
+| `-v, --verbose` | Verbose output |
+
+## Examples
+
+```bash
+# Run diagnostics
+taskfile doctor
+
+# Auto-fix issues
+taskfile doctor --fix
+
+# Verbose output
+taskfile doctor -v
+```
+"""
     diagnostics = ProjectDiagnostics()
 
     console.print(Panel.fit(
@@ -276,18 +291,42 @@ def _apply_init_extras(choices: dict) -> None:
 @click.option("--force", is_flag=True, help="Overwrite existing files")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive setup with prompts")
 def init(template, force, interactive):
-    """✨ Create a new Taskfile.yml with interactive setup.
+    """**✨ Create a new Taskfile.yml** with interactive setup.
 
-    Without --interactive: uses template argument or minimal
-    With --interactive: prompts for all configuration options
+## Templates
 
-    \b
-    Examples:
-        taskfile init                           # Minimal template
-        taskfile init --template web            # Web app template
-        taskfile init -i                        # Full interactive setup
-        taskfile init -i --force                # Overwrite existing
-    """
+| Template | Description |
+|----------|-------------|
+| `minimal` | Basic setup with build/test/run |
+| `web` | Web application with Docker |
+| `podman` | Podman/Quadlet deployment |
+| `kubernetes` | K8s deployment |
+| `full` | Complete CI/CD pipeline |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--template` | Project template to use |
+| `--force` | Overwrite existing files |
+| `-i, --interactive` | Interactive setup with prompts |
+
+## Examples
+
+```bash
+# Minimal template (default)
+taskfile init
+
+# Web app template
+taskfile init --template web
+
+# Full interactive setup
+taskfile init -i
+
+# Overwrite existing
+taskfile init -i --force
+```
+"""
     outpath = Path("Taskfile.yml")
 
     if outpath.exists() and not force:

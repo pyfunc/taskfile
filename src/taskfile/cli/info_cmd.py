@@ -1,10 +1,59 @@
-"""CLI 'info' command — show detailed info about a specific task."""
+"""## CLI 'info' command for taskfile
+
+Show detailed information about a specific task.
+
+### Overview
+
+The `info` command displays comprehensive task details:
+- **Description** - Task description and purpose
+- **Commands** - List of commands to execute
+- **Environment** - Required environment variables
+- **Dependencies** - Task dependencies
+- **Platforms** - Supported platforms
+
+### Usage
+
+```bash
+# Show info for a task
+taskfile info build
+
+# Show info with environment details
+taskfile info deploy --env production
+```
+
+### Output Format
+
+```
+📋 Task: build
+━━━━━━━━━━━━━━━━━━━━
+Description: Build the application
+Commands:
+  1. docker build -t app .
+  2. docker push app:latest
+Environment:
+  • TAG - Docker image tag
+Dependencies:
+  • test
+Platforms:
+  • linux/amd64
+  • linux/arm64
+```
+
+### Why clickmd?
+
+Uses `clickmd` for consistent CLI experience and markdown rendering of task info.
+
+### Dependencies
+
+- `clickmd` - CLI framework
+- `rich` - Rich console output for formatted task details
+"""
 
 from __future__ import annotations
 
 import sys
 
-import click
+import clickmd as click
 
 from taskfile.cli.main import console, main, _print_nearby_taskfiles
 from taskfile.parser import (

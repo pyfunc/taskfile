@@ -1,0 +1,14 @@
+services:
+  web:
+    build: ./apps/web
+    ports:
+      - "${PORT_WEB:-8000}:8000"
+    environment:
+      - VERSION=${VERSION:-1.0.0}
+
+  api:
+    build: ./apps/api
+    ports:
+      - "${PORT_API:-8080}:8080"
+    environment:
+      - VERSION=${VERSION:-1.0.0}

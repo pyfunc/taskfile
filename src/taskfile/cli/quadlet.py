@@ -1,14 +1,91 @@
+"""## Quadlet management commands for taskfile
+
+Generate and manage Podman Quadlet files from docker-compose.yml.
+
+### Overview
+
+Podman Quadlet allows running containers as systemd services without root:
+- **Generate** - Convert docker-compose.yml to Quadlet format
+- **Install** - Install Quadlet files to systemd user directory
+- **Manage** - Start/stop services via systemd
+
+### Quadlet vs Docker Compose
+
+| Feature | Quadlet | Docker Compose |
+|---------|---------|----------------|
+| Rootless | ✅ Yes | ⚠️ Partial |
+| systemd | ✅ Native | ❌ Requires wrapper |
+| Auto-start | ✅ Built-in | ❌ Manual |
+| Resources | ✅ cgroup v2 | ⚠️ Limited |
+
+### File Locations
+
+```
+~/.config/containers/systemd/
+├── myapp.container      # Container definition
+├── myapp.network        # Network definition
+└── myapp.volume         # Volume definition
+```
+
+### Usage
+
+```bash
+# Generate Quadlet files from docker-compose.yml
+taskfile quadlet generate
+
+# Install and start services
+taskfile quadlet install
+
+# Check service status
+taskfile quadlet status
+```
+
+### Why clickmd?
+
+Uses `clickmd` for consistent CLI experience and markdown rendering of Quadlet info.
+
+### Dependencies
+
+- `clickmd` - CLI framework
+- `rich` - Rich console output for service status
+"""
+
 from __future__ import annotations
 import sys
 from pathlib import Path
-import click
+import clickmd as click
 from taskfile.parser import load_taskfile, TaskfileNotFoundError, TaskfileParseError
 from taskfile.cli.main import main, console
 
 @main.group()
 def quadlet():
-    """Generate and manage Podman Quadlet files from docker-compose.yml."""
-    pass
+    """**Generate and manage Podman Quadlet files** from docker-compose.yml.
+
+## Overview
+
+Convert Docker Compose services to systemd-compatible Quadlet unit files
+for Podman rootless containers.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `generate` | Create .container files from docker-compose.yml |
+| `upload` | Upload Quadlet files to remote server via SSH |
+
+## Examples
+
+```bash
+# Generate Quadlet files
+taskfile quadlet generate
+
+# Generate with specific env file
+taskfile quadlet generate --env-file .env.prod
+
+# Upload to remote
+taskfile --env prod quadlet upload
+```
+"""
 
 
 @quadlet.command(name="generate")
@@ -33,18 +110,42 @@ def quadlet():
 @click.option(
     "--service", "services", multiple=True, help="Only generate for specific service(s)"
 )
+@click.option(
+    "--dry-run", is_flag=True, help="Show what would be generated without writing files"
+)
 @click.pass_context
-def quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services):
-    """Generate Quadlet .container files from docker-compose.yml.
+def quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services, dry_run):
+    """**Generate Quadlet .container files** from docker-compose.yml.
 
-    \b
-    Examples:
-        taskfile quadlet generate
-        taskfile quadlet generate --env-file .env.prod
-        taskfile quadlet generate --env-file .env.prod -o deploy/quadlet
-        taskfile quadlet generate --service app1 --service app2
-    """
-    from taskfile.compose import ComposeFile
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-c, --compose` | Path to docker-compose.yml |
+| `--env-file` | Environment file for variable resolution |
+| `-o, --output` | Output directory (default: deploy/quadlet) |
+| `--network` | Network name for containers |
+| `--no-auto-update` | Disable AutoUpdate=registry |
+| `--service` | Generate only for specific service(s) |
+| `--dry-run` | Preview without writing files |
+
+## Examples
+
+```bash
+# Generate with default options
+taskfile quadlet generate
+
+# Use production environment variables
+taskfile quadlet generate --env-file .env.prod
+
+# Generate for specific services only
+taskfile quadlet generate --service web --service api
+
+# Preview without writing
+taskfile quadlet generate --dry-run
+```
+"""
+    from taskfile.compose import ComposeFile, load_env_file
     from taskfile.quadlet import compose_to_quadlet
 
     opts = ctx.obj or {}
@@ -61,22 +162,52 @@ def quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_u
             extra_vars=var_overrides,
         )
 
-        svc_filter = list(services) if services else None
-        generated = compose_to_quadlet(
-            compose=compose,
-            output_dir=output_dir,
-            network_name=network,
-            auto_update=not no_auto_update,
-            services_filter=svc_filter,
-        )
+        # Load env vars for port resolution
+        env_vars = {}
+        if env_file:
+            env_vars = load_env_file(env_file)
+        env_vars.update(var_overrides)
 
-        console.print(f"\n[green]✓ Generated {len(generated)} files in {output_dir}/[/]")
+        svc_filter = list(services) if services else None
+
+        if dry_run:
+            console.print(f"\n[dim]Would generate files in {output_dir}/:[/]")
+            # Preview mode: show what would be generated
+            from taskfile.quadlet import generate_container_unit
+            for svc_name, svc_data in compose.services.items():
+                if svc_filter and svc_name not in svc_filter:
+                    continue
+                content = generate_container_unit(
+                    service_name=svc_name,
+                    service=svc_data,
+                    network_name=network,
+                    auto_update=not no_auto_update,
+                    env=env_vars,
+                )
+                console.print(f"\n[cyan]{svc_name}.container:[/]")
+                for line in content.strip().split("\n")[:15]:  # Show first 15 lines
+                    console.print(f"  [dim]{line}[/]")
+                if len(content.strip().split("\n")) > 15:
+                    console.print("  [dim]...[/]")
+            console.print(f"\n[dim](dry run — no files written)[/]")
+        else:
+            generated = compose_to_quadlet(
+                compose=compose,
+                output_dir=output_dir,
+                network_name=network,
+                auto_update=not no_auto_update,
+                services_filter=svc_filter,
+                env=env_vars,
+            )
+            console.print(f"\n[green]✓ Generated {len(generated)} files in {output_dir}/[/]")
 
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/] {e}")
         sys.exit(1)
     except Exception as e:
         console.print(f"[red]Error:[/] {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

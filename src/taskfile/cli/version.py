@@ -1,4 +1,47 @@
-"""Version management CLI commands for taskfile."""
+"""## Version management CLI commands for taskfile
+
+Provides semantic versioning commands: bump, set, show with Git integration.
+
+### Overview
+
+Manage project versions using semantic versioning (SemVer):
+- **bump** - Increment version (patch/minor/major)
+- **set** - Set specific version
+- **show** - Display current version
+
+### Version Files
+
+The module automatically updates version in:
+- `VERSION` file (plain text)
+- `Taskfile.yml` (if has version field)
+- `pyproject.toml` (if exists)
+
+### Semantic Versioning
+
+| Part | When to bump | Example |
+|------|--------------|---------|
+| `patch` | Bug fixes, patches | `1.0.0` → `1.0.1` |
+| `minor` | New features, backward compatible | `1.0.0` → `1.1.0` |
+| `major` | Breaking changes | `1.0.0` → `2.0.0` |
+
+### Git Integration
+
+> **Note**: The module can optionally create Git tags for new versions.
+> Use `--git-tag` flag to enable this feature.
+
+### Why clickmd?
+
+Uses `clickmd` instead of standard `click` for:
+- Rich markdown formatting of version info panels
+- Consistent CLI experience across all taskfile modules
+- Better integration with `rich` console output
+
+### Dependencies
+
+- `clickmd` - CLI framework with markdown support
+- `click_compat.confirm` - Interactive confirmation prompts
+- `rich` - Rich console output for version panels
+"""
 
 from __future__ import annotations
 
@@ -7,7 +50,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import click
+import clickmd as click
+from taskfile.cli.click_compat import confirm
 from rich.console import Console
 from rich.panel import Panel
 
@@ -89,7 +133,7 @@ def bump(ctx, part, dry_run, force):
         console.print("\n[yellow]DRY RUN — No changes made[/]")
         sys.exit(0)
 
-    if not force and not click.confirm("\nProceed with version bump?"):
+    if not force and not confirm("\nProceed with version bump?"):
         console.print("[yellow]Cancelled[/]")
         sys.exit(0)
 
@@ -186,7 +230,7 @@ def set(ctx, new_version, dry_run, force):
         console.print("\n[yellow]DRY RUN — No changes made[/]")
         sys.exit(0)
 
-    if not force and not click.confirm("\nProceed?"):
+    if not force and not confirm("\nProceed?"):
         console.print("[yellow]Cancelled[/]")
         sys.exit(0)
 

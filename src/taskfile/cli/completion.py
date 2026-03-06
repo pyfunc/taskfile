@@ -1,4 +1,42 @@
-"""Shell completion for taskfile - auto-complete task names."""
+"""## Shell completion for taskfile
+
+Auto-complete task names and CLI options for popular shells.
+
+### Supported Shells
+
+| Shell | Command | File |
+|-------|---------|------|
+| `bash` | `taskfile completion bash` | `~/.bashrc` |
+| `zsh` | `taskfile completion zsh` | `~/.zshrc` |
+| `fish` | `taskfile completion fish` | `~/.config/fish/completions/` |
+
+### Setup
+
+**Bash:**
+```bash
+eval "$(taskfile completion bash)"
+```
+
+**Zsh:**
+```zsh
+eval "$(taskfile completion zsh)"
+```
+
+**Fish:**
+```fish
+taskfile completion fish | source
+```
+
+### Why clickmd?
+
+Uses `clickmd` for CLI framework compatibility. Note: Uses `click.shell_completion` 
+from the underlying click library for completion items.
+
+### Dependencies
+
+- `clickmd` - CLI framework (provides click underneath)
+- `click.shell_completion` - Shell completion utilities
+"""
 
 from __future__ import annotations
 
@@ -6,7 +44,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import click
+from clickmd import click
 from click.shell_completion import CompletionItem
 
 from taskfile.parser import find_taskfile, load_taskfile, TaskfileNotFoundError

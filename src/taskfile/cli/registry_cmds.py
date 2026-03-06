@@ -1,11 +1,50 @@
-"""CLI commands for task registry - install, search, manage packages."""
+"""## CLI commands for task registry
+
+Install, search, and manage task packages from remote registries.
+
+### Overview
+
+The package registry allows sharing and reusing task definitions across projects:
+- **Install** packages from remote registries
+- **Search** for available packages
+- **Uninstall** packages no longer needed
+
+### Supported Registries
+
+| Registry | URL | Description |
+|----------|-----|-------------|
+| GitHub | `ghcr.io` | GitHub Container Registry |
+| Docker Hub | `docker.io` | Public container registry |
+| PyPI | `pypi.org` | Python Package Index |
+
+### Package Format
+
+Packages are distributed as:
+- JSON task definitions
+- Docker images with embedded tasks
+- Git repositories with Taskfile.yml
+
+### Why clickmd?
+
+Uses `clickmd` instead of standard `click` for:
+- Rich table formatting for search results
+- Markdown rendering of package descriptions
+- Consistent CLI experience across all modules
+
+### Dependencies
+
+- `clickmd` - CLI framework with markdown support
+- `click_compat.confirm` - Confirmation prompts for uninstall
+- `rich` - Rich console output for tables
+"""
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-import click
+import clickmd as click
+from taskfile.cli.click_compat import confirm
 from rich.table import Table
 from rich import box
 
@@ -175,7 +214,7 @@ def pkg_uninstall(package_name, yes):
     client = RegistryClient()
     
     if not yes:
-        confirm = click.confirm(f"Uninstall {package_name}?")
+        confirm = confirm(f"Uninstall {package_name}?")
         if not confirm:
             console.print("[dim]Cancelled[/]")
             return

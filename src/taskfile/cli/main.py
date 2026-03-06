@@ -1,11 +1,47 @@
-"""CLI interface for taskfile."""
+"""## CLI interface for taskfile
+
+Main entry point for the taskfile command-line interface.
+
+### Overview
+
+**taskfile** is a universal task runner with multi-environment deploy support.
+It provides a unified way to define and run tasks across different environments
+(local, staging, production) and platforms (desktop, web, mobile).
+
+### Features
+
+- 🚀 **Multi-environment support** - Deploy to different environments with ease
+- 📦 **Container support** - Docker and Podman integration
+- 🔄 **CI/CD agnostic** - Works with GitHub Actions, GitLab CI, Jenkins, etc.
+- 📝 **Markdown rendering** - Rich CLI output with markdown formatting
+- 🎯 **Task dependencies** - Define task trees and execution order
+
+### Architecture
+
+This module serves as the entry point for all CLI commands:
+
+| Command | Description |
+|---------|-------------|
+| `run` | Execute tasks |
+| `deploy` | Deploy to environments |
+| `init` | Initialize new project |
+| `list` | List available tasks |
+| `validate` | Validate Taskfile.yml |
+
+### Dependencies
+
+- `clickmd` - CLI framework with markdown support
+- `rich` - Rich text and beautiful formatting
+- `pyyaml` - YAML parsing for Taskfile.yml
+"""
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-import click
+import clickmd as click
+from taskfile.cli.click_compat import BadParameter, version_option
 from rich.console import Console
 
 from taskfile import __version__
@@ -218,14 +254,15 @@ def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
     result = {}
     for item in value:
         if "=" not in item:
-            raise click.BadParameter(f"Expected KEY=VALUE, got: {item}")
+            raise BadParameter(f"Expected KEY=VALUE, got: {item}")
         key, val = item.split("=", 1)
         result[key.strip()] = val.strip()
     return result
 
 
 @click.group(invoke_without_command=True)
-@click.version_option(__version__, prog_name="taskfile")
+@click.pass_context
+@version_option(__version__, prog_name="taskfile")
 @click.option("-f", "--file", "taskfile_path", default=None, help="Path to Taskfile.yml")
 @click.option("-e", "--env", "env_name", default=None, help="Target environment")
 @click.option("-G", "--env-group", "env_group", default=None, help="Target environment group (fleet)")
@@ -233,17 +270,30 @@ def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
 @click.option("--var", multiple=True, callback=parse_var, help="Override variable: --var KEY=VALUE")
 @click.option("--dry-run", is_flag=True, help="Show commands without executing")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
-@click.pass_context
 def main(ctx, taskfile_path, env_name, env_group, platform_name, var, dry_run, verbose):
-    """taskfile — Universal task runner with multi-environment deploy.
+    """**taskfile** — Universal task runner with multi-environment deploy.
 
-    \b
-    Run tasks:     taskfile run build deploy
-    List tasks:    taskfile list
-    Init project:  taskfile init
-    Quick run:     taskfile run <task_name> --env prod --platform web
-    Fleet deploy:  taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
-    """
+## Quick Start
+
+| Command | Description |
+|---------|-------------|
+| `taskfile run <task>` | Run a task |
+| `taskfile list` | List available tasks |
+| `taskfile init` | Create a new Taskfile.yml |
+
+## Examples
+
+**Run tasks:**
+```bash
+taskfile run build deploy
+taskfile run deploy --env prod --var TAG=v1.0
+```
+
+**Fleet deploy:**
+```bash
+taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
+```
+"""
     ctx.ensure_object(dict)
     ctx.obj["taskfile_path"] = taskfile_path
     ctx.obj["env_name"] = env_name
@@ -264,17 +314,43 @@ def main(ctx, taskfile_path, env_name, env_group, platform_name, var, dry_run, v
 @click.option("--tags", "run_tags", default=None, help="Run only tasks matching these tags (comma-separated)")
 @click.pass_context
 def run(ctx, tasks, run_tags):
-    """Run one or more tasks.
+    """**Run one or more tasks** defined in Taskfile.yml.
 
-    \b
-    Examples:
-        taskfile run build
-        taskfile run build deploy --env prod
-        taskfile run release --var TAG=v1.2.3
-        taskfile run deploy --env prod --dry-run
-        taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
-        taskfile run --tags ci build test lint
-    """
+## Usage
+
+```bash
+taskfile run <task> [<task> ...]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--tags` | Filter tasks by tags (comma-separated) |
+| `-e, --env` | Target environment |
+| `-p, --platform` | Target platform |
+| `--var KEY=VALUE` | Override variables |
+| `--dry-run` | Preview without executing |
+
+## Examples
+
+```bash
+# Run single task
+taskfile run build
+
+# Run multiple tasks
+taskfile run build deploy
+
+# Run with environment
+taskfile run deploy --env prod
+
+# Run with variable override
+taskfile run release --var TAG=v1.2.3
+
+# Run with tags filter
+taskfile run --tags ci build test
+```
+"""
     opts = ctx.obj
     env_group = opts.get("env_group")
     tag_filter = [t.strip() for t in run_tags.split(",")] if run_tags else None
@@ -332,7 +408,25 @@ def _filter_tasks_by_tags(config, task_names: list[str], tags: list[str]) -> lis
 @main.command(name="list")
 @click.pass_context
 def list_tasks(ctx):
-    """List available tasks and environments."""
+    """**List available tasks and environments** from Taskfile.yml.
+
+## Output
+
+Shows:
+- **Tasks** with descriptions and dependencies
+- **Environments** (local, staging, prod, etc.)
+- **Variables** defined in the Taskfile
+
+## Examples
+
+```bash
+# List all tasks
+taskfile list
+
+# List with specific environment
+taskfile --env prod list
+```
+"""
     opts = ctx.obj
     try:
         config = load_taskfile(opts["taskfile_path"])
@@ -350,14 +444,35 @@ def list_tasks(ctx):
 @click.option("--deps", "show_deps", is_flag=True, help="Show dependency tree for all tasks")
 @click.pass_context
 def validate(ctx, check_files, show_deps):
-    """Validate the Taskfile without running anything.
+    """**Validate the Taskfile** without running anything.
 
-    \b
-    Examples:
-        taskfile validate              # Basic validation
-        taskfile validate --files      # Check all referenced files exist
-        taskfile validate --deps       # Show dependency tree
-    """
+## Checks Performed
+
+- Task definitions are valid
+- Dependencies exist
+- Script files are accessible
+- Environment configurations
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--files` | Check all dependent files exist |
+| `--deps` | Show dependency tree |
+
+## Examples
+
+```bash
+# Basic validation
+taskfile validate
+
+# Check all files
+taskfile validate --files
+
+# Show dependency tree
+taskfile validate --deps
+```
+"""
     opts = ctx.obj
     try:
         config = load_taskfile(opts["taskfile_path"])
@@ -400,6 +515,7 @@ def validate(ctx, check_files, show_deps):
 def _validate_dependent_files(config) -> None:
     """Check all files referenced by the Taskfile and report status."""
     from pathlib import Path as _Path
+    import yaml
 
     taskfile_dir = _Path(config.source_path).parent if config.source_path else _Path.cwd()
     console.print("\n[bold]📁 Dependent files:[/]")
@@ -426,8 +542,46 @@ def _validate_dependent_files(config) -> None:
                 console.print(f"  [red]✗[/] {env.env_file} [dim](env: {env_name})[/] [red]— not found[/]")
                 all_ok = False
 
+    # Check docker-compose.yml and related files
+    compose_path = taskfile_dir / "docker-compose.yml"
+    if compose_path.exists():
+        console.print(f"  [green]✓[/] docker-compose.yml")
+        try:
+            compose_data = yaml.safe_load(compose_path.read_text()) or {}
+            services = compose_data.get("services", {})
+            for svc_name, svc_data in services.items():
+                if isinstance(svc_data, dict):
+                    # Check build context (apps/ directories)
+                    build = svc_data.get("build")
+                    if isinstance(build, str):
+                        build_path = taskfile_dir / build
+                        if build_path.exists():
+                            console.print(f"  [green]✓[/] {build} [dim](service: {svc_name})[/]")
+                        else:
+                            console.print(f"  [red]✗[/] {build} [dim](service: {svc_name})[/] [red]— not found[/]")
+                            all_ok = False
+                    elif isinstance(build, dict):
+                        context = build.get("context", ".")
+                        dockerfile = build.get("dockerfile", "Dockerfile")
+                        # Check context directory
+                        context_path = taskfile_dir / context
+                        if context_path.exists():
+                            console.print(f"  [green]✓[/] {context}/ [dim](context for {svc_name})[/]")
+                        else:
+                            console.print(f"  [red]✗[/] {context}/ [dim](context for {svc_name})[/] [red]— not found[/]")
+                            all_ok = False
+                        # Check Dockerfile
+                        df_path = context_path / dockerfile if context != "." else taskfile_dir / dockerfile
+                        if df_path.exists():
+                            console.print(f"  [green]✓[/] {context}/{dockerfile} [dim]({svc_name})[/]")
+                        else:
+                            console.print(f"  [red]✗[/] {context}/{dockerfile} [dim]({svc_name})[/] [red]— not found[/]")
+                            all_ok = False
+        except Exception as e:
+            console.print(f"  [yellow]⚠[/] Could not parse docker-compose.yml: {e}")
+
     # Check common project files
-    for common_file in ("docker-compose.yml", "Dockerfile", ".env", ".gitignore"):
+    for common_file in (".env", ".gitignore", "README.md", "VERSION"):
         p = taskfile_dir / common_file
         if p.exists():
             console.print(f"  [green]✓[/] {common_file}")
@@ -436,6 +590,8 @@ def _validate_dependent_files(config) -> None:
 
     if all_ok:
         console.print("[green]  All referenced files found.[/]")
+    else:
+        console.print("[yellow]  Some files are missing — run 'taskfile doctor --fix' for auto-fix options[/]")
 
 
 def _print_dependency_tree(config) -> None:

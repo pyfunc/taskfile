@@ -4,36 +4,49 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 455
-- **Total Classes**: 50
-- **Modules**: 70
-- **Entry Points**: 261
+- **Total Functions**: 521
+- **Total Classes**: 71
+- **Modules**: 76
+- **Entry Points**: 287
 
 ## Architecture by Module
 
 ### src.taskfile.runner.core
-- **Functions**: 28
+- **Functions**: 30
 - **Classes**: 2
 - **File**: `core.py`
 
 ### src.taskfile.cli.diagnostics
-- **Functions**: 21
+- **Functions**: 29
 - **Classes**: 1
 - **File**: `diagnostics.py`
 
 ### src.taskfile.quadlet
-- **Functions**: 21
+- **Functions**: 22
 - **Classes**: 1
 - **File**: `quadlet.py`
 
+### src.taskfile.importer
+- **Functions**: 20
+- **File**: `importer.py`
+
 ### src.taskfile.parser
-- **Functions**: 16
+- **Functions**: 19
 - **Classes**: 2
 - **File**: `parser.py`
 
-### src.taskfile.importer
-- **Functions**: 15
-- **File**: `importer.py`
+### src.taskfile.cli.main
+- **Functions**: 19
+- **File**: `main.py`
+
+### src.taskfile.cli.fleet
+- **Functions**: 18
+- **File**: `fleet.py`
+
+### src.taskfile.fleet
+- **Functions**: 16
+- **Classes**: 5
+- **File**: `fleet.py`
 
 ### src.taskfile.models
 - **Functions**: 15
@@ -45,6 +58,10 @@
 - **Classes**: 1
 - **File**: `setup.py`
 
+### src.taskfile.cli.release
+- **Functions**: 15
+- **File**: `release.py`
+
 ### src.taskfile.cli.deploy
 - **Functions**: 15
 - **Classes**: 1
@@ -55,38 +72,30 @@
 - **Classes**: 2
 - **File**: `registry.py`
 
-### src.taskfile.fleet
+### src.taskfile.runner.resolver
 - **Functions**: 14
-- **Classes**: 5
-- **File**: `fleet.py`
+- **Classes**: 1
+- **File**: `resolver.py`
 
-### src.taskfile.cli.release
-- **Functions**: 14
-- **File**: `release.py`
-
-### src.taskfile.cli.main
+### src.taskfile.cache
 - **Functions**: 13
-- **File**: `main.py`
+- **Classes**: 1
+- **File**: `cache.py`
 
 ### src.taskfile.provisioner
 - **Functions**: 12
 - **Classes**: 2
 - **File**: `provisioner.py`
 
-### src.taskfile.runner.resolver
+### src.taskfile.compose
 - **Functions**: 12
-- **Classes**: 1
-- **File**: `resolver.py`
+- **Classes**: 2
+- **File**: `compose.py`
 
 ### src.taskfile.converters
 - **Functions**: 11
 - **Classes**: 5
 - **File**: `converters.py`
-
-### src.taskfile.cache
-- **Functions**: 11
-- **Classes**: 1
-- **File**: `cache.py`
 
 ### src.taskfile.cli.version
 - **Functions**: 11
@@ -97,28 +106,9 @@
 - **Classes**: 1
 - **File**: `handlers.py`
 
-### src.taskfile.compose
-- **Functions**: 9
-- **Classes**: 1
-- **File**: `compose.py`
-
-### src.taskfile.cirunner
-- **Functions**: 9
-- **Classes**: 3
-- **File**: `cirunner.py`
-
 ## Key Entry Points
 
 Main execution flows into the system:
-
-### src.taskfile.cli.fleet.fleet_status_cmd
-> Show status of all remote environments (SSH-based health check).
-
-
-Examples:
-    taskfile fleet status
-    taskfile fleet status --group kiosks
-- **Calls**: fleet.command, click.option, src.taskfile.cli.fleet._load_config_or_exit, src.taskfile.cli.fleet._get_remote_envs, console.print, results.sort, Table, table.add_column
 
 ### src.taskfile.cli.ci.ci_generate
 > Generate CI/CD config files from Taskfile.yml pipeline section.
@@ -129,16 +119,15 @@ Examples:
     taskfile ci generate --targe
 - **Calls**: ci.command, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, console.print, None.join, console.print
 
-### src.taskfile.cli.main.run
-> Run one or more tasks.
+### src.taskfile.cli.quadlet.quadlet_generate
+> **Generate Quadlet .container files** from docker-compose.yml.
 
-
-Examples:
-    taskfile run build
-    taskfile run build deploy --env prod
-    taskfile run release --var TAG=v1.2.3
-    task
-- **Calls**: main.command, click.argument, click.option, opts.get, sys.exit, t.strip, src.taskfile.cli.main._run_env_group, TaskfileRunner
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-c, --compose` | Path
+- **Calls**: quadlet.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
 
 ### src.taskfile.fleet.FleetConfig.from_dict
 > Parse raw YAML dict into FleetConfig.
@@ -154,13 +143,6 @@ Examples:
     taskfile version bump        # Bu
 - **Calls**: version.command, click.argument, click.option, click.option, version_file.exists, src.taskfile.cli.version._increment_version, console.print, version_file.write_text
 
-### src.taskfile.cli.interactive.wizards.init
-> ✨ Create a new Taskfile.yml with interactive setup.
-
-Without --interactive: uses template argument or minimal
-With --interactive: prompts for all conf
-- **Calls**: main.command, click.option, click.option, click.option, Path, src.taskfile.scaffold.generate_taskfile, outpath.write_text, console.print
-
 ### src.taskfile.models.TaskfileConfig._parse_tasks
 > Parse all task definitions.
 - **Calls**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance, Task, isinstance, task_data.get
@@ -172,19 +154,12 @@ Guides you through obtaining API tokens for each registry
 and saves them to .env (automatically gitignored
 - **Calls**: auth.command, click.option, console.print, Path, enumerate, src.taskfile.cli.auth._ensure_gitignore, console.print, console.print
 
-### src.taskfile.cli.release.rollback
-> Rollback to previous version.
+### src.taskfile.cli.fleet.fleet_repair_cmd
+> Diagnose and repair a remote device.
 
-Deploys the previous (or specified) version of the web application.
-
-
-Examples:
-    taskfile rollback              # R
-- **Calls**: main.command, click.option, click.option, click.option, console.print, src.taskfile.cli.release._run_command, src.taskfile.parser.load_taskfile, src.taskfile.cli.release._get_previous_tag
-
-### src.taskfile.cli.info_cmd.info
-> Show detailed info about a specific task.
-- **Calls**: main.command, click.argument, src.taskfile.parser.load_taskfile, console.print, console.print, sys.exit, console.print, console.print
+Runs 8-point diagnostics: ping, SSH, disk, RAM, temperature,
+podman, containers, NTP. Suggests fixes for each is
+- **Calls**: fleet.command, click.argument, click.option, src.taskfile.cli.fleet._load_config_or_exit, console.print, console.print, console.print, console.print
 
 ### src.taskfile.cirunner.PipelineRunner.run
 > Run pipeline stages in order.
@@ -194,6 +169,16 @@ Args:
     skip_stages: Skip these stages
     stop_at: S
 - **Calls**: self._resolve_stages, self._print_pipeline_header, time.time, enumerate, self._print_summary, console.print, console.print, console.print
+
+### src.taskfile.cli.release.rollback
+> Rollback to previous version.
+
+Deploys the previous (or specified) version of the web application.
+
+
+Examples:
+    taskfile rollback              # R
+- **Calls**: main.command, click.option, click.option, click.option, src.taskfile.cli.release._resolve_domain, console.print, src.taskfile.cli.release._run_command, src.taskfile.parser.load_taskfile
 
 ### src.taskfile.cli.import_export.import_cmd
 > 📥 Import from Makefile, GitHub Actions, GitLab CI, npm scripts, etc.
@@ -214,10 +199,6 @@ Supported targets:
     makefile        — GNU M
 - **Calls**: main.command, click.argument, click.option, click.option, click.option, click.option, Path, defaults.get
 
-### src.taskfile.fleet.check_device_status
-> Check the status of a single device via SSH.
-- **Calls**: DeviceStatus, src.taskfile.fleet._ping_device, src.taskfile.fleet._ssh_cmd, None.split, None.isdigit, None.isdigit, int, None.isdigit
-
 ### src.taskfile.cli.registry_cmds.pkg_install
 > Install a package from the registry.
 
@@ -226,25 +207,32 @@ Package names can be:
     - Direct URL: https://example.com/tas
 - **Calls**: pkg.command, click.argument, click.option, click.option, click.option, click.option, RegistryClient, console.print
 
-### src.taskfile.runner.core.TaskfileRunner.run
-> Run multiple tasks in order. Returns True if all succeed.
-- **Calls**: src.taskfile.parser.validate_taskfile, time.time, console.print, any, time.time, src.taskfile.notifications.notify_task_complete, ssh_close_all, len
+### src.taskfile.cli.interactive.wizards.doctor
+> **🔧 Diagnose project** and suggest fixes.
+
+## Checks Performed
+
+- **Taskfile.yml** existence and validity
+- **Environment files** configuration
+- **Do
+- **Calls**: main.command, click.option, click.option, ProjectDiagnostics, console.print, diagnostics.print_report, Panel.fit, console.status
 
 ### src.taskfile.models.PipelineConfig.from_dict
 - **Calls**: cls, data.get, isinstance, str, data.get, data.get, data.get, data.get
 
-### src.taskfile.cli.interactive.wizards.doctor
-> 🔧 Diagnose project and suggest fixes.
+### src.taskfile.cli.diagnostics.ProjectDiagnostics.validate_taskfile_variables
+> Validate variables defined in Taskfile.yml are present in .env files.
+- **Calls**: src.taskfile.cli.version.set, variables.items, environments.items, src.taskfile.parser.find_taskfile, src.taskfile.parser.load_taskfile, isinstance, Path, env_path.read_text
 
-Checks:
-    - Taskfile.yml existence and validity
-    - Environment files configuration
-    - Docker availabili
-- **Calls**: main.command, click.option, click.option, ProjectDiagnostics, console.print, diagnostics.print_report, Panel.fit, console.status
+### src.taskfile.cli.main.validate
+> **Validate the Taskfile** without running anything.
 
-### src.taskfile.converters.GitLabCIConverter.import_gitlab_ci
-> Parse GitLab CI YAML and extract jobs as tasks.
-- **Calls**: yaml.safe_load, data.items, isinstance, isinstance, isinstance, isinstance, isinstance, commands.extend
+## Checks Performed
+
+- Task definitions are valid
+- Dependencies exist
+- Script files are accessi
+- **Calls**: main.command, click.option, click.option, src.taskfile.parser.load_taskfile, src.taskfile.parser.validate_taskfile, console.print, console.print, console.print
 
 ### src.taskfile.cli.import_export.detect
 > 🔍 Detect build configuration files in current directory.
@@ -257,24 +245,53 @@ and shows what can be imported.
 > Parse raw YAML dict into TaskfileConfig.
 - **Calls**: cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups, cls._parse_platforms, cls._parse_functions, cls._parse_tasks, cls._parse_pipeline
 
-### src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ports
-> Check docker-compose port conflicts and suggest .env fixes.
-- **Calls**: Path, Path, services.items, compose_path.exists, None.get, isinstance, env_path.exists, src.taskfile.compose.load_env_file
+### src.taskfile.cli.api_cmd.api_serve
+> Start the Taskfile REST API server (FastAPI + Uvicorn).
 
-### src.taskfile.cli.fleet.fleet_repair_cmd
-> Diagnose and repair a remote device.
+
+Provides:
+    Swagger UI:  http://HOST:PORT/docs
+    ReDoc:       http://HOST:PORT/redoc
+  
+- **Calls**: api.command, click.option, click.option, click.option, click.option, console.print, console.print, console.print
 
-Runs 8-point diagnostics: ping, SSH, disk, RAM, temperature,
-podman, containers, NTP. Suggests fixes for each is
-- **Calls**: fleet.command, click.argument, click.option, src.taskfile.cli.fleet._load_config_or_exit, console.print, console.print, ctx.obj.get, console.print
+### src.taskfile.cli.fleet.fleet_status_cmd
+> Show status of all remote environments (SSH-based health check).
+
+
+Examples:
+    taskfile fleet status
+    taskfile fleet status --group kiosks
+- **Calls**: fleet.command, click.option, src.taskfile.cli.fleet._load_config_or_exit, src.taskfile.cli.fleet._get_remote_envs, console.print, results.sort, console.print, sum
+
+### src.taskfile.cli.main.run
+> **Run one or more tasks** defined in Taskfile.yml.
+
+## Usage
+
+```bash
+taskfile run <task> [<task> ...]
+```
+
+## Options
+
+| Option | Description |
+|----
+- **Calls**: main.command, click.argument, click.option, opts.get, sys.exit, t.strip, src.taskfile.cli.main._run_env_group, TaskfileRunner
+
+### src.taskfile.cli.interactive.wizards.init
+> **✨ Create a new Taskfile.yml** with interactive setup.
+
+## Templates
+
+| Template | Description |
+|----------|-------------|
+| `minimal` | Basic setup
+- **Calls**: main.command, click.option, click.option, click.option, Path, src.taskfile.scaffold.generate_taskfile, outpath.write_text, console.print
 
 ### src.taskfile.registry.RegistryClient._install_from_github
 > Install package from GitHub repository.
 - **Calls**: pkg_dir.mkdir, repo.replace, urllib.request.urlretrieve, tarfile.open, temp_dir.mkdir, tar.extractall, list, self._save_dependency
-
-### src.taskfile.cache.TaskCache._get_input_files_hash
-> Compute hash of input files matching patterns.
-- **Calls**: all_hashes.sort, None.hexdigest, Path, base_dir.rglob, Path, path.is_file, hashlib.md5, path.is_file
 
 ### src.taskfile.cli.registry_cmds.pkg_search
 > Search for packages in the registry.
@@ -290,37 +307,51 @@ Example:
     taskfile pkg info tom-sapletta/web-tasks
 - **Calls**: pkg.command, click.argument, RegistryClient, pkg_dir.exists, package_name.replace, console.print, console.print, info_file.exists
 
-### src.taskfile.cli.quadlet.quadlet_generate
-> Generate Quadlet .container files from docker-compose.yml.
-
-
-Examples:
-    taskfile quadlet generate
-    taskfile quadlet generate --env-file .env.pr
-- **Calls**: quadlet.command, click.option, click.option, click.option, click.option, click.option, click.option, opts.get
-
 ### src.taskfile.cigen.makefile.MakefileTarget.generate
 - **Calls**: sorted, None.join, self.config.tasks.items, task_name.replace, lines.append, lines.append, lines.append, lines.append
 
-### src.taskfile.converters.MakefileConverter.import_makefile
-> Parse Makefile and extract targets as tasks.
-- **Calls**: content.split, re.match, re.match, line.strip, var_match.group, line.strip, target_match.group, None.strip
+### src.taskfile.cli.health.health_cmd
+> Check health of deployed services.
+
+Verifies web app, landing page, and infrastructure are responding.
+
+
+Examples:
+    taskfile --env prod health
+   
+- **Calls**: main.command, click.option, click.option, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, console.print
+
+### src.taskfile.cli.ci.ci_run
+> Run CI/CD pipeline stages locally.
+
+Runs the same pipeline that would run on GitHub/GitLab/etc,
+but directly on your machine. No runner needed.
+
+
+Exa
+- **Calls**: ci.command, click.option, click.option, click.option, src.taskfile.parser.load_taskfile, PipelineRunner, runner.run, sys.exit
+
+### src.taskfile.cli.main.import_cmd
+> Import CI/CD config, Makefile, or script INTO Taskfile.yml.
+
+
+Supported sources:
+    github-actions  — .github/workflows/*.yml
+    gitlab-ci       — 
+- **Calls**: main.command, click.argument, click.option, click.option, click.option, Path, outpath.exists, console.print
+
+### src.taskfile.cli.interactive.menu.graph
+> **🕸️ Show task dependency graph**.
+
+Visualizes task dependencies as a tree or exports to Graphviz DOT format.
+Helps understand the relationships betwe
+- **Calls**: main.command, click.argument, click.option, click.option, src.taskfile.parser.load_taskfile, click.Path, src.taskfile.graph.export_to_dot, console.print
 
 ## Process Flows
 
 Key execution flows identified:
 
-### Flow 1: fleet_status_cmd
-```
-fleet_status_cmd [src.taskfile.cli.fleet]
-  └─> _load_config_or_exit
-      └─ →> load_taskfile
-          └─> _resolve_includes
-          └─> find_taskfile
-  └─> _get_remote_envs
-```
-
-### Flow 2: ci_generate
+### Flow 1: ci_generate
 ```
 ci_generate [src.taskfile.cli.ci]
   └─ →> load_taskfile
@@ -329,48 +360,54 @@ ci_generate [src.taskfile.cli.ci]
           └─> _load_include_file
 ```
 
-### Flow 3: run
+### Flow 2: quadlet_generate
 ```
-run [src.taskfile.cli.main]
+quadlet_generate [src.taskfile.cli.quadlet]
 ```
 
-### Flow 4: from_dict
+### Flow 3: from_dict
 ```
 from_dict [src.taskfile.fleet.FleetConfig]
 ```
 
-### Flow 5: bump
+### Flow 4: bump
 ```
 bump [src.taskfile.cli.version]
 ```
 
-### Flow 6: init
-```
-init [src.taskfile.cli.interactive.wizards]
-```
-
-### Flow 7: _parse_tasks
+### Flow 5: _parse_tasks
 ```
 _parse_tasks [src.taskfile.models.TaskfileConfig]
 ```
 
-### Flow 8: auth_setup
+### Flow 6: auth_setup
 ```
 auth_setup [src.taskfile.cli.auth]
+```
+
+### Flow 7: fleet_repair_cmd
+```
+fleet_repair_cmd [src.taskfile.cli.fleet]
+  └─> _load_config_or_exit
+      └─ →> load_taskfile
+          └─> _resolve_includes
+          └─> find_taskfile
+```
+
+### Flow 8: run
+```
+run [src.taskfile.cirunner.PipelineRunner]
 ```
 
 ### Flow 9: rollback
 ```
 rollback [src.taskfile.cli.release]
+  └─> _resolve_domain
 ```
 
-### Flow 10: info
+### Flow 10: import_cmd
 ```
-info [src.taskfile.cli.info_cmd]
-  └─ →> load_taskfile
-      └─> _resolve_includes
-          └─> _parse_include_entry
-          └─> _load_include_file
+import_cmd [src.taskfile.cli.import_export]
 ```
 
 ## Key Classes
@@ -380,20 +417,30 @@ info [src.taskfile.cli.info_cmd]
 
 Composes:
 - TaskResolver (pure logic): variable expan
-- **Methods**: 34
+- **Methods**: 36
 - **Key Methods**: src.taskfile.runner.core.TaskfileRunner.__init__, src.taskfile.runner.core.TaskfileRunner.config, src.taskfile.runner.core.TaskfileRunner.env_name, src.taskfile.runner.core.TaskfileRunner.platform_name, src.taskfile.runner.core.TaskfileRunner.env, src.taskfile.runner.core.TaskfileRunner.platform, src.taskfile.runner.core.TaskfileRunner.variables, src.taskfile.runner.core.TaskfileRunner.variables, src.taskfile.runner.core.TaskfileRunner.var_overrides, src.taskfile.runner.core.TaskfileRunner.expand_variables
 
 ### src.taskfile.cli.diagnostics.ProjectDiagnostics
 > Diagnose and auto-fix common project issues.
-- **Methods**: 15
-- **Key Methods**: src.taskfile.cli.diagnostics.ProjectDiagnostics.__init__, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_taskfile, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_env_files, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ports, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_docker, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ssh_keys, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_git, src.taskfile.cli.diagnostics.ProjectDiagnostics.auto_fix, src.taskfile.cli.diagnostics.ProjectDiagnostics._fix_taskfile, src.taskfile.cli.diagnostics.ProjectDiagnostics._fix_git
+- **Methods**: 22
+- **Key Methods**: src.taskfile.cli.diagnostics.ProjectDiagnostics.__init__, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_taskfile, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_env_files, src.taskfile.cli.diagnostics.ProjectDiagnostics.validate_taskfile_variables, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ports, src.taskfile.cli.diagnostics.ProjectDiagnostics._check_service_ports, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_docker, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ssh_keys, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_dependent_files, src.taskfile.cli.diagnostics.ProjectDiagnostics.check_git
 
 ### src.taskfile.runner.resolver.TaskResolver
 > Pure-logic task resolver: variable expansion, filtering, dependency ordering.
 
 No subprocess calls, 
+- **Methods**: 14
+- **Key Methods**: src.taskfile.runner.resolver.TaskResolver.__init__, src.taskfile.runner.resolver.TaskResolver.from_path, src.taskfile.runner.resolver.TaskResolver._load_dotenv, src.taskfile.runner.resolver.TaskResolver._resolve_environment, src.taskfile.runner.resolver.TaskResolver._resolve_env_fields, src.taskfile.runner.resolver.TaskResolver._resolve_platform, src.taskfile.runner.resolver.TaskResolver._resolve_variables, src.taskfile.runner.resolver.TaskResolver.expand_variables, src.taskfile.runner.resolver.TaskResolver.get_task, src.taskfile.runner.resolver.TaskResolver.available_task_names
+
+### src.taskfile.compose.ComposeFile
+> Parsed docker-compose.yml with environment resolution.
 - **Methods**: 12
-- **Key Methods**: src.taskfile.runner.resolver.TaskResolver.__init__, src.taskfile.runner.resolver.TaskResolver.from_path, src.taskfile.runner.resolver.TaskResolver._resolve_environment, src.taskfile.runner.resolver.TaskResolver._resolve_platform, src.taskfile.runner.resolver.TaskResolver._resolve_variables, src.taskfile.runner.resolver.TaskResolver.expand_variables, src.taskfile.runner.resolver.TaskResolver.get_task, src.taskfile.runner.resolver.TaskResolver.available_task_names, src.taskfile.runner.resolver.TaskResolver.should_skip_task, src.taskfile.runner.resolver.TaskResolver.get_dependency_order
+- **Key Methods**: src.taskfile.compose.ComposeFile.__init__, src.taskfile.compose.ComposeFile.services, src.taskfile.compose.ComposeFile.networks, src.taskfile.compose.ComposeFile.volumes, src.taskfile.compose.ComposeFile.get_service, src.taskfile.compose.ComposeFile._labels_list_to_dict, src.taskfile.compose.ComposeFile._filter_traefik_labels, src.taskfile.compose.ComposeFile.get_traefik_labels, src.taskfile.compose.ComposeFile.from_yaml, src.taskfile.compose.ComposeFile.get_all_ports
+
+### src.taskfile.cache.TaskCache
+> Manages caching of task outputs based on input file hashes.
+- **Methods**: 12
+- **Key Methods**: src.taskfile.cache.TaskCache.__init__, src.taskfile.cache.TaskCache._load_cache, src.taskfile.cache.TaskCache._save_cache, src.taskfile.cache.TaskCache._compute_file_hash, src.taskfile.cache.TaskCache._compute_task_hash, src.taskfile.cache.TaskCache._hash_files, src.taskfile.cache.TaskCache._collect_pattern_hashes, src.taskfile.cache.TaskCache._get_input_files_hash, src.taskfile.cache.TaskCache.is_fresh, src.taskfile.cache.TaskCache.save
 
 ### src.taskfile.provisioner.VPSProvisioner
 > Idempotent VPS provisioner using SSH.
@@ -405,21 +452,11 @@ No subprocess calls,
 - **Methods**: 10
 - **Key Methods**: src.taskfile.registry.RegistryClient.__init__, src.taskfile.registry.RegistryClient.search, src.taskfile.registry.RegistryClient._search_github, src.taskfile.registry.RegistryClient.install, src.taskfile.registry.RegistryClient._parse_package_name, src.taskfile.registry.RegistryClient._install_from_github, src.taskfile.registry.RegistryClient._install_from_url, src.taskfile.registry.RegistryClient._save_dependency, src.taskfile.registry.RegistryClient.list_installed, src.taskfile.registry.RegistryClient.uninstall
 
-### src.taskfile.cache.TaskCache
-> Manages caching of task outputs based on input file hashes.
-- **Methods**: 10
-- **Key Methods**: src.taskfile.cache.TaskCache.__init__, src.taskfile.cache.TaskCache._load_cache, src.taskfile.cache.TaskCache._save_cache, src.taskfile.cache.TaskCache._compute_file_hash, src.taskfile.cache.TaskCache._compute_task_hash, src.taskfile.cache.TaskCache._get_input_files_hash, src.taskfile.cache.TaskCache.is_fresh, src.taskfile.cache.TaskCache.save, src.taskfile.cache.TaskCache.clear, src.taskfile.cache.TaskCache.get_stats
-
 ### src.taskfile.webui.handlers.TaskfileHandler
 > HTTP request handler for taskfile web UI.
 - **Methods**: 10
 - **Key Methods**: src.taskfile.webui.handlers.TaskfileHandler.log_message, src.taskfile.webui.handlers.TaskfileHandler.do_GET, src.taskfile.webui.handlers.TaskfileHandler.do_POST, src.taskfile.webui.handlers.TaskfileHandler._serve_html, src.taskfile.webui.handlers.TaskfileHandler._serve_tasks_json, src.taskfile.webui.handlers.TaskfileHandler._serve_config_json, src.taskfile.webui.handlers.TaskfileHandler._run_task, src.taskfile.webui.handlers.TaskfileHandler._send_json, src.taskfile.webui.handlers.TaskfileHandler._send_404, src.taskfile.webui.handlers.TaskfileHandler._get_dashboard_html
 - **Inherits**: BaseHTTPRequestHandler
-
-### src.taskfile.compose.ComposeFile
-> Parsed docker-compose.yml with environment resolution.
-- **Methods**: 9
-- **Key Methods**: src.taskfile.compose.ComposeFile.__init__, src.taskfile.compose.ComposeFile.services, src.taskfile.compose.ComposeFile.networks, src.taskfile.compose.ComposeFile.volumes, src.taskfile.compose.ComposeFile.get_service, src.taskfile.compose.ComposeFile._labels_list_to_dict, src.taskfile.compose.ComposeFile._filter_traefik_labels, src.taskfile.compose.ComposeFile.get_traefik_labels, src.taskfile.compose.ComposeFile.service_names
 
 ### src.taskfile.models.TaskfileConfig
 > Parsed Taskfile configuration.
@@ -494,16 +531,44 @@ Reuses the shared filename→type map from ``taskfile.importer`` for
 Ma
 - **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
 
-### src.taskfile.importer._convert_gh_job_to_task
-> Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
-- **Output to**: src.taskfile.importer._extract_gh_steps_as_commands, src.taskfile.importer._extract_gh_job_deps, src.taskfile.importer._slugify, job_data.get, job_data.get
-
 ### src.taskfile.registry.RegistryClient._parse_package_name
 > Parse package name and return (source, name).
 
 Examples:
     "tom-sapletta/web-tasks" -> ("github", 
 - **Output to**: name.startswith, name.startswith, name.startswith
+
+### src.taskfile.importer._convert_gh_job_to_task
+> Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
+- **Output to**: src.taskfile.importer._extract_gh_steps_as_commands, src.taskfile.importer._extract_gh_job_deps, src.taskfile.importer._slugify, job_data.get, job_data.get
+
+### src.taskfile.importer.parse_github_actions
+> Parse GitHub Actions workflow YAML into a Taskfile dict.
+- **Output to**: yaml.safe_load, data.get, data.get, data.get, jobs.items
+
+### src.taskfile.importer.parse_gitlab_ci
+> Parse .gitlab-ci.yml into a Taskfile dict.
+- **Output to**: yaml.safe_load, data.get, data.get, data.get, isinstance
+
+### src.taskfile.importer.parse_makefile
+> Parse Makefile into a Taskfile dict.
+- **Output to**: re.finditer, re.compile, target_re.finditer, None.strip, match.group
+
+### src.taskfile.compose.ComposeFile._parse_port_mapping
+> Parse a port mapping string or dict.
+
+Handles formats like:
+- "8080:80" (host:container)
+- "127.0.0.
+- **Output to**: isinstance, port_mapping.split, isinstance, int, int
+
+### src.taskfile.fleet._parse_status_output
+> Parse pipe-delimited SSH output into DeviceStatus fields.
+- **Output to**: None.split, None.isdigit, None.isdigit, int, None.isdigit
+
+### src.taskfile.ssh._ssh_exec_subprocess
+> Fallback: execute via subprocess `ssh` command.
+- **Output to**: command.replace, subprocess.run, None.rstrip, None.codeblock, print
 
 ### src.taskfile.parser._parse_include_entry
 > Parse a single include entry into (path, prefix). Returns None if invalid.
@@ -527,13 +592,21 @@ Examples:
 > Check that all platform references in filters exist.
 - **Output to**: warnings.append
 
+### src.taskfile.parser._validate_task_script_files
+> Check that script files referenced by tasks actually exist on disk.
+- **Output to**: Path, script_path.is_absolute, Path.cwd, resolved.exists, Path
+
+### src.taskfile.parser._validate_circular_dependencies
+> Detect circular dependencies between tasks.
+- **Output to**: config.tasks.get, visited.add, _visit, None.join, _visit
+
+### src.taskfile.parser._validate_referenced_files
+> Check that compose files and env files referenced in environments exist.
+- **Output to**: config.environments.items, Path.cwd, Path, env_file_path.exists, warnings.append
+
 ### src.taskfile.parser.validate_taskfile
 > Validate a TaskfileConfig and return list of warnings.
-- **Output to**: warnings.extend, config.tasks.items, src.taskfile.parser._validate_tasks_exist, warnings.extend, warnings.extend
-
-### src.taskfile.ssh._ssh_exec_subprocess
-> Fallback: execute via subprocess `ssh` command.
-- **Output to**: command.replace, subprocess.run
+- **Output to**: warnings.extend, config.tasks.items, warnings.extend, warnings.extend, src.taskfile.parser._validate_tasks_exist
 
 ### src.taskfile.models.TaskfileConfig._parse_compose
 > Parse the compose section of Taskfile.
@@ -559,41 +632,6 @@ Examples:
 > Parse all task definitions.
 - **Output to**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance
 
-### src.taskfile.models.TaskfileConfig._parse_pipeline
-> Parse pipeline section and infer stages from tasks if needed.
-- **Output to**: isinstance, pipeline.infer_from_tasks, PipelineConfig.from_dict, PipelineConfig
-
-### src.taskfile.cli.diagnostics._parse_compose_host_port
-> Parse a docker-compose ports entry and return (host_port_expr, var_name).
-
-Supports common forms:
-  
-- **Output to**: port_entry.strip, entry.split, re.match, entry.split, len
-
-### src.taskfile.cli.setup._validate_ip
-> Validate IP address format.
-- **Output to**: bool, re.match
-
-### src.taskfile.cli.setup._validate_ssh_key
-> Check if SSH key file exists.
-- **Output to**: os.path.expanduser, None.is_file, Path
-
-### src.taskfile.cli.setup._parse_ports
-> Parse comma-separated port string into list of ints.
-- **Output to**: int, console.print, sys.exit, p.strip, ports.split
-
-### src.taskfile.cli.main.parse_var
-> Parse --var KEY=VALUE pairs into a dict.
-- **Output to**: item.split, val.strip, click.BadParameter, key.strip
-
-### src.taskfile.cli.main.validate
-> Validate the Taskfile without running anything.
-- **Output to**: main.command, src.taskfile.parser.load_taskfile, src.taskfile.parser.validate_taskfile, console.print, console.print
-
-### src.taskfile.quadlet._parse_port
-> Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
-- **Output to**: None.split, len, str
-
 ## Behavioral Patterns
 
 ### recursion__add_deps_to_tree
@@ -611,55 +649,55 @@ Supports common forms:
 - **Confidence**: 0.90
 - **Functions**: src.taskfile.runner.core.TaskfileRunner.run_command
 
-### recursion__safe_ssh
+### recursion__print_transitive_deps
 - **Type**: recursion
 - **Confidence**: 0.90
-- **Functions**: src.taskfile.cli.fleet._safe_ssh
+- **Functions**: src.taskfile.cli.main._print_transitive_deps
 
 ## Public API Surface
 
 Functions exposed as public API (no underscore prefix):
 
-- `src.taskfile.cli.fleet.fleet_status_cmd` - 53 calls
+- `src.taskfile.api.app.create_app` - 107 calls
 - `src.taskfile.cli.ci.ci_generate` - 41 calls
-- `src.taskfile.cli.main.run` - 34 calls
+- `src.taskfile.cli.quadlet.quadlet_generate` - 35 calls
 - `src.taskfile.fleet.FleetConfig.from_dict` - 32 calls
 - `src.taskfile.cli.version.bump` - 31 calls
-- `src.taskfile.cli.interactive.wizards.init` - 31 calls
 - `src.taskfile.cli.auth.auth_setup` - 30 calls
-- `src.taskfile.cli.release.rollback` - 30 calls
-- `src.taskfile.cli.info_cmd.info` - 29 calls
+- `src.taskfile.cli.fleet.fleet_repair_cmd` - 29 calls
 - `src.taskfile.cirunner.PipelineRunner.run` - 28 calls
+- `src.taskfile.cli.release.rollback` - 28 calls
 - `src.taskfile.cli.import_export.import_cmd` - 27 calls
 - `src.taskfile.cli.import_export.export_cmd` - 27 calls
-- `src.taskfile.fleet.check_device_status` - 26 calls
 - `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
 - `src.taskfile.cli.version.set` - 26 calls
-- `src.taskfile.runner.core.TaskfileRunner.run` - 25 calls
+- `src.taskfile.cli.interactive.wizards.doctor` - 26 calls
 - `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
-- `src.taskfile.cli.interactive.wizards.doctor` - 24 calls
-- `src.taskfile.converters.GitLabCIConverter.import_gitlab_ci` - 23 calls
-- `src.taskfile.health.check_http_endpoint` - 23 calls
+- `src.taskfile.cli.diagnostics.ProjectDiagnostics.validate_taskfile_variables` - 25 calls
+- `src.taskfile.cli.main.validate` - 25 calls
 - `src.taskfile.cli.import_export.detect` - 23 calls
 - `src.taskfile.graph.print_task_tree` - 22 calls
 - `src.taskfile.models.TaskfileConfig.from_dict` - 22 calls
-- `src.taskfile.cli.diagnostics.ProjectDiagnostics.check_ports` - 22 calls
-- `src.taskfile.cli.fleet.fleet_repair_cmd` - 20 calls
+- `src.taskfile.health.check_http_endpoint` - 21 calls
+- `src.taskfile.cli.api_cmd.api_serve` - 21 calls
+- `src.taskfile.cli.fleet.fleet_status_cmd` - 21 calls
+- `src.taskfile.cli.main.run` - 21 calls
+- `src.taskfile.importer.parse_makefile` - 20 calls
+- `src.taskfile.runner.commands.execute_script` - 20 calls
+- `src.taskfile.cli.interactive.wizards.init` - 20 calls
 - `src.taskfile.cli.registry_cmds.pkg_search` - 19 calls
 - `src.taskfile.cli.registry_cmds.pkg_info` - 19 calls
-- `src.taskfile.cli.quadlet.quadlet_generate` - 19 calls
 - `src.taskfile.cigen.makefile.MakefileTarget.generate` - 18 calls
-- `src.taskfile.converters.MakefileConverter.import_makefile` - 17 calls
+- `src.taskfile.parser.validate_taskfile` - 17 calls
 - `src.taskfile.cli.health.health_cmd` - 17 calls
 - `src.taskfile.cli.ci.ci_run` - 17 calls
 - `src.taskfile.cli.main.import_cmd` - 17 calls
 - `src.taskfile.cli.interactive.menu.graph` - 17 calls
 - `src.taskfile.fleet.print_fleet_status` - 16 calls
-- `src.taskfile.runner.commands.execute_commands` - 16 calls
 - `src.taskfile.cli.registry_cmds.pkg_list` - 16 calls
-- `src.taskfile.cli.release.release` - 16 calls
 - `src.taskfile.cli.setup.setup` - 16 calls
-- `src.taskfile.converters.MakefileConverter.export_makefile` - 15 calls
+- `src.taskfile.cli.release.release` - 16 calls
+- `src.taskfile.cli.click_compat.prompt` - 16 calls
 
 ## System Interactions
 
@@ -667,19 +705,11 @@ How components interact:
 
 ```mermaid
 graph TD
-    fleet_status_cmd --> command
-    fleet_status_cmd --> option
-    fleet_status_cmd --> _load_config_or_exit
-    fleet_status_cmd --> _get_remote_envs
-    fleet_status_cmd --> print
     ci_generate --> command
     ci_generate --> option
     ci_generate --> load_taskfile
-    run --> command
-    run --> argument
-    run --> option
-    run --> get
-    run --> exit
+    quadlet_generate --> command
+    quadlet_generate --> option
     from_dict --> get
     from_dict --> cls
     from_dict --> items
@@ -687,9 +717,6 @@ graph TD
     bump --> argument
     bump --> option
     bump --> exists
-    init --> command
-    init --> option
-    init --> Path
     _parse_tasks --> items
     _parse_tasks --> isinstance
     _parse_tasks --> get
@@ -697,6 +724,17 @@ graph TD
     auth_setup --> option
     auth_setup --> print
     auth_setup --> Path
+    auth_setup --> enumerate
+    fleet_repair_cmd --> command
+    fleet_repair_cmd --> argument
+    fleet_repair_cmd --> option
+    fleet_repair_cmd --> _load_config_or_exit
+    fleet_repair_cmd --> print
+    run --> _resolve_stages
+    run --> _print_pipeline_head
+    run --> time
+    run --> enumerate
+    run --> _print_summary
 ```
 
 ## Reverse Engineering Guidelines

@@ -1,6 +1,38 @@
-"""Release command for taskfile — full deployment cycle.
+"""## Release command for taskfile
 
-Orchestrates: tag → build → deploy → health check
+Full deployment cycle orchestration: **tag → build → deploy → health check**
+
+### Overview
+
+This module provides comprehensive release management for multi-platform applications.
+It coordinates the entire deployment pipeline from version bumping through health checks.
+
+### Release Pipeline
+
+```
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+│  TAG    │ -> │  BUILD  │ -> │ DEPLOY  │ -> │ HEALTH  │
+└─────────┘    └─────────┘    └─────────┘    └─────────┘
+```
+
+### Supported Platforms
+
+| Platform | Description | Build Tool |
+|----------|-------------|------------|
+| `desktop` | Desktop applications | PyInstaller/Build |
+| `web` | Web applications | Docker/Podman |
+| `mobile` | Mobile apps | Native tooling |
+
+### Commands
+
+- `release` - Full release pipeline
+- `rollback` - Rollback to previous version
+
+### Dependencies
+
+- `clickmd` - CLI framework with markdown support
+- `rich` - Rich console output
+- `taskfile.health` - Health check integration
 """
 
 from __future__ import annotations
@@ -10,7 +42,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import click
+import clickmd as click
+from taskfile.cli.click_compat import confirm
 from rich.console import Console
 from rich.panel import Panel
 
@@ -150,7 +183,7 @@ def _confirm_release(dry_run, force):
     if dry_run:
         console.print("[yellow]DRY RUN — No changes will be made[/]\n")
     elif not force:
-        if not click.confirm("\nProceed with release?"):
+        if not confirm("\nProceed with release?"):
             console.print("[yellow]Release cancelled[/]")
             sys.exit(0)
 
@@ -338,7 +371,7 @@ def rollback(ctx, target_tag, domain, dry_run):
         console.print(f"  [dim]→ Would deploy web app with TAG={rollback_tag}[/]")
         sys.exit(0)
 
-    if not click.confirm("\nProceed with rollback?"):
+    if not confirm("\nProceed with rollback?"):
         console.print("[yellow]Rollback cancelled[/]")
         sys.exit(0)
 

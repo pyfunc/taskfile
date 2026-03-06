@@ -1,6 +1,36 @@
+"""## CI/CD integration commands for taskfile
+
+Generate CI/CD configs and run pipelines locally.
+
+### Overview
+
+Integrates with popular CI/CD platforms:
+- **GitHub Actions** - `.github/workflows/*.yml`
+- **GitLab CI** - `.gitlab-ci.yml`
+- **Jenkins** - `Jenkinsfile`
+- **Drone** - `.drone.yml`
+
+### Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `ci generate` | Generate CI config | `taskfile ci generate github` |
+| `ci run` | Run pipeline locally | `taskfile ci run` |
+| `ci validate` | Validate CI config | `taskfile ci validate` |
+
+### Why clickmd?
+
+Uses `clickmd` for consistent CLI experience and markdown rendering of CI logs.
+
+### Dependencies
+
+- `clickmd` - CLI framework
+- `rich` - Rich console output
+"""
+
 from __future__ import annotations
 import sys
-import click
+import clickmd as click
 from taskfile.parser import load_taskfile, TaskfileNotFoundError, TaskfileParseError
 from taskfile.cli.main import main, console
 

@@ -82,10 +82,39 @@ def _build_container_env(service: ServiceConfig, lines: list[str]) -> None:
     for ef in env_files:
         lines.append(f"EnvironmentFile={ef}")
 
-def _build_container_ports(service: ServiceConfig, lines: list[str]) -> None:
+def _build_container_ports(service: ServiceConfig, lines: list[str], env: dict[str, str] | None = None) -> None:
+    """Build PublishPort lines, resolving env vars in port mappings.
+
+    Args:
+        service: Service configuration from compose
+        lines: Output lines list to append to
+        env: Optional environment variables dict for resolving ${VAR:-default}
+    """
+    env = env or {}
     for port in service.get("ports", []):
         host_port, container_port = _parse_port(str(port))
+        # Resolve env vars in host port (e.g., ${PORT_WEB:-8000})
+        host_port = _resolve_env_in_port(host_port, env)
         lines.append(f"PublishPort={host_port}:{container_port}")
+
+
+def _resolve_env_in_port(port_str: str, env: dict[str, str]) -> str:
+    """Resolve ${VAR} or ${VAR:-default} syntax in port string."""
+    import re
+
+    def replace_var(match: re.Match) -> str:
+        var_name = match.group("var")
+        default = match.group("default")
+        value = env.get(var_name)
+        if value:
+            return value
+        if default is not None:
+            return default
+        return match.group(0)  # Keep original if no value and no default
+
+    # Match ${VAR} or ${VAR:-default}
+    pattern = r"\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)(?::-(?P<default>[^}]*))?\}"
+    return re.sub(pattern, replace_var, port_str)
 
 def _build_container_volumes(service: ServiceConfig, lines: list[str]) -> None:
     for vol in service.get("volumes", []):
@@ -144,7 +173,13 @@ def _build_container_podman_args(service: ServiceConfig, lines: list[str]) -> No
     if podman_args:
         lines.append(f"PodmanArgs={' '.join(podman_args)}")
 
-def _build_container_section(service_name: str, service: ServiceConfig, network_name: str, auto_update: bool) -> list[str]:
+def _build_container_section(
+    service_name: str,
+    service: ServiceConfig,
+    network_name: str,
+    auto_update: bool,
+    env: dict[str, str] | None = None,
+) -> list[str]:
     lines = ["\\n[Container]"]
     image = service.get("image", "")
     if image:
@@ -154,7 +189,7 @@ def _build_container_section(service_name: str, service: ServiceConfig, network_
         lines.append("AutoUpdate=registry")
 
     _build_container_env(service, lines)
-    _build_container_ports(service, lines)
+    _build_container_ports(service, lines, env)
     _build_container_volumes(service, lines)
     _build_container_networks(service, network_name, lines)
     _build_container_labels(service, lines)
@@ -178,6 +213,7 @@ def generate_container_unit(
     service: ServiceConfig,
     network_name: str = "proxy",
     auto_update: bool = True,
+    env: dict[str, str] | None = None,
 ) -> str:
     """Generate a .container Quadlet unit file content from a compose service.
 
@@ -186,12 +222,13 @@ def generate_container_unit(
         service: Resolved service dict from docker-compose.yml
         network_name: Podman network to attach to
         auto_update: Enable AutoUpdate=registry
+        env: Environment variables for resolving ${VAR:-default} in ports
 
     Returns:
         String content of the .container file
     """
     lines_unit = _build_unit_section(service_name, service)
-    lines_container = _build_container_section(service_name, service, network_name, auto_update)
+    lines_container = _build_container_section(service_name, service, network_name, auto_update, env)
     lines_service = _build_service_section(service)
     lines_install = _build_install_section()
 
@@ -240,6 +277,7 @@ def _generate_container_files(
     network_name: str,
     auto_update: bool,
     services_filter: list[str] | None,
+    env: dict[str, str] | None = None,
 ) -> tuple[list[Path], set[str]]:
     """Write .container files for each service. Returns (paths, named_volumes)."""
     generated: list[Path] = []
@@ -256,6 +294,7 @@ def _generate_container_files(
             service=svc_data,
             network_name=network_name,
             auto_update=auto_update,
+            env=env,
         )
         filepath = outdir / f"{svc_name}.container"
         filepath.write_text(content)
@@ -282,6 +321,7 @@ def compose_to_quadlet(
     network_name: str = "proxy",
     auto_update: bool = True,
     services_filter: list[str] | None = None,
+    env: dict[str, str] | None = None,
 ) -> list[Path]:
     """Convert all services in a ComposeFile to Quadlet unit files.
 
@@ -291,6 +331,7 @@ def compose_to_quadlet(
         network_name: Default network name
         auto_update: Enable AutoUpdate on all containers
         services_filter: Only generate for these services (None = all)
+        env: Environment variables for resolving ${VAR:-default} in ports
 
     Returns:
         List of paths to generated files
@@ -301,7 +342,7 @@ def compose_to_quadlet(
     generated: list[Path] = []
     generated.append(_generate_network_file(outdir, network_name))
     container_paths, named_volumes = _generate_container_files(
-        outdir, compose, network_name, auto_update, services_filter,
+        outdir, compose, network_name, auto_update, services_filter, env,
     )
     generated.extend(container_paths)
     generated.extend(_generate_volume_files(outdir, named_volumes))

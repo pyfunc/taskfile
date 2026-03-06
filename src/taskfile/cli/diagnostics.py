@@ -1,4 +1,40 @@
-"""Project diagnostics and auto-fix functionality."""
+"""## Project diagnostics and auto-fix functionality
+
+Diagnose common project issues and suggest (or apply) fixes automatically.
+
+### Overview
+
+The `doctor` command performs comprehensive health checks:
+- **Configuration** - Validate Taskfile.yml syntax
+- **Dependencies** - Check for missing tools (Docker, Podman, SSH)
+- **Environment** - Verify environment variables and SSH connectivity
+- **Ports** - Check for port conflicts
+- **Git** - Validate repository state
+
+### Auto-Fix
+
+Some issues can be fixed automatically:
+
+```bash
+taskfile doctor --fix
+```
+
+| Issue | Auto-Fixable |
+|-------|--------------|
+| Missing .env file | ✅ Yes |
+| Wrong file permissions | ✅ Yes |
+| Missing SSH keys | ❌ No (manual) |
+| Port conflicts | ❌ No (manual) |
+
+### Why clickmd?
+
+Uses `clickmd` for consistent CLI experience and markdown rendering of diagnostic reports.
+
+### Dependencies
+
+- `clickmd` - CLI framework
+- `rich` - Rich console output for diagnostic tables
+"""
 
 from __future__ import annotations
 

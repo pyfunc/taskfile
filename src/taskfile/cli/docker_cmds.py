@@ -1,4 +1,33 @@
-"""CLI commands for Docker service management (stop containers, compose down, port helpers)."""
+"""## CLI commands for Docker service management
+
+Provides commands for managing Docker containers and services:
+
+- **Container inspection** (`docker ps`) - List running containers
+- **Container stopping** (`docker stop`) - Stop specific or all containers
+- **Port management** (`docker ports`) - Check port conflicts
+- **Compose operations** (`docker compose-down`) - Docker Compose integration
+
+### Why clickmd?
+
+This module uses `clickmd` instead of standard `click` for:
+- Consistent markdown rendering across all CLI modules
+- Rich text formatting for container information
+- Better integration with the rest of the taskfile CLI
+
+### Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `docker ps` | Show running containers | `taskfile docker ps` |
+| `docker stop` | Stop containers by port | `taskfile docker stop 8080` |
+| `docker stop-all` | Stop all containers | `taskfile docker stop-all` |
+| `docker compose-down` | Run docker compose down | `taskfile docker compose-down` |
+
+### Dependencies
+
+- `clickmd` - CLI framework with markdown support
+- `rich` - Rich console output
+"""
 
 from __future__ import annotations
 
@@ -7,7 +36,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-import click
+import clickmd as click
+from taskfile.cli.click_compat import ClickException, confirm
 
 from taskfile.cli.main import console, main
 
@@ -29,7 +59,7 @@ def _docker_ps() -> list[DockerContainer]:
         capture_output=True,
     )
     if result.returncode != 0:
-        raise click.ClickException(result.stderr.strip() or "docker ps failed")
+        raise ClickException(result.stderr.strip() or "docker ps failed")
 
     containers: list[DockerContainer] = []
     for line in result.stdout.splitlines():
@@ -64,7 +94,7 @@ def _docker_stop(container_ids: list[str]) -> None:
         return
     result = subprocess.run(["docker", "stop", *container_ids], text=True, capture_output=True)
     if result.returncode != 0:
-        raise click.ClickException(result.stderr.strip() or "docker stop failed")
+        raise ClickException(result.stderr.strip() or "docker stop failed")
 
 
 @main.group(name="docker")
@@ -77,7 +107,7 @@ def docker_ps_cmd():
     """Show running docker containers (id, name, ports)."""
     try:
         containers = _docker_ps()
-    except click.ClickException as e:
+    except ClickException as e:
         console.print(f"[red]Error:[/] {e}")
         raise SystemExit(1)
 
@@ -104,7 +134,7 @@ def docker_stop_port_cmd(port: int, assume_yes: bool):
         console.print(f"  {c.container_id}  {c.name}  {c.ports}")
 
     if not assume_yes:
-        if not click.confirm(f"Stop {len(containers)} container(s)?", default=False):
+        if not confirm(f"Stop {len(containers)} container(s)?", default=False):
             console.print("[dim]Cancelled[/]")
             return
 
@@ -126,7 +156,7 @@ def docker_stop_all_cmd(assume_yes: bool):
         console.print(f"  {c.container_id}  {c.name}  {c.ports}")
 
     if not assume_yes:
-        if not click.confirm(f"Stop all {len(containers)} container(s)?", default=False):
+        if not confirm(f"Stop all {len(containers)} container(s)?", default=False):
             console.print("[dim]Cancelled[/]")
             return
 
@@ -144,7 +174,7 @@ def docker_compose_down_cmd(compose_dir: Path, assume_yes: bool):
         console.print(f"[yellow]⚠[/] No compose file found in {compose_dir}")
 
     if not assume_yes:
-        if not click.confirm(f"Run 'docker compose down' in {compose_dir}?", default=False):
+        if not confirm(f"Run 'docker compose down' in {compose_dir}?", default=False):
             console.print("[dim]Cancelled[/]")
             return
 

@@ -1,8 +1,35 @@
-"""CLI commands for cache management."""
+"""## CLI commands for cache management
+
+View, clear, and manage task execution cache.
+
+### Overview
+
+taskfile caches task outputs to speed up subsequent runs:
+- **Task results** - Cache successful task outputs
+- **Build artifacts** - Reuse unchanged build outputs
+- **Dependencies** - Cache resolved dependencies
+
+### Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `cache list` | List cached items | `taskfile cache list` |
+| `cache clear` | Clear all caches | `taskfile cache clear` |
+| `cache info` | Show cache statistics | `taskfile cache info` |
+
+### Why clickmd?
+
+Uses `clickmd` for consistent CLI experience and markdown formatting of cache info.
+
+### Dependencies
+
+- `clickmd` - CLI framework
+- `rich` - Rich console output for tables
+"""
 
 from __future__ import annotations
 
-import click
+import clickmd as click
 from rich.table import Table
 from rich import box
 

@@ -1,6 +1,6 @@
-# taskfile | 88f 18078L | python:88
+# taskfile | 96f 21047L | python:96
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[88]:
+M[96]:
   examples/functions-embed/scripts/report.py,16
   examples/script-extraction/scripts/migrate.py,20
   examples/script-extraction/scripts/provision.py,41
@@ -8,7 +8,10 @@ M[88]:
   examples/script-extraction/scripts/report.py,25
   src/taskfile/__init__.py,34
   src/taskfile/__main__.py,4
-  src/taskfile/cache.py,175
+  src/taskfile/api/__init__.py,8
+  src/taskfile/api/app.py,490
+  src/taskfile/api/models.py,136
+  src/taskfile/cache.py,173
   src/taskfile/cigen/__init__.py,48
   src/taskfile/cigen/base.py,54
   src/taskfile/cigen/drone.py,49
@@ -18,46 +21,48 @@ M[88]:
   src/taskfile/cigen/jenkins.py,46
   src/taskfile/cigen/makefile.py,42
   src/taskfile/cirunner.py,204
-  src/taskfile/cli/__init__.py,16
-  src/taskfile/cli/auth.py,207
-  src/taskfile/cli/cache_cmds.py,57
-  src/taskfile/cli/ci.py,171
+  src/taskfile/cli/__init__.py,17
+  src/taskfile/cli/api_cmd.py,108
+  src/taskfile/cli/auth.py,224
+  src/taskfile/cli/cache_cmds.py,71
+  src/taskfile/cli/ci.py,187
+  src/taskfile/cli/click_compat.py,164
   src/taskfile/cli/completion.py,123
-  src/taskfile/cli/deploy.py,227
-  src/taskfile/cli/diagnostics.py,302
-  src/taskfile/cli/docker_cmds.py,117
-  src/taskfile/cli/fleet.py,275
+  src/taskfile/cli/deploy.py,244
+  src/taskfile/cli/diagnostics.py,447
+  src/taskfile/cli/docker_cmds.py,136
+  src/taskfile/cli/fleet.py,325
   src/taskfile/cli/health.py,51
   src/taskfile/cli/import_export.py,173
-  src/taskfile/cli/info_cmd.py,58
+  src/taskfile/cli/info_cmd.py,59
   src/taskfile/cli/interactive/__init__.py,6
-  src/taskfile/cli/interactive/menu.py,184
-  src/taskfile/cli/interactive/wizards.py,236
-  src/taskfile/cli/main.py,337
-  src/taskfile/cli/quadlet.py,154
-  src/taskfile/cli/registry_cmds.py,174
-  src/taskfile/cli/release.py,294
+  src/taskfile/cli/interactive/menu.py,199
+  src/taskfile/cli/interactive/wizards.py,254
+  src/taskfile/cli/main.py,507
+  src/taskfile/cli/quadlet.py,204
+  src/taskfile/cli/registry_cmds.py,197
+  src/taskfile/cli/release.py,315
   src/taskfile/cli/setup.py,358
-  src/taskfile/cli/version.py,230
-  src/taskfile/compose.py,127
-  src/taskfile/converters.py,318
-  src/taskfile/fleet.py,371
+  src/taskfile/cli/version.py,255
+  src/taskfile/compose.py,187
+  src/taskfile/converters.py,216
+  src/taskfile/fleet.py,376
   src/taskfile/graph.py,150
-  src/taskfile/health.py,348
-  src/taskfile/importer.py,299
+  src/taskfile/health.py,330
+  src/taskfile/importer.py,319
   src/taskfile/landing.py,326
-  src/taskfile/models.py,356
+  src/taskfile/models.py,359
   src/taskfile/notifications.py,83
-  src/taskfile/parser.py,213
+  src/taskfile/parser.py,269
   src/taskfile/provisioner.py,237
-  src/taskfile/quadlet.py,254
+  src/taskfile/quadlet.py,288
   src/taskfile/registry.py,258
   src/taskfile/runner/__init__.py,7
-  src/taskfile/runner/commands.py,160
-  src/taskfile/runner/core.py,325
+  src/taskfile/runner/commands.py,172
+  src/taskfile/runner/core.py,334
   src/taskfile/runner/functions.py,107
-  src/taskfile/runner/resolver.py,120
-  src/taskfile/runner/ssh.py,36
+  src/taskfile/runner/resolver.py,154
+  src/taskfile/runner/ssh.py,45
   src/taskfile/scaffold/__init__.py,24
   src/taskfile/scaffold/codereview.py,169
   src/taskfile/scaffold/full.py,148
@@ -66,12 +71,14 @@ M[88]:
   src/taskfile/scaffold/podman.py,81
   src/taskfile/scaffold/publish.py,238
   src/taskfile/scaffold/web.py,79
-  src/taskfile/ssh.py,92
+  src/taskfile/ssh.py,110
   src/taskfile/watch.py,142
   src/taskfile/webui/__init__.py,6
-  src/taskfile/webui/handlers.py,508
+  src/taskfile/webui/dashboard.py,394
+  src/taskfile/webui/handlers.py,123
   src/taskfile/webui/server.py,30
   tests/__init__.py,0
+  tests/test_api.py,304
   tests/test_auth.py,72
   tests/test_cigen.py,262
   tests/test_cli.py,124
@@ -82,11 +89,12 @@ M[88]:
   tests/test_health.py,166
   tests/test_landing.py,197
   tests/test_models.py,337
-  tests/test_parser.py,38
+  tests/test_parser.py,94
   tests/test_provisioner.py,268
   tests/test_quadlet.py,188
   tests/test_release.py,261
-  tests/test_runner.py,212
+  tests/test_resolver.py,192
+  tests/test_runner.py,207
   tests/test_scaffold.py,88
   tests/test_setup.py,189
 D:
@@ -112,6 +120,20 @@ D:
     i: argparse,json,os,datetime
     e: main
     main()
+  src/taskfile/api/app.py:
+    i: io,time,traceback,contextlib.{redirect_stderr,redirect_stdout},fastapi.{FastAPI,HTTPException,Query},fastapi.middleware.cors.CORSMiddleware,pathlib.Path
+    e: create_app
+    _load_config(taskfile_path:Any=None)
+    _config_to_info(config)->TaskfileInfo
+    create_app(taskfile_path:Any=None)->FastAPI
+  src/taskfile/api/models.py:
+    i: datetime,enum.Enum,pydantic.{BaseModel,Field},typing.Any
+    e: TaskStatus,DeployStrategy,RunTaskRequest,ValidateRequest,TaskInfo,EnvironmentInfo,EnvironmentGroupInfo,PlatformInfo
+    TaskStatus: 
+    DeployStrategy: 
+    RunTaskRequest:   # Request to run one or more tasks.
+    ValidateRequest:   # Request to validate a Taskfile.
+    TaskInfo:   # Single task metadata.
   src/taskfile/cache.py:
     i: hashlib,json,os,time,pathlib.Path,typing.{Any,TYPE_CHECKING}
     e: TaskCache,get_project_hash
@@ -161,8 +183,14 @@ D:
     PipelineError: __init__(2)  # Raised when a pipeline stage fails.
     PipelineRunner: __init__(5),run(3),_should_skip_stage(3),_resolve_stages(3),_print_pipeline_header(1)  # Runs CI/CD pipeline stages locally us...
     StageResult: __init__(5)  # Result of running a single pipeline s...
+  src/taskfile/cli/api_cmd.py:
+    i: sys,clickmd,rich.console.Console,taskfile.cli.main
+    e: api,api_serve,api_openapi
+    api()
+    api_serve(ctx;host:str;port:int;auto_reload:bool;no_browser:bool)
+    api_openapi(ctx;output_path:Any)
   src/taskfile/cli/auth.py:
-    i: os,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.cli.main
+    i: os,subprocess,sys,clickmd,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.cli.main,taskfile.cli.click_compat.prompt
     e: REGISTRIES,auth,auth_setup,auth_verify
     _read_env_file(path:Path)->dict[str, str]
     _write_env_var(path:Path;key:str;value:str)->None
@@ -172,13 +200,13 @@ D:
     auth_setup(registry)
     auth_verify()
   src/taskfile/cli/cache_cmds.py:
-    i: click,rich.box,rich.table.Table,taskfile.cache.{TaskCache,get_project_hash},taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.TaskfileNotFoundError
+    i: clickmd,rich.box,rich.table.Table,taskfile.cache.{TaskCache,get_project_hash},taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.TaskfileNotFoundError
     e: cache,cache_show,cache_clear
     cache()
     cache_show()
     cache_clear(task_name;clear_all)
   src/taskfile/cli/ci.py:
-    i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    i: sys,clickmd,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
     e: ci,ci_generate,ci_run,ci_list,ci_preview,ci_targets
     ci()
     ci_generate(ctx;targets;gen_all;output_dir)
@@ -186,15 +214,24 @@ D:
     ci_list(ctx)
     ci_preview(ctx;target)
     ci_targets()
+  src/taskfile/cli/click_compat.py:
+    i: sys,clickmd,typing.Any
+    e: Abort,BadParameter,ClickException,confirm,prompt,version_option
+    Abort:   # Exception to signal that the applicat...
+    BadParameter: __init__(4)  # Exception raised for bad parameter va...
+    ClickException: __init__(1)  # Base class for click exceptions.
+    confirm(text:str;default:bool=False;abort:bool=False;prompt_suffix:str=': ';show_default:bool=True;err:bool=False)->bool
+    prompt(text:str;default:Any=None;type:Any=None;value_proc:Any=None;prompt_suffix:str=': ';show_default:bool=True;...+1)->Any
+    version_option(version:str=None;prog_name:str=None;message:str=None;help:str=None)
   src/taskfile/cli/completion.py:
-    i: os,click,click.shell_completion.CompletionItem,pathlib.Path,taskfile.parser.{TaskfileNotFoundError,find_taskfile,load_taskfile},typing.TYPE_CHECKING
+    i: os,clickmd,click.shell_completion.CompletionItem,pathlib.Path,taskfile.parser.{TaskfileNotFoundError,find_taskfile,load_taskfile},typing.TYPE_CHECKING
     e: get_task_names,get_environment_names,get_platform_names,generate_completion_script
     get_task_names(ctx;param;incomplete:str)->list[CompletionItem]
     get_environment_names(ctx;param;incomplete:str)->list[CompletionItem]
     get_platform_names(ctx;param;incomplete:str)->list[CompletionItem]
     generate_completion_script(shell:str)->str
   src/taskfile/cli/deploy.py:
-    i: sys,subprocess,click,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile},typing.Any
+    i: sys,subprocess,clickmd,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile},typing.Any
     e: DeployStrategy,deploy_cmd
     DeployStrategy: __init__(7)  # Pure data class representing selected...
     _run(cmd:str;label:str;dry_run:bool)
@@ -208,7 +245,8 @@ D:
   src/taskfile/cli/diagnostics.py:
     i: os,re,socket,subprocess,yaml,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
     e: ProjectDiagnostics
-    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),check_ports(0),check_docker(0)  # Diagnose and auto-fix common project...
+    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_ports(0)  # Diagnose and auto-fix common project...
+    _resolve_port_conflict(svc_name:str;port_entry:str;ctx:dict)->tuple[str, int, int] | None
     _parse_compose_host_port(port_entry:str)->tuple[str | None, str | None]
     _is_port_free(port:int;host:str='0.0.0.0')->bool
     _find_free_port_near(start_port:int;span:int=50)->int | None
@@ -216,7 +254,7 @@ D:
     _docker_containers_using_port(port:int)->list[dict[str, str]]
     _docker_stop(container_ids:list[str])->None
   src/taskfile/cli/docker_cmds.py:
-    i: re,subprocess,click,dataclasses.dataclass,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console
+    i: re,subprocess,clickmd,dataclasses.dataclass,pathlib.Path,taskfile.cli.main,taskfile.cli.click_compat.{ClickException,confirm},taskfile.cli.main.console
     e: DockerContainer,_PORT_TOKEN_RE,docker_group,docker_ps_cmd,docker_stop_port_cmd,docker_stop_all_cmd,docker_compose_down_cmd
     DockerContainer: 
     _docker_ps()->list[DockerContainer]
@@ -228,32 +266,34 @@ D:
     docker_stop_port_cmd(port:int;assume_yes:bool)
     docker_stop_all_cmd(assume_yes:bool)
   src/taskfile/cli/fleet.py:
-    i: subprocess,sys,click,rich.console.Console,rich.table.Table,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    i: subprocess,sys,clickmd,rich.console.Console,rich.table.Table,taskfile.cli.main,taskfile.cli.click_compat.confirm,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError}
     e: fleet,fleet_status_cmd,fleet_repair_cmd,fleet_list_cmd
     _load_config_or_exit(taskfile_path:Any)->TaskfileConfig
     _get_remote_envs(config:TaskfileConfig;group_name:Any=None)->list[tuple[str, Environment]]
     _ssh_check(env:Environment;cmd:str;timeout:int=10)->subprocess.CompletedProcess
     _ping(host:str)->bool
-    fleet()
-    fleet_status_cmd(ctx;group)
-    fleet_repair_cmd(ctx;env_name;auto_fix)
     _safe_ssh(env;cmd:str;timeout:int=10)
+    _parse_device_metrics(stdout:str)->dict
+    _check_single_device(name:str;env)->dict
+    _build_fleet_table(results:list[dict])->"Table"
   src/taskfile/cli/health.py:
-    i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.health.{health_check_all,print_health_report,run_health_checks},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError},typing.TYPE_CHECKING
+    i: sys,clickmd,taskfile.cli.main,taskfile.cli.main.console,taskfile.health.{health_check_all,print_health_report,run_health_checks},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError},typing.TYPE_CHECKING
     e: health_cmd
     health_cmd(ctx;domain;ssh_host;ssh_user;ssh_key;no_ssh)
   src/taskfile/cli/import_export.py:
-    i: sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.cli.main,taskfile.cli.main.console,taskfile.converters.{detect_format,export_file,import_file}
+    i: sys,clickmd,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.cli.main,taskfile.cli.main.console,taskfile.converters.{detect_format,export_file,import_file}
     e: import_cmd,export_cmd,detect
     import_cmd(source;source_type;output_path;force)
     export_cmd(ctx;target_type;output_path;workflow_name;project_name;taskfile_path)
     detect()
   src/taskfile/cli/info_cmd.py:
-    i: sys,click,taskfile.cli.main,taskfile.cli.main.{_print_nearby_taskfiles,console},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    i: sys,clickmd,taskfile.cli.main,taskfile.cli.main.{_print_nearby_taskfiles,console},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
     e: info
+    _print_task_attributes(task)->None
+    _print_task_body(task)->None
     info(ctx;task_name)
   src/taskfile/cli/interactive/menu.py:
-    i: sys,click,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError}
+    i: sys,clickmd,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError}
     e: setup,hosts,env,watch,graph,serve
     setup()
     hosts(ctx)
@@ -262,7 +302,7 @@ D:
     graph(ctx;task_name;dot;output)
     serve(port;no_browser)
   src/taskfile/cli/interactive/wizards.py:
-    i: os,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.{Confirm,IntPrompt,Prompt}
+    i: os,subprocess,sys,clickmd,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.{Confirm,IntPrompt,Prompt}
     e: doctor,init
     _detect_project_type()->str
     _suggest_template(project_type:str)->str
@@ -271,20 +311,20 @@ D:
     _collect_init_choices()->dict[str, any]
     _create_gitignore()->None
     doctor(fix;verbose)
-    init(template;force;interactive)
+    _apply_init_extras(choices:dict)->None
   src/taskfile/cli/main.py:
-    i: sys,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile,load_taskfile},taskfile.runner.TaskfileRunner
+    i: sys,clickmd,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.cli.click_compat.{BadParameter,version_option},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile}
     e: parse_var,main,run,list_tasks,validate,import_cmd
+    _format_nearby_path(path:Path;level:int)->tuple[str, str]
+    _nearby_cd_hint(path:Path;level:int)->str
     _print_nearby_taskfiles(nearby:list[tuple[Path;int]])->None
     _suggest_similar_tasks(unknown:str;available:list[str];max_suggestions:int=3)->list[str]
+    _check_unknown_tasks(task_list:list[str];available_tasks:dict)->None
     _run_env_group(taskfile_path;env_group:str;task_names:list[str];platform_name:Any=None;var_overrides:Any=None;dry_run:bool=False;...+1)->bool
     _group_rolling(members:list[str];run_fn)->bool
     _group_canary(members:list[str];run_fn;canary_count:int)->bool
-    _group_parallel(members:list[str];run_fn;max_parallel:int)->bool
-    parse_var(ctx;param;value:tuple[str;Ellipsis])->dict[str, str]
-    main(ctx;taskfile_path;env_name;env_group;platform_name;var;...+1)
   src/taskfile/cli/quadlet.py:
-    i: sys,click,subprocess,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.models.Environment,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
+    i: sys,clickmd,subprocess,pathlib.Path,taskfile.cli.main,taskfile.cli.main.console,taskfile.models.Environment,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,load_taskfile}
     e: quadlet,quadlet_generate,quadlet_upload
     quadlet()
     quadlet_generate(ctx;compose_path;env_file;output_dir;network;no_auto_update;...+1)
@@ -293,7 +333,7 @@ D:
     _run_upload_commands(env:Environment;files:list[Path];dry_run:bool)->None
     quadlet_upload(ctx;quadlet_dir)
   src/taskfile/cli/registry_cmds.py:
-    i: sys,click,pathlib.Path,rich.box,rich.table.Table,taskfile.cli.main,taskfile.cli.main.console,taskfile.parser.TaskfileNotFoundError,taskfile.registry.{RegistryClient,TaskPackage}
+    i: sys,clickmd,pathlib.Path,rich.box,rich.table.Table,taskfile.cli.main,taskfile.cli.click_compat.confirm,taskfile.cli.main.console,taskfile.registry.{RegistryClient,TaskPackage}
     e: pkg,pkg_search,pkg_install,pkg_list,pkg_uninstall,pkg_info
     pkg()
     pkg_search(query;limit;registry)
@@ -302,18 +342,18 @@ D:
     pkg_uninstall(package_name;yes)
     pkg_info(package_name)
   src/taskfile/cli/release.py:
-    i: subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.cli.main,taskfile.cli.main.console,taskfile.health.health_check_all,typing.TYPE_CHECKING
+    i: subprocess,sys,clickmd,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.cli.main,taskfile.cli.click_compat.confirm,taskfile.cli.main.console,typing.TYPE_CHECKING
     e: release,rollback
     _run_command(cmd:Any;description:str;dry_run:bool=False)->bool
     _get_current_tag()->str | None
     _get_previous_tag()->str | None
     _resolve_release_config(ctx;tag_version)
+    _resolve_domain(config;domain_override:Any=None)->tuple[str, str | None]
     _show_release_plan(app_name;current_tag;domain;skip_desktop;skip_landing;skip_health)
     _confirm_release(dry_run;force)
     _step_build_desktop(dry_run_flag;dry_run)
-    _step_deploy_web(dry_run_flag;dry_run)
   src/taskfile/cli/setup.py:
-    i: os,re,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
+    i: os,re,subprocess,sys,clickmd,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
     e: SetupConfig,setup
     SetupConfig: __init__(7)  # Configuration collected during setup...
     _validate_ip(ip:str)->bool
@@ -325,7 +365,7 @@ D:
     _provision_vps(config:SetupConfig;dry_run:bool=False)->bool
     _is_vps_ready(config:SetupConfig)->bool
   src/taskfile/cli/version.py:
-    i: re,subprocess,sys,click,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.__version__,taskfile.cli.main,taskfile.parser.TaskfileNotFoundError
+    i: re,subprocess,sys,clickmd,pathlib.Path,rich.console.Console,rich.panel.Panel,taskfile.__version__,taskfile.cli.main,taskfile.cli.click_compat.confirm
     e: version,bump,show,set
     version()
     bump(ctx;part;dry_run;force)
@@ -336,14 +376,15 @@ D:
     _get_version_from_git(project_dir:Path)->str | None
     _has_git(project_dir:Path)->bool
   src/taskfile/compose.py:
-    i: os,re,yaml,pathlib.Path,typing.Any
-    e: VAR_PATTERN,load_env_file,resolve_variables,resolve_dict,ComposeFile
+    i: os,re,yaml,dataclasses.dataclass,pathlib.Path,typing.Any
+    e: PortMapping,VAR_PATTERN,load_env_file,resolve_variables,resolve_dict,ComposeFile
+    PortMapping:   # Represents a port mapping from docker...
     ComposeFile: __init__(3),services(0),networks(0),volumes(0),get_service(1)  # Parsed docker-compose.yml with enviro...
     load_env_file(path:Any)->dict[str, str]
     resolve_variables(text:str;variables:dict[str;str])->str
     resolve_dict(data:Any;variables:dict[str;str])->Any
   src/taskfile/converters.py:
-    i: re,pathlib.Path,taskfile.importer._IMPORTER_FILENAME_MAP,typing.TYPE_CHECKING
+    i: re,pathlib.Path,taskfile.importer.{_IMPORTER_FILENAME_MAP,parse_github_actions,parse_gitlab_ci,parse_makefile},typing.TYPE_CHECKING
     e: MakefileConverter,GitHubActionsConverter,NpmScriptsConverter,GitLabCIConverter,DockerComposeConverter,detect_format,import_file,export_file
     MakefileConverter: import_makefile(1),export_makefile(1)  # Convert between Taskfile and Makefile.
     GitHubActionsConverter: import_workflow(1),export_workflow(2)  # Convert between Taskfile and GitHub A...
@@ -365,10 +406,10 @@ D:
     save_fleet(config:FleetConfig;path:Any=None)->Path
     _ssh_cmd(config:FleetConfig;host:str;cmd:str;timeout:int=10)->subprocess.CompletedProcess
     _ping_device(host:str;timeout:int=3)->bool
+    _parse_status_output(ds:DeviceStatus;stdout:str)->None
     check_device_status(config:FleetConfig;device:Device)->DeviceStatus
     fleet_status(config:FleetConfig)->list[DeviceStatus]
     print_fleet_status(statuses:list[DeviceStatus])->None
-    deploy_to_device(config:FleetConfig;device:Device;app_name:str;tag:str='latest')->bool
   src/taskfile/graph.py:
     i: pathlib.Path,rich.console.Console,rich.panel.Panel,rich.tree.Tree,typing.TYPE_CHECKING
     e: build_dependency_graph,detect_cycles,print_task_tree,print_dependency_list,export_to_dot
@@ -383,6 +424,7 @@ D:
     e: HealthCheckResult,HealthReport,check_http_endpoint,check_ssh_service,check_traefik_dashboard,run_health_checks,print_health_report,health_check_all
     HealthCheckResult:   # Result of a single health check.
     HealthReport: healthy_count(0),unhealthy_count(0)  # Aggregated health check report.
+    _unhealthy_result(name:str;url:str;start:float;error:str;status_code:Any=None)->HealthCheckResult
     check_http_endpoint(name:str;url:str;expected_status:int=200;timeout:int=10;retries:int=1)->HealthCheckResult
     check_ssh_service(name:str;host:str;user:str;ssh_key:Any=None;port:int=22;timeout:int=10)->HealthCheckResult
     check_traefik_dashboard(host:str;user:str;ssh_key:Any=None)->HealthCheckResult
@@ -391,15 +433,15 @@ D:
     health_check_all(domain:str;ssh_host:Any=None;ssh_user:str='deploy';ssh_key:Any=None;exit_on_error:bool=True)->bool
   src/taskfile/importer.py:
     i: re,yaml,pathlib.Path,typing.Any
-    e: import_file,_FILENAME_TYPE_MAP,_GL_RESERVED_KEYS
+    e: import_file,_FILENAME_TYPE_MAP,parse_github_actions,_GL_RESERVED_KEYS,parse_gitlab_ci,parse_makefile
     import_file(source_path:Any;source_type:Any=None)->str
     _detect_type_from_yaml_content(path:Path)->str
     _detect_type(path:Path)->str
     _extract_gh_steps_as_commands(steps:list)->list[str]
     _extract_gh_job_deps(job_data:dict)->list[str]
     _convert_gh_job_to_task(job_name:str;job_data:dict;variables:dict)->tuple[str, dict[str, Any]]
+    parse_github_actions(content:str;filename:str='workflow.yml')->dict
     _import_github_actions(content:str;filename:str)->str
-    _extract_gl_job_commands(job_data:dict;global_before_script:list)->list[str]
   src/taskfile/landing.py:
     i: pathlib.Path,rich.console.Console,typing.TYPE_CHECKING
     e: LANDING_TEMPLATE,generate_landing_page,build_landing_page,create_landing_nginx_config,create_landing_compose_service
@@ -410,8 +452,8 @@ D:
   src/taskfile/models.py:
     i: os,dataclasses.{dataclass,field},typing.Any
     e: Environment,Platform,EnvironmentGroup,ComposeConfig,Function,Task,PipelineStage,PipelineConfig
-    Environment: ssh_target(0),ssh_opts(0),is_remote(0),resolve_variables(1)  # Deployment environment configuration.
-    Platform: resolve_variables(1)  # Target platform configuration (e.g.
+    Environment: ssh_target(0),ssh_opts(0),is_remote(0),resolve_variables(2)  # Deployment environment configuration.
+    Platform: resolve_variables(2)  # Target platform configuration (e.g.
     EnvironmentGroup:   # Group of environments sharing an upda...
     ComposeConfig:   # Compose-based deployment configuration.
     Function:   # Embedded function callable from tasks...
@@ -452,9 +494,9 @@ D:
     _parse_cpus_limit(deploy:dict)->str | None
     _build_unit_section(service_name:str;service:ServiceConfig)->list[str]
     _build_container_env(service:ServiceConfig;lines:list[str])->None
-    _build_container_ports(service:ServiceConfig;lines:list[str])->None
+    _build_container_ports(service:ServiceConfig;lines:list[str];env:Any=None)->None
+    _resolve_env_in_port(port_str:str;env:dict[str;str])->str
     _build_container_volumes(service:ServiceConfig;lines:list[str])->None
-    _build_container_networks(service:ServiceConfig;network_name:str;lines:list[str])->None
   src/taskfile/registry.py:
     i: json,os,tarfile,pathlib.Path,typing.{Any,TYPE_CHECKING},urllib.request,urllib.parse.urlparse
     e: DEFAULT_REGISTRY,REGISTRY_DIR,TaskPackage,RegistryClient,include_installed_tasks
@@ -462,13 +504,16 @@ D:
     RegistryClient: __init__(1),search(2),_search_github(2),install(3),_parse_package_name(1)  # Client for interacting with the task...
     include_installed_tasks(taskfile_config:dict)->dict
   src/taskfile/runner/commands.py:
-    i: os,subprocess,sys,time,pathlib.Path,rich.console.Console,taskfile.models.Task,taskfile.runner.ssh.{is_remote_command,run_embedded_ssh,wrap_ssh}
+    i: os,subprocess,time,clickmd.MarkdownRenderer,pathlib.Path,rich.console.Console,taskfile.models.Task,taskfile.runner.ssh.{is_local_command,is_remote_command,strip_local_prefix}
     e: run_command,execute_script,execute_commands
     _dispatch_special_prefix(runner;expanded:str;task:Task)->int | None
+    _render_output(output:str;task:Task)->None
+    _run_subprocess(runner;cmd_str:str;task:Task;label:str='Command')->int
     _run_local(runner;actual_cmd:str;task:Task;remote:bool=False)->int
     run_command(runner;cmd:str;task:Task)->int
     execute_script(runner;task:Task;task_name:str)->int
-    execute_commands(runner;task:Task;task_name:str;start:float)->bool
+    _run_with_retries(fn;task:Task)->int
+    _handle_failure(returncode:int;task:Task;task_name:str;start:float;label:str)->bool
   src/taskfile/runner/core.py:
     i: os,subprocess,time,concurrent.futures.{ThreadPoolExecutor,as_completed},pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.models.Environment
     e: TaskRunError,TaskfileRunner
@@ -484,12 +529,14 @@ D:
     _exec_function_binary(fn;fn_args:str;env:dict;task:Task)->int
     run_inline_python(runner;cmd:str;task:Task)->int
   src/taskfile/runner/resolver.py:
-    i: os,pathlib.Path,taskfile.compose._compose_resolve_variables,taskfile.models.{Environment,Platform,Task,TaskfileConfig},taskfile.parser.load_taskfile
+    i: os,pathlib.Path,taskfile.compose.{_compose_resolve_variables,load_env_file},taskfile.models.{Environment,Platform,Task,TaskfileConfig},taskfile.parser.load_taskfile
     e: TaskResolver
-    TaskResolver: __init__(4),from_path(4),_resolve_environment(0),_resolve_platform(0),_resolve_variables(0)  # Pure-logic task resolver: variable ex...
+    TaskResolver: __init__(4),from_path(4),_load_dotenv(0),_resolve_environment(0),_resolve_env_fields(1)  # Pure-logic task resolver: variable ex...
   src/taskfile/runner/ssh.py:
     i: rich.console.Console,taskfile.models.Task,taskfile.ssh.ssh_exec
-    e: is_remote_command,strip_remote_prefix,wrap_ssh,run_embedded_ssh
+    e: is_local_command,strip_local_prefix,is_remote_command,strip_remote_prefix,wrap_ssh,run_embedded_ssh
+    is_local_command(cmd:str)->bool
+    strip_local_prefix(cmd:str)->str
     is_remote_command(cmd:str)->bool
     strip_remote_prefix(cmd:str)->str
     wrap_ssh(cmd:str;env)->str
@@ -500,7 +547,7 @@ D:
     _load_template(name:str)->str
     generate_taskfile(template:str='full')->str
   src/taskfile/ssh.py:
-    i: os,subprocess,paramiko,rich.console.Console,typing.TYPE_CHECKING
+    i: os,subprocess,paramiko,clickmd.MarkdownRenderer,rich.console.Console,typing.TYPE_CHECKING
     e: _HAS_PARAMIKO,has_paramiko,close_all,ssh_exec
     has_paramiko()->bool
     _pool_key(env:Environment)->str
@@ -513,6 +560,9 @@ D:
     e: FileWatcher,watch_tasks
     FileWatcher: __init__(4),_should_ignore(1),_get_files(0),_detect_changes(0),start(0)  # Watch files for changes and trigger c...
     watch_tasks(task_names:list[str];watch_paths:Any=None;runner=None;debounce_ms:int=300)->None
+  src/taskfile/webui/dashboard.py:
+    e: get_dashboard_html,_CSS,_BODY,_SCRIPT
+    get_dashboard_html()->str
   src/taskfile/webui/handlers.py:
     i: json,subprocess,http.server.BaseHTTPRequestHandler,typing.TYPE_CHECKING
     e: TaskfileHandler
@@ -522,6 +572,16 @@ D:
     e: WebUIServer,serve_dashboard
     WebUIServer: __init__(1),start(1),stop(0)  # Web UI server for taskfile.
     serve_dashboard(port:int=8080;open_browser:bool=True)->None
+  tests/test_api.py:
+    i: json,pytest,yaml,fastapi.testclient.TestClient,pathlib.Path,taskfile.api.app.create_app
+    e: sample_taskfile,client,TestHealth,TestTaskfileInfo,TestTasks,TestRunTasks,TestValidate,TestEnvironments
+    TestHealth: test_health_ok(1),test_health_no_taskfile(1)
+    TestTaskfileInfo: test_get_taskfile(1),test_get_taskfile_variables(1)
+    TestTasks: test_list_all(1),test_list_filter_env(1),test_list_filter_platform(1),test_list_filter_tag(1),test_get_task_detail(1)
+    TestRunTasks: test_run_dry_run(1),test_run_unknown_task(1),test_run_with_env(1),test_run_with_variables(1),test_run_empty_tasks(1)
+    TestValidate: test_validate_ok(1),test_validate_with_path(2)
+    sample_taskfile(tmp_path)->Path
+    client(sample_taskfile)->TestClient
   tests/test_auth.py:
     i: pytest,pathlib.Path,taskfile.cli.auth.{REGISTRIES,_ensure_gitignore,_read_env_file,_write_env_var}
     e: TestReadEnvFile,TestWriteEnvVar,TestEnsureGitignore,TestRegistries
@@ -592,7 +652,7 @@ D:
   tests/test_parser.py:
     i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
     e: TestParser
-    TestParser: test_load_from_file(1),test_not_found(1),test_validate_missing_dep(0),test_validate_empty_commands(0)
+    TestParser: test_load_from_file(1),test_not_found(1),test_validate_missing_dep(0),test_validate_empty_commands(0),test_validate_missing_script_file(1)
   tests/test_provisioner.py:
     i: pytest,pathlib.Path,taskfile.provisioner.{ProvisionConfig,VPSProvisioner,provision_vps},unittest.mock.{MagicMock,patch}
     e: TestProvisionConfig,TestVPSProvisioner,TestVPSProvisionerSteps,TestProvisionVPS
@@ -613,6 +673,10 @@ D:
     TestRunCommand: test_run_command_success(0),test_run_command_failure(0),test_run_command_timeout(0),test_run_command_dry_run(0)  # Tests for command execution helper.
     TestReleaseCommand: test_release_help(0),test_release_no_tag(0),test_release_with_tag(0)  # Tests for release CLI command.
     TestRollbackCommand: test_rollback_help(0),test_rollback_no_previous_tag(0),test_rollback_with_target(0),test_rollback_dry_run(0)  # Tests for rollback CLI command.
+  tests/test_resolver.py:
+    i: pytest,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.runner.resolver.TaskResolver
+    e: TestTaskResolver
+    TestTaskResolver: _make_resolver(2),test_expand_variables_shell_syntax(0),test_expand_variables_mustache_syntax(0),test_expand_variables_non_string(0),test_expand_variables_with_overrides(0)  # Tests for the pure-logic TaskResolver...
   tests/test_runner.py:
     i: pytest,yaml,pathlib.Path,taskfile.models.{Environment,Task,TaskfileConfig},taskfile.parser.{TaskfileNotFoundError,load_taskfile,validate_taskfile},taskfile.runner.TaskfileRunner
     e: TestRunner

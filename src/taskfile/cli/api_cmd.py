@@ -1,10 +1,38 @@
-"""CLI command for starting the Taskfile REST API server."""
+"""## CLI command for Taskfile REST API server
+
+Start and manage the Taskfile REST API server for remote task execution.
+
+### Overview
+
+Provides a REST API interface for taskfile operations:
+- **HTTP API** - JSON endpoints for task execution
+- **WebSocket** - Real-time task output streaming
+- **OpenAPI** - Auto-generated API documentation
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/tasks` | List all tasks |
+| `POST` | `/api/tasks/{name}/run` | Execute a task |
+| `GET` | `/api/health` | Health check |
+
+### Why clickmd?
+
+Uses `clickmd` for consistent CLI experience and markdown rendering of server logs.
+
+### Dependencies
+
+- `clickmd` - CLI framework
+- `fastapi` - Web framework (optional)
+- `uvicorn` - ASGI server (optional)
+"""
 
 from __future__ import annotations
 
 import sys
 
-import click
+import clickmd as click
 from rich.console import Console
 
 from taskfile.cli.main import main

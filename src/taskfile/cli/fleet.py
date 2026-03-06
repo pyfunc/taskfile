@@ -1,10 +1,40 @@
-"""Fleet management CLI commands for taskfile.
+"""## Fleet management CLI commands for taskfile
 
-Uses environment_groups from Taskfile.yml as the source of truth.
-Each device is a Taskfile environment with ssh_host.
-Groups define rolling/canary/parallel update strategies.
+Manage a fleet of devices (RPi, edge nodes, kiosks) using environment groups.
 
-Also supports standalone fleet.yml for legacy/advanced use cases.
+### Overview
+
+Fleet management uses `environment_groups` from **Taskfile.yml** as the source of truth:
+- Each device is a Taskfile environment with `ssh_host`
+- Groups define rolling/canary/parallel update strategies
+- Supports standalone `fleet.yml` for legacy/advanced use cases
+
+### Deployment Strategies
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| `rolling` | Update one device at a time | Zero-downtime deployments |
+| `canary` | Update 1 device, then wait | Testing before full rollout |
+| `parallel` | Update all devices at once | Fast deployments (maintenance windows) |
+
+### Commands
+
+- `fleet list` - List all devices in fleet
+- `fleet repair` - Repair SSH connectivity issues
+- `fleet deploy` - Deploy to fleet with chosen strategy
+
+### Why clickmd?
+
+Uses `clickmd` instead of standard `click` for:
+- Consistent markdown rendering across fleet status reports
+- Better table formatting with `rich` integration
+- Unified CLI experience across all taskfile modules
+
+### Dependencies
+
+- `clickmd` - CLI framework with markdown support
+- `click_compat.confirm` - Interactive prompts for repairs
+- `rich` - Rich console output for device tables
 """
 
 from __future__ import annotations
@@ -12,7 +42,8 @@ from __future__ import annotations
 import subprocess
 import sys
 
-import click
+import clickmd as click
+from taskfile.cli.click_compat import confirm
 from rich.console import Console
 from rich.table import Table
 
@@ -228,7 +259,7 @@ def _apply_repair_fixes(env, fixes: list[str], auto_fix: bool) -> None:
     """Apply or display repair fixes."""
     if not fixes:
         return
-    if auto_fix or click.confirm("\nAuto-fix?", default=False):
+    if auto_fix or confirm("\nAuto-fix?", default=False):
         for fix in fixes:
             if fix.startswith("Check") or fix.startswith("ssh-copy-id"):
                 console.print(f"  [dim]→ (manual) {fix}[/]")

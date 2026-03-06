@@ -17,7 +17,7 @@ jobs:
         python-version: '3.12'
     - run: pip install taskfile
     - name: 'Run: test'
-      run: taskfile --env local run build --var TAG=${{ github.sha }}
+      run: taskfile --env local build --var TAG=${{ github.sha }}
     env:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
@@ -33,7 +33,7 @@ jobs:
       run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ghcr.io -u ${{ github.actor
         }} --password-stdin
     - name: 'Run: build'
-      run: taskfile --env local run push --var TAG=${{ github.sha }}
+      run: taskfile --env local push --var TAG=${{ github.sha }}
     needs: test
     env:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -47,7 +47,7 @@ jobs:
         python-version: '3.12'
     - run: pip install taskfile
     - name: 'Run: generate'
-      run: taskfile --env local run generate --var TAG=${{ github.sha }}
+      run: taskfile --env local generate --var TAG=${{ github.sha }}
     - uses: actions/upload-artifact@v4
       with:
         name: generate-artifacts
@@ -71,7 +71,7 @@ jobs:
 
         chmod 600 ~/.ssh/id_ed25519'
     - name: 'Run: deploy'
-      run: taskfile --env prod run deploy-quick --var TAG=${{ github.sha }}
+      run: taskfile --env prod deploy-quick --var TAG=${{ github.sha }}
     needs: generate
     if: github.event_name == 'workflow_dispatch'
     env:
