@@ -43,6 +43,90 @@ def _collect_requirements(steps, env) -> list[str]:
     return reqs
 
 
+_TYPE_ICONS = {
+    "local": "💻",
+    "remote": "🌐",
+    "function": "⚡",
+    "python": "🐍",
+    "script": "📜",
+}
+
+
+def _print_explain_header(task_name: str, task, env_name: str, env, report) -> None:
+    """Print task header, requirements, time estimate, retries, tags."""
+    console.print()
+    console.print(f"[bold green]📋 {task_name}[/] [dim](env: {env_name})[/]")
+    if task.description:
+        console.print(f"   {task.description}")
+    console.print()
+
+    reqs = _collect_requirements(report.steps, env)
+    if reqs:
+        console.print(f"  [bold]Requires:[/]  {', '.join(reqs)}")
+    console.print(f"  [bold]Time:[/]      {_format_time_estimate(task)}")
+    if task.retries:
+        console.print(f"  [bold]Retries:[/]   {task.retries} (delay: {task.retry_delay}s)")
+    if task.tags:
+        console.print(f"  [bold]Tags:[/]      {', '.join(task.tags)}")
+    console.print()
+
+
+def _print_explain_steps(report) -> None:
+    """Print step-by-step execution plan."""
+    console.print("  [bold]Steps:[/]")
+    current_task = None
+    step_num = 0
+
+    for step in report.steps:
+        if step.task_name != current_task:
+            current_task = step.task_name
+            if step.is_dep:
+                console.print(f"    [dim]── dep: {current_task} ──[/]")
+
+        step_num += 1
+        icon = _TYPE_ICONS.get(step.cmd_type, "→")
+
+        if step.skipped:
+            console.print(f"    [dim]{step_num}. ⏭ {icon} {step.cmd[:80]}[/]")
+            console.print(f"       [dim]↳ {step.skip_reason}[/]")
+        else:
+            console.print(f"    {step_num}. {icon} {step.cmd[:80]}")
+            if step.expanded != step.cmd and step.expanded:
+                console.print(f"       [dim]↳ {step.expanded[:100]}[/]")
+
+        for issue in step.issues:
+            sev = "[yellow]⚠[/]" if issue.severity == "warning" else "[red]✗[/]"
+            console.print(f"       {sev}  {issue.message}")
+
+
+def _print_explain_variables(variables: dict) -> None:
+    """Print resolved variables (up to 15)."""
+    console.print()
+    console.print("  [bold]Variables:[/]")
+    shown = 0
+    for k, v in sorted(variables.items()):
+        if k.startswith("_") or not v:
+            continue
+        truncated = v[:60] + "..." if len(v) > 60 else v
+        console.print(f"    {k}={truncated}")
+        shown += 1
+        if shown >= 15:
+            remaining = len(variables) - shown
+            if remaining > 0:
+                console.print(f"    [dim]... and {remaining} more[/]")
+            break
+
+
+def _print_explain_problems(report) -> None:
+    """Print potential problems section."""
+    if report.issues:
+        console.print()
+        console.print(f"  [yellow bold]Potential problems ({len(report.issues)}):[/]")
+        for i, issue in enumerate(report.issues, 1):
+            sev = "⚠" if issue.severity == "warning" else "✗"
+            console.print(f"    {i}. {sev} {issue.message}")
+
+
 @main.command()
 @click.argument("task_name")
 @click.pass_context
@@ -91,92 +175,10 @@ taskfile --env prod explain deploy --var TAG=v1.2.3
         task = config.tasks[task_name]
         env = resolver.env
 
-        # ── Header ──
-        console.print()
-        console.print(f"[bold green]📋 {task_name}[/] [dim](env: {resolver.env_name})[/]")
-        if task.description:
-            console.print(f"   {task.description}")
-        console.print()
-
-        # ── Requirements ──
-        reqs = _collect_requirements(report.steps, env)
-        if reqs:
-            console.print(f"  [bold]Requires:[/]  {', '.join(reqs)}")
-
-        # ── Time estimate ──
-        console.print(f"  [bold]Time:[/]      {_format_time_estimate(task)}")
-
-        # ── Retries ──
-        if task.retries:
-            console.print(f"  [bold]Retries:[/]   {task.retries} (delay: {task.retry_delay}s)")
-
-        # ── Tags ──
-        if task.tags:
-            console.print(f"  [bold]Tags:[/]      {', '.join(task.tags)}")
-
-        console.print()
-
-        # ── Steps ──
-        console.print("  [bold]Steps:[/]")
-        current_task = None
-        step_num = 0
-
-        _TYPE_ICONS = {
-            "local": "💻",
-            "remote": "🌐",
-            "function": "⚡",
-            "python": "🐍",
-            "script": "📜",
-        }
-
-        for step in report.steps:
-            # Show task header when it changes (for deps)
-            if step.task_name != current_task:
-                current_task = step.task_name
-                if step.is_dep:
-                    console.print(f"    [dim]── dep: {current_task} ──[/]")
-
-            step_num += 1
-            icon = _TYPE_ICONS.get(step.cmd_type, "→")
-
-            if step.skipped:
-                console.print(f"    [dim]{step_num}. ⏭ {icon} {step.cmd[:80]}[/]")
-                console.print(f"       [dim]↳ {step.skip_reason}[/]")
-            else:
-                console.print(f"    {step_num}. {icon} {step.cmd[:80]}")
-                if step.expanded != step.cmd and step.expanded:
-                    console.print(f"       [dim]↳ {step.expanded[:100]}[/]")
-
-            for issue in step.issues:
-                sev = "[yellow]⚠[/]" if issue.severity == "warning" else "[red]✗[/]"
-                console.print(f"       {sev}  {issue.message}")
-
-        # ── Variables ──
-        console.print()
-        console.print("  [bold]Variables:[/]")
-        # Show most relevant variables (filter out empty/internal)
-        shown = 0
-        for k, v in sorted(resolver.variables.items()):
-            if k.startswith("_") or not v:
-                continue
-            truncated = v[:60] + "..." if len(v) > 60 else v
-            console.print(f"    {k}={truncated}")
-            shown += 1
-            if shown >= 15:
-                remaining = len(resolver.variables) - shown
-                if remaining > 0:
-                    console.print(f"    [dim]... and {remaining} more[/]")
-                break
-
-        # ── Problems ──
-        if report.issues:
-            console.print()
-            console.print(f"  [yellow bold]Potential problems ({len(report.issues)}):[/]")
-            for i, issue in enumerate(report.issues, 1):
-                sev = "⚠" if issue.severity == "warning" else "✗"
-                console.print(f"    {i}. {sev} {issue.message}")
-
-        # ── File checks ──
+        _print_explain_header(task_name, task, resolver.env_name, env, report)
+        _print_explain_steps(report)
+        _print_explain_variables(resolver.variables)
+        _print_explain_problems(report)
         _check_env_files(config, resolver, task)
 
         if not report.issues:

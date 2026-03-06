@@ -73,12 +73,18 @@ def check_preflight() -> list[Issue]:
                 "ssh-copy-id": "ssh-copy-id copies SSH keys to remote servers. Required for initial SSH setup before remote deployment.",
                 "rsync": "rsync efficiently syncs files to remote servers. Useful for deployment tasks with file transfers.",
             }.get(binary, f"{binary} is optional but recommended for some Taskfile features.")
+            install_hint = {
+                "docker": "apt install docker.io docker-compose-v2  # https://docs.docker.com/engine/install/",
+                "podman": "apt install podman  # https://podman.io/docs/installation",
+                "ssh-copy-id": "apt install openssh-client",
+                "rsync": "apt install rsync",
+            }.get(binary, f"apt install {binary}")
             issues.append(Issue(
                 category=IssueCategory.DEPENDENCY_MISSING,
                 message=f"{binary}: not found (optional)",
                 fix_strategy=FixStrategy.MANUAL,
                 severity=SEVERITY_INFO,
-                fix_description=f"Install {binary} if needed",
+                fix_description=f"Install: {install_hint}",
                 teach=teach_optional,
                 layer=1,
             ))
@@ -127,18 +133,19 @@ def check_env_files() -> list[Issue]:
     """Check local .env files for common problems."""
     issues: list[Issue] = []
     for env_file in [".env", ".env.local", ".env.prod"]:
-        if not Path(env_file).exists():
+        env_path = Path(env_file).resolve()
+        if not env_path.exists():
             continue
-        content = Path(env_file).read_text()
+        content = env_path.read_text()
 
         # Check for empty API keys
         if "OPENROUTER_API_KEY=" in content and "OPENROUTER_API_KEY=\n" in content:
             issues.append(Issue(
                 category=IssueCategory.CONFIG_ERROR,
-                message=f"{env_file}: OPENROUTER_API_KEY is empty",
+                message=f"{env_path}: OPENROUTER_API_KEY is empty",
                 fix_strategy=FixStrategy.MANUAL,
                 severity=SEVERITY_WARNING,
-                fix_description="Get key from https://openrouter.ai/settings/keys",
+                fix_description=f"Get key from https://openrouter.ai/settings/keys and set in {env_path}",
                 layer=3,
             ))
 
@@ -147,10 +154,10 @@ def check_env_files() -> list[Issue]:
             if line.startswith("PORT=") and not line.startswith("PORT_"):
                 issues.append(Issue(
                     category=IssueCategory.CONFIG_ERROR,
-                    message=f"{env_file}: Use PORT_WEB or PORT_LANDING instead of PORT",
+                    message=f"{env_path}: Use PORT_WEB or PORT_LANDING instead of PORT",
                     fix_strategy=FixStrategy.AUTO,
                     severity=SEVERITY_WARNING,
-                    fix_description="Rename PORT= to PORT_WEB= in env file",
+                    fix_description=f"Rename PORT= to PORT_WEB= in {env_path}",
                     layer=3,
                 ))
                 break
@@ -179,7 +186,7 @@ def _collect_required_vars(config: "TaskfileConfig") -> set[str]:
 def _check_env_file_vars(env_file: str, required_vars: set[str]) -> list[Issue]:
     """Check a single .env file for missing or empty required variables."""
     issues: list[Issue] = []
-    env_path = Path(env_file)
+    env_path = Path(env_file).resolve()
     if not env_path.exists():
         return issues
     env_content = env_path.read_text()
@@ -191,12 +198,12 @@ def _check_env_file_vars(env_file: str, required_vars: set[str]) -> list[Issue]:
         if var not in env_vars:
             issues.append(Issue(
                 category=IssueCategory.CONFIG_ERROR,
-                message=f"{env_file}: Missing required variable {var}",
+                message=f"{env_path}: Missing required variable {var}",
                 fix_strategy=FixStrategy.CONFIRM,
                 severity=SEVERITY_WARNING,
-                fix_description=f"Set {var} in {env_file}",
+                fix_description=f"Set {var} in {env_path}",
                 teach=(
-                    f"Variable {var} is referenced in Taskfile but not defined in {env_file}. "
+                    f"Variable {var} is referenced in Taskfile but not defined in {env_path}. "
                     "Add it to the env file with a real value."
                 ),
                 layer=3,
@@ -204,12 +211,12 @@ def _check_env_file_vars(env_file: str, required_vars: set[str]) -> list[Issue]:
         elif f"{var}=\n" in env_content or f"{var}=\r\n" in env_content:
             issues.append(Issue(
                 category=IssueCategory.CONFIG_ERROR,
-                message=f"{env_file}: {var} is empty",
+                message=f"{env_path}: {var} is empty",
                 fix_strategy=FixStrategy.CONFIRM,
                 severity=SEVERITY_WARNING,
-                fix_description=f"Set value for {var} in {env_file}",
+                fix_description=f"Set value for {var} in {env_path}",
                 teach=(
-                    f"Variable {var} exists in {env_file} but has no value. "
+                    f"Variable {var} exists in {env_path} but has no value. "
                     "Set it to a real value before running the task."
                 ),
                 layer=3,
@@ -285,14 +292,14 @@ def _check_script_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Is
     for task_name, task in config.tasks.items():
         if not task.script:
             continue
-        script_path = taskfile_dir / task.script
+        script_path = (taskfile_dir / task.script).resolve()
         if not script_path.exists():
             issues.append(Issue(
                 category=IssueCategory.CONFIG_ERROR,
-                message=f"Task '{task_name}' script not found: {task.script}",
+                message=f"Task '{task_name}' script not found: {script_path}",
                 fix_strategy=FixStrategy.MANUAL,
                 severity=SEVERITY_ERROR,
-                fix_description=f"Create the script file: {task.script}",
+                fix_description=f"Create the script file: {script_path}",
                 teach=(
                     "The 'script:' directive runs an external script file. "
                     "If the file doesn't exist, create it or use 'cmds:' "
@@ -308,17 +315,17 @@ def _check_env_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Issue
     issues: list[Issue] = []
     for env_name, env in config.environments.items():
         if env.env_file:
-            env_file_path = taskfile_dir / env.env_file
+            env_file_path = (taskfile_dir / env.env_file).resolve()
             if not env_file_path.exists():
-                example_path = taskfile_dir / f"{env.env_file}.example"
+                example_path = (taskfile_dir / f"{env.env_file}.example").resolve()
                 if example_path.exists():
                     issues.append(Issue(
                         category=IssueCategory.CONFIG_ERROR,
-                        message=f"Environment '{env_name}' env_file not found: {env.env_file}",
+                        message=f"Environment '{env_name}' env_file not found: {env_file_path}",
                         fix_strategy=FixStrategy.AUTO,
                         severity=SEVERITY_WARNING,
-                        fix_command=f"cp {env.env_file}.example {env.env_file}",
-                        fix_description=f"Copy {env.env_file}.example → {env.env_file}",
+                        fix_command=f"cp {example_path} {env_file_path}",
+                        fix_description=f"Copy {example_path} → {env_file_path}",
                         context={"env_file": str(env_file_path), "example": str(example_path)},
                         teach=(
                             "Environment files (.env) contain variables specific to each environment "
@@ -329,10 +336,10 @@ def _check_env_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Issue
                 else:
                     issues.append(Issue(
                         category=IssueCategory.CONFIG_ERROR,
-                        message=f"Environment '{env_name}' env_file not found: {env.env_file}",
+                        message=f"Environment '{env_name}' env_file not found: {env_file_path}",
                         fix_strategy=FixStrategy.MANUAL,
                         severity=SEVERITY_WARNING,
-                        fix_description=f"Create {env.env_file} with required variables",
+                        fix_description=f"Create {env_file_path} with required variables",
                         teach=(
                             "Environment files (.env) contain variables specific to each environment "
                             "(passwords, addresses, keys). Each environment in Taskfile can have its own "
@@ -676,48 +683,82 @@ PLACEHOLDER_PATTERNS = [
 ]
 
 
+def _load_env_file_vars(env_file_path: Path) -> set[str]:
+    """Load variable names defined in an env file."""
+    if not env_file_path.exists():
+        return set()
+    names: set[str] = set()
+    for line in env_file_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            names.add(line.split("=", 1)[0].strip())
+    return names
+
+
 def check_placeholder_values(config: "TaskfileConfig") -> list[Issue]:
     """Detect variables with placeholder values (example.com, changeme, etc.)."""
+    taskfile_dir = Path(config.source_path).parent.resolve() if config.source_path else Path.cwd().resolve()
     issues: list[Issue] = []
     for env_name, env_obj in (config.environments or {}).items():
         resolved = env_obj.resolve_variables(config.variables or {})
+
+        # Load env_file variables (if file exists) to check if fallbacks are overridden
+        env_file_vars: set[str] = set()
+        if env_obj.env_file:
+            env_file_abs = (taskfile_dir / env_obj.env_file).resolve()
+            env_file_vars = _load_env_file_vars(env_file_abs)
+
         # Also check ssh_host directly (may contain ${VAR:-default})
         fields_to_check = dict(resolved)
+        fallback_var_map: dict[str, str] = {}  # key -> VAR name from ${VAR:-default}
         for attr in ("ssh_host", "ssh_user"):
             raw = getattr(env_obj, attr, None)
             if raw and isinstance(raw, str):
                 # Extract default value from ${VAR:-default}
-                m = re.match(r'\$\{[^}]*:-([^}]+)\}', raw)
+                m = re.match(r'\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]+)\}', raw)
                 if m:
-                    fields_to_check[f"_{attr}_default"] = m.group(1)
+                    fallback_key = f"_{attr}_default"
+                    fields_to_check[fallback_key] = m.group(2)
+                    fallback_var_map[fallback_key] = m.group(1)
                 else:
                     fields_to_check[attr] = raw
 
         for key, val in fields_to_check.items():
-            if not isinstance(val, str) or key.startswith("_"):
-                # For internal keys (_ssh_host_default), use the attr name
-                display_key = key.lstrip("_").replace("_default", "")
-                display_val = val
-            else:
-                display_key = key
-                display_val = val
-
             if not isinstance(val, str):
                 continue
-            if any(p.search(val) for p in PLACEHOLDER_PATTERNS):
-                real_key = key.lstrip("_").replace("_default", "").upper()
-                issues.append(Issue(
-                    category=IssueCategory.CONFIG_ERROR,
-                    message=f"'{real_key}' in env '{env_name}' looks like a placeholder: \"{val}\"",
-                    fix_strategy=FixStrategy.MANUAL,
-                    severity=SEVERITY_WARNING,
-                    fix_description=f"Set real value: export {real_key}=... or add to .env",
-                    teach=(
-                        f"Variables with values like 'example.com' or 'your-*' are placeholders "
-                        f"— replace them with real data before deploying."
-                    ),
-                    layer=2,
-                ))
+
+            if not any(p.search(val) for p in PLACEHOLDER_PATTERNS):
+                continue
+
+            # Skip fallback placeholders when env_file defines the variable
+            # e.g. ${STAGING_HOST:-staging.example.com} — if .env.staging has STAGING_HOST, skip
+            if key in fallback_var_map:
+                var_name = fallback_var_map[key]
+                if var_name in env_file_vars:
+                    continue
+
+            # Skip resolved variables when env_file overrides them at runtime
+            # e.g. DOMAIN_WEB=app-staging.example.com in Taskfile but .env.staging has DOMAIN_WEB=real.com
+            if key in env_file_vars and not key.startswith("_"):
+                continue
+
+            real_key = key.lstrip("_").replace("_default", "").upper()
+            env_file_hint = ""
+            if env_obj.env_file:
+                env_file_abs = (taskfile_dir / env_obj.env_file).resolve()
+                env_file_hint = f" or edit {env_file_abs}"
+            issues.append(Issue(
+                category=IssueCategory.CONFIG_ERROR,
+                message=f"'{real_key}' in env '{env_name}' looks like a placeholder: \"{val}\"",
+                fix_strategy=FixStrategy.MANUAL,
+                severity=SEVERITY_WARNING,
+                fix_description=f"Set real value: export {real_key}=...{env_file_hint}",
+                teach=(
+                    f"Variables with values like 'example.com' or 'your-*' are placeholders "
+                    f"— replace them with real data before deploying."
+                ),
+                layer=2,
+            ))
     return issues
 
 
@@ -731,13 +772,13 @@ def _check_env_file_for_target(
     target_env = env_name or config.default_env or "local"
     env_obj = config.environments.get(target_env)
     if env_obj and env_obj.env_file:
-        env_path = taskfile_dir / env_obj.env_file
+        env_path = (taskfile_dir / env_obj.env_file).resolve()
         if not env_path.exists():
-            example = taskfile_dir / f"{env_obj.env_file}.example"
-            hint = f" (copy from {example.name})" if example.exists() else ""
+            example = (taskfile_dir / f"{env_obj.env_file}.example").resolve()
+            hint = f" (copy from {example})" if example.exists() else ""
             issues.append(Issue(
                 category=IssueCategory.CONFIG_ERROR,
-                message=f"Missing env file for '{target_env}': {env_obj.env_file}{hint}",
+                message=f"Missing env file for '{target_env}': {env_path}{hint}",
                 fix_strategy=FixStrategy.AUTO if example.exists() else FixStrategy.MANUAL,
                 severity=SEVERITY_ERROR,
                 context={"env_file": str(env_path), "example": str(example) if example.exists() else None},

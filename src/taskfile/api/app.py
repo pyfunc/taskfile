@@ -129,47 +129,8 @@ def _config_to_info(config) -> TaskfileInfo:
     )
 
 
-def create_app(taskfile_path: str | None = None) -> FastAPI:
-    """Create and configure the FastAPI application."""
-
-    app = FastAPI(
-        title="Taskfile API",
-        description=(
-            "REST API for executing and managing Taskfile tasks.\n\n"
-            "Provides endpoints to:\n"
-            "- **List** tasks, environments, platforms, and functions\n"
-            "- **Run** tasks with environment/platform/variable overrides\n"
-            "- **Validate** Taskfile configuration\n"
-            "- **Inspect** full Taskfile metadata\n\n"
-            "Start the server:\n"
-            "```bash\n"
-            "taskfile api serve\n"
-            "# or\n"
-            "uvicorn taskfile.api:app --reload --port 8000\n"
-            "```\n\n"
-            "Interactive docs: [Swagger UI](/docs) | [ReDoc](/redoc)"
-        ),
-        version=__version__,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        responses={
-            404: {"model": ErrorResponse, "description": "Taskfile not found"},
-            422: {"model": ErrorResponse, "description": "Taskfile parse error"},
-        },
-    )
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    # Store taskfile_path in app state
-    app.state.taskfile_path = taskfile_path
-
-    # ─── Health ──────────────────────────────────────
+def _register_health_routes(app: FastAPI) -> None:
+    """Register health check endpoint."""
 
     @app.get(
         "/health",
@@ -197,7 +158,9 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
                 taskfile_found=False,
             )
 
-    # ─── Taskfile info ───────────────────────────────
+
+def _register_taskfile_routes(app: FastAPI) -> None:
+    """Register taskfile info, validate, variables, and schema endpoints."""
 
     @app.get(
         "/taskfile",
@@ -212,7 +175,50 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
         config = _load_config(path or app.state.taskfile_path)
         return _config_to_info(config)
 
-    # ─── Tasks ───────────────────────────────────────
+    @app.post(
+        "/validate",
+        response_model=ValidationResult,
+        tags=["taskfile"],
+        summary="Validate Taskfile",
+    )
+    def validate_taskfile_endpoint(request: ValidateRequest):
+        """Validate a Taskfile and return warnings."""
+        config = _load_config(request.path or app.state.taskfile_path)
+        warnings = validate_taskfile(config)
+        return ValidationResult(
+            valid=True,
+            warnings=warnings,
+            task_count=len(config.tasks),
+            env_count=len(config.environments),
+        )
+
+    @app.get(
+        "/variables",
+        response_model=dict[str, str],
+        tags=["taskfile"],
+        summary="List global variables",
+    )
+    def list_variables():
+        """List all global variables defined in the Taskfile."""
+        config = _load_config(app.state.taskfile_path)
+        return config.variables
+
+    @app.get(
+        "/schema",
+        tags=["taskfile"],
+        summary="Get Taskfile JSON Schema",
+    )
+    def get_schema():
+        """Return the JSON Schema for Taskfile.yml format."""
+        import json
+        schema_path = Path(__file__).parent.parent.parent.parent / "docs" / "schema" / "taskfile.schema.json"
+        if not schema_path.is_file():
+            raise HTTPException(status_code=404, detail="Schema file not found")
+        return json.loads(schema_path.read_text())
+
+
+def _register_task_routes(app: FastAPI) -> None:
+    """Register task list and detail endpoints."""
 
     @app.get(
         "/tasks",
@@ -279,7 +285,9 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             has_condition=bool(t.condition),
         )
 
-    # ─── Run tasks ───────────────────────────────────
+
+def _register_run_routes(app: FastAPI) -> None:
+    """Register task execution endpoint."""
 
     @app.post(
         "/run",
@@ -297,7 +305,6 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
 
         config = _load_config(app.state.taskfile_path)
 
-        # Validate task names
         unknown = [t for t in request.tasks if t not in config.tasks]
         if unknown:
             raise HTTPException(
@@ -318,7 +325,6 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
                 verbose=False,
             )
 
-            # Capture output
             for task_name in request.tasks:
                 task_start = time.time()
                 stdout_capture = io.StringIO()
@@ -369,26 +375,9 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             dry_run=request.dry_run,
         )
 
-    # ─── Validate ────────────────────────────────────
 
-    @app.post(
-        "/validate",
-        response_model=ValidationResult,
-        tags=["taskfile"],
-        summary="Validate Taskfile",
-    )
-    def validate_taskfile_endpoint(request: ValidateRequest):
-        """Validate a Taskfile and return warnings."""
-        config = _load_config(request.path or app.state.taskfile_path)
-        warnings = validate_taskfile(config)
-        return ValidationResult(
-            valid=True,
-            warnings=warnings,
-            task_count=len(config.tasks),
-            env_count=len(config.environments),
-        )
-
-    # ─── Environments ────────────────────────────────
+def _register_metadata_routes(app: FastAPI) -> None:
+    """Register environments, groups, platforms, functions, pipeline endpoints."""
 
     @app.get(
         "/environments",
@@ -441,8 +430,6 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             is_remote=env.is_remote,
         )
 
-    # ─── Environment Groups ──────────────────────────
-
     @app.get(
         "/groups",
         response_model=list[EnvironmentGroupInfo],
@@ -462,8 +449,6 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             )
             for g in config.environment_groups.values()
         ]
-
-    # ─── Platforms ───────────────────────────────────
 
     @app.get(
         "/platforms",
@@ -485,8 +470,6 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             for p in config.platforms.values()
         ]
 
-    # ─── Functions ───────────────────────────────────
-
     @app.get(
         "/functions",
         response_model=list[FunctionInfo],
@@ -507,8 +490,6 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             for f in config.functions.values()
         ]
 
-    # ─── Pipeline ────────────────────────────────────
-
     @app.get(
         "/pipeline",
         response_model=list[PipelineStageInfo],
@@ -528,32 +509,50 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             for s in config.pipeline.stages
         ]
 
-    # ─── Variables ───────────────────────────────────
 
-    @app.get(
-        "/variables",
-        response_model=dict[str, str],
-        tags=["taskfile"],
-        summary="List global variables",
+def create_app(taskfile_path: str | None = None) -> FastAPI:
+    """Create and configure the FastAPI application."""
+
+    app = FastAPI(
+        title="Taskfile API",
+        description=(
+            "REST API for executing and managing Taskfile tasks.\n\n"
+            "Provides endpoints to:\n"
+            "- **List** tasks, environments, platforms, and functions\n"
+            "- **Run** tasks with environment/platform/variable overrides\n"
+            "- **Validate** Taskfile configuration\n"
+            "- **Inspect** full Taskfile metadata\n\n"
+            "Start the server:\n"
+            "```bash\n"
+            "taskfile api serve\n"
+            "# or\n"
+            "uvicorn taskfile.api:app --reload --port 8000\n"
+            "```\n\n"
+            "Interactive docs: [Swagger UI](/docs) | [ReDoc](/redoc)"
+        ),
+        version=__version__,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        responses={
+            404: {"model": ErrorResponse, "description": "Taskfile not found"},
+            422: {"model": ErrorResponse, "description": "Taskfile parse error"},
+        },
     )
-    def list_variables():
-        """List all global variables defined in the Taskfile."""
-        config = _load_config(app.state.taskfile_path)
-        return config.variables
 
-    # ─── Schema ──────────────────────────────────────
-
-    @app.get(
-        "/schema",
-        tags=["taskfile"],
-        summary="Get Taskfile JSON Schema",
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
-    def get_schema():
-        """Return the JSON Schema for Taskfile.yml format."""
-        import json
-        schema_path = Path(__file__).parent.parent.parent.parent / "docs" / "schema" / "taskfile.schema.json"
-        if not schema_path.is_file():
-            raise HTTPException(status_code=404, detail="Schema file not found")
-        return json.loads(schema_path.read_text())
+
+    app.state.taskfile_path = taskfile_path
+
+    _register_health_routes(app)
+    _register_taskfile_routes(app)
+    _register_task_routes(app)
+    _register_run_routes(app)
+    _register_metadata_routes(app)
 
     return app

@@ -117,63 +117,64 @@ def _render_step_header(
 _FILE_TRANSFER_CMDS = re.compile(r'^(scp|rsync|cp)\b')
 
 
+def _strip_cmd_prefix(cmd: str) -> str:
+    """Strip @remote/@local/@ssh prefix from command."""
+    stripped = cmd.strip()
+    for prefix in ("@remote ", "@local ", "@ssh "):
+        if stripped.startswith(prefix):
+            return stripped[len(prefix):]
+    return stripped
+
+
+def _check_file_arg(part: str, base: Path) -> str | None:
+    """Check a single file argument from a transfer command. Returns warning or None."""
+    if part.startswith('-') or ':' in part or part == '-':
+        return None
+    if '$' in part:
+        return None
+
+    path = Path(part)
+    resolved = path if path.is_absolute() else base / part
+
+    if '*' in part or '?' in part:
+        matches = glob.glob(part, root_dir=str(base)) if not path.is_absolute() else glob.glob(part)
+        if not matches:
+            return (
+                f"**No files match** `{part}` — generate them first "
+                f"(e.g. `taskfile quadlet generate`)"
+            )
+    elif not resolved.exists():
+        parent = resolved.parent
+        suffix = resolved.suffix
+        similar = []
+        if parent.exists():
+            similar = sorted(p.name for p in parent.iterdir() if p.suffix == suffix)[:5]
+        hint = f" Available: `{'`, `'.join(similar)}`" if similar else ""
+        return f"**File not found:** `{part}`{hint}"
+    return None
+
+
 def _validate_command_files(cmd: str, cwd: str | Path | None = None) -> list[str]:
     """Check if local files referenced in scp/rsync/cp commands exist.
 
     Returns list of warning messages for missing files.
     """
-    stripped = cmd.strip()
-    # Strip @remote/@local prefix first
-    for prefix in ("@remote ", "@local ", "@ssh "):
-        if stripped.startswith(prefix):
-            stripped = stripped[len(prefix):]
-            break
+    stripped = _strip_cmd_prefix(cmd)
 
     if not _FILE_TRANSFER_CMDS.match(stripped):
         return []
 
-    warnings = []
     try:
         parts = shlex.split(stripped)
     except ValueError:
         return []
 
     base = Path(cwd) if cwd else Path.cwd()
-
+    warnings = []
     for part in parts[1:]:
-        # Skip options, remote targets (user@host:path), and stdout
-        if part.startswith('-') or ':' in part or part == '-':
-            continue
-        # Skip variables
-        if '$' in part:
-            continue
-
-        path = Path(part)
-        if path.is_absolute():
-            resolved = path
-        else:
-            resolved = base / part
-
-        # Check glob patterns
-        if '*' in part or '?' in part:
-            matches = glob.glob(part, root_dir=str(base)) if not path.is_absolute() else glob.glob(part)
-            if not matches:
-                warnings.append(
-                    f"**No files match** `{part}` — generate them first "
-                    f"(e.g. `taskfile quadlet generate`)"
-                )
-        elif not resolved.exists():
-            # Find similar files for hint
-            parent = resolved.parent
-            suffix = resolved.suffix
-            similar = []
-            if parent.exists():
-                similar = sorted(p.name for p in parent.iterdir() if p.suffix == suffix)[:5]
-            hint = ""
-            if similar:
-                hint = f" Available: `{'`, `'.join(similar)}`"
-            warnings.append(f"**File not found:** `{part}`{hint}")
-
+        w = _check_file_arg(part, base)
+        if w:
+            warnings.append(w)
     return warnings
 
 
@@ -604,6 +605,53 @@ def _handle_failure(
     return False
 
 
+def _execute_script_step(
+    runner, task: Task, task_name: str, start: float,
+    step: int, total_steps: int,
+) -> bool:
+    """Execute the script: step of a task. Returns False on failure."""
+    source_path = runner.config.source_path
+    if not task.silent:
+        ref = _source_ref(source_path, _find_task_line(source_path, task_name))
+        ref_str = f" `{ref}`" if ref else ""
+        _md(f"### Step {step}/{total_steps} — 📜 script{ref_str}")
+        if runner.verbose:
+            _md(f"```yaml\n# task: {task_name}\nscript: {task.script}\n```")
+    rc = _run_with_retries(lambda: execute_script(runner, task, task_name), task)
+    return _handle_failure(rc, task, task_name, start, "script",
+                           cmd=f"script: {task.script}", source_path=source_path,
+                           runner=runner)
+
+
+def _execute_cmd_step(
+    runner, task: Task, task_name: str, cmd: str, start: float,
+    step: int, total_steps: int,
+) -> bool:
+    """Execute a single command step with pre-validation. Returns False on failure."""
+    source_path = runner.config.source_path
+    _render_step_header(runner, task_name, cmd, step, total_steps, task)
+
+    expanded = runner.expand_variables(cmd)
+    file_warnings = _validate_command_files(expanded, cwd=task.working_dir)
+    if file_warnings:
+        _md("\n".join(f"  ⚠️ {w}" for w in file_warnings))
+        if not task.ignore_errors:
+            tip = _get_tip_for_command(cmd)
+            if tip:
+                _md(f"\n{tip[0]}\n\n{tip[1]}")
+            _md(
+                f"\n### ❌ Pre-run validation failed for task `{task_name}`\n\n"
+                f"**Fix:** Create the missing files, then re-run.\n"
+                f"**Diagnose:** `taskfile doctor --fix`"
+            )
+            return False
+
+    rc = _run_with_retries(lambda cmd=cmd: run_command(runner, cmd, task), task)
+    return _handle_failure(rc, task, task_name, start, "command",
+                           cmd=cmd, source_path=source_path,
+                           runner=runner)
+
+
 def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
     """Execute all commands in a task. Returns False if any failed (and not ignored).
 
@@ -616,7 +664,6 @@ def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
     Step-by-step visibility: each command is numbered and its config location
     is shown so users can trace execution back to Taskfile.yml.
     """
-    source_path = runner.config.source_path
     total_steps = len(task.commands) + (1 if task.script else 0)
     step = 0
 
@@ -632,43 +679,12 @@ def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
     # Execute external script if defined
     if task.script:
         step += 1
-        if not task.silent:
-            ref = _source_ref(source_path, _find_task_line(source_path, task_name))
-            ref_str = f" `{ref}`" if ref else ""
-            _md(f"### Step {step}/{total_steps} — 📜 script{ref_str}")
-            if runner.verbose:
-                _md(f"```yaml\n# task: {task_name}\nscript: {task.script}\n```")
-        rc = _run_with_retries(lambda: execute_script(runner, task, task_name), task)
-        if not _handle_failure(rc, task, task_name, start, "script",
-                               cmd=f"script: {task.script}", source_path=source_path,
-                               runner=runner):
+        if not _execute_script_step(runner, task, task_name, start, step, total_steps):
             return False
 
     for i, cmd in enumerate(task.commands):
         step += 1
-        _render_step_header(runner, task_name, cmd, step, total_steps, task)
-
-        # Pre-validate files in file transfer commands
-        expanded = runner.expand_variables(cmd)
-        file_warnings = _validate_command_files(expanded, cwd=task.working_dir)
-        if file_warnings:
-            _md("\n".join(f"  ⚠️ {w}" for w in file_warnings))
-            if not task.ignore_errors:
-                # Show tip and fail early with clear message
-                tip = _get_tip_for_command(cmd)
-                if tip:
-                    _md(f"\n{tip[0]}\n\n{tip[1]}")
-                _md(
-                    f"\n### ❌ Pre-run validation failed for task `{task_name}`\n\n"
-                    f"**Fix:** Create the missing files, then re-run.\n"
-                    f"**Diagnose:** `taskfile doctor --fix`"
-                )
-                return False
-
-        rc = _run_with_retries(lambda cmd=cmd: run_command(runner, cmd, task), task)
-        if not _handle_failure(rc, task, task_name, start, "command",
-                               cmd=cmd, source_path=source_path,
-                               runner=runner):
+        if not _execute_cmd_step(runner, task, task_name, cmd, start, step, total_steps):
             return False
 
     # Success tip — show a learning tip for the last command (occasionally)

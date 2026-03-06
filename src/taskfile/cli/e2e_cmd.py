@@ -163,6 +163,57 @@ def _check_http_endpoint(url: str, expected_status: int = 200, timeout: float = 
         return E2EResult(f"HTTP {url}", False, str(e)[:60], ms)
 
 
+def _get_running_containers_remote(env) -> tuple[set[str] | None, str | None]:
+    """Get running container names from remote host. Returns (names, error)."""
+    from taskfile.deploy_utils import test_ssh_connection
+
+    ssh_ok = test_ssh_connection(env.ssh_host, env.ssh_user, getattr(env, "ssh_port", 22))
+    if not ssh_ok.success:
+        return None, f"SSH to {env.ssh_host} failed"
+
+    runtime = env.container_runtime if env.container_runtime != "docker" else "podman"
+    try:
+        r = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
+             f"{env.ssh_user}@{env.ssh_host}", f"{runtime} ps --format '{{{{.Names}}}}'"],
+            capture_output=True, text=True, timeout=15,
+        )
+        running = set(r.stdout.strip().split("\n")) if r.stdout.strip() else set()
+        return running, None
+    except Exception as e:
+        return None, str(e)[:60]
+
+
+def _get_running_containers_local() -> set[str]:
+    """Get running container names from local Docker."""
+    try:
+        r = subprocess.run(
+            ["docker", "compose", "ps", "--format", "{{.Name}}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        return set(r.stdout.strip().split("\n")) if r.stdout.strip() else set()
+    except Exception:
+        return set()
+
+
+def _match_containers(expected: list[str], running: set[str]) -> E2EResult:
+    """Match expected services against running containers."""
+    found = []
+    missing = []
+    for svc in expected:
+        if any(svc in name for name in running):
+            found.append(svc)
+        else:
+            missing.append(svc)
+
+    if missing:
+        return E2EResult(
+            "Containers running", False,
+            f"missing: {', '.join(missing)} (running: {', '.join(found) or 'none'})"
+        )
+    return E2EResult("Containers running", True, f"{len(found)} service(s) up")
+
+
 def _check_containers_running(env, config) -> E2EResult:
     """Check expected containers are running (local or remote)."""
     import yaml
@@ -183,47 +234,13 @@ def _check_containers_running(env, config) -> E2EResult:
     is_remote = env and hasattr(env, "is_remote") and env.is_remote
 
     if is_remote:
-        from taskfile.deploy_utils import test_ssh_connection
-
-        ssh_ok = test_ssh_connection(env.ssh_host, env.ssh_user, getattr(env, "ssh_port", 22))
-        if not ssh_ok.success:
-            return E2EResult("Containers running", False, f"SSH to {env.ssh_host} failed")
-
-        runtime = env.container_runtime if env.container_runtime != "docker" else "podman"
-        try:
-            r = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
-                 f"{env.ssh_user}@{env.ssh_host}", f"{runtime} ps --format '{{{{.Names}}}}'"],
-                capture_output=True, text=True, timeout=15,
-            )
-            running = set(r.stdout.strip().split("\n")) if r.stdout.strip() else set()
-        except Exception as e:
-            return E2EResult("Containers running", False, str(e)[:60])
+        running, err = _get_running_containers_remote(env)
+        if err:
+            return E2EResult("Containers running", False, err)
     else:
-        try:
-            r = subprocess.run(
-                ["docker", "compose", "ps", "--format", "{{.Name}}"],
-                capture_output=True, text=True, timeout=10,
-            )
-            running = set(r.stdout.strip().split("\n")) if r.stdout.strip() else set()
-        except Exception:
-            running = set()
+        running = _get_running_containers_local()
 
-    # Check expected services have at least partial match
-    found = []
-    missing = []
-    for svc in expected:
-        if any(svc in name for name in running):
-            found.append(svc)
-        else:
-            missing.append(svc)
-
-    if missing:
-        return E2EResult(
-            "Containers running", False,
-            f"missing: {', '.join(missing)} (running: {', '.join(found) or 'none'})"
-        )
-    return E2EResult("Containers running", True, f"{len(found)} service(s) up")
+    return _match_containers(expected, running)
 
 
 def _check_ssh_connectivity(env) -> E2EResult:
@@ -268,6 +285,61 @@ def _check_remote_disk(env) -> E2EResult:
 # ─── CLI command ─────────────────────────────────────────────────
 
 
+def _run_iac_checks(config, env) -> list[E2EResult]:
+    """Run IaC validation checks."""
+    results = []
+    results.append(_check_taskfile_valid(config))
+    results.append(_check_compose_file(config))
+    results.append(_check_quadlet_files())
+    env_file = getattr(env, "env_file", None) if env else None
+    results.append(_check_env_file(env_file))
+    return results
+
+
+def _run_service_checks(
+    env, config, is_remote: bool, url: tuple, port_web: int | None, port_landing: int | None,
+) -> list[E2EResult]:
+    """Run service checks: containers, HTTP endpoints."""
+    results = []
+    results.append(_check_containers_running(env, config))
+
+    host = "localhost"
+    if is_remote and env:
+        host = env.ssh_host
+
+    from taskfile.deploy_utils import load_env_file as _load_env
+
+    env_vars = _load_env(".env")
+    web_port = port_web or int(env_vars.get("PORT_WEB", "8000"))
+    landing_port = port_landing or int(env_vars.get("PORT_LANDING", "3000"))
+
+    results.append(_check_http_endpoint(f"http://{host}:{web_port}/"))
+    results.append(_check_http_endpoint(f"http://{host}:{landing_port}/"))
+
+    for extra_url in url:
+        results.append(_check_http_endpoint(extra_url))
+    return results
+
+
+def _print_e2e_results(results: list[E2EResult]) -> None:
+    """Print e2e test results and exit if failures."""
+    console.print()
+    passed = sum(1 for r in results if r.passed)
+    failed = sum(1 for r in results if not r.passed)
+
+    for r in results:
+        icon = r.icon
+        duration = f" [{r.duration_ms}ms]" if r.duration_ms else ""
+        console.print(f"  {icon} {r.name}: {r.detail}{duration}")
+
+    console.print()
+    if failed == 0:
+        console.print(f"[bold green]✅ All {passed} checks passed[/]")
+    else:
+        console.print(f"[bold red]❌ {failed} failed[/], [green]{passed} passed[/]")
+        sys.exit(1)
+
+
 @main.command(name="e2e")
 @click.option("--check-only", is_flag=True, help="Validate config only, skip HTTP/container checks")
 @click.option("--url", multiple=True, help="Additional HTTP URL(s) to check")
@@ -308,76 +380,36 @@ taskfile e2e --url http://localhost:8000/health
     opts = ctx.ensure_object(dict)
     results: list[E2EResult] = []
 
-    # Load Taskfile
     try:
         config = load_taskfile(opts.get("taskfile_path"))
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         sys.exit(1)
 
-    # Resolve target environment
     env_name = opts.get("env") or "local"
     env = config.environments.get(env_name) if config.environments else None
     is_remote = env and hasattr(env, "is_remote") and env.is_remote
 
     console.print(f"\n[bold]🧪 E2E Tests — {config.name or 'project'} ({env_name})[/]\n")
 
-    # ─── Layer 1: IaC validation ─────────────────────────
+    # Layer 1: IaC validation
     console.print("[bold dim]━━━ IaC Validation ━━━[/]")
-    results.append(_check_taskfile_valid(config))
-    results.append(_check_compose_file(config))
-    results.append(_check_quadlet_files())
-    env_file = getattr(env, "env_file", None) if env else None
-    results.append(_check_env_file(env_file))
+    results.extend(_run_iac_checks(config, env))
 
-    # ─── Layer 2: Local tools ────────────────────────────
+    # Layer 2: Local tools
     console.print("[bold dim]━━━ Tools ━━━[/]")
     results.append(_check_local_tools())
 
-    # ─── Layer 3: SSH + Remote ───────────────────────────
+    # Layer 3: SSH + Remote
     if is_remote:
         console.print("[bold dim]━━━ Remote ━━━[/]")
         results.append(_check_ssh_connectivity(env))
         results.append(_check_remote_podman(env))
         results.append(_check_remote_disk(env))
 
-    # ─── Layer 4: Services (unless --check-only) ─────────
+    # Layer 4: Services
     if not check_only:
         console.print("[bold dim]━━━ Services ━━━[/]")
-        results.append(_check_containers_running(env, config))
+        results.extend(_run_service_checks(env, config, is_remote, url, port_web, port_landing))
 
-        # Determine host for HTTP checks
-        host = "localhost"
-        if is_remote and env:
-            host = env.ssh_host
-
-        # Discover ports from .env or defaults
-        from taskfile.deploy_utils import load_env_file as _load_env
-
-        env_vars = _load_env(".env")
-        web_port = port_web or int(env_vars.get("PORT_WEB", "8000"))
-        landing_port = port_landing or int(env_vars.get("PORT_LANDING", "3000"))
-
-        results.append(_check_http_endpoint(f"http://{host}:{web_port}/"))
-        results.append(_check_http_endpoint(f"http://{host}:{landing_port}/"))
-
-        # Additional URLs
-        for extra_url in url:
-            results.append(_check_http_endpoint(extra_url))
-
-    # ─── Print results ───────────────────────────────────
-    console.print()
-    passed = sum(1 for r in results if r.passed)
-    failed = sum(1 for r in results if not r.passed)
-
-    for r in results:
-        icon = r.icon
-        duration = f" [{r.duration_ms}ms]" if r.duration_ms else ""
-        console.print(f"  {icon} {r.name}: {r.detail}{duration}")
-
-    console.print()
-    if failed == 0:
-        console.print(f"[bold green]✅ All {passed} checks passed[/]")
-    else:
-        console.print(f"[bold red]❌ {failed} failed[/], [green]{passed} passed[/]")
-        sys.exit(1)
+    _print_e2e_results(results)

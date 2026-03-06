@@ -301,6 +301,61 @@ def print_explain_report(report: ExplainReport, task_names: list[str], env_name:
         console.print(f"\n  [green]✓ Brak problemów — gotowe do uruchomienia[/]")
 
 
+def _print_teach_deps(task_names: list[str], config: TaskfileConfig) -> None:
+    """Print dependency explanations."""
+    for name in task_names:
+        task = config.tasks.get(name)
+        if task and task.deps:
+            dep_str = ", ".join(f"'{d}'" for d in task.deps)
+            console.print(
+                f"\n  '{name}' ma zależność {dep_str} — najpierw uruchomi się "
+                + ("ta zależność." if len(task.deps) == 1 else "te zależności.")
+            )
+
+
+def _print_teach_prefix_info(has_local: bool, has_remote: bool) -> None:
+    """Print @local/@remote prefix explanation."""
+    if has_local or has_remote:
+        console.print("\n  Twój task używa prefiksów @local i @remote:")
+        console.print("  • [bold]@local[/]  — uruchamia się TYLKO gdy env nie ma ssh_host (lokalne środowisko)")
+        console.print("  • [bold]@remote[/] — uruchamia się TYLKO gdy env ma ssh_host (zdalny serwer)")
+
+
+def _print_teach_current_env(report: ExplainReport, env_name: str) -> None:
+    """Print what runs in current env."""
+    console.print(f"\n  Przy env='[cyan]{env_name}[/]' zostaną uruchomione:")
+    for step in report.steps:
+        if step.skipped:
+            console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {step.skip_reason})[/]")
+        else:
+            console.print(f"    [green]✅[/] {step.cmd[:80]}")
+
+
+def _print_teach_alt_env(
+    report: ExplainReport, env_name: str, config: TaskfileConfig,
+) -> None:
+    """Print alternative env behavior for @local/@remote commands."""
+    remote_envs = [n for n, e in config.environments.items() if e.is_remote]
+    local_envs = [n for n, e in config.environments.items() if not e.is_remote]
+
+    if remote_envs and env_name not in remote_envs:
+        alt = remote_envs[0]
+        console.print(f"\n  Przy env='[cyan]{alt}[/]' (zdalny) zostaną uruchomione:")
+        for step in report.steps:
+            if step.cmd_type == "remote" or (step.cmd_type != "local" and "@local" not in step.cmd):
+                console.print(f"    [green]✅[/] {step.cmd[:80]}")
+            else:
+                console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {alt} jest zdalny)[/]")
+    elif local_envs and env_name not in local_envs:
+        alt = local_envs[0]
+        console.print(f"\n  Przy env='[cyan]{alt}[/]' (lokalny) zostaną uruchomione:")
+        for step in report.steps:
+            if step.cmd_type != "remote":
+                console.print(f"    [green]✅[/] {step.cmd[:80]}")
+            else:
+                console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {alt} brak SSH)[/]")
+
+
 def print_teach_report(
     report: ExplainReport, task_names: list[str], env_name: str,
     config: TaskfileConfig,
@@ -311,57 +366,17 @@ def print_teach_report(
         border_style="magenta",
     ))
 
-    # Explain dependencies
-    for name in task_names:
-        task = config.tasks.get(name)
-        if task and task.deps:
-            dep_str = ", ".join(f"'{d}'" for d in task.deps)
-            console.print(
-                f"\n  '{name}' ma zależność {dep_str} — najpierw uruchomi się "
-                + ("ta zależność." if len(task.deps) == 1 else "te zależności.")
-            )
+    _print_teach_deps(task_names, config)
 
-    # Check if task uses @local/@remote
     has_local = any(s.cmd_type == "local" and "@local" in s.cmd for s in report.steps)
     has_remote = any(s.cmd_type == "remote" for s in report.steps)
 
-    if has_local or has_remote:
-        console.print("\n  Twój task używa prefiksów @local i @remote:")
-        console.print("  • [bold]@local[/]  — uruchamia się TYLKO gdy env nie ma ssh_host (lokalne środowisko)")
-        console.print("  • [bold]@remote[/] — uruchamia się TYLKO gdy env ma ssh_host (zdalny serwer)")
+    _print_teach_prefix_info(has_local, has_remote)
+    _print_teach_current_env(report, env_name)
 
-    # Show what runs in current env
-    console.print(f"\n  Przy env='[cyan]{env_name}[/]' zostaną uruchomione:")
-    for step in report.steps:
-        if step.skipped:
-            console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {step.skip_reason})[/]")
-        else:
-            console.print(f"    [green]✅[/] {step.cmd[:80]}")
-
-    # Show alternative env behavior if there are @local/@remote commands
     if has_local and has_remote:
-        # Find env names that are remote
-        remote_envs = [n for n, e in config.environments.items() if e.is_remote]
-        local_envs = [n for n, e in config.environments.items() if not e.is_remote]
+        _print_teach_alt_env(report, env_name, config)
 
-        if remote_envs and env_name not in remote_envs:
-            alt = remote_envs[0]
-            console.print(f"\n  Przy env='[cyan]{alt}[/]' (zdalny) zostaną uruchomione:")
-            for step in report.steps:
-                if step.cmd_type == "remote" or (step.cmd_type != "local" and "@local" not in step.cmd):
-                    console.print(f"    [green]✅[/] {step.cmd[:80]}")
-                else:
-                    console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {alt} jest zdalny)[/]")
-        elif local_envs and env_name not in local_envs:
-            alt = local_envs[0]
-            console.print(f"\n  Przy env='[cyan]{alt}[/]' (lokalny) zostaną uruchomione:")
-            for step in report.steps:
-                if step.cmd_type != "remote":
-                    console.print(f"    [green]✅[/] {step.cmd[:80]}")
-                else:
-                    console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {alt} brak SSH)[/]")
-
-    # Issues
     if report.issues:
         console.print(f"\n  [yellow bold]⚠ Problemy:[/]")
         for i, issue in enumerate(report.issues, 1):

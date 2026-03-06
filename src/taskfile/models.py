@@ -259,47 +259,10 @@ class TaskfileConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TaskfileConfig:
         """Parse raw YAML dict into TaskfileConfig."""
-        # Apply environment_defaults to all environments
-        if "environment_defaults" in data:
-            defaults = data.pop("environment_defaults") or {}
-            if isinstance(defaults, dict):
-                env_section = data.get("environments", {})
-                for env_name, env_data in env_section.items():
-                    if isinstance(env_data, dict):
-                        # defaults are base, env_data overrides
-                        merged_vars = {**defaults.get("variables", {}), **env_data.get("variables", {})}
-                        for k, v in defaults.items():
-                            if k != "variables":
-                                env_data.setdefault(k, v)
-                        if merged_vars:
-                            env_data["variables"] = merged_vars
-
-        # Expand hosts: shorthand into environments + environment_groups
-        if "hosts" in data:
-            env_section, groups_section = cls._expand_hosts(data.pop("hosts"))
-            data.setdefault("environments", {}).update(env_section)
-            data.setdefault("environment_groups", {}).update(groups_section)
-
-        # Expand addons: into generated tasks
-        if "addons" in data and isinstance(data["addons"], list):
-            from taskfile.addons import expand_addons
-            addon_tasks = expand_addons(data.pop("addons"))
-            existing_tasks = data.setdefault("tasks", {})
-            for task_name, task_data in addon_tasks.items():
-                if task_name not in existing_tasks:
-                    existing_tasks[task_name] = task_data
-
-        # Expand deploy: recipe into generated tasks
-        if "deploy" in data and isinstance(data["deploy"], dict):
-            from taskfile.deploy_recipes import expand_deploy_recipe
-            recipe_tasks = expand_deploy_recipe(
-                data.pop("deploy"), data.get("variables", {})
-            )
-            # Merge: user-defined tasks override recipe-generated ones
-            existing_tasks = data.setdefault("tasks", {})
-            for task_name, task_data in recipe_tasks.items():
-                if task_name not in existing_tasks:
-                    existing_tasks[task_name] = task_data
+        cls._apply_environment_defaults(data)
+        cls._expand_hosts_section(data)
+        cls._expand_addons_section(data)
+        cls._expand_deploy_section(data)
 
         config = cls(
             version=str(data.get("version", "1")),
@@ -321,6 +284,59 @@ class TaskfileConfig:
         config.pipeline = cls._parse_pipeline(data.get("pipeline", {}), config.tasks)
 
         return config
+
+    @staticmethod
+    def _apply_environment_defaults(data: dict) -> None:
+        """Apply environment_defaults to all environments in-place."""
+        if "environment_defaults" not in data:
+            return
+        defaults = data.pop("environment_defaults") or {}
+        if not isinstance(defaults, dict):
+            return
+        env_section = data.get("environments", {})
+        for env_name, env_data in env_section.items():
+            if isinstance(env_data, dict):
+                merged_vars = {**defaults.get("variables", {}), **env_data.get("variables", {})}
+                for k, v in defaults.items():
+                    if k != "variables":
+                        env_data.setdefault(k, v)
+                if merged_vars:
+                    env_data["variables"] = merged_vars
+
+    @classmethod
+    def _expand_hosts_section(cls, data: dict) -> None:
+        """Expand hosts: shorthand into environments + environment_groups in-place."""
+        if "hosts" not in data:
+            return
+        env_section, groups_section = cls._expand_hosts(data.pop("hosts"))
+        data.setdefault("environments", {}).update(env_section)
+        data.setdefault("environment_groups", {}).update(groups_section)
+
+    @staticmethod
+    def _expand_addons_section(data: dict) -> None:
+        """Expand addons: into generated tasks in-place."""
+        if "addons" not in data or not isinstance(data["addons"], list):
+            return
+        from taskfile.addons import expand_addons
+        addon_tasks = expand_addons(data.pop("addons"))
+        existing_tasks = data.setdefault("tasks", {})
+        for task_name, task_data in addon_tasks.items():
+            if task_name not in existing_tasks:
+                existing_tasks[task_name] = task_data
+
+    @staticmethod
+    def _expand_deploy_section(data: dict) -> None:
+        """Expand deploy: recipe into generated tasks in-place."""
+        if "deploy" not in data or not isinstance(data["deploy"], dict):
+            return
+        from taskfile.deploy_recipes import expand_deploy_recipe
+        recipe_tasks = expand_deploy_recipe(
+            data.pop("deploy"), data.get("variables", {})
+        )
+        existing_tasks = data.setdefault("tasks", {})
+        for task_name, task_data in recipe_tasks.items():
+            if task_name not in existing_tasks:
+                existing_tasks[task_name] = task_data
 
     @staticmethod
     def _expand_hosts(hosts_section: dict) -> tuple[dict, dict]:

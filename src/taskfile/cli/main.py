@@ -519,16 +519,9 @@ taskfile validate --deps
         sys.exit(1)
 
 
-def _validate_dependent_files(config) -> None:
-    """Check all files referenced by the Taskfile and report status."""
-    from pathlib import Path as _Path
-    import yaml
-
-    taskfile_dir = _Path(config.source_path).parent if config.source_path else _Path.cwd()
-    console.print("\n[bold]📁 Dependent files:[/]")
+def _check_script_files_status(config, taskfile_dir) -> bool:
+    """Check script files and print status. Returns True if all found."""
     all_ok = True
-
-    # Check script files
     for name, task in sorted(config.tasks.items()):
         if not task.script:
             continue
@@ -538,8 +531,12 @@ def _validate_dependent_files(config) -> None:
         else:
             console.print(f"  [red]✗[/] {task.script} [dim](task: {name})[/] [red]— not found[/]")
             all_ok = False
+    return all_ok
 
-    # Check env files referenced in environments
+
+def _check_env_files_status(config, taskfile_dir) -> bool:
+    """Check env files and print status. Returns True if all found."""
+    all_ok = True
     for env_name, env in sorted(config.environments.items()):
         if env.env_file:
             p = taskfile_dir / env.env_file
@@ -548,46 +545,55 @@ def _validate_dependent_files(config) -> None:
             else:
                 console.print(f"  [red]✗[/] {env.env_file} [dim](env: {env_name})[/] [red]— not found[/]")
                 all_ok = False
+    return all_ok
 
-    # Check docker-compose.yml and related files
+
+def _check_compose_services(taskfile_dir) -> bool:
+    """Check docker-compose.yml services (build contexts, Dockerfiles). Returns True if all OK."""
+    import yaml
+
     compose_path = taskfile_dir / "docker-compose.yml"
-    if compose_path.exists():
-        console.print(f"  [green]✓[/] docker-compose.yml")
-        try:
-            compose_data = yaml.safe_load(compose_path.read_text()) or {}
-            services = compose_data.get("services", {})
-            for svc_name, svc_data in services.items():
-                if isinstance(svc_data, dict):
-                    # Check build context (apps/ directories)
-                    build = svc_data.get("build")
-                    if isinstance(build, str):
-                        build_path = taskfile_dir / build
-                        if build_path.exists():
-                            console.print(f"  [green]✓[/] {build} [dim](service: {svc_name})[/]")
-                        else:
-                            console.print(f"  [red]✗[/] {build} [dim](service: {svc_name})[/] [red]— not found[/]")
-                            all_ok = False
-                    elif isinstance(build, dict):
-                        context = build.get("context", ".")
-                        dockerfile = build.get("dockerfile", "Dockerfile")
-                        # Check context directory
-                        context_path = taskfile_dir / context
-                        if context_path.exists():
-                            console.print(f"  [green]✓[/] {context}/ [dim](context for {svc_name})[/]")
-                        else:
-                            console.print(f"  [red]✗[/] {context}/ [dim](context for {svc_name})[/] [red]— not found[/]")
-                            all_ok = False
-                        # Check Dockerfile
-                        df_path = context_path / dockerfile if context != "." else taskfile_dir / dockerfile
-                        if df_path.exists():
-                            console.print(f"  [green]✓[/] {context}/{dockerfile} [dim]({svc_name})[/]")
-                        else:
-                            console.print(f"  [red]✗[/] {context}/{dockerfile} [dim]({svc_name})[/] [red]— not found[/]")
-                            all_ok = False
-        except Exception as e:
-            console.print(f"  [yellow]⚠[/] Could not parse docker-compose.yml: {e}")
+    if not compose_path.exists():
+        return True
 
-    # Check common project files
+    console.print(f"  [green]✓[/] docker-compose.yml")
+    all_ok = True
+    try:
+        compose_data = yaml.safe_load(compose_path.read_text()) or {}
+        services = compose_data.get("services", {})
+        for svc_name, svc_data in services.items():
+            if not isinstance(svc_data, dict):
+                continue
+            build = svc_data.get("build")
+            if isinstance(build, str):
+                build_path = taskfile_dir / build
+                if build_path.exists():
+                    console.print(f"  [green]✓[/] {build} [dim](service: {svc_name})[/]")
+                else:
+                    console.print(f"  [red]✗[/] {build} [dim](service: {svc_name})[/] [red]— not found[/]")
+                    all_ok = False
+            elif isinstance(build, dict):
+                context = build.get("context", ".")
+                dockerfile = build.get("dockerfile", "Dockerfile")
+                context_path = taskfile_dir / context
+                if context_path.exists():
+                    console.print(f"  [green]✓[/] {context}/ [dim](context for {svc_name})[/]")
+                else:
+                    console.print(f"  [red]✗[/] {context}/ [dim](context for {svc_name})[/] [red]— not found[/]")
+                    all_ok = False
+                df_path = context_path / dockerfile if context != "." else taskfile_dir / dockerfile
+                if df_path.exists():
+                    console.print(f"  [green]✓[/] {context}/{dockerfile} [dim]({svc_name})[/]")
+                else:
+                    console.print(f"  [red]✗[/] {context}/{dockerfile} [dim]({svc_name})[/] [red]— not found[/]")
+                    all_ok = False
+    except Exception as e:
+        console.print(f"  [yellow]⚠[/] Could not parse docker-compose.yml: {e}")
+    return all_ok
+
+
+def _check_common_files(taskfile_dir) -> None:
+    """Check common project files presence."""
     for common_file in (".env", ".gitignore", "README.md", "VERSION"):
         p = taskfile_dir / common_file
         if p.exists():
@@ -595,7 +601,20 @@ def _validate_dependent_files(config) -> None:
         else:
             console.print(f"  [dim]·[/] {common_file} [dim]— not present[/]")
 
-    if all_ok:
+
+def _validate_dependent_files(config) -> None:
+    """Check all files referenced by the Taskfile and report status."""
+    from pathlib import Path as _Path
+
+    taskfile_dir = _Path(config.source_path).parent if config.source_path else _Path.cwd()
+    console.print("\n[bold]📁 Dependent files:[/]")
+
+    ok_scripts = _check_script_files_status(config, taskfile_dir)
+    ok_envs = _check_env_files_status(config, taskfile_dir)
+    ok_compose = _check_compose_services(taskfile_dir)
+    _check_common_files(taskfile_dir)
+
+    if ok_scripts and ok_envs and ok_compose:
         console.print("[green]  All referenced files found.[/]")
     else:
         console.print("[yellow]  Some files are missing — run 'taskfile doctor --fix' for auto-fix options[/]")
