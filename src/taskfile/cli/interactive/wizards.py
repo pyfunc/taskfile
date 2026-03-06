@@ -199,7 +199,8 @@ Thumbs.db
 @click.option("--llm", is_flag=True, help="Ask AI for help on unresolved issues (requires pip install taskfile[llm])")
 @click.option("--category", type=click.Choice(["config", "env", "infra", "runtime", "all"], case_sensitive=False), default="all", help="Filter by issue category")
 @click.option("--teach", is_flag=True, help="Show educational explanations for each issue")
-def doctor(fix, verbose, report, check_examples_flag, llm, category, teach):
+@click.option("--remote", is_flag=True, help="Run diagnostics on remote server (via SSH)")
+def doctor(fix, verbose, report, check_examples_flag, llm, category, teach, remote):
     """**🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
 ## Layers
@@ -222,12 +223,15 @@ def doctor(fix, verbose, report, check_examples_flag, llm, category, teach):
 | `--report` | JSON output for CI pipelines |
 | `--examples` | Validate all examples/ directories |
 | `--teach` | Show educational explanations for each issue |
+| `--remote` | Run diagnostics on remote server via SSH |
 
 ## Examples
 
 ```bash
 # Full 5-layer diagnostics
-taskfile doctor
+
+# Diagnostics on remote production server
+taskfile --env prod doctor --remote
 
 # Auto-fix + AI suggestions
 taskfile doctor --fix --llm
@@ -250,7 +254,7 @@ taskfile doctor --teach
             border_style="blue"
         ))
 
-    with console.status("[bold green]Checking project...[/]") if not report else _nullcontext():
+    with console.status("[bold green]Checking project...[/]" if not remote else "[bold green]Checking remote server...[/]") if not report else _nullcontext():
         # Layer 1: Preflight
         diagnostics.check_preflight()
         # Layer 2: Validation
@@ -265,11 +269,14 @@ taskfile doctor --teach
         diagnostics.check_registry_access()
         diagnostics.check_ssh_keys()
         diagnostics.check_git()
-        # Layer 3+: Task command checks and remote health (if verbose)
-        if verbose:
+        # Layer 3+: Task command checks and remote health (if verbose or remote)
+        if verbose or remote:
             diagnostics.check_task_commands()
             diagnostics.check_ssh_connectivity()
             diagnostics.check_remote_health()
+        # Remote-only: extended remote diagnostics
+        if remote:
+            _run_remote_diagnostics(diagnostics)
 
     # Validate examples/ directory if requested
     if check_examples_flag:
@@ -324,6 +331,76 @@ def _run_llm_assist(diagnostics: ProjectDiagnostics) -> None:
     suggestions = diagnostics.llm_repair()
     for suggestion in suggestions:
         console.print(f"  💡 {suggestion}")
+
+
+def _run_remote_diagnostics(diagnostics: ProjectDiagnostics) -> None:
+    """Extended remote diagnostics — check containers, images, system status on remote server."""
+    from taskfile.parser import find_taskfile, load_taskfile
+    from taskfile.deploy_utils import test_ssh_connection
+    
+    console.print("\n[bold cyan]🔍 Remote Server Diagnostics[/]")
+    
+    try:
+        tf = find_taskfile()
+        config = load_taskfile(tf)
+    except Exception:
+        console.print("[yellow]  Could not load Taskfile config for remote diagnostics[/]")
+        return
+    
+    # Find current environment
+    import os
+    env_name = os.environ.get("TASKFILE_ENV", "prod")
+    env = config.environments.get(env_name)
+    if not env:
+        env = next((e for e in config.environments.values() if e.is_remote), None)
+    
+    if not env or not env.is_remote:
+        console.print("[yellow]  No remote environment configured[/]")
+        return
+    
+    # Test SSH first
+    ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
+    if not ssh_result.success:
+        console.print(f"[red]  SSH connection failed: {ssh_result.error}[/]")
+        return
+    
+    console.print(f"[green]  ✓ SSH connected to {env.ssh_host}[/]")
+    
+    # Check remote containers
+    try:
+        import subprocess
+        ssh_cmd = f"ssh -p {env.ssh_port or 22} -i {env.ssh_key or '~/.ssh/id_ed25519'} {env.ssh_user}@{env.ssh_host}"
+        
+        # Check podman containers
+        result = subprocess.run(
+            f"{ssh_cmd} 'podman ps --format json 2>/dev/null || echo \"[]\"'",
+            shell=True, capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            console.print("[green]  ✓ Podman is running on remote server[/]")
+        else:
+            console.print("[yellow]  ⚠ Podman check returned non-zero exit[/]")
+            
+        # Check disk space
+        result = subprocess.run(
+            f"{ssh_cmd} 'df -h / | tail -1'",
+            shell=True, capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            disk_info = result.stdout.strip()
+            console.print(f"[dim]  Disk usage: {disk_info}[/]")
+            
+        # Check running containers count
+        result = subprocess.run(
+            f"{ssh_cmd} 'podman ps -q | wc -l'",
+            shell=True, capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            container_count = result.stdout.strip()
+            console.print(f"[dim]  Running containers: {container_count}[/]")
+            
+    except Exception as e:
+        console.print(f"[yellow]  Remote diagnostics error: {e}[/]")
 
 
 class _nullcontext:

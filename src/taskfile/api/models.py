@@ -174,6 +174,51 @@ class HealthResponse(BaseModel):
     env_count: int = 0
 
 
+class DoctorIssueInfo(BaseModel):
+    """Single diagnostic issue from doctor."""
+    category: str
+    message: str
+    severity: str = "warning"
+    fix_strategy: str = "manual"
+    auto_fixable: bool = False
+    layer: int = 3
+    fix_command: str | None = None
+    fix_description: str | None = None
+    teach: str | None = None
+    context: dict[str, Any] | None = None
+
+
+class DoctorRequest(BaseModel):
+    """Request options for the doctor endpoint."""
+    fix: bool = Field(False, description="Auto-fix issues where possible (Layer 4)")
+    verbose: bool = Field(False, description="Run extra checks (task commands, SSH connectivity, remote health)")
+    category: str = Field("all", description="Filter by category: config, env, infra, runtime, or all")
+    examples: bool = Field(False, description="Validate examples/ directories")
+    llm: bool = Field(False, description="Ask AI for suggestions on unresolved issues (Layer 5)")
+
+    model_config = {"json_schema_extra": {
+        "examples": [
+            {"fix": False, "verbose": False, "category": "all"},
+            {"fix": True, "llm": True},
+        ]
+    }}
+
+
+class DoctorResponse(BaseModel):
+    """Full doctor diagnostics result."""
+    total_issues: int = 0
+    errors: int = 0
+    warnings: int = 0
+    info: int = 0
+    auto_fixable: int = 0
+    fixed_count: int = 0
+    healthy: bool = True
+    issues: list[DoctorIssueInfo] = []
+    categories: dict[str, list[DoctorIssueInfo]] = {}
+    llm_suggestions: list[str] = []
+    summary: str = "No issues found"
+
+
 class ErrorResponse(BaseModel):
     """Error response."""
     error: str

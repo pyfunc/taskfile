@@ -13,6 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from taskfile import __version__
 from taskfile.api.models import (
+    DoctorIssueInfo,
+    DoctorRequest,
+    DoctorResponse,
     EnvironmentGroupInfo,
     EnvironmentInfo,
     ErrorResponse,
@@ -510,6 +513,156 @@ def _register_metadata_routes(app: FastAPI) -> None:
         ]
 
 
+def _register_doctor_routes(app: FastAPI) -> None:
+    """Register /doctor diagnostics endpoint."""
+
+    @app.get(
+        "/doctor",
+        response_model=DoctorResponse,
+        tags=["diagnostics"],
+        summary="Run doctor diagnostics (GET — read-only)",
+    )
+    def doctor_get(
+        verbose: bool = Query(False, description="Run extra checks (task commands, SSH, remote health)"),
+        category: str = Query("all", description="Filter: config, env, infra, runtime, or all"),
+    ):
+        """Run 5-layer diagnostics (read-only, no fixes applied).
+
+        Same as `taskfile doctor --report` but over HTTP.
+        """
+        return _run_doctor(app, fix=False, verbose=verbose, category=category, llm=False)
+
+    @app.post(
+        "/doctor",
+        response_model=DoctorResponse,
+        tags=["diagnostics"],
+        summary="Run doctor diagnostics with options",
+    )
+    def doctor_post(request: DoctorRequest):
+        """Run 5-layer diagnostics with optional auto-fix and LLM assist.
+
+        - **fix**: Apply Layer 4 algorithmic fixes
+        - **verbose**: Extra checks (task commands, SSH connectivity, remote health)
+        - **llm**: Ask AI for suggestions on unresolved issues (Layer 5)
+        - **category**: Filter by issue category
+        """
+        return _run_doctor(
+            app,
+            fix=request.fix,
+            verbose=request.verbose,
+            category=request.category,
+            llm=request.llm,
+        )
+
+
+def _run_doctor(
+    app: FastAPI,
+    *,
+    fix: bool = False,
+    verbose: bool = False,
+    category: str = "all",
+    llm: bool = False,
+) -> DoctorResponse:
+    """Shared doctor logic for GET and POST endpoints."""
+    from taskfile.diagnostics import ProjectDiagnostics
+
+    diagnostics = ProjectDiagnostics()
+
+    # Layer 1: Preflight
+    diagnostics.check_preflight()
+    # Layer 2: Validation
+    diagnostics.check_taskfile()
+    # Layer 3: Diagnostics
+    diagnostics.check_env_files()
+    diagnostics.validate_taskfile_variables()
+    diagnostics.check_placeholder_values()
+    diagnostics.check_dependent_files()
+    diagnostics.check_ports()
+    diagnostics.check_docker()
+    diagnostics.check_registry_access()
+    diagnostics.check_ssh_keys()
+    diagnostics.check_git()
+    # Layer 3+: verbose checks
+    if verbose:
+        diagnostics.check_task_commands()
+        diagnostics.check_ssh_connectivity()
+        diagnostics.check_remote_health()
+
+    # Layer 4: Auto-fix
+    fixed_count = 0
+    if fix and diagnostics.issues:
+        fixed_count = diagnostics.auto_fix()
+
+    # Layer 5: LLM assist
+    llm_suggestions: list[str] = []
+    if llm and diagnostics._issues:
+        try:
+            llm_suggestions = diagnostics.llm_repair()
+        except Exception:
+            pass
+
+    # Filter by category if requested
+    CATEGORY_FILTER = {
+        "config": {"config_error", "taskfile_bug"},
+        "env": {"dependency_missing"},
+        "infra": {"external_error"},
+        "runtime": {"runtime_error"},
+    }
+    issues = diagnostics._issues
+    if category != "all" and category in CATEGORY_FILTER:
+        allowed = CATEGORY_FILTER[category]
+        issues = [i for i in issues if i.category.value in allowed]
+
+    # Build response
+    issue_infos = []
+    categories: dict[str, list[DoctorIssueInfo]] = {}
+    for iss in issues:
+        info = DoctorIssueInfo(
+            category=iss.category.value,
+            message=iss.message,
+            severity=iss.severity,
+            fix_strategy=iss.fix_strategy.value,
+            auto_fixable=iss.auto_fixable,
+            layer=iss.layer,
+            fix_command=iss.fix_command,
+            fix_description=iss.fix_description,
+            teach=iss.teach,
+            context={k: v for k, v in iss.context.items() if not k.startswith("_")} if iss.context else None,
+        )
+        issue_infos.append(info)
+        categories.setdefault(iss.category.value, []).append(info)
+
+    error_count = sum(1 for i in issues if i.severity == "error")
+    warn_count = sum(1 for i in issues if i.severity == "warning")
+    info_count = sum(1 for i in issues if i.severity == "info")
+    fixable = sum(1 for i in issues if i.auto_fixable)
+
+    parts = []
+    if error_count:
+        parts.append(f"Errors: {error_count}")
+    if warn_count:
+        parts.append(f"Warnings: {warn_count}")
+    if info_count:
+        parts.append(f"Info: {info_count}")
+    if fixed_count:
+        parts.append(f"Fixed: {fixed_count}")
+    summary = ", ".join(parts) if parts else "No issues found"
+
+    return DoctorResponse(
+        total_issues=len(issue_infos),
+        errors=error_count,
+        warnings=warn_count,
+        info=info_count,
+        auto_fixable=fixable,
+        fixed_count=fixed_count,
+        healthy=error_count == 0,
+        issues=issue_infos,
+        categories=categories,
+        llm_suggestions=llm_suggestions,
+        summary=summary,
+    )
+
+
 def create_app(taskfile_path: str | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
 
@@ -521,6 +674,7 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
             "- **List** tasks, environments, platforms, and functions\n"
             "- **Run** tasks with environment/platform/variable overrides\n"
             "- **Validate** Taskfile configuration\n"
+            "- **Diagnose** project health (`/doctor`)\n"
             "- **Inspect** full Taskfile metadata\n\n"
             "Start the server:\n"
             "```bash\n"
@@ -554,5 +708,6 @@ def create_app(taskfile_path: str | None = None) -> FastAPI:
     _register_task_routes(app)
     _register_run_routes(app)
     _register_metadata_routes(app)
+    _register_doctor_routes(app)
 
     return app
