@@ -209,6 +209,71 @@ curl -X POST http://localhost:8000/validate \
 
 ---
 
+### Doctor (Diagnostics)
+
+Run 5-layer diagnostics on the production server — same as `taskfile doctor` but over HTTP.
+
+```bash
+# Quick health check (GET — read-only, no fixes)
+curl http://localhost:8000/doctor
+
+# Verbose mode (extra checks: task commands, SSH, remote health)
+curl "http://localhost:8000/doctor?verbose=true"
+
+# Filter by category
+curl "http://localhost:8000/doctor?category=config"
+```
+
+```json
+{
+  "total_issues": 3,
+  "errors": 2,
+  "warnings": 0,
+  "info": 1,
+  "auto_fixable": 0,
+  "fixed_count": 0,
+  "healthy": false,
+  "summary": "Errors: 2, Info: 1",
+  "issues": [
+    {
+      "category": "dependency_missing",
+      "message": "podman: not found (optional)",
+      "severity": "info",
+      "fix_strategy": "manual",
+      "auto_fixable": false,
+      "layer": 1,
+      "fix_description": "Install: apt install podman  # https://podman.io/docs/installation",
+      "teach": "Podman is a Docker alternative..."
+    }
+  ],
+  "categories": { "dependency_missing": [...], "external_error": [...] },
+  "llm_suggestions": []
+}
+```
+
+```bash
+# Run with auto-fix + LLM suggestions (POST)
+curl -X POST http://localhost:8000/doctor \
+  -H "Content-Type: application/json" \
+  -d '{"fix": true, "llm": true}'
+
+# Verbose + specific category
+curl -X POST http://localhost:8000/doctor \
+  -H "Content-Type: application/json" \
+  -d '{"verbose": true, "category": "runtime"}'
+```
+
+**POST body options:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `fix` | bool | `false` | Apply Layer 4 algorithmic fixes |
+| `verbose` | bool | `false` | Extra checks (task commands, SSH, remote health) |
+| `category` | string | `"all"` | Filter: `config`, `env`, `infra`, `runtime`, or `all` |
+| `llm` | bool | `false` | Ask AI for suggestions (Layer 5, requires `taskfile[llm]`) |
+
+---
+
 ### Environments
 
 ```bash
@@ -348,6 +413,19 @@ else:
     for t in result["tasks"]:
         if t["status"] == "failed":
             print(f"FAILED: {t['task']}: {t['error']}")
+
+# Doctor — run diagnostics on production server
+doctor = httpx.get(f"{api}/doctor", params={"verbose": True}).json()
+if doctor["healthy"]:
+    print("Server is healthy!")
+else:
+    print(f"Issues: {doctor['summary']}")
+    for issue in doctor["issues"]:
+        print(f"  [{issue['severity']}] {issue['message']}")
+
+# Doctor with auto-fix
+doctor = httpx.post(f"{api}/doctor", json={"fix": True, "verbose": True}).json()
+print(f"Fixed: {doctor['fixed_count']}, Remaining: {doctor['total_issues']}")
 ```
 
 ---
@@ -368,4 +446,16 @@ const result = await fetch("http://localhost:8000/run", {
     variables: { TAG: "v1.2.3" },
   }),
 }).then(r => r.json());
+
+// Doctor — production health check
+const doctor = await fetch("http://localhost:8000/doctor?verbose=true").then(r => r.json());
+console.log(doctor.healthy ? "Healthy" : `Issues: ${doctor.summary}`);
+
+// Doctor with auto-fix
+const fixed = await fetch("http://localhost:8000/doctor", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ fix: true, verbose: true }),
+}).then(r => r.json());
+console.log(`Fixed: ${fixed.fixed_count}, Remaining: ${fixed.total_issues}`);
 ```

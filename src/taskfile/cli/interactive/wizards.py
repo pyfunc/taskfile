@@ -229,6 +229,10 @@ def doctor(fix, verbose, report, check_examples_flag, llm, category, teach, remo
 
 ```bash
 # Full 5-layer diagnostics
+taskfile doctor
+
+# Verbose mode (extra checks: task commands, SSH, remote health)
+taskfile doctor -v
 
 # Diagnostics on remote production server
 taskfile --env prod doctor --remote
@@ -244,6 +248,11 @@ taskfile doctor --report
 
 # Educational mode — learn why each issue matters
 taskfile doctor --teach
+
+# Production server via REST API (when taskfile api serve is running)
+curl http://localhost:8000/doctor
+curl -X POST http://localhost:8000/doctor -H "Content-Type: application/json" \
+  -d '{"verbose": true, "fix": true}'
 ```
 """
     diagnostics = ProjectDiagnostics()
