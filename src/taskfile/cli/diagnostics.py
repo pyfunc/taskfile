@@ -38,10 +38,12 @@ Uses `clickmd` for consistent CLI experience and markdown rendering of diagnosti
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import socket
 import subprocess
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -56,32 +58,93 @@ from taskfile.compose import load_env_file, resolve_variables
 from taskfile.parser import find_taskfile, load_taskfile, TaskfileNotFoundError
 
 if TYPE_CHECKING:
-    pass
+    from taskfile.models import TaskfileConfig
 
 
 console = Console()
+
+
+class IssueCategory(str, Enum):
+    """Classification of diagnostic issues to help users identify root cause."""
+    CONFIG = "config"      # Taskfile.yml misconfiguration (user's YAML is wrong)
+    ENV = "env"            # Missing/invalid .env files or variables
+    INFRA = "infra"        # Infrastructure: Docker, SSH, ports, git
+    RUNTIME = "runtime"    # Software/command execution failures
+
+
+CATEGORY_LABELS = {
+    IssueCategory.CONFIG: "Taskfile Config",
+    IssueCategory.ENV: "Environment Files",
+    IssueCategory.INFRA: "Infrastructure",
+    IssueCategory.RUNTIME: "Runtime",
+}
+
+CATEGORY_HINTS = {
+    IssueCategory.CONFIG: "Fix your Taskfile.yml — this is a taskfile configuration problem.",
+    IssueCategory.ENV: "Create or fix .env files — copy from .env.*.example and customize.",
+    IssueCategory.INFRA: "Check your infrastructure — Docker, SSH keys, ports, git.",
+    IssueCategory.RUNTIME: "The software taskfile runs has a problem — check logs above.",
+}
+
+
+class DiagnosticIssue:
+    """Single diagnostic issue with category, severity, and fix info."""
+
+    __slots__ = ("message", "severity", "auto_fixable", "category")
+
+    def __init__(
+        self,
+        message: str,
+        severity: str = "warning",
+        auto_fixable: bool = False,
+        category: IssueCategory = IssueCategory.CONFIG,
+    ):
+        self.message = message
+        self.severity = severity
+        self.auto_fixable = auto_fixable
+        self.category = category
+
+    def as_dict(self) -> dict:
+        return {
+            "message": self.message,
+            "severity": self.severity,
+            "auto_fixable": self.auto_fixable,
+            "category": self.category.value,
+        }
 
 
 class ProjectDiagnostics:
     """Diagnose and auto-fix common project issues."""
 
     def __init__(self):
-        self.issues: list[tuple[str, str, bool]] = []  # (issue, severity, auto_fixable)
+        self.issues: list[tuple[str, str, bool]] = []  # legacy format kept for compat
+        self._issues: list[DiagnosticIssue] = []       # new categorized issues
         self.fixed = 0
         self.port_fixes: dict[str, int] = {}
+
+    def _add_issue(
+        self,
+        message: str,
+        severity: str = "warning",
+        auto_fixable: bool = False,
+        category: IssueCategory = IssueCategory.CONFIG,
+    ) -> None:
+        """Add an issue to both legacy and new lists."""
+        self.issues.append((message, severity, auto_fixable))
+        self._issues.append(DiagnosticIssue(message, severity, auto_fixable, category))
 
     def check_taskfile(self) -> bool:
         """Check if Taskfile.yml exists and is valid."""
         try:
             path = find_taskfile()
         except TaskfileNotFoundError:
-            self.issues.append(("Taskfile.yml not found", "error", True))
+            self._add_issue("Taskfile.yml not found", "error", True, IssueCategory.CONFIG)
             return False
         try:
             load_taskfile(path)
             return True
         except Exception as e:
-            self.issues.append((f"Taskfile.yml parse error: {e}", "error", False))
+            self._add_issue(f"Taskfile.yml parse error: {e}", "error", False, IssueCategory.CONFIG)
             return False
 
     def check_env_files(self) -> None:
@@ -97,13 +160,13 @@ class ProjectDiagnostics:
             
             # Check for empty API keys
             if "OPENROUTER_API_KEY=" in content and "OPENROUTER_API_KEY=\n" in content:
-                self.issues.append((f"{env_file}: OPENROUTER_API_KEY is empty", "warning", True))
+                self._add_issue(f"{env_file}: OPENROUTER_API_KEY is empty", "warning", True, IssueCategory.ENV)
             
             # Check for incorrect PORT variable names
             for line in content.splitlines():
                 if line.startswith("PORT=") and not line.startswith("PORT_"):
-                    self.issues.append(
-                        (f"{env_file}: Use PORT_WEB or PORT_LANDING instead of PORT", "warning", True)
+                    self._add_issue(
+                        f"{env_file}: Use PORT_WEB or PORT_LANDING instead of PORT", "warning", True, IssueCategory.ENV
                     )
                     break  # Only report once per file
 
@@ -154,12 +217,12 @@ class ProjectDiagnostics:
             # Find missing required variables
             for var in required_vars:
                 if var not in env_vars:
-                    self.issues.append(
-                        (f"{env_file}: Missing required variable {var}", "warning", True)
+                    self._add_issue(
+                        f"{env_file}: Missing required variable {var}", "warning", True, IssueCategory.ENV
                     )
                 elif f"{var}=\n" in env_content or f"{var}=\r\n" in env_content:
-                    self.issues.append(
-                        (f"{env_file}: {var} is empty", "warning", True)
+                    self._add_issue(
+                        f"{env_file}: {var} is empty", "warning", True, IssueCategory.ENV
                     )
 
     def check_ports(self) -> None:
@@ -198,12 +261,11 @@ class ProjectDiagnostics:
             if conflict:
                 key, resolved_port, suggested = conflict
                 self.port_fixes[key] = suggested
-                self.issues.append(
-                    (
-                        f"Port {resolved_port} for service '{svc_name}' is in use (set {key}={suggested})",
-                        "warning",
-                        True,
-                    )
+                self._add_issue(
+                    f"Port {resolved_port} for service '{svc_name}' is in use (set {key}={suggested})",
+                    "warning",
+                    True,
+                    IssueCategory.INFRA,
                 )
 
     def check_docker(self) -> None:
@@ -211,18 +273,18 @@ class ProjectDiagnostics:
         try:
             subprocess.run(["docker", "--version"], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            self.issues.append(("Docker not installed or not running", "warning", False))
+            self._add_issue("Docker not installed or not running", "warning", False, IssueCategory.INFRA)
 
     def check_ssh_keys(self) -> None:
         """Check SSH keys."""
         ssh_dir = Path.home() / ".ssh"
         if not ssh_dir.exists():
-            self.issues.append(("~/.ssh directory not found", "error", True))
+            self._add_issue("~/.ssh directory not found", "error", True, IssueCategory.INFRA)
             return
 
         keys = list(ssh_dir.glob("id_*"))
         if not keys:
-            self.issues.append(("No SSH keys found (~/.ssh/id_*)", "warning", False))
+            self._add_issue("No SSH keys found (~/.ssh/id_*)", "warning", False, IssueCategory.INFRA)
 
     def check_dependent_files(self) -> None:
         """Check that all files referenced in Taskfile (scripts, env_files) exist."""
@@ -240,8 +302,8 @@ class ProjectDiagnostics:
                 continue
             script_path = taskfile_dir / task.script
             if not script_path.exists():
-                self.issues.append(
-                    (f"Task '{task_name}' script not found: {task.script}", "error", False)
+                self._add_issue(
+                    f"Task '{task_name}' script not found: {task.script}", "error", False, IssueCategory.CONFIG
                 )
 
         # Check env_file references in environments
@@ -249,26 +311,61 @@ class ProjectDiagnostics:
             if env.env_file:
                 env_file_path = taskfile_dir / env.env_file
                 if not env_file_path.exists():
-                    self.issues.append(
-                        (f"Environment '{env_name}' env_file not found: {env.env_file}", "warning", False)
+                    example_path = taskfile_dir / f"{env.env_file}.example"
+                    fixable = example_path.exists()
+                    self._add_issue(
+                        f"Environment '{env_name}' env_file not found: {env.env_file}",
+                        "warning", fixable, IssueCategory.ENV
                     )
 
         # Check circular dependencies
         from taskfile.parser import validate_taskfile
         for warning in validate_taskfile(config):
             if "Circular dependency" in warning:
-                self.issues.append((warning, "error", False))
+                self._add_issue(warning, "error", False, IssueCategory.CONFIG)
 
     def check_git(self) -> None:
         """Check if in git repo."""
         try:
             subprocess.run(["git", "rev-parse", "--git-dir"], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            self.issues.append(("Not a git repository", "info", True))
+            self._add_issue("Not a git repository", "info", True, IssueCategory.INFRA)
 
     def auto_fix(self) -> int:
         """Attempt to fix auto-fixable issues."""
-        return self._fix_taskfile() + self._fix_git() + self._fix_api_keys() + self._fix_ports() + self._fix_env_vars() + self._fix_taskfile_variables()
+        return (
+            self._fix_taskfile()
+            + self._fix_missing_env_files()
+            + self._fix_git()
+            + self._fix_api_keys()
+            + self._fix_ports()
+            + self._fix_env_vars()
+            + self._fix_taskfile_variables()
+        )
+
+    def _fix_missing_env_files(self) -> int:
+        """Fix missing .env files by copying from .env.*.example if available."""
+        fixed = 0
+        for issue, severity, auto_fixable in self.issues[:]:
+            if not auto_fixable or "env_file not found" not in issue:
+                continue
+            m = re.search(r"env_file not found: (.+)$", issue)
+            if not m:
+                continue
+            env_file = m.group(1).strip()
+            example_file = f"{env_file}.example"
+            env_path = Path(env_file)
+            example_path = Path(example_file)
+            if not example_path.exists():
+                continue
+            console.print(f"[yellow]\u26a0[/] Missing {env_file} \u2014 found {example_file}")
+            if Confirm.ask(f"Copy {example_file} \u2192 {env_file}?", default=True):
+                env_path.write_text(example_path.read_text())
+                console.print(f"[green]\u2713[/] Created {env_file} from {example_file}")
+                console.print(f"  [dim]Edit {env_file} to set your actual values[/]")
+                fixed += 1
+                self.issues.remove((issue, severity, auto_fixable))
+        return fixed
 
     def _fix_taskfile_variables(self) -> int:
         """Fix missing Taskfile variables by prompting user."""
@@ -429,8 +526,8 @@ class ProjectDiagnostics:
             fixed += 1
         return fixed
 
-    def print_report(self) -> None:
-        """Print diagnostic report."""
+    def print_report(self, categorized: bool = True) -> None:
+        """Print diagnostic report, optionally grouped by category."""
         if not self.issues:
             console.print(Panel(
                 "[bold green]✓ All checks passed![/]\n"
@@ -439,6 +536,13 @@ class ProjectDiagnostics:
             ))
             return
 
+        if categorized and self._issues:
+            self._print_categorized_report()
+        else:
+            self._print_flat_report()
+
+    def _print_flat_report(self) -> None:
+        """Print flat table of all issues."""
         table = Table(title="Project Diagnostics", box=box.ROUNDED)
         table.add_column("Issue", style="yellow")
         table.add_column("Severity", style="red")
@@ -450,6 +554,169 @@ class ProjectDiagnostics:
             table.add_row(issue, f"{severity_style} {severity}", fix_status)
 
         console.print(table)
+
+    def _print_categorized_report(self) -> None:
+        """Print issues grouped by category with actionable hints."""
+        by_cat: dict[IssueCategory, list[DiagnosticIssue]] = {}
+        for iss in self._issues:
+            by_cat.setdefault(iss.category, []).append(iss)
+
+        for cat in IssueCategory:
+            items = by_cat.get(cat)
+            if not items:
+                continue
+            label = CATEGORY_LABELS[cat]
+            hint = CATEGORY_HINTS[cat]
+            error_count = sum(1 for i in items if i.severity == "error")
+
+            header_style = "red" if error_count else "yellow"
+            console.print(f"\n[bold {header_style}]{chr(0x2550) * 3} {label} {chr(0x2550) * 40}[/]")
+            console.print(f"  [dim]{hint}[/]")
+
+            table = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
+            table.add_column("S", width=3)
+            table.add_column("Issue")
+            table.add_column("Fix", width=6)
+
+            for iss in items:
+                icon = {"error": "[red]✗[/]", "warning": "[yellow]⚠[/]", "info": "[blue]ℹ[/]"}.get(iss.severity, "●")
+                fix_col = "[green]auto[/]" if iss.auto_fixable else "[dim]manual[/]"
+                table.add_row(icon, iss.message, fix_col)
+
+            console.print(table)
+
+    def get_report_dict(self) -> dict:
+        """Return structured report as dict (for JSON/CI output)."""
+        by_cat: dict[str, list[dict]] = {}
+        for iss in self._issues:
+            by_cat.setdefault(iss.category.value, []).append(iss.as_dict())
+        return {
+            "total_issues": len(self._issues),
+            "errors": sum(1 for i in self._issues if i.severity == "error"),
+            "warnings": sum(1 for i in self._issues if i.severity == "warning"),
+            "auto_fixable": sum(1 for i in self._issues if i.auto_fixable),
+            "categories": by_cat,
+        }
+
+    def print_report_json(self) -> None:
+        """Print diagnostic report as JSON for CI pipelines."""
+        console.print_json(json.dumps(self.get_report_dict(), indent=2))
+
+    @staticmethod
+    def check_examples(examples_dir: Path) -> list[dict]:
+        """Validate all example directories under examples_dir.
+
+        Returns list of dicts: {name, valid, tasks, envs, missing_env_files, errors}.
+        """
+        results = []
+        if not examples_dir.is_dir():
+            return results
+
+        for child in sorted(examples_dir.iterdir()):
+            if not child.is_dir():
+                continue
+            taskfile_path = child / "Taskfile.yml"
+            if not taskfile_path.exists():
+                taskfile_path = child / "Taskfile.yaml"
+            if not taskfile_path.exists():
+                continue
+
+            entry: dict = {"name": child.name, "valid": True, "tasks": 0, "envs": 0, "missing_env_files": [], "errors": []}
+            try:
+                config = load_taskfile(taskfile_path)
+                entry["tasks"] = len(config.tasks)
+                entry["envs"] = len(config.environments)
+
+                # Check env_file references
+                for env_name, env in config.environments.items():
+                    if env.env_file:
+                        env_file_path = child / env.env_file
+                        if not env_file_path.exists():
+                            entry["missing_env_files"].append(env.env_file)
+            except Exception as e:
+                entry["valid"] = False
+                entry["errors"].append(str(e))
+
+            results.append(entry)
+        return results
+
+    @staticmethod
+    def generate_env_example(taskfile_dir: Path, env_name: str, env) -> str:
+        """Generate .env.example content from an environment's variable references."""
+        lines = [f"# {env_name} environment template"]
+        # Add variables from env definition
+        for var_name, var_value in sorted(env.variables.items()):
+            lines.append(f"{var_name}={var_value}")
+        # Add common vars
+        if not env.variables:
+            lines.append(f"APP_NAME={taskfile_dir.name}")
+            lines.append("VERSION=0.1.0")
+            if env.ssh_host:
+                lines.append(f"# SSH: {env.ssh_user}@{env.ssh_host}")
+        return "\n".join(lines) + "\n"
+
+
+def validate_before_run(
+    config: "TaskfileConfig",
+    env_name: str | None = None,
+    task_names: list[str] | None = None,
+) -> list[DiagnosticIssue]:
+    """Quick pre-run validation — returns issues that would cause task failure.
+
+    Called by the runner before executing tasks to give clear, categorized
+    error messages instead of cryptic subprocess failures.
+    """
+    issues: list[DiagnosticIssue] = []
+    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
+
+    # 1. Check referenced env_file exists for the target environment
+    target_env = env_name or config.default_env or "local"
+    env_obj = config.environments.get(target_env)
+    if env_obj and env_obj.env_file:
+        env_path = taskfile_dir / env_obj.env_file
+        if not env_path.exists():
+            example = taskfile_dir / f"{env_obj.env_file}.example"
+            hint = f" (copy from {example.name})" if example.exists() else ""
+            issues.append(DiagnosticIssue(
+                f"Missing env file for '{target_env}': {env_obj.env_file}{hint}",
+                "error", example.exists(), IssueCategory.ENV,
+            ))
+
+    # 2. Check scripts referenced by requested tasks exist
+    for tname in (task_names or []):
+        task = config.tasks.get(tname)
+        if not task:
+            issues.append(DiagnosticIssue(
+                f"Unknown task: {tname}", "error", False, IssueCategory.CONFIG,
+            ))
+            continue
+        if task.script:
+            sp = taskfile_dir / task.script
+            if not sp.exists():
+                issues.append(DiagnosticIssue(
+                    f"Task '{tname}' script not found: {task.script}",
+                    "error", False, IssueCategory.CONFIG,
+                ))
+        # Check deps exist
+        for dep in task.deps:
+            if dep not in config.tasks:
+                issues.append(DiagnosticIssue(
+                    f"Task '{tname}' depends on unknown task '{dep}'",
+                    "error", False, IssueCategory.CONFIG,
+                ))
+
+    # 3. Check remote env has SSH configured
+    if env_obj and env_obj.ssh_host:
+        ssh_key = env_obj.ssh_key
+        if ssh_key:
+            key_path = Path(os.path.expanduser(ssh_key))
+            if not key_path.exists():
+                issues.append(DiagnosticIssue(
+                    f"SSH key not found for '{target_env}': {ssh_key}",
+                    "warning", False, IssueCategory.INFRA,
+                ))
+
+    return issues
 
 
 def _resolve_port_conflict(

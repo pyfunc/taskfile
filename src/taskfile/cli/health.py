@@ -1,46 +1,4 @@
-"""## Health check CLI commands for taskfile
-
-Check health of deployed services and infrastructure.
-
-### Overview
-
-The `health` command performs runtime health checks:
-- **HTTP endpoints** - Check if services respond
-- **Docker containers** - Verify container status
-- **SSH connectivity** - Test SSH access to remote hosts
-- **Disk space** - Check available storage
-- **Memory** - Verify sufficient RAM
-
-### Usage
-
-```bash
-# Check all services
-taskfile health
-
-# Check specific environment
-taskfile health --env production
-
-# Check with timeout
-taskfile health --timeout 30
-```
-
-### Health Status
-
-| Status | Icon | Description |
-|--------|------|-------------|
-| `healthy` | ✅ | Service responding correctly |
-| `degraded` | ⚠️ | Service working with issues |
-| `unhealthy` | ❌ | Service not responding |
-
-### Why clickmd?
-
-Uses `clickmd` for consistent CLI experience and markdown rendering of health reports.
-
-### Dependencies
-
-- `clickmd` - CLI framework
-- `rich` - Rich console output for status tables
-"""
+"""Health check CLI commands for taskfile."""
 
 from __future__ import annotations
 

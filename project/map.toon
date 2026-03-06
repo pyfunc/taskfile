@@ -1,4 +1,4 @@
-# taskfile | 76f 15625L | python:76
+# taskfile | 76f 15771L | python:76
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[76]:
   examples/functions-embed/scripts/report.py,22
@@ -22,28 +22,28 @@ M[76]:
   src/taskfile/cigen/makefile.py,53
   src/taskfile/cirunner.py,262
   src/taskfile/cli/__init__.py,18
-  src/taskfile/cli/api_cmd.py,147
-  src/taskfile/cli/auth.py,285
-  src/taskfile/cli/cache_cmds.py,100
-  src/taskfile/cli/ci.py,232
+  src/taskfile/cli/api_cmd.py,119
+  src/taskfile/cli/auth.py,257
+  src/taskfile/cli/cache_cmds.py,73
+  src/taskfile/cli/ci.py,202
   src/taskfile/cli/click_compat.py,218
-  src/taskfile/cli/completion.py,159
-  src/taskfile/cli/deploy.py,304
-  src/taskfile/cli/diagnostics.py,557
+  src/taskfile/cli/completion.py,197
+  src/taskfile/cli/deploy.py,274
+  src/taskfile/cli/diagnostics.py,860
   src/taskfile/cli/docker_cmds.py,187
-  src/taskfile/cli/fleet.py,438
+  src/taskfile/cli/fleet.py,408
   src/taskfile/cli/health.py,70
   src/taskfile/cli/import_export.py,220
   src/taskfile/cli/info_cmd.py,72
   src/taskfile/cli/interactive/__init__.py,8
   src/taskfile/cli/interactive/menu.py,294
-  src/taskfile/cli/interactive/wizards.py,357
-  src/taskfile/cli/main.py,671
+  src/taskfile/cli/interactive/wizards.py,434
+  src/taskfile/cli/main.py,637
   src/taskfile/cli/quadlet.py,268
-  src/taskfile/cli/registry_cmds.py,268
-  src/taskfile/cli/release.py,400
+  src/taskfile/cli/registry_cmds.py,230
+  src/taskfile/cli/release.py,368
   src/taskfile/cli/setup.py,448
-  src/taskfile/cli/version.py,350
+  src/taskfile/cli/version.py,307
   src/taskfile/compose.py,241
   src/taskfile/converters.py,306
   src/taskfile/fleet.py,483
@@ -58,8 +58,8 @@ M[76]:
   src/taskfile/quadlet.py,350
   src/taskfile/registry.py,349
   src/taskfile/runner/__init__.py,10
-  src/taskfile/runner/commands.py,223
-  src/taskfile/runner/core.py,423
+  src/taskfile/runner/commands.py,254
+  src/taskfile/runner/core.py,440
   src/taskfile/runner/functions.py,133
   src/taskfile/runner/resolver.py,197
   src/taskfile/runner/ssh.py,62
@@ -79,8 +79,11 @@ M[76]:
   src/taskfile/webui/server.py,43
 D:
   src/taskfile/cli/diagnostics.py:
-    e: ProjectDiagnostics,_resolve_port_conflict,_parse_compose_host_port,_is_port_free,_find_free_port_near,_upsert_env_value,_docker_containers_using_port,_docker_stop
-    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_ports(0),_check_service_ports(3),check_docker(0),check_ssh_keys(0),check_dependent_files(0),check_git(0),auto_fix(0),_fix_taskfile_variables(0),_read_port_value(0),_rename_port_in_env(1),_fix_env_vars(0),_fix_taskfile(0),_fix_git(0),_fix_api_keys(0),_fix_ports(0),_stop_conflicting_containers(2),_update_env_with_free_ports(0),print_report(0)  # Diagnose and auto-fix common project issues...
+    e: IssueCategory,DiagnosticIssue,ProjectDiagnostics,validate_before_run,_resolve_port_conflict,_parse_compose_host_port,_is_port_free,_find_free_port_near,_upsert_env_value,_docker_containers_using_port,_docker_stop
+    IssueCategory(str,Enum):  # Classification of diagnostic issues to help users identify r...
+    DiagnosticIssue: __init__(4),as_dict(0)  # Single diagnostic issue with category, severity, and fix inf...
+    ProjectDiagnostics: __init__(0),_add_issue(4),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_ports(0),_check_service_ports(3),check_docker(0),check_ssh_keys(0),check_dependent_files(0),check_git(0),auto_fix(0),_fix_missing_env_files(0),_fix_taskfile_variables(0),_read_port_value(0),_rename_port_in_env(1),_fix_env_vars(0),_fix_taskfile(0),_fix_git(0),_fix_api_keys(0),_fix_ports(0),_stop_conflicting_containers(2),_update_env_with_free_ports(0),print_report(1),_print_flat_report(0),_print_categorized_report(0),get_report_dict(0),print_report_json(0),check_examples(0),generate_env_example(2)  # Diagnose and auto-fix common project issues...
+    validate_before_run(config;env_name;task_names)
     _resolve_port_conflict(svc_name;port_entry;ctx)
     _parse_compose_host_port(port_entry)
     _is_port_free(port;host)
@@ -117,6 +120,19 @@ D:
     confirm(text;default;abort;prompt_suffix;show_default;err)
     prompt(text;default;type;value_proc;prompt_suffix;show_default;err;hide_input;confirmation_prompt;allow_missing_auto)
     version_option(version;prog_name;message;help)
+  src/taskfile/cli/interactive/wizards.py:
+    e: _nullcontext,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_run_examples_check,_apply_init_extras,init
+    _nullcontext: __enter__(0),__exit__(0)  # Minimal no-op context manager for Python <3.10 compat...
+    _detect_project_type()
+    _suggest_template(project_type)
+    _collect_env_config_interactive()
+    _write_env_file(config;env_name)
+    _collect_init_choices()
+    _create_gitignore()
+    doctor(fix;verbose;report;check_examples_flag)
+    _run_examples_check(diagnostics;report)
+    _apply_init_extras(choices)
+    init(template;force;interactive)
   src/taskfile/cli/quadlet.py:
     e: quadlet,quadlet_generate,_get_upload_env,_get_upload_files,_run_upload_commands,quadlet_upload
     quadlet()
@@ -147,6 +163,13 @@ D:
     _import_dockerfile(content)
     _slugify(name)
     _dump_taskfile(data)
+  src/taskfile/runner/core.py:
+    e: TaskRunError,TaskfileRunner
+    TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
+    TaskfileRunner: __init__(8),variables(1),variables(1),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),_run_embedded_ssh(2),_run_function(2),_run_inline_python(2),_execute_script(2),_execute_commands(3),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_run_dependencies_parallel(2),_print_task_header(2),run_task(1),_run_tasks_plain(1),_run_tasks_with_progress(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_environment_groups_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration.
+
+Composes:
+- T...
   src/taskfile/cli/auth.py:
     e: _read_env_file,_write_env_var,_ensure_gitignore,_check_tool,auth,auth_setup,auth_verify
     _read_env_file(path)
@@ -173,17 +196,6 @@ D:
     _print_release_summary(success;current_tag;domain)
     release(ctx;tag_version;skip_desktop;skip_landing;skip_health;dry_run;force)
     rollback(ctx;target_tag;domain;dry_run)
-  src/taskfile/cli/interactive/wizards.py:
-    e: _detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_apply_init_extras,init
-    _detect_project_type()
-    _suggest_template(project_type)
-    _collect_env_config_interactive()
-    _write_env_file(config;env_name)
-    _collect_init_choices()
-    _create_gitignore()
-    doctor(fix;verbose)
-    _apply_init_extras(choices)
-    init(template;force;interactive)
   src/taskfile/health.py:
     e: HealthCheckResult,HealthReport,_unhealthy_result,check_http_endpoint,check_ssh_service,check_traefik_dashboard,run_health_checks,print_health_report,health_check_all
     HealthCheckResult:  # Result of a single health check...
@@ -218,7 +230,7 @@ D:
     _validate_referenced_files(config)
     validate_taskfile(config)
   src/taskfile/runner/commands.py:
-    e: _dispatch_special_prefix,_render_output,_run_subprocess,_run_local,run_command,execute_script,_run_with_retries,_handle_failure,execute_commands
+    e: _dispatch_special_prefix,_render_output,_run_subprocess,_run_local,run_command,execute_script,_run_with_retries,_classify_exit_code,_handle_failure,execute_commands
     _dispatch_special_prefix(runner;expanded;task)
     _render_output(output;task)
     _run_subprocess(runner;cmd_str;task;label)
@@ -226,6 +238,7 @@ D:
     run_command(runner;cmd;task)
     execute_script(runner;task;task_name)
     _run_with_retries(fn;task)
+    _classify_exit_code(returncode)
     _handle_failure(returncode;task;task_name;start;label)
     execute_commands(runner;task;task_name;start)
   src/taskfile/watch.py:
@@ -404,13 +417,6 @@ Th...
     pkg_list(all)
     pkg_uninstall(package_name;yes)
     pkg_info(package_name)
-  src/taskfile/runner/core.py:
-    e: TaskRunError,TaskfileRunner
-    TaskRunError(Exception): __init__(3)  # Raised when a task command fails...
-    TaskfileRunner: __init__(8),variables(1),variables(1),expand_variables(1),run_command(2),_is_remote_command(1),_strip_remote_prefix(1),_wrap_ssh(1),_run_embedded_ssh(2),_run_function(2),_run_inline_python(2),_execute_script(2),_execute_commands(3),check_condition(1),_get_task_or_fail(1),_should_skip_task(2),_run_dependencies(2),_run_dependencies_parallel(2),_print_task_header(2),run_task(1),_run_tasks_plain(1),_run_tasks_with_progress(1),run(1),list_tasks(0),_list_header(0),_list_tasks_section(0),_list_environments_section(0),_list_environment_groups_section(0),_list_platforms_section(0),_list_variables_section(0)  # Executes tasks from a Taskfile configuration.
-
-Composes:
-- T...
   src/taskfile/cli/import_export.py:
     e: import_cmd,export_cmd,detect
     import_cmd(source;source_type;output_path;force)

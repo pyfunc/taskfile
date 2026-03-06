@@ -1,44 +1,4 @@
-"""## CLI commands for import/export
-
-Convert between Taskfile and other formats (Makefile, GitHub Actions, GitLab CI, npm).
-
-### Overview
-
-Import existing build configurations into Taskfile format:
-- **Makefile** - Convert make targets to tasks
-- **GitHub Actions** - Import `.github/workflows/*.yml`
-- **GitLab CI** - Import `.gitlab-ci.yml`
-- **npm scripts** - Import `package.json` scripts
-
-### Export
-
-Export Taskfile to other formats:
-- **Shell script** - Generate portable bash script
-- **Docker Compose** - Generate `docker-compose.yml`
-- **Kubernetes** - Generate K8s manifests
-
-### Usage
-
-```bash
-# Import from Makefile
-taskfile import makefile
-
-# Import from GitHub Actions
-taskfile import github-actions
-
-# Export to shell script
-taskfile export shell
-```
-
-### Why clickmd?
-
-Uses `clickmd` for consistent CLI experience and markdown rendering of conversion reports.
-
-### Dependencies
-
-- `clickmd` - CLI framework
-- `rich` - Rich console output for import/export summaries
-"""
+"""CLI commands for import/export - convert between Taskfile and other formats."""
 
 from __future__ import annotations
 

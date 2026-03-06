@@ -328,6 +328,23 @@ class TaskfileRunner:
         for w in warnings:
             console.print(f"[yellow]⚠ {w}[/]")
 
+        # Pre-run diagnostics — catch config/env errors before execution
+        from taskfile.cli.diagnostics import validate_before_run, IssueCategory, CATEGORY_HINTS
+        pre_issues = validate_before_run(self.config, self.env_name, task_names)
+        has_errors = False
+        for iss in pre_issues:
+            if iss.severity == "error":
+                cat_hint = CATEGORY_HINTS.get(iss.category, "")
+                console.print(f"[red]✗ [{iss.category.value}][/] {iss.message}")
+                if cat_hint:
+                    console.print(f"  [dim]{cat_hint}[/]")
+                has_errors = True
+            else:
+                console.print(f"[yellow]⚠ [{iss.category.value}][/] {iss.message}")
+        if has_errors:
+            console.print("\n[red]Pre-run validation failed.[/] Run [bold]taskfile doctor --fix[/] to resolve.")
+            return False
+
         start_time = time.time()
         try:
             has_script_task = any(

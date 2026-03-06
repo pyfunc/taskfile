@@ -1,70 +1,71 @@
-# code2llm | 71f 15425L | py:71 | 2026-03-06
-# CC̄=4.2 | critical:27/521 | dups:0 | cycles:0
+# code2llm | 71f 15571L | py:71 | 2026-03-06
+# CC̄=4.3 | critical:32/536 | dups:0 | cycles:0
 
-HEALTH[3]:
+HEALTH[4]:
   🟡 CC    validate_taskfile_variables CC=22 (limit:15)
+  🟡 CC    validate_before_run CC=19 (limit:15)
   🟡 CC    prompt CC=18 (limit:15)
   🟡 CC    _validate_dependent_files CC=22 (limit:15)
 
 REFACTOR[1]:
-  1. split 3 high-CC methods  (CC>15)
+  1. split 4 high-CC methods  (CC>15)
 
 COUPLING: no cross-package imports detected
 
 LAYERS:
-  src/                            CC̄=4.2    ←in:0  →out:0
-  │ !! main                       671L  0C   19m  CC=22     ←2
+  src/                            CC̄=4.3    ←in:0  →out:0
+  │ !! diagnostics                860L  3C   40m  CC=22     ←2
+  │ !! main                       637L  0C   19m  CC=22     ←2
   │ !! app                        559L  0C    3m  CC=7      ←1
-  │ !! diagnostics                557L  1C   29m  CC=22     ←0
   │ !  fleet                      483L  5C   16m  CC=10     ←0
   │ !  setup                      448L  1C   15m  CC=10     ←0
   │ !  importer                   442L  0C   20m  CC=12     ←1
-  │ !  fleet                      438L  0C   18m  CC=10     ←0
+  │ !  core                       440L  2C   30m  CC=12     ←0
+  │ !  wizards                    434L  1C   12m  CC=14     ←0
   │ dashboard                  424L  0C    1m  CC=1      ←1
-  │ core                       423L  2C   30m  CC=8      ←0
   │ models                     416L  9C   15m  CC=6      ←1
   │ !  health                     408L  2C    7m  CC=11     ←2
-  │ !  release                    400L  0C   15m  CC=12     ←0
+  │ !  fleet                      408L  0C   18m  CC=10     ←0
+  │ !  release                    368L  0C   15m  CC=12     ←0
   │ landing                    365L  0C    4m  CC=2      ←1
-  │ !  wizards                    357L  0C    9m  CC=12     ←0
-  │ !  version                    350L  0C   11m  CC=10     ←9
   │ quadlet                    350L  1C   22m  CC=9      ←2
   │ registry                   349L  2C   14m  CC=9      ←0
-  │ !  parser                     344L  2C   19m  CC=11     ←18
+  │ !  parser                     344L  2C   19m  CC=11     ←19
   │ provisioner                308L  2C   12m  CC=5      ←0
+  │ !  version                    307L  0C   11m  CC=10     ←9
   │ converters                 306L  5C   11m  CC=9      ←2
-  │ deploy                     304L  1C   15m  CC=6      ←0
   │ menu                       294L  0C    6m  CC=7      ←0
-  │ !  auth                       285L  0C    7m  CC=12     ←0
   │ publish                    280L  0C    0m  CC=0.0    ←0
-  │ registry_cmds              268L  0C    6m  CC=8      ←0
+  │ deploy                     274L  1C   15m  CC=6      ←0
   │ !  quadlet                    268L  0C    6m  CC=13     ←0
   │ cirunner                   262L  3C    9m  CC=8      ←0
+  │ !  auth                       257L  0C    7m  CC=12     ←0
+  │ !  commands                   254L  0C   10m  CC=11     ←1
   │ compose                    241L  2C   12m  CC=9      ←3
-  │ !  ci                         232L  0C    6m  CC=10     ←0
   │ cache                      231L  1C   13m  CC=9      ←1
-  │ !  commands                   223L  0C    9m  CC=11     ←1
+  │ registry_cmds              230L  0C    6m  CC=8      ←0
   │ multiplatform              222L  0C    0m  CC=0.0    ←0
   │ import_export              220L  0C    3m  CC=8      ←0
-  │ !! click_compat               218L  3C    5m  CC=18     ←7
+  │ !! click_compat               218L  3C    5m  CC=18     ←6
   │ !  graph                      211L  0C    6m  CC=10     ←1
   │ codereview                 207L  0C    0m  CC=0.0    ←0
+  │ !  ci                         202L  0C    6m  CC=10     ←0
   │ resolver                   197L  1C   14m  CC=6      ←0
+  │ completion                 197L  0C    4m  CC=8      ←0
   │ docker_cmds                187L  1C    9m  CC=6      ←1
   │ !  watch                      182L  1C    7m  CC=10     ←1
   │ full                       181L  0C    0m  CC=0.0    ←0
   │ models                     180L  17C    0m  CC=0.0    ←0
-  │ completion                 159L  0C    4m  CC=8      ←0
   │ ssh                        151L  0C    6m  CC=7      ←2
-  │ api_cmd                    147L  0C    3m  CC=8      ←0
   │ handlers                   147L  1C   10m  CC=8      ←0
   │ !  functions                  133L  0C    6m  CC=10     ←2
   │ github                     127L  1C    7m  CC=7      ←0
+  │ api_cmd                    119L  0C    3m  CC=8      ←0
   │ notifications              109L  0C    5m  CC=8      ←1
   │ gitlab                     105L  1C    8m  CC=5      ←0
-  │ cache_cmds                 100L  0C    3m  CC=4      ←0
   │ podman                      94L  0C    0m  CC=0.0    ←0
   │ web                         93L  0C    0m  CC=0.0    ←0
+  │ cache_cmds                  73L  0C    3m  CC=4      ←0
   │ info_cmd                    72L  0C    3m  CC=5      ←0
   │ health                      70L  0C    1m  CC=9      ←0
   │ base                        67L  1C    9m  CC=3      ←4
@@ -88,14 +89,18 @@ LAYERS:
 
 DUPLICATES[0]: none
 
-FUNCTIONS (CC≥10, 27 of 514):
+FUNCTIONS (CC≥10, 32 of 529):
    22.0  ProjectDiagnostics.validate_taskfile_variables   21n   2exit  loops+cond+ret  !! split
    22.0  _validate_dependent_files                  19n   1exit  loops+cond  !! split
+   19.0  validate_before_run                        23n   2exit  loops+cond+ret  !! split
    18.0  prompt                                     13n   2exit  cond+ret  !! split
    14.0  validate                                    2n   1exit  
+   14.0  doctor                                     16n   1exit  cond
    13.0  quadlet_generate                            2n   1exit  
+   13.0  _run_examples_check                        19n   2exit  loops+cond+ret
    12.0  parse_makefile                             16n   2exit  loops+cond+ret
    12.0  _import_shell_script                       13n   2exit  loops+cond+ret
+   12.0  TaskfileRunner.run                         14n   3exit  loops+cond+ret
    12.0  auth_setup                                 14n   1exit  loops+cond
    12.0  release                                    10n   1exit  cond
    12.0  _apply_init_extras                         10n   1exit  cond
@@ -112,30 +117,31 @@ FUNCTIONS (CC≥10, 27 of 514):
    10.0  run_function                               22n   7exit  cond+ret
    10.0  bump                                       12n   1exit  cond
    10.0  ci_generate                                 2n   1exit  
-   10.0  ProjectDiagnostics.check_ports             11n   3exit  loops+cond+ret
    10.0  _collect_interactive_setup                 15n   2exit  cond+ret
    10.0  fleet_repair_cmd                           13n   2exit  loops+cond+ret
+   10.0  ProjectDiagnostics.check_ports             11n   3exit  loops+cond+ret
+   10.0  ProjectDiagnostics.check_examples          13n   3exit  loops+cond+ret
    10.0  confirm                                    15n   3exit  loops+cond+ret
 
   summary:
-    critical(≥10): 27 | high(5-10): 168 | medium(2-5): 211 | low(<2): 108
-    5% CC≥10  38% CC≥5
+    critical(≥10): 32 | high(5-10): 170 | medium(2-5): 213 | low(<2): 114
+    6% CC≥10  38% CC≥5
 
 HOTSPOTS:
   #1  create_app                           fan=52   "calls 52 functions"
   #2  ProjectDiagnostics.validate_taskfile_variables  fan=22   "ProjectDiagnostics method, fan-out=22"
-  #3  bump                                 fan=20   "calls 20 functions"
-  #4  _validate_dependent_files            fan=19   "calls 19 functions"
-  #5  RegistryClient._install_from_github  fan=18   "RegistryClient method, fan-out=18"
-  #6  doctor                               fan=18   "calls 18 functions"
+  #3  doctor                               fan=22   "calls 22 functions"
+  #4  bump                                 fan=20   "calls 20 functions"
+  #5  _validate_dependent_files            fan=19   "calls 19 functions"
+  #6  RegistryClient._install_from_github  fan=18   "RegistryClient method, fan-out=18"
   #7  run                                  fan=17   "calls 17 functions"
   #8  set                                  fan=16   "calls 16 functions"
   #9  auth_setup                           fan=16   "calls 16 functions"
   #10 quadlet_generate                     fan=16   "calls 16 functions"
 
 CLASSES:
-  TaskfileRunner                 ████████████████████████  30m  CC̄=3.1   max=8   
-  ProjectDiagnostics             █████████████████         22m  CC̄=5.7   max=22    !!
+  TaskfileRunner                 ████████████████████████  30m  CC̄=3.2   max=12  
+  ProjectDiagnostics             ████████████████████████  30m  CC̄=5.6   max=22    !!
   TaskResolver                   ███████████               14m  CC̄=3.1   max=6   
   TaskCache                      █████████                 12m  CC̄=3.5   max=9   
   VPSProvisioner                 ████████                  11m  CC̄=2.8   max=5   
@@ -156,36 +162,39 @@ CLASSES:
   NpmScriptsConverter            █                          2m  CC̄=3.0   max=4   
   Task                           █                          2m  CC̄=2.5   max=3   
   PipelineConfig                 █                          2m  CC̄=4.5   max=5   
+  DiagnosticIssue                █                          2m  CC̄=1.0   max=1   
   JenkinsTarget                  █                          2m  CC̄=1.5   max=2   
   GiteaActionsTarget             █                          2m  CC̄=4.5   max=8   
+  _nullcontext                   █                          2m  CC̄=1.0   max=1   
   GitLabCIConverter                                         1m  CC̄=1.0   max=1   
   DockerComposeConverter                                    1m  CC̄=9.0   max=9   
   PipelineError                                             1m  CC̄=1.0   max=1   
   StageResult                                               1m  CC̄=1.0   max=1   
-  FleetConfig                                               1m  CC̄=7.0   max=7   
   TaskfileNotFoundError                                     1m  CC̄=2.0   max=2   
+  FleetConfig                                               1m  CC̄=7.0   max=7   
   Environment                                               1m  CC̄=3.0   max=3   
   Platform                                                  1m  CC̄=3.0   max=3   
   TaskRunError                                              1m  CC̄=1.0   max=1   
   SetupConfig                                               1m  CC̄=1.0   max=1   
+  DeployStrategy                                            1m  CC̄=1.0   max=1   
+  MakefileTarget                                            1m  CC̄=7.0   max=7   
   BadParameter                                              1m  CC̄=1.0   max=1   
   ClickException                                            1m  CC̄=1.0   max=1   
-  MakefileTarget                                            1m  CC̄=7.0   max=7   
-  DeployStrategy                                            1m  CC̄=1.0   max=1   
   ProvisionConfig                                           0m  CC̄=0.0   max=0.0 
   PortMapping                                               0m  CC̄=0.0   max=0.0 
   HealthCheckResult                                         0m  CC̄=0.0   max=0.0 
   HealthReport                                              0m  CC̄=0.0   max=0.0 
+  TaskfileParseError                                        0m  CC̄=0.0   max=0.0 
   FleetApp                                                  0m  CC̄=0.0   max=0.0 
   DeviceGroup                                               0m  CC̄=0.0   max=0.0 
   Device                                                    0m  CC̄=0.0   max=0.0 
   DeviceStatus                                              0m  CC̄=0.0   max=0.0 
-  TaskfileParseError                                        0m  CC̄=0.0   max=0.0 
   EnvironmentGroup                                          0m  CC̄=0.0   max=0.0 
   ComposeConfig                                             0m  CC̄=0.0   max=0.0 
   Function                                                  0m  CC̄=0.0   max=0.0 
   PipelineStage                                             0m  CC̄=0.0   max=0.0 
   DockerContainer                                           0m  CC̄=0.0   max=0.0 
+  IssueCategory                                             0m  CC̄=0.0   max=0.0 
   Abort                                                     0m  CC̄=0.0   max=0.0 
   ServiceConfig                                             0m  CC̄=0.0   max=0.0 
   TaskStatus                                                0m  CC̄=0.0   max=0.0 
@@ -208,9 +217,13 @@ CLASSES:
 
 D:
   src/taskfile/cli/diagnostics.py:
-    e: ProjectDiagnostics,_resolve_port_conflict,_parse_compose_host_port,_is_port_free,_find_free_port_near,_upsert_env_value,_docker_containers_using_port,_docker_stop
+    e: IssueCategory,DiagnosticIssue,ProjectDiagnostics,validate_before_run,_resolve_port_conflict,_parse_compose_host_port,_is_port_free,_find_free_port_near,_upsert_env_value,_docker_containers_using_port,_docker_stop
+    IssueCategory  # Classification of diagnostic issues to help users identify r...
+    DiagnosticIssue  # Single diagnostic issue with category, severity, and fix inf...
+      __init__(4)  CC=1.0
     ProjectDiagnostics  # Diagnose and auto-fix common project issues....
       __init__(0)  CC=1.0
+    validate_before_run(config,env_name,task_names)
     _resolve_port_conflict(svc_name,port_entry,ctx)
     _parse_compose_host_port(port_entry)
     _is_port_free(port,host)
@@ -251,6 +264,20 @@ D:
     confirm(text,default,abort,prompt_suffix,show_default,err)
     prompt(text,default,type,value_proc,prompt_suffix,show_default,err,hide_input,confirmation_prompt,allow_missing_auto)
     version_option(version,prog_name,message,help)
+  src/taskfile/cli/interactive/wizards.py:
+    e: _nullcontext,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_run_examples_check,_apply_init_extras,init
+    _nullcontext  # Minimal no-op context manager for Python <3.10 compat....
+      __enter__(0)  CC=1.0
+    _detect_project_type()
+    _suggest_template(project_type)
+    _collect_env_config_interactive()
+    _write_env_file(config,env_name)
+    _collect_init_choices()
+    _create_gitignore()
+    doctor(fix,verbose,report,check_examples_flag)
+    _run_examples_check(diagnostics,report)
+    _apply_init_extras(choices)
+    init(template,force,interactive)
   src/taskfile/cli/quadlet.py:
     e: quadlet,quadlet_generate,_get_upload_env,_get_upload_files,_run_upload_commands,quadlet_upload
     quadlet()
@@ -281,6 +308,16 @@ D:
     _import_dockerfile(content)
     _slugify(name)
     _dump_taskfile(data)
+  src/taskfile/runner/core.py:
+    e: TaskRunError,TaskfileRunner
+    TaskRunError  # Raised when a task command fails....
+      __init__(3)  CC=1.0
+        → __init__(3)  CC=1.0
+    TaskfileRunner  # Executes tasks from a Taskfile configuration.
+
+Composes:
+- T...
+      __init__(8)  CC=6.0
   src/taskfile/cli/auth.py:
     e: _read_env_file,_write_env_var,_ensure_gitignore,_check_tool,auth,auth_setup,auth_verify
     _read_env_file(path)
@@ -307,17 +344,6 @@ D:
     _print_release_summary(success,current_tag,domain)
     release(ctx,tag_version,skip_desktop,skip_landing,skip_health,dry_run,force)
     rollback(ctx,target_tag,domain,dry_run)
-  src/taskfile/cli/interactive/wizards.py:
-    e: _detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_apply_init_extras,init
-    _detect_project_type()
-    _suggest_template(project_type)
-    _collect_env_config_interactive()
-    _write_env_file(config,env_name)
-    _collect_init_choices()
-    _create_gitignore()
-    doctor(fix,verbose)
-    _apply_init_extras(choices)
-    init(template,force,interactive)
   src/taskfile/health.py:
     e: HealthCheckResult,HealthReport,_unhealthy_result,check_http_endpoint,check_ssh_service,check_traefik_dashboard,run_health_checks,print_health_report,health_check_all
     HealthCheckResult  # Result of a single health check....
@@ -354,7 +380,7 @@ D:
     _validate_referenced_files(config)
     validate_taskfile(config)
   src/taskfile/runner/commands.py:
-    e: _dispatch_special_prefix,_render_output,_run_subprocess,_run_local,run_command,execute_script,_run_with_retries,_handle_failure,execute_commands
+    e: _dispatch_special_prefix,_render_output,_run_subprocess,_run_local,run_command,execute_script,_run_with_retries,_classify_exit_code,_handle_failure,execute_commands
     _dispatch_special_prefix(runner,expanded,task)
     _render_output(output,task)
     _run_subprocess(runner,cmd_str,task,label)
@@ -362,6 +388,7 @@ D:
     run_command(runner,cmd,task)
     execute_script(runner,task,task_name)
     _run_with_retries(fn,task)
+    _classify_exit_code(returncode)
     _handle_failure(returncode,task,task_name,start,label)
     execute_commands(runner,task,task_name,start)
   src/taskfile/watch.py:
@@ -557,16 +584,6 @@ Th...
     pkg_list(all)
     pkg_uninstall(package_name,yes)
     pkg_info(package_name)
-  src/taskfile/runner/core.py:
-    e: TaskRunError,TaskfileRunner
-    TaskRunError  # Raised when a task command fails....
-      __init__(3)  CC=1.0
-        → __init__(3)  CC=1.0
-    TaskfileRunner  # Executes tasks from a Taskfile configuration.
-
-Composes:
-- T...
-      __init__(8)  CC=6.0
   src/taskfile/cli/import_export.py:
     e: import_cmd,export_cmd,detect
     import_cmd(source,source_type,output_path,force)

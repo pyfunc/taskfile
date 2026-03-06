@@ -1,39 +1,4 @@
-"""## CLI interface for taskfile
-
-Main entry point for the taskfile command-line interface.
-
-### Overview
-
-**taskfile** is a universal task runner with multi-environment deploy support.
-It provides a unified way to define and run tasks across different environments
-(local, staging, production) and platforms (desktop, web, mobile).
-
-### Features
-
-- 🚀 **Multi-environment support** - Deploy to different environments with ease
-- 📦 **Container support** - Docker and Podman integration
-- 🔄 **CI/CD agnostic** - Works with GitHub Actions, GitLab CI, Jenkins, etc.
-- 📝 **Markdown rendering** - Rich CLI output with markdown formatting
-- 🎯 **Task dependencies** - Define task trees and execution order
-
-### Architecture
-
-This module serves as the entry point for all CLI commands:
-
-| Command | Description |
-|---------|-------------|
-| `run` | Execute tasks |
-| `deploy` | Deploy to environments |
-| `init` | Initialize new project |
-| `list` | List available tasks |
-| `validate` | Validate Taskfile.yml |
-
-### Dependencies
-
-- `clickmd` - CLI framework with markdown support
-- `rich` - Rich text and beautiful formatting
-- `pyyaml` - YAML parsing for Taskfile.yml
-"""
+"""CLI interface for taskfile."""
 
 from __future__ import annotations
 
@@ -41,7 +6,8 @@ import sys
 from pathlib import Path
 
 import clickmd as click
-from taskfile.cli.click_compat import BadParameter, version_option
+import click as click_std
+from taskfile.cli.click_compat import BadParameter
 from rich.console import Console
 
 from taskfile import __version__
@@ -261,8 +227,7 @@ def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
 
 
 @click.group(invoke_without_command=True)
-@click.pass_context
-@version_option(__version__, prog_name="taskfile")
+@click_std.version_option(__version__, prog_name="taskfile")
 @click.option("-f", "--file", "taskfile_path", default=None, help="Path to Taskfile.yml")
 @click.option("-e", "--env", "env_name", default=None, help="Target environment")
 @click.option("-G", "--env-group", "env_group", default=None, help="Target environment group (fleet)")
@@ -270,6 +235,7 @@ def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
 @click.option("--var", multiple=True, callback=parse_var, help="Override variable: --var KEY=VALUE")
 @click.option("--dry-run", is_flag=True, help="Show commands without executing")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
+@click.pass_context
 def main(ctx, taskfile_path, env_name, env_group, platform_name, var, dry_run, verbose):
     """**taskfile** — Universal task runner with multi-environment deploy.
 

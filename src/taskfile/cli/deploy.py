@@ -1,33 +1,3 @@
-"""## Deploy command for taskfile
-
-Full deploy pipeline: build → push → generate Quadlet → sync → health check
-
-### Overview
-
-Coordinates the complete deployment process:
-1. **Build** - Build Docker images or artifacts
-2. **Push** - Push images to registry
-3. **Quadlet** - Generate Podman Quadlet files
-4. **Sync** - Sync files to remote hosts
-5. **Health** - Verify deployment health
-
-### Deployment Targets
-
-| Target | Description | Default |
-|--------|-------------|---------|
-| `local` | Local deployment | Yes |
-| `staging` | Staging environment | No |
-| `production` | Production environment | No |
-
-### Why clickmd?
-
-Uses `clickmd` for consistent CLI experience and markdown rendering of deploy logs.
-
-### Dependencies
-
-- `clickmd` - CLI framework
-- `rich` - Rich console output for progress
-"""
 
 import sys
 import subprocess

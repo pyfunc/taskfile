@@ -1,4 +1,4 @@
-# taskfile | 96f 21047L | python:96
+# taskfile | 96f 21193L | python:96
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[96]:
   examples/functions-embed/scripts/report.py,16
@@ -22,28 +22,28 @@ M[96]:
   src/taskfile/cigen/makefile.py,42
   src/taskfile/cirunner.py,204
   src/taskfile/cli/__init__.py,17
-  src/taskfile/cli/api_cmd.py,108
-  src/taskfile/cli/auth.py,224
-  src/taskfile/cli/cache_cmds.py,71
-  src/taskfile/cli/ci.py,187
+  src/taskfile/cli/api_cmd.py,93
+  src/taskfile/cli/auth.py,208
+  src/taskfile/cli/cache_cmds.py,57
+  src/taskfile/cli/ci.py,171
   src/taskfile/cli/click_compat.py,164
-  src/taskfile/cli/completion.py,123
-  src/taskfile/cli/deploy.py,244
-  src/taskfile/cli/diagnostics.py,447
+  src/taskfile/cli/completion.py,146
+  src/taskfile/cli/deploy.py,227
+  src/taskfile/cli/diagnostics.py,693
   src/taskfile/cli/docker_cmds.py,136
-  src/taskfile/cli/fleet.py,325
+  src/taskfile/cli/fleet.py,309
   src/taskfile/cli/health.py,51
   src/taskfile/cli/import_export.py,173
   src/taskfile/cli/info_cmd.py,59
   src/taskfile/cli/interactive/__init__.py,6
   src/taskfile/cli/interactive/menu.py,199
-  src/taskfile/cli/interactive/wizards.py,254
-  src/taskfile/cli/main.py,507
+  src/taskfile/cli/interactive/wizards.py,314
+  src/taskfile/cli/main.py,487
   src/taskfile/cli/quadlet.py,204
-  src/taskfile/cli/registry_cmds.py,197
-  src/taskfile/cli/release.py,315
+  src/taskfile/cli/registry_cmds.py,175
+  src/taskfile/cli/release.py,298
   src/taskfile/cli/setup.py,358
-  src/taskfile/cli/version.py,255
+  src/taskfile/cli/version.py,231
   src/taskfile/compose.py,187
   src/taskfile/converters.py,216
   src/taskfile/fleet.py,376
@@ -58,8 +58,8 @@ M[96]:
   src/taskfile/quadlet.py,288
   src/taskfile/registry.py,258
   src/taskfile/runner/__init__.py,7
-  src/taskfile/runner/commands.py,172
-  src/taskfile/runner/core.py,334
+  src/taskfile/runner/commands.py,200
+  src/taskfile/runner/core.py,349
   src/taskfile/runner/functions.py,107
   src/taskfile/runner/resolver.py,154
   src/taskfile/runner/ssh.py,45
@@ -243,9 +243,12 @@ D:
     _quadlet_step3_reload_and_pull(env;env_name;compose;dry_run)
     _quadlet_step4_restart_and_cleanup(env;env_name;compose;dry_run)
   src/taskfile/cli/diagnostics.py:
-    i: os,re,socket,subprocess,yaml,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.Confirm,typing.TYPE_CHECKING
-    e: ProjectDiagnostics
-    ProjectDiagnostics: __init__(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_ports(0)  # Diagnose and auto-fix common project...
+    i: json,os,re,socket,subprocess,yaml,enum.Enum,pathlib.Path,rich.console.Console,typing.TYPE_CHECKING
+    e: IssueCategory,CATEGORY_LABELS,CATEGORY_HINTS,DiagnosticIssue,ProjectDiagnostics,validate_before_run
+    IssueCategory:   # Classification of diagnostic issues t...
+    DiagnosticIssue: __init__(4),as_dict(0)  # Single diagnostic issue with category...
+    ProjectDiagnostics: __init__(0),_add_issue(4),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0)  # Diagnose and auto-fix common project...
+    validate_before_run(config:TaskfileConfig;env_name:Any=None;task_names:Any=None)->list[DiagnosticIssue]
     _resolve_port_conflict(svc_name:str;port_entry:str;ctx:dict)->tuple[str, int, int] | None
     _parse_compose_host_port(port_entry:str)->tuple[str | None, str | None]
     _is_port_free(port:int;host:str='0.0.0.0')->bool
@@ -304,16 +307,17 @@ D:
   src/taskfile/cli/interactive/wizards.py:
     i: os,subprocess,sys,clickmd,pathlib.Path,rich.console.Console,rich.panel.Panel,rich.prompt.{Confirm,IntPrompt,Prompt}
     e: doctor,init
+    _nullcontext: __enter__(0),__exit__(0)  # Minimal no-op context manager for Pyt...
     _detect_project_type()->str
     _suggest_template(project_type:str)->str
     _collect_env_config_interactive()->dict[str, str]
     _write_env_file(config:dict[str;str];env_name:str='local')->None
     _collect_init_choices()->dict[str, any]
     _create_gitignore()->None
-    doctor(fix;verbose)
-    _apply_init_extras(choices:dict)->None
+    doctor(fix;verbose;report;check_examples_flag)
+    _run_examples_check(diagnostics:ProjectDiagnostics;report:bool)->None
   src/taskfile/cli/main.py:
-    i: sys,clickmd,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.cli.click_compat.{BadParameter,version_option},taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile}
+    i: sys,clickmd,click,pathlib.Path,rich.console.Console,taskfile.__version__,taskfile.cli.click_compat.BadParameter,taskfile.parser.{TaskfileNotFoundError,TaskfileParseError,find_taskfile}
     e: parse_var,main,run,list_tasks,validate,import_cmd
     _format_nearby_path(path:Path;level:int)->tuple[str, str]
     _nearby_cd_hint(path:Path;level:int)->str
@@ -513,7 +517,7 @@ D:
     run_command(runner;cmd:str;task:Task)->int
     execute_script(runner;task:Task;task_name:str)->int
     _run_with_retries(fn;task:Task)->int
-    _handle_failure(returncode:int;task:Task;task_name:str;start:float;label:str)->bool
+    _classify_exit_code(returncode:int)->tuple[str, str]
   src/taskfile/runner/core.py:
     i: os,subprocess,time,concurrent.futures.{ThreadPoolExecutor,as_completed},pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.models.Environment
     e: TaskRunError,TaskfileRunner

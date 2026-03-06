@@ -60,12 +60,12 @@
 </p>
 
 <div class="grid">
-  <div class="card"><div class="value">4.2</div><div class="label">Avg CC</div></div>
-  <div class="card"><div class="value">27</div><div class="label">Critical (CC≥10)</div></div>
-  <div class="card"><div class="value">514</div><div class="label">Functions</div></div>
-  <div class="card"><div class="value">71</div><div class="label">Classes</div></div>
+  <div class="card"><div class="value">4.3</div><div class="label">Avg CC</div></div>
+  <div class="card"><div class="value">32</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">529</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">74</div><div class="label">Classes</div></div>
   <div class="card"><div class="value">56</div><div class="label">Files</div></div>
-  <div class="card"><div class="value">20751</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">20897</div><div class="label">Lines</div></div>
   <div class="card"><div class="value">1</div><div class="label">Duplicates</div></div>
   <div class="card"><div class="value">0</div><div class="label">Cycles</div></div>
 </div>
@@ -74,9 +74,9 @@
   <div class="chart-container">
     <h2 style="border:none;margin:0 0 .5rem;">Evolution (2026-03-06)</h2>
     <div class="evo-cards">
-      <div class="card"><div class="value">4.2</div><div class="label">CC̄ ↓</div></div>
-      <div class="card"><div class="value">27</div><div class="label">Critical ↓</div></div>
-      <div class="card"><div class="value">20751</div><div class="label">Lines</div></div>
+      <div class="card"><div class="value">4.3</div><div class="label">CC̄ →</div></div>
+      <div class="card"><div class="value">32</div><div class="label">Critical →</div></div>
+      <div class="card"><div class="value">20897</div><div class="label">Lines</div></div>
     </div>
     <p class="trend" style="margin-top:.5rem;">Run analysis multiple times to build a trend chart (≥3 data points needed).</p>
   </div>
@@ -101,6 +101,13 @@
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
                 <td>ProjectDiagnostics.validate_taskfile_variables</td>
+                <td>high_fan_out</td>
+                <td>22</td>
+                <td>10</td>
+            </tr>
+            <tr class="critical">
+                <td><span class="badge critical">critical</span></td>
+                <td>doctor</td>
                 <td>high_fan_out</td>
                 <td>22</td>
                 <td>10</td>
@@ -136,13 +143,6 @@
             <tr class="error">
                 <td><span class="badge error">error</span></td>
                 <td>RegistryClient._install_from_github</td>
-                <td>high_fan_out</td>
-                <td>18</td>
-                <td>10</td>
-            </tr>
-            <tr class="error">
-                <td><span class="badge error">error</span></td>
-                <td>doctor</td>
                 <td>high_fan_out</td>
                 <td>18</td>
                 <td>10</td>
@@ -217,6 +217,15 @@
                 <td>Validate variables defined in Taskfile.yml are present in .env files.</td>
             </tr>
             <tr>
+                <td><strong>doctor</strong></td>
+                <td>22</td>
+                <td>**🔧 Diagnose project** and suggest fixes.
+
+## Checks Performed
+
+- **Taskfile.yml</td>
+            </tr>
+            <tr>
                 <td><strong>bump</strong></td>
                 <td>20</td>
                 <td>Bump version number (patch, minor, or major).
@@ -232,15 +241,6 @@ Updates VERSION file and optional</td>
                 <td><strong>RegistryClient._install_from_github</strong></td>
                 <td>18</td>
                 <td>Install package from GitHub repository.</td>
-            </tr>
-            <tr>
-                <td><strong>doctor</strong></td>
-                <td>18</td>
-                <td>**🔧 Diagnose project** and suggest fixes.
-
-## Checks Performed
-
-- **Taskfile.yml</td>
             </tr>
             <tr>
                 <td><strong>run</strong></td>
@@ -282,20 +282,20 @@ Guides you through obtaining API tok</td>
 </div>
 
 <div>
-<h2>Refactoring Priorities (9)</h2>
+<h2>Refactoring Priorities (10)</h2>
 <div class="card"><div class="table-wrap">
 <table>
   <thead><tr><th>#</th><th>Action</th><th>Impact</th><th>Effort</th></tr></thead>
   <tbody>
             <tr>
                 <td>1</td>
-                <td>Split god module src/taskfile/cli/diagnostics.py (557L, 1 classes)</td>
+                <td>Split god module src/taskfile/cli/diagnostics.py (860L, 3 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
                 <td>2</td>
-                <td>Split god module src/taskfile/cli/main.py (671L, 0 classes)</td>
+                <td>Split god module src/taskfile/cli/main.py (637L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
@@ -313,31 +313,37 @@ Guides you through obtaining API tok</td>
             </tr>
             <tr>
                 <td>5</td>
-                <td>Split prompt (CC=18 → target CC<10)</td>
+                <td>Split validate_before_run (CC=19 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>6</td>
-                <td>Split _validate_dependent_files (CC=22 → target CC<10)</td>
+                <td>Split prompt (CC=18 → target CC<10)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>low</td>
             </tr>
             <tr>
                 <td>7</td>
+                <td>Split _validate_dependent_files (CC=22 → target CC<10)</td>
+                <td><span class="badge medium">medium</span></td>
+                <td>low</td>
+            </tr>
+            <tr>
+                <td>8</td>
                 <td>Reduce create_app fan-out (currently 52)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>medium</td>
             </tr>
             <tr>
-                <td>8</td>
+                <td>9</td>
                 <td>Reduce ProjectDiagnostics.validate_taskfile_variables fan-out (currently 22)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>medium</td>
             </tr>
             <tr>
-                <td>9</td>
-                <td>Reduce bump fan-out (currently 20)</td>
+                <td>10</td>
+                <td>Reduce doctor fan-out (currently 22)</td>
                 <td><span class="badge medium">medium</span></td>
                 <td>medium</td>
             </tr></tbody>
@@ -346,7 +352,7 @@ Guides you through obtaining API tok</td>
 </div>
 </div>
 
-<footer>Generated by code2llm on 2026-03-06 06:57</footer>
+<footer>Generated by code2llm on 2026-03-06 07:05</footer>
 
 <script>
 // Evolution chart disabled — fewer than 3 data points
@@ -355,9 +361,9 @@ const modCtx = document.getElementById('modChart').getContext('2d');
 new Chart(modCtx, {
   type: 'bar',
   data: {
-    labels: ['diagnostics.py', 'main.py', 'click_compat.py', 'quadlet.py', 'auth.py', 'wizards.py', 'release.py', 'importer.py', 'health.py', 'parser.py', 'commands.py', 'ci.py', 'fleet.py', 'setup.py', 'version.py'],
-    datasets: [{ label: 'Max CC', data: [22, 22, 18, 13, 12, 12, 12, 12, 11, 11, 11, 10, 10, 10, 10],
-      backgroundColor: [22, 22, 18, 13, 12, 12, 12, 12, 11, 11, 11, 10, 10, 10, 10].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    labels: ['diagnostics.py', 'main.py', 'click_compat.py', 'wizards.py', 'quadlet.py', 'auth.py', 'release.py', 'importer.py', 'core.py', 'health.py', 'parser.py', 'commands.py', 'ci.py', 'fleet.py', 'setup.py'],
+    datasets: [{ label: 'Max CC', data: [22, 22, 18, 14, 13, 12, 12, 12, 12, 11, 11, 11, 10, 10, 10],
+      backgroundColor: [22, 22, 18, 14, 13, 12, 12, 12, 12, 11, 11, 11, 10, 10, 10].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
     }]
   },
   options: {

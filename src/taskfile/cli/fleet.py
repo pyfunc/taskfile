@@ -1,40 +1,10 @@
-"""## Fleet management CLI commands for taskfile
+"""Fleet management CLI commands for taskfile.
 
-Manage a fleet of devices (RPi, edge nodes, kiosks) using environment groups.
+Uses environment_groups from Taskfile.yml as the source of truth.
+Each device is a Taskfile environment with ssh_host.
+Groups define rolling/canary/parallel update strategies.
 
-### Overview
-
-Fleet management uses `environment_groups` from **Taskfile.yml** as the source of truth:
-- Each device is a Taskfile environment with `ssh_host`
-- Groups define rolling/canary/parallel update strategies
-- Supports standalone `fleet.yml` for legacy/advanced use cases
-
-### Deployment Strategies
-
-| Strategy | Description | Use Case |
-|----------|-------------|----------|
-| `rolling` | Update one device at a time | Zero-downtime deployments |
-| `canary` | Update 1 device, then wait | Testing before full rollout |
-| `parallel` | Update all devices at once | Fast deployments (maintenance windows) |
-
-### Commands
-
-- `fleet list` - List all devices in fleet
-- `fleet repair` - Repair SSH connectivity issues
-- `fleet deploy` - Deploy to fleet with chosen strategy
-
-### Why clickmd?
-
-Uses `clickmd` instead of standard `click` for:
-- Consistent markdown rendering across fleet status reports
-- Better table formatting with `rich` integration
-- Unified CLI experience across all taskfile modules
-
-### Dependencies
-
-- `clickmd` - CLI framework with markdown support
-- `click_compat.confirm` - Interactive prompts for repairs
-- `rich` - Rich console output for device tables
+Also supports standalone fleet.yml for legacy/advanced use cases.
 """
 
 from __future__ import annotations

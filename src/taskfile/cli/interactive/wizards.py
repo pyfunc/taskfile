@@ -193,7 +193,9 @@ Thumbs.db
 @main.command()
 @click.option("--fix", is_flag=True, help="Auto-fix issues where possible")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def doctor(fix, verbose):
+@click.option("--report", is_flag=True, help="Output JSON report (for CI pipelines)")
+@click.option("--examples", "check_examples_flag", is_flag=True, help="Validate all examples/ directories")
+def doctor(fix, verbose, report, check_examples_flag):
     """**🔧 Diagnose project** and suggest fixes.
 
 ## Checks Performed
@@ -211,6 +213,8 @@ def doctor(fix, verbose):
 |--------|-------------|
 | `--fix` | Auto-fix issues where possible |
 | `-v, --verbose` | Verbose output |
+| `--report` | JSON output for CI pipelines |
+| `--examples` | Validate all examples/ directories |
 
 ## Examples
 
@@ -221,18 +225,22 @@ taskfile doctor
 # Auto-fix issues
 taskfile doctor --fix
 
-# Verbose output
-taskfile doctor -v
+# JSON report for CI
+taskfile doctor --report
+
+# Validate examples
+taskfile doctor --examples
 ```
 """
     diagnostics = ProjectDiagnostics()
 
-    console.print(Panel.fit(
-        "[bold blue]🔧 Taskfile Doctor[/]\n[dim]Running diagnostics...[/]",
-        border_style="blue"
-    ))
+    if not report:
+        console.print(Panel.fit(
+            "[bold blue]🔧 Taskfile Doctor[/]\n[dim]Running diagnostics...[/]",
+            border_style="blue"
+        ))
 
-    with console.status("[bold green]Checking project...[/]"):
+    with console.status("[bold green]Checking project...[/]") if not report else _nullcontext():
         diagnostics.check_taskfile()
         diagnostics.check_env_files()
         diagnostics.validate_taskfile_variables()
@@ -241,6 +249,14 @@ taskfile doctor -v
         diagnostics.check_docker()
         diagnostics.check_ssh_keys()
         diagnostics.check_git()
+
+    # Validate examples/ directory if requested
+    if check_examples_flag:
+        _run_examples_check(diagnostics, report)
+
+    if report:
+        diagnostics.print_report_json()
+        sys.exit(1 if any(s == "error" for _, s, _ in diagnostics.issues) else 0)
 
     diagnostics.print_report()
 
@@ -261,6 +277,67 @@ taskfile doctor -v
         if error_count > 0:
             console.print(f"\n[red]Found {error_count} error(s) that need attention[/]")
             sys.exit(1)
+
+
+class _nullcontext:
+    """Minimal no-op context manager for Python <3.10 compat."""
+    def __enter__(self): return self
+    def __exit__(self, *a): pass
+
+
+def _run_examples_check(diagnostics: ProjectDiagnostics, report: bool) -> None:
+    """Validate all examples/ directories and print results."""
+    from taskfile.cli.diagnostics import IssueCategory
+
+    examples_dir = Path("examples")
+    if not examples_dir.is_dir():
+        # Try relative to Taskfile
+        try:
+            tf = find_taskfile()
+            examples_dir = tf.parent / "examples"
+        except Exception:
+            pass
+
+    results = ProjectDiagnostics.check_examples(examples_dir)
+    if not results:
+        if not report:
+            console.print("[yellow]No examples found to validate[/]")
+        return
+
+    if not report:
+        from rich.table import Table
+        from rich import box as rbox
+        table = Table(title="Examples Validation", box=rbox.ROUNDED)
+        table.add_column("Example", style="cyan")
+        table.add_column("Tasks", justify="right")
+        table.add_column("Envs", justify="right")
+        table.add_column("Status")
+        table.add_column("Missing .env files")
+
+        for r in results:
+            if r["errors"]:
+                status = "[red]✗ Error[/]"
+            elif r["missing_env_files"]:
+                status = "[yellow]⚠ Warning[/]"
+            else:
+                status = "[green]✓ OK[/]"
+            missing = ", ".join(r["missing_env_files"]) if r["missing_env_files"] else ""
+            table.add_row(r["name"], str(r["tasks"]), str(r["envs"]), status, missing)
+
+        console.print(table)
+
+    # Add missing .env files as issues
+    for r in results:
+        for mf in r["missing_env_files"]:
+            diagnostics._add_issue(
+                f"Example '{r['name']}': missing {mf}",
+                "warning", False, IssueCategory.ENV
+            )
+        for err in r["errors"]:
+            diagnostics._add_issue(
+                f"Example '{r['name']}': {err}",
+                "error", False, IssueCategory.CONFIG
+            )
 
 
 def _apply_init_extras(choices: dict) -> None:

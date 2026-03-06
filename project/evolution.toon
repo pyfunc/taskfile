@@ -1,13 +1,13 @@
-# code2llm/evolution | 521 func | 61f | 2026-03-06
+# code2llm/evolution | 536 func | 61f | 2026-03-06
 
-NEXT[6] (ranked by impact):
-  [1] !! SPLIT           src/taskfile/cli/main.py
-      WHY: 671L, 0 classes, max CC=22
-      EFFORT: ~4h  IMPACT: 14762
+NEXT[7] (ranked by impact):
+  [1] !! SPLIT           src/taskfile/cli/diagnostics.py
+      WHY: 860L, 3 classes, max CC=22
+      EFFORT: ~4h  IMPACT: 18920
 
-  [2] !! SPLIT           src/taskfile/api/app.py
-      WHY: 559L, 0 classes, max CC=7
-      EFFORT: ~4h  IMPACT: 3913
+  [2] !! SPLIT           src/taskfile/cli/main.py
+      WHY: 637L, 0 classes, max CC=22
+      EFFORT: ~4h  IMPACT: 14014
 
   [3] !  SPLIT-FUNC      ProjectDiagnostics.validate_taskfile_variables  CC=22  fan=22
       WHY: CC=22 exceeds 15
@@ -17,25 +17,29 @@ NEXT[6] (ranked by impact):
       WHY: CC=22 exceeds 15
       EFFORT: ~1h  IMPACT: 418
 
-  [5] !  SPLIT-FUNC      prompt  CC=18  fan=10
+  [5] !  SPLIT-FUNC      validate_before_run  CC=19  fan=11
+      WHY: CC=19 exceeds 15
+      EFFORT: ~1h  IMPACT: 209
+
+  [6] !  SPLIT-FUNC      prompt  CC=18  fan=10
       WHY: CC=18 exceeds 15
       EFFORT: ~1h  IMPACT: 180
 
-  [6] !! SPLIT           tests/test_e2e_examples.py
+  [7] !! SPLIT           tests/test_e2e_examples.py
       WHY: 1094L, 0 classes, max CC=0
       EFFORT: ~4h  IMPACT: 0
 
 
 RISKS[3]:
   ⚠ Splitting tests/test_e2e_examples.py may break 0 import paths
+  ⚠ Splitting src/taskfile/cli/diagnostics.py may break 40 import paths
   ⚠ Splitting src/taskfile/cli/main.py may break 19 import paths
-  ⚠ Splitting src/taskfile/api/app.py may break 3 import paths
 
 METRICS-TARGET:
   CC̄:          4.2 → ≤2.9
   max-CC:      22 → ≤11
   god-modules: 4 → 0
-  high-CC(≥15): 3 → ≤1
+  high-CC(≥15): 4 → ≤2
   hub-types:   0 → ≤0
 
 HISTORY:

@@ -3,16 +3,16 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-06T06:57:32Z'
+  analyzed_at: '2026-03-06T07:05:32Z'
   tool: code2llm
   stats:
     files: 56
-    lines: 20751
-    functions: 514
-    classes: 71
+    lines: 20897
+    functions: 529
+    classes: 74
 health:
-  cc_avg: 4.2
-  critical_count: 27
+  cc_avg: 4.3
+  critical_count: 32
   critical_limit: 10
   duplicates: 1
   cycles: 0
@@ -24,6 +24,11 @@ health:
     severity: critical
   - type: high_fan_out
     target: ProjectDiagnostics.validate_taskfile_variables
+    value: 22
+    limit: 10
+    severity: critical
+  - type: high_fan_out
+    target: doctor
     value: 22
     limit: 10
     severity: critical
@@ -49,11 +54,6 @@ health:
     severity: error
   - type: high_fan_out
     target: RegistryClient._install_from_github
-    value: 18
-    limit: 10
-    severity: error
-  - type: high_fan_out
-    target: doctor
     value: 18
     limit: 10
     severity: error
@@ -93,6 +93,11 @@ health:
     limit: 10
     severity: error
   - type: cc_exceeded
+    target: validate_before_run
+    value: 19
+    limit: 15
+    severity: warning
+  - type: cc_exceeded
     target: prompt
     value: 18
     limit: 15
@@ -112,22 +117,23 @@ health:
     value: 14
     limit: 10
     severity: warning
-  - type: high_fan_out
-    target: print_task_tree
-    value: 13
-    limit: 10
-    severity: warning
 modules:
 - path: src/taskfile/cli/diagnostics.py
-  lines: 557
-  classes: 1
-  methods: 29
+  lines: 860
+  classes: 3
+  methods: 40
   cc_max: 22
-  inbound_deps: 0
+  inbound_deps: 1
   exports:
+  - name: IssueCategory
+    type: class
+    cc_avg: 0.0
+  - name: DiagnosticIssue
+    type: class
+    cc_avg: 1.0
   - name: ProjectDiagnostics
     type: class
-    cc_avg: 5.7
+    cc_avg: 5.6
     methods:
     - name: validate_taskfile_variables
       cc: 22
@@ -138,12 +144,26 @@ modules:
       fan_out: 10
     - name: check_dependent_files
       cc: 11
+      fan_out: 11
+    - name: _fix_missing_env_files
+      cc: 7
       fan_out: 10
     - name: _fix_ports
       cc: 11
       fan_out: 12
+    - name: _print_categorized_report
+      cc: 9
+      fan_out: 10
+    - name: check_examples
+      cc: 10
+      fan_out: 12
+  - name: validate_before_run
+    type: function
+    cc: 19
+    flag: split
+    fan_out: 11
 - path: src/taskfile/cli/main.py
-  lines: 671
+  lines: 637
   classes: 0
   methods: 19
   cc_max: 22
@@ -175,7 +195,7 @@ modules:
   classes: 3
   methods: 5
   cc_max: 18
-  inbound_deps: 7
+  inbound_deps: 6
   exports:
   - name: Abort
     type: class
@@ -197,6 +217,24 @@ modules:
   - name: version_option
     type: function
     cc: 5
+- path: src/taskfile/cli/interactive/wizards.py
+  lines: 434
+  classes: 1
+  methods: 12
+  cc_max: 14
+  inbound_deps: 0
+  exports:
+  - name: _nullcontext
+    type: class
+    cc_avg: 1.0
+  - name: doctor
+    type: function
+    cc: 14
+    fan_out: 22
+  - name: init
+    type: function
+    cc: 6
+    fan_out: 12
 - path: src/taskfile/cli/quadlet.py
   lines: 268
   classes: 0
@@ -215,7 +253,7 @@ modules:
     type: function
     cc: 5
 - path: src/taskfile/cli/auth.py
-  lines: 285
+  lines: 257
   classes: 0
   methods: 7
   cc_max: 12
@@ -231,23 +269,8 @@ modules:
   - name: auth_verify
     type: function
     cc: 8
-- path: src/taskfile/cli/interactive/wizards.py
-  lines: 357
-  classes: 0
-  methods: 9
-  cc_max: 12
-  inbound_deps: 0
-  exports:
-  - name: doctor
-    type: function
-    cc: 8
-    fan_out: 18
-  - name: init
-    type: function
-    cc: 6
-    fan_out: 12
 - path: src/taskfile/cli/release.py
-  lines: 400
+  lines: 368
   classes: 0
   methods: 15
   cc_max: 12
@@ -284,6 +307,26 @@ modules:
     type: function
     cc: 12
     fan_out: 14
+- path: src/taskfile/runner/core.py
+  lines: 440
+  classes: 2
+  methods: 30
+  cc_max: 12
+  inbound_deps: 0
+  exports:
+  - name: TaskRunError
+    type: class
+    cc_avg: 1.0
+  - name: TaskfileRunner
+    type: class
+    cc_avg: 3.2
+    methods:
+    - name: _run_tasks_with_progress
+      cc: 6
+      fan_out: 10
+    - name: run
+      cc: 12
+      fan_out: 12
 - path: src/taskfile/health.py
   lines: 408
   classes: 2
@@ -321,7 +364,7 @@ modules:
   classes: 2
   methods: 19
   cc_max: 11
-  inbound_deps: 18
+  inbound_deps: 19
   exports:
   - name: TaskfileNotFoundError
     type: class
@@ -344,9 +387,9 @@ modules:
     cc: 2
     fan_out: 10
 - path: src/taskfile/runner/commands.py
-  lines: 223
+  lines: 254
   classes: 0
-  methods: 9
+  methods: 10
   cc_max: 11
   inbound_deps: 1
   exports:
@@ -361,7 +404,7 @@ modules:
     type: function
     cc: 5
 - path: src/taskfile/cli/ci.py
-  lines: 232
+  lines: 202
   classes: 0
   methods: 6
   cc_max: 10
@@ -387,7 +430,7 @@ modules:
     type: function
     cc: 2
 - path: src/taskfile/cli/fleet.py
-  lines: 438
+  lines: 408
   classes: 0
   methods: 18
   cc_max: 10
@@ -422,7 +465,7 @@ modules:
     cc: 3
     fan_out: 10
 - path: src/taskfile/cli/version.py
-  lines: 350
+  lines: 307
   classes: 0
   methods: 11
   cc_max: 10
@@ -699,7 +742,7 @@ modules:
     type: class
     cc_avg: 1.0
 - path: src/taskfile/cli/api_cmd.py
-  lines: 147
+  lines: 119
   classes: 0
   methods: 3
   cc_max: 8
@@ -717,7 +760,7 @@ modules:
     cc: 4
     fan_out: 11
 - path: src/taskfile/cli/completion.py
-  lines: 159
+  lines: 197
   classes: 0
   methods: 4
   cc_max: 8
@@ -754,7 +797,7 @@ modules:
     type: function
     cc: 8
 - path: src/taskfile/cli/registry_cmds.py
-  lines: 268
+  lines: 230
   classes: 0
   methods: 6
   cc_max: 8
@@ -795,26 +838,6 @@ modules:
   - name: is_notification_available
     type: function
     cc: 6
-- path: src/taskfile/runner/core.py
-  lines: 423
-  classes: 2
-  methods: 30
-  cc_max: 8
-  inbound_deps: 0
-  exports:
-  - name: TaskRunError
-    type: class
-    cc_avg: 1.0
-  - name: TaskfileRunner
-    type: class
-    cc_avg: 3.1
-    methods:
-    - name: _run_tasks_with_progress
-      cc: 6
-      fan_out: 10
-    - name: run
-      cc: 8
-      fan_out: 10
 - path: src/taskfile/webui/handlers.py
   lines: 147
   classes: 1
@@ -901,7 +924,7 @@ modules:
     cc: 5
     fan_out: 12
 - path: src/taskfile/cli/deploy.py
-  lines: 304
+  lines: 274
   classes: 1
   methods: 15
   cc_max: 6
@@ -1039,7 +1062,7 @@ modules:
     type: class
     cc_avg: 2.8
 - path: src/taskfile/cli/cache_cmds.py
-  lines: 100
+  lines: 73
   classes: 0
   methods: 3
   cc_max: 4
@@ -1322,6 +1345,15 @@ hotspots:
 - name: ProjectDiagnostics.validate_taskfile_variables
   fan_out: 22
   note: Validate variables defined in Taskfile.yml are present in .env files.
+- name: doctor
+  fan_out: 22
+  note: '**🔧 Diagnose project** and suggest fixes.
+
+
+    ## Checks Performed
+
+
+    - **Taskfile.yml'
 - name: bump
   fan_out: 20
   note: 'Bump version number (patch, minor, or major).
@@ -1334,15 +1366,6 @@ hotspots:
 - name: RegistryClient._install_from_github
   fan_out: 18
   note: Install package from GitHub repository.
-- name: doctor
-  fan_out: 18
-  note: '**🔧 Diagnose project** and suggest fixes.
-
-
-    ## Checks Performed
-
-
-    - **Taskfile.yml'
 - name: run
   fan_out: 17
   note: '**Run one or more tasks** defined in Taskfile.yml.
@@ -1375,16 +1398,20 @@ hotspots:
     | Op'
 refactoring:
   priorities:
-  - action: Split god module src/taskfile/cli/diagnostics.py (557L, 1 classes)
+  - action: Split god module src/taskfile/cli/diagnostics.py (860L, 3 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/cli/main.py (671L, 0 classes)
+  - action: Split god module src/taskfile/cli/main.py (637L, 0 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/api/app.py (559L, 0 classes)
     impact: high
     effort: high
   - action: Split ProjectDiagnostics.validate_taskfile_variables (CC=22 → target CC<10)
+    impact: medium
+    effort: low
+    module: diagnostics.py
+  - action: Split validate_before_run (CC=19 → target CC<10)
     impact: medium
     effort: low
     module: diagnostics.py
@@ -1403,7 +1430,7 @@ refactoring:
       22)
     impact: medium
     effort: medium
-  - action: Reduce bump fan-out (currently 20)
+  - action: Reduce doctor fan-out (currently 22)
     impact: medium
     effort: medium
 evolution:
@@ -1413,7 +1440,7 @@ evolution:
   lines: 17790
   note: Automated analysis
 - date: '2026-03-06'
-  cc_avg: 4.2
-  critical: 27
-  lines: 20751
+  cc_avg: 4.3
+  critical: 32
+  lines: 20897
   note: Automated analysis

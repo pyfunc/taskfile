@@ -1,35 +1,7 @@
-"""## Auth CLI commands for taskfile
+"""Auth CLI commands — interactive registry authentication setup.
 
-Interactive registry authentication setup with secure credential storage.
-
-### Overview
-
-Guides users through obtaining and configuring API keys for various registries:
-- **Docker Hub** - Container registry authentication
-- **GitHub Packages** - GitHub Container Registry (ghcr.io)
-- **PyPI** - Python package index
-- **npm** - Node.js package registry
-
-### Security
-
-> **Note**: Credentials are stored in `.env` file which is **gitignored** by default.
-> Never commit API keys to version control!
-
-### Authentication Flow
-
-```
-1. User runs: taskfile auth setup
-2. Select registry from supported list
-3. Follow interactive prompts for API key
-4. Credentials saved to .env (encrypted at rest)
-5. Verify with: taskfile auth verify
-```
-
-### Dependencies
-
-- `clickmd` - CLI framework with markdown support
-- `click_compat.prompt` - Secure password input
-- `rich` - Rich console output for better UX
+Guides users through obtaining API keys for each registry
+and stores them securely in .env (gitignored).
 """
 
 from __future__ import annotations

@@ -1,42 +1,4 @@
-"""## CLI commands for task registry
-
-Install, search, and manage task packages from remote registries.
-
-### Overview
-
-The package registry allows sharing and reusing task definitions across projects:
-- **Install** packages from remote registries
-- **Search** for available packages
-- **Uninstall** packages no longer needed
-
-### Supported Registries
-
-| Registry | URL | Description |
-|----------|-----|-------------|
-| GitHub | `ghcr.io` | GitHub Container Registry |
-| Docker Hub | `docker.io` | Public container registry |
-| PyPI | `pypi.org` | Python Package Index |
-
-### Package Format
-
-Packages are distributed as:
-- JSON task definitions
-- Docker images with embedded tasks
-- Git repositories with Taskfile.yml
-
-### Why clickmd?
-
-Uses `clickmd` instead of standard `click` for:
-- Rich table formatting for search results
-- Markdown rendering of package descriptions
-- Consistent CLI experience across all modules
-
-### Dependencies
-
-- `clickmd` - CLI framework with markdown support
-- `click_compat.confirm` - Confirmation prompts for uninstall
-- `rich` - Rich console output for tables
-"""
+"""CLI commands for task registry - install, search, manage packages."""
 
 from __future__ import annotations
 

@@ -184,6 +184,33 @@ def _run_with_retries(fn, task: Task) -> int:
     return returncode
 
 
+def _classify_exit_code(returncode: int) -> tuple[str, str]:
+    """Classify exit code into error category and hint.
+
+    Returns (category_tag, hint) where category_tag is one of:
+        runtime  — the executed software failed
+        config   — likely a taskfile/env misconfiguration
+        infra    — infrastructure problem (network, permissions, etc.)
+    """
+    if returncode == 126:
+        return "config", "Permission denied or not executable — check script permissions"
+    if returncode == 127:
+        return "config", "Command not found — check task commands or PATH"
+    if returncode == 128 + 9:  # SIGKILL
+        return "infra", "Process killed (OOM?) — check system resources"
+    if returncode == 128 + 15:  # SIGTERM
+        return "infra", "Process terminated — check if another process interfered"
+    if returncode == 124:
+        return "infra", "Command timed out — increase timeout or check network"
+    if returncode == 130:
+        return "runtime", "Interrupted by user (Ctrl+C)"
+    if returncode == 1:
+        return "runtime", "Command returned error — check the software's logs above"
+    if returncode == 2:
+        return "config", "Invalid arguments — check task command syntax"
+    return "runtime", f"Exit code {returncode} — check the software's output above"
+
+
 def _handle_failure(
     returncode: int, task: Task, task_name: str, start: float, label: str
 ) -> bool:
@@ -194,10 +221,14 @@ def _handle_failure(
         console.print(f"  [yellow]⚠ {label} failed (ignored)[/]")
         return True
     elapsed = time.time() - start
+    category, hint = _classify_exit_code(returncode)
     console.print(
         f"[red]✗ Task '{task_name}' {label} failed after {elapsed:.1f}s "
-        f"(exit code {returncode})[/]"
+        f"(exit code {returncode}) [{category}][/]"
     )
+    console.print(f"  [dim]{hint}[/]")
+    if category == "config":
+        console.print(f"  [dim]Run 'taskfile doctor' to diagnose configuration issues[/]")
     return False
 
 

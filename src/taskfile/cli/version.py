@@ -1,47 +1,4 @@
-"""## Version management CLI commands for taskfile
-
-Provides semantic versioning commands: bump, set, show with Git integration.
-
-### Overview
-
-Manage project versions using semantic versioning (SemVer):
-- **bump** - Increment version (patch/minor/major)
-- **set** - Set specific version
-- **show** - Display current version
-
-### Version Files
-
-The module automatically updates version in:
-- `VERSION` file (plain text)
-- `Taskfile.yml` (if has version field)
-- `pyproject.toml` (if exists)
-
-### Semantic Versioning
-
-| Part | When to bump | Example |
-|------|--------------|---------|
-| `patch` | Bug fixes, patches | `1.0.0` → `1.0.1` |
-| `minor` | New features, backward compatible | `1.0.0` → `1.1.0` |
-| `major` | Breaking changes | `1.0.0` → `2.0.0` |
-
-### Git Integration
-
-> **Note**: The module can optionally create Git tags for new versions.
-> Use `--git-tag` flag to enable this feature.
-
-### Why clickmd?
-
-Uses `clickmd` instead of standard `click` for:
-- Rich markdown formatting of version info panels
-- Consistent CLI experience across all taskfile modules
-- Better integration with `rich` console output
-
-### Dependencies
-
-- `clickmd` - CLI framework with markdown support
-- `click_compat.confirm` - Interactive confirmation prompts
-- `rich` - Rich console output for version panels
-"""
+"""Version management CLI commands for taskfile."""
 
 from __future__ import annotations
 

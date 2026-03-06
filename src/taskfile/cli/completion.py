@@ -44,7 +44,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from clickmd import click
+import clickmd as click
 from click.shell_completion import CompletionItem
 
 from taskfile.parser import find_taskfile, load_taskfile, TaskfileNotFoundError

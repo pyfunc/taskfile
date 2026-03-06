@@ -1,38 +1,6 @@
-"""## Release command for taskfile
+"""Release command for taskfile — full deployment cycle.
 
-Full deployment cycle orchestration: **tag → build → deploy → health check**
-
-### Overview
-
-This module provides comprehensive release management for multi-platform applications.
-It coordinates the entire deployment pipeline from version bumping through health checks.
-
-### Release Pipeline
-
-```
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│  TAG    │ -> │  BUILD  │ -> │ DEPLOY  │ -> │ HEALTH  │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-```
-
-### Supported Platforms
-
-| Platform | Description | Build Tool |
-|----------|-------------|------------|
-| `desktop` | Desktop applications | PyInstaller/Build |
-| `web` | Web applications | Docker/Podman |
-| `mobile` | Mobile apps | Native tooling |
-
-### Commands
-
-- `release` - Full release pipeline
-- `rollback` - Rollback to previous version
-
-### Dependencies
-
-- `clickmd` - CLI framework with markdown support
-- `rich` - Rich console output
-- `taskfile.health` - Health check integration
+Orchestrates: tag → build → deploy → health check
 """
 
 from __future__ import annotations
