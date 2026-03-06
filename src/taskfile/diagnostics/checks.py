@@ -32,6 +32,63 @@ if TYPE_CHECKING:
     from taskfile.models import TaskfileConfig
 
 
+def _load_dotenv_vars(env_file_path: Path) -> dict[str, str]:
+    """Parse a .env file and return key=value pairs (no shell export)."""
+    result: dict[str, str] = {}
+    if not env_file_path.exists():
+        return result
+    for line in env_file_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        val = val.strip().strip('"').strip("'")
+        if key:
+            result[key] = val
+    return result
+
+
+def _resolve_env_fields(env, taskfile_dir: Path | None = None) -> None:
+    """Expand ${VAR:-default} in environment string fields.
+
+    Loads variables from the environment's .env file first, then
+    overlays os.environ, so .env.prod values like PROD_HOST are available
+    even when not exported in the shell.
+    """
+    from taskfile.compose import resolve_variables as _compose_resolve_variables
+
+    # Build context: .env file vars → os.environ (shell overrides file)
+    ctx: dict[str, str] = {}
+
+    # Load .env file if available
+    env_file = getattr(env, "env_file", None)
+    if env_file and taskfile_dir:
+        env_path = taskfile_dir / env_file
+        ctx.update(_load_dotenv_vars(env_path))
+    elif env_file:
+        # Try CWD and parent
+        for base in (Path.cwd(), Path.cwd().parent):
+            candidate = base / env_file
+            if candidate.exists():
+                ctx.update(_load_dotenv_vars(candidate))
+                break
+
+    # Shell env overrides file values
+    ctx.update(os.environ)
+
+    for field_name in (
+        "ssh_host", "ssh_user", "ssh_key",
+        "compose_command", "container_runtime", "service_manager",
+        "env_file", "compose_file", "quadlet_dir", "quadlet_remote_dir",
+    ):
+        value = getattr(env, field_name, None)
+        if isinstance(value, str) and ("${" in value or "$" in value):
+            setattr(env, field_name, _compose_resolve_variables(value, ctx))
+
+
 # ─── Layer 1: Preflight ──────────────────────────────────────────
 
 
@@ -554,9 +611,11 @@ def check_ssh_keys() -> list[Issue]:
 def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
     """Check SSH connectivity — distinguish: missing key vs refused vs auth fail."""
     issues: list[Issue] = []
+    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
     for env_name, env in config.environments.items():
         if not env.is_remote:
             continue
+        _resolve_env_fields(env, taskfile_dir)
         ssh_key = env.ssh_key or "~/.ssh/id_ed25519"
         key_path = Path(os.path.expanduser(ssh_key))
         if not key_path.exists():
@@ -622,9 +681,11 @@ def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
 def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
     """Check remote host health — podman, disk space, container status."""
     issues: list[Issue] = []
+    taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
     for env_name, env in config.environments.items():
         if not env.is_remote:
             continue
+        _resolve_env_fields(env, taskfile_dir)
 
         from taskfile.deploy_utils import (
             check_remote_podman,

@@ -130,6 +130,11 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.71] - 2026-03-06
+
+### Test
+- Update tests/test_doctor_e2e.py
+
 ## [0.3.70] - 2026-03-06
 
 ## [0.3.69] - 2026-03-06
