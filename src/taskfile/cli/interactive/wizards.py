@@ -356,60 +356,82 @@ def _run_remote_diagnostics(diagnostics: ProjectDiagnostics) -> None:
         console.print("[yellow]  Could not load Taskfile config for remote diagnostics[/]")
         return
     
-    # Find current environment
-    import os
-    env_name = os.environ.get("TASKFILE_ENV", "prod")
-    env = config.environments.get(env_name)
-    if not env:
-        env = next((e for e in config.environments.values() if e.is_remote), None)
+    # Find all remote environments
+    remote_envs = [(name, env) for name, env in config.environments.items() if env.is_remote]
     
-    if not env or not env.is_remote:
-        console.print("[yellow]  No remote environment configured[/]")
+    if not remote_envs:
+        console.print("[yellow]  No remote environments configured in Taskfile.yml[/]")
         return
     
-    # Test SSH first
-    ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
-    if not ssh_result.success:
-        console.print(f"[red]  SSH connection failed: {ssh_result.output}[/]")
-        return
-    
-    console.print(f"[green]  ✓ SSH connected to {env.ssh_host}[/]")
-    
-    # Check remote containers
-    try:
-        import subprocess
-        ssh_cmd = f"ssh {env.ssh_opts} {env.ssh_user}@{env.ssh_host}"
+    for env_name, env in remote_envs:
+        console.print(f"\n[bold]Environment: {env_name}[/] ({env.ssh_host})")
         
-        # Check podman containers
-        result = subprocess.run(
-            f"{ssh_cmd} 'podman ps --format json 2>/dev/null || echo \"[]\"'",
-            shell=True, capture_output=True, text=True, timeout=10
-        )
-        if result.returncode == 0:
-            console.print("[green]  ✓ Podman is running on remote server[/]")
-        else:
-            console.print("[yellow]  ⚠ Podman check returned non-zero exit[/]")
+        # Test SSH first
+        ssh_result = test_ssh_connection(env.ssh_host, env.ssh_user, env.ssh_port)
+        if not ssh_result.success:
+            console.print(f"[red]  ✗ SSH connection failed: {ssh_result.output or 'unknown error'}[/]")
+            continue
+        
+        console.print(f"[green]  ✓ SSH connected to {env.ssh_host}[/]")
+        
+        # Check remote containers
+        try:
+            import subprocess
+            ssh_key = env.ssh_key or "~/.ssh/id_ed25519"
+            ssh_opts = env.ssh_opts if hasattr(env, 'ssh_opts') else "-o StrictHostKeyChecking=no"
+            ssh_cmd = f"ssh -p {env.ssh_port or 22} -i {ssh_key} {ssh_opts} {env.ssh_user}@{env.ssh_host}"
             
-        # Check disk space
-        result = subprocess.run(
-            f"{ssh_cmd} 'df -h / | tail -1'",
-            shell=True, capture_output=True, text=True, timeout=10
-        )
-        if result.returncode == 0:
-            disk_info = result.stdout.strip()
-            console.print(f"[dim]  Disk usage: {disk_info}[/]")
+            # Check podman version
+            result = subprocess.run(
+                f"{ssh_cmd} 'podman --version 2>/dev/null || echo \"NOT_INSTALLED\"'",
+                shell=True, capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0 and "NOT_INSTALLED" not in result.stdout:
+                version = result.stdout.strip().replace("podman version ", "").replace("Version: ", "")
+                console.print(f"[green]  ✓ Podman: {version}[/]")
+            else:
+                console.print(f"[yellow]  ⚠ Podman not installed on {env.ssh_host}[/]")
+                
+            # Check disk space
+            result = subprocess.run(
+                f"{ssh_cmd} 'df -h / | tail -1'",
+                shell=True, capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                parts = result.stdout.strip().split()
+                if len(parts) >= 5:
+                    console.print(f"[dim]  Disk: {parts[4]} used ({parts[2]} / {parts[1]})[/]")
             
-        # Check running containers count
-        result = subprocess.run(
-            f"{ssh_cmd} 'podman ps -q | wc -l'",
-            shell=True, capture_output=True, text=True, timeout=10
-        )
-        if result.returncode == 0:
-            container_count = result.stdout.strip()
-            console.print(f"[dim]  Running containers: {container_count}[/]")
+            # Check memory
+            result = subprocess.run(
+                f"{ssh_cmd} 'free -h 2>/dev/null | grep Mem || echo \"N/A\"'",
+                shell=True, capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0 and result.stdout.strip() != "N/A":
+                mem_parts = result.stdout.strip().split()
+                if len(mem_parts) >= 4:
+                    console.print(f"[dim]  Memory: {mem_parts[2]} used / {mem_parts[1]} total[/]")
             
-    except Exception as e:
-        console.print(f"[yellow]  Remote diagnostics error: {e}[/]")
+            # Check running containers count
+            result = subprocess.run(
+                f"{ssh_cmd} 'podman ps -q 2>/dev/null | wc -l'",
+                shell=True, capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                container_count = result.stdout.strip()
+                console.print(f"[dim]  Running containers: {container_count}[/]")
+            
+            # Check images
+            result = subprocess.run(
+                f"{ssh_cmd} 'podman images -q 2>/dev/null | wc -l'",
+                shell=True, capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                image_count = result.stdout.strip()
+                console.print(f"[dim]  Stored images: {image_count}[/]")
+                
+        except Exception as e:
+            console.print(f"[yellow]  Remote diagnostics error: {e}[/]")
 
 
 class _nullcontext:
