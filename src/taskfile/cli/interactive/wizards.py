@@ -263,13 +263,8 @@ curl -X POST http://localhost:8000/doctor -H "Content-Type: application/json" \
             border_style="blue"
         ))
 
-    with console.status("[bold green]Checking project...[/]" if not remote else "[bold green]Checking remote server...[/]") if not report else _nullcontext():
-        diagnostics.run_all_checks(verbose=verbose, remote=remote)
-        # Remote-only: extended remote diagnostics
-        if remote:
-            _run_remote_diagnostics(diagnostics)
+    _doctor_run_checks(diagnostics, verbose=verbose, remote=remote, report=report)
 
-    # Validate examples/ directory if requested
     if check_examples_flag:
         _run_examples_check(diagnostics, report)
 
@@ -278,19 +273,32 @@ curl -X POST http://localhost:8000/doctor -H "Content-Type: application/json" \
         sys.exit(1 if any(s == "error" for _, s, _ in diagnostics.issues) else 0)
 
     diagnostics.print_report(show_teach=teach)
+    _doctor_apply_fixes(diagnostics, fix=fix, llm=llm)
+    _doctor_print_summary(diagnostics)
 
-    # Layer 4: Algorithmic fix
+
+def _doctor_run_checks(diagnostics: ProjectDiagnostics, *, verbose: bool, remote: bool, report: bool) -> None:
+    """Layers 1-3: Run all diagnostic checks (with optional spinner)."""
+    with console.status("[bold green]Checking project...[/]" if not remote else "[bold green]Checking remote server...[/]") if not report else _nullcontext():
+        diagnostics.run_all_checks(verbose=verbose, remote=remote)
+        if remote:
+            _run_remote_diagnostics(diagnostics)
+
+
+def _doctor_apply_fixes(diagnostics: ProjectDiagnostics, *, fix: bool, llm: bool) -> None:
+    """Layers 4-5: Apply auto-fixes and optionally ask LLM for suggestions."""
     if fix and diagnostics.issues:
         console.print("\n[bold]Layer 4: Attempting auto-fix...[/]")
         fixed = diagnostics.auto_fix()
         if fixed > 0:
             console.print(f"[green]✓ Fixed {fixed} issue(s)[/]")
 
-    # Layer 5: LLM assist
     if llm and diagnostics._issues:
         _run_llm_assist(diagnostics)
 
-    # Summary
+
+def _doctor_print_summary(diagnostics: ProjectDiagnostics) -> None:
+    """Print final doctor summary with next-step guidance."""
     if not diagnostics.issues:
         console.print("\n[bold green]Your project is ready! 🚀[/]")
         console.print("\n[dim]Next steps:[/]")
@@ -406,6 +414,48 @@ def _collect_remote_envs(config, selected_env: str | None) -> list[tuple] | None
     return envs
 
 
+def _run_fixop_checks(env) -> None:
+    """Run extended fixop infrastructure checks on a remote environment.
+
+    Checks: DNS, container DNS, UFW forward policy, systemd-resolved, NAT masquerade.
+    Degrades gracefully when fixop is not installed.
+    """
+    try:
+        import fixop
+    except ImportError:
+        return  # fixop not installed — skip silently
+
+    ctx = fixop.HostContext(
+        host=env.ssh_host,
+        user=env.ssh_user or "root",
+        port=env.ssh_port or 22,
+        key=getattr(env, "ssh_key", None) or "~/.ssh/id_ed25519",
+    )
+
+    _CHECKS = [
+        ("DNS", fixop.check_host_dns),
+        ("systemd-resolved", fixop.check_systemd_resolved),
+        ("UFW forward policy", fixop.check_ufw_forward_policy),
+    ]
+
+    found = 0
+    for label, check_fn in _CHECKS:
+        try:
+            issues = check_fn(ctx)
+            for issue in issues:
+                sev = issue.severity.value
+                color = "red" if sev in ("error", "critical") else "yellow"
+                console.print(f"[{color}]  ⚠ [{label}] {issue.message}[/{color}]")
+                if issue.fix_command:
+                    console.print(f"[dim]    Fix: {issue.fix_command}[/]")
+                found += 1
+        except Exception:
+            pass  # individual check failure — skip
+
+    if found == 0:
+        console.print("[green]  ✓ Infrastructure checks passed (DNS, UFW, systemd-resolved)[/]")
+
+
 def _diagnose_single_remote_env(env_name, env, taskfile_dir) -> None:
     """Run all remote diagnostics for a single environment."""
     from taskfile.deploy_utils import test_ssh_connection
@@ -431,6 +481,9 @@ def _diagnose_single_remote_env(env_name, env, taskfile_dir) -> None:
         _check_remote_containers(ssh_cmd)
     except Exception as e:
         console.print(f"[yellow]  Remote diagnostics error: {e}[/]")
+
+    # Extended infrastructure checks via fixop (DNS, UFW, TLS, systemd-resolved, NAT)
+    _run_fixop_checks(env)
 
 
 def _run_remote_diagnostics(diagnostics: ProjectDiagnostics) -> None:

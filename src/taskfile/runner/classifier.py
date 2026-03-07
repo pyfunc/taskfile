@@ -65,6 +65,18 @@ _SHELL_KEYWORDS_RE = re.compile(
 )
 
 
+# Dispatch table for @-prefixed commands — O(n) scan but tiny n.
+_PREFIX_DISPATCH: tuple[tuple[str, CommandType], ...] = (
+    ("@fn ",      CommandType.FN_CALL),
+    ("@python ",  CommandType.PYTHON_INLINE),
+    ("@remote ",  CommandType.REMOTE_CMD),
+    ("@ssh ",     CommandType.REMOTE_CMD),
+    ("@local ",   CommandType.LOCAL_CMD),
+    ("@push ",    CommandType.PUSH_CMD),
+    ("@pull ",    CommandType.PULL_CMD),
+)
+
+
 def classify_command(cmd: str) -> CommandType:
     """Classify a command string to determine its processing pipeline.
 
@@ -79,45 +91,32 @@ def classify_command(cmd: str) -> CommandType:
     """
     stripped = cmd.strip()
 
-    # Multiline commands — heredocs, multi-statement scripts
     if '\n' in stripped:
         return CommandType.MULTILINE
 
-    # @-prefixed commands — check before shell constructs
-    if stripped.startswith("@fn "):
-        return CommandType.FN_CALL
-    if stripped.startswith("@python "):
-        return CommandType.PYTHON_INLINE
-    if stripped.startswith(("@remote ", "@ssh ")):
-        return CommandType.REMOTE_CMD
-    if stripped.startswith("@local "):
-        return CommandType.LOCAL_CMD
-    if stripped.startswith("@push "):
-        return CommandType.PUSH_CMD
-    if stripped.startswith("@pull "):
-        return CommandType.PULL_CMD
+    for prefix, ctype in _PREFIX_DISPATCH:
+        if stripped.startswith(prefix):
+            return ctype
 
-    # Shell constructs — compound statements that shlex would break
+    if _is_shell_construct(stripped):
+        return CommandType.SHELL_CONSTRUCT
+
+    return CommandType.PLAIN_CMD
+
+
+def _is_shell_construct(stripped: str) -> bool:
+    """Detect shell compound statements that shlex.split would mangle."""
     lower = stripped.lower()
-    # Direct prefix match (most common case)
     for prefix in _SHELL_CONSTRUCT_PREFIXES:
         if lower.startswith(prefix):
-            return CommandType.SHELL_CONSTRUCT
-
-    # Shell construct after command separator: "cd dir && for f in ..."
+            return True
     if _SHELL_CONSTRUCT_RE.search(stripped):
-        return CommandType.SHELL_CONSTRUCT
-
-    # Subshell or brace group: "( cmd1; cmd2 )" or "$( cmd )"
+        return True
     if _SUBSHELL_RE.search(stripped):
-        return CommandType.SHELL_CONSTRUCT
-
-    # Shell keywords (do/done/then/fi/etc.) indicate compound statement
+        return True
     if ';' in stripped and _SHELL_KEYWORDS_RE.search(stripped):
-        return CommandType.SHELL_CONSTRUCT
-
-    # Everything else is a plain command — safe for glob expansion
-    return CommandType.PLAIN_CMD
+        return True
+    return False
 
 
 def should_expand_globs(cmd: str) -> bool:

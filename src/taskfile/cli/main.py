@@ -328,75 +328,82 @@ taskfile run deploy --teach
 ```
 """
     opts = ctx.obj
-    env_group = opts.get("env_group")
     tag_filter = [t.strip() for t in run_tags.split(",")] if run_tags else None
 
     try:
-        # --explain / --teach mode: analyze without running
         if explain or teach:
-            from taskfile.runner.resolver import TaskResolver
-            from taskfile.runner.explainer import (
-                TaskExplainer, print_explain_report, print_teach_report,
-            )
-            config = load_taskfile(opts["taskfile_path"])
-            resolver = TaskResolver(
-                config,
-                env_name=opts["env_name"],
-                platform_name=opts["platform_name"],
-                var_overrides=opts["var"],
-            )
-            task_list = list(tasks)
-            _check_unknown_tasks(task_list, config.tasks)
-            if tag_filter:
-                task_list = _filter_tasks_by_tags(config, task_list, tag_filter)
-                if not task_list:
-                    console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
-                    sys.exit(0)
-
-            explainer = TaskExplainer(resolver)
-            report = explainer.explain(task_list)
-
-            if teach:
-                print_teach_report(report, task_list, resolver.env_name, config)
-            else:
-                print_explain_report(report, task_list, resolver.env_name)
-
-            sys.exit(1 if report.has_errors else 0)
-
-        if env_group:
-            success = _run_env_group(
-                taskfile_path=opts["taskfile_path"],
-                env_group=env_group,
-                task_names=list(tasks),
-                platform_name=opts["platform_name"],
-                var_overrides=opts["var"],
-                dry_run=opts["dry_run"],
-                verbose=opts["verbose"],
-            )
+            _run_explain_mode(opts, list(tasks), tag_filter, teach=teach)
         else:
-            runner = TaskfileRunner(
-                taskfile_path=opts["taskfile_path"],
-                env_name=opts["env_name"],
-                platform_name=opts["platform_name"],
-                var_overrides=opts["var"],
-                dry_run=opts["dry_run"],
-                verbose=opts["verbose"],
-            )
-            task_list = list(tasks)
-            _check_unknown_tasks(task_list, runner.config.tasks)
-            
-            if tag_filter:
-                task_list = _filter_tasks_by_tags(runner.config, task_list, tag_filter)
-                if not task_list:
-                    console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
-                    sys.exit(0)
-            success = runner.run(task_list)
-        sys.exit(0 if success else 1)
+            success = _run_tasks(opts, list(tasks), tag_filter)
+            sys.exit(0 if success else 1)
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         if isinstance(e, TaskfileNotFoundError):
             _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
+
+
+def _run_explain_mode(opts: dict, task_list: list[str], tag_filter: list[str] | None, *, teach: bool) -> None:
+    """Handle --explain / --teach mode: analyze execution plan without running."""
+    from taskfile.runner.resolver import TaskResolver
+    from taskfile.runner.explainer import (
+        TaskExplainer, print_explain_report, print_teach_report,
+    )
+    config = load_taskfile(opts["taskfile_path"])
+    resolver = TaskResolver(
+        config,
+        env_name=opts["env_name"],
+        platform_name=opts["platform_name"],
+        var_overrides=opts["var"],
+    )
+    _check_unknown_tasks(task_list, config.tasks)
+    if tag_filter:
+        task_list = _filter_tasks_by_tags(config, task_list, tag_filter)
+        if not task_list:
+            console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
+            sys.exit(0)
+
+    explainer = TaskExplainer(resolver)
+    report = explainer.explain(task_list)
+
+    if teach:
+        print_teach_report(report, task_list, resolver.env_name, config)
+    else:
+        print_explain_report(report, task_list, resolver.env_name)
+
+    sys.exit(1 if report.has_errors else 0)
+
+
+def _run_tasks(opts: dict, task_list: list[str], tag_filter: list[str] | None) -> bool:
+    """Execute tasks normally, via env group or single runner. Returns success."""
+    env_group = opts.get("env_group")
+    if env_group:
+        return _run_env_group(
+            taskfile_path=opts["taskfile_path"],
+            env_group=env_group,
+            task_names=task_list,
+            platform_name=opts["platform_name"],
+            var_overrides=opts["var"],
+            dry_run=opts["dry_run"],
+            verbose=opts["verbose"],
+        )
+
+    runner = TaskfileRunner(
+        taskfile_path=opts["taskfile_path"],
+        env_name=opts["env_name"],
+        platform_name=opts["platform_name"],
+        var_overrides=opts["var"],
+        dry_run=opts["dry_run"],
+        verbose=opts["verbose"],
+    )
+    _check_unknown_tasks(task_list, runner.config.tasks)
+
+    if tag_filter:
+        task_list = _filter_tasks_by_tags(runner.config, task_list, tag_filter)
+        if not task_list:
+            console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
+            sys.exit(0)
+    return runner.run(task_list)
 
 
 def _filter_tasks_by_tags(config, task_names: list[str], tags: list[str]) -> list[str]:

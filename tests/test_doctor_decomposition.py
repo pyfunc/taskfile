@@ -126,19 +126,22 @@ class TestRunAllChecks:
 
 class TestCheckUfwForwardPolicy:
 
-    @patch("taskfile.diagnostics.checks.shutil.which", return_value=None)
+    @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
+    @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value=None)
     def test_no_ufw_returns_empty(self, mock_which):
         assert _check_ufw_forward_policy() == []
 
-    @patch("taskfile.diagnostics.checks.subprocess.run")
-    @patch("taskfile.diagnostics.checks.shutil.which", return_value="/usr/sbin/ufw")
+    @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
+    @patch("taskfile.diagnostics.checks_infra.subprocess.run")
+    @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value="/usr/sbin/ufw")
     def test_ufw_inactive_returns_empty(self, mock_which, mock_run):
         mock_run.return_value = MagicMock(stdout="Status: inactive\n", returncode=0)
         assert _check_ufw_forward_policy() == []
 
-    @patch("taskfile.diagnostics.checks.Path")
-    @patch("taskfile.diagnostics.checks.subprocess.run")
-    @patch("taskfile.diagnostics.checks.shutil.which", return_value="/usr/sbin/ufw")
+    @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
+    @patch("taskfile.diagnostics.checks_infra.Path")
+    @patch("taskfile.diagnostics.checks_infra.subprocess.run")
+    @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value="/usr/sbin/ufw")
     def test_ufw_forward_drop_reports_issue(self, mock_which, mock_run, mock_path_cls):
         mock_run.return_value = MagicMock(stdout="Status: active\n", returncode=0)
 
@@ -153,9 +156,10 @@ class TestCheckUfwForwardPolicy:
         assert "FORWARD" in issues[0].message
         assert issues[0].category == IssueCategory.EXTERNAL_ERROR
 
-    @patch("taskfile.diagnostics.checks.Path")
-    @patch("taskfile.diagnostics.checks.subprocess.run")
-    @patch("taskfile.diagnostics.checks.shutil.which", return_value="/usr/sbin/ufw")
+    @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
+    @patch("taskfile.diagnostics.checks_infra.Path")
+    @patch("taskfile.diagnostics.checks_infra.subprocess.run")
+    @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value="/usr/sbin/ufw")
     def test_ufw_forward_accept_no_issue(self, mock_which, mock_run, mock_path_cls):
         mock_run.return_value = MagicMock(stdout="Status: active\n", returncode=0)
 
@@ -175,12 +179,14 @@ class TestCheckUfwForwardPolicy:
 
 class TestCheckContainerDns:
 
-    @patch("taskfile.diagnostics.checks.shutil.which", return_value=None)
+    @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
+    @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value=None)
     def test_no_podman_returns_empty(self, mock_which):
         assert _check_container_dns() == []
 
-    @patch("taskfile.diagnostics.checks.socket.socket")
-    @patch("taskfile.diagnostics.checks.shutil.which", return_value="/usr/bin/podman")
+    @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
+    @patch("taskfile.diagnostics.checks_infra.socket.socket")
+    @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value="/usr/bin/podman")
     def test_bridge_unreachable_returns_empty(self, mock_which, mock_socket_cls):
         """If 10.88.0.1 is unreachable, skip (podman not initialized)."""
         mock_sock = MagicMock()

@@ -15,13 +15,12 @@ from taskfile.diagnostics.models import (
     SEVERITY_ERROR,
     SEVERITY_WARNING,
 )
+from taskfile.diagnostics.fixop_adapter import HAS_FIXOP as _HAS_FIXOP
 
 try:
     from fixop.classify import classify_error as _fixop_classify
-    from fixop.models import Category as _FixopCategory, Severity as _FixopSeverity
-    _HAS_FIXOP = True
 except ImportError:
-    _HAS_FIXOP = False
+    pass
 
 
 def is_available() -> bool:
@@ -74,31 +73,6 @@ If it might be a taskfile bug, say so explicitly."""
         return None
 
 
-# ── fixop category → taskfile IssueCategory adapter ──
-
-_FIXOP_CATEGORY_MAP: dict = {}
-if _HAS_FIXOP:
-    _FIXOP_CATEGORY_MAP = {
-        _FixopCategory.SSH: IssueCategory.CONFIG_ERROR,
-        _FixopCategory.DNS: IssueCategory.EXTERNAL_ERROR,
-        _FixopCategory.FIREWALL: IssueCategory.EXTERNAL_ERROR,
-        _FixopCategory.CONTAINER: IssueCategory.RUNTIME_ERROR,
-        _FixopCategory.SYSTEMD: IssueCategory.EXTERNAL_ERROR,
-        _FixopCategory.TLS: IssueCategory.EXTERNAL_ERROR,
-        _FixopCategory.PORT: IssueCategory.RUNTIME_ERROR,
-        _FixopCategory.DEPLOY: IssueCategory.CONFIG_ERROR,
-    }
-
-_FIXOP_SEVERITY_MAP: dict = {}
-if _HAS_FIXOP:
-    _FIXOP_SEVERITY_MAP = {
-        _FixopSeverity.INFO: SEVERITY_WARNING,
-        _FixopSeverity.WARNING: SEVERITY_WARNING,
-        _FixopSeverity.ERROR: SEVERITY_ERROR,
-        _FixopSeverity.CRITICAL: SEVERITY_ERROR,
-    }
-
-
 def classify_runtime_error(
     exit_code: int,
     stderr: str,
@@ -110,17 +84,14 @@ def classify_runtime_error(
     Delegates to fixop.classify when available for better dispatch-table classification.
     """
     if _HAS_FIXOP:
+        from taskfile.diagnostics.fixop_adapter import adapt_issue
         fi = _fixop_classify(exit_code, stderr, cmd)
-        return Issue(
-            category=_FIXOP_CATEGORY_MAP.get(fi.category, IssueCategory.RUNTIME_ERROR),
-            message=fi.message,
-            fix_strategy=FixStrategy.CONFIRM if fi.fix_command else FixStrategy.LLM,
-            severity=_FIXOP_SEVERITY_MAP.get(fi.severity, SEVERITY_ERROR),
-            fix_command=fi.fix_command,
-            fix_description=fi.details,
-            context={"exit_code": exit_code, "cmd": cmd, "stderr": stderr[:500]},
-            layer=3,
-        )
+        issue = adapt_issue(fi)
+        # Override: unfixable runtime errors escalate to LLM, not MANUAL
+        if not fi.fix_command:
+            issue.fix_strategy = FixStrategy.LLM
+        issue.context = {"exit_code": exit_code, "cmd": cmd, "stderr": stderr[:500]}
+        return issue
 
     # Fallback when fixop is not installed
     return _classify_runtime_error_legacy(exit_code, stderr, cmd)

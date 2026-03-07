@@ -1,22 +1,20 @@
 """SSH-related diagnostic checks — thin wrapper over fixop.
 
 Delegates infrastructure checks to fixop and converts results
-back to taskfile Issue format (adapter pattern).
+back to taskfile Issue format via fixop_adapter.
 """
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from taskfile.diagnostics.models import (
-    Issue,
-    IssueCategory,
-    FixStrategy,
-    SEVERITY_ERROR,
-    SEVERITY_WARNING,
-    SEVERITY_INFO,
+from taskfile.diagnostics.models import Issue
+from taskfile.diagnostics.fixop_adapter import (
+    HAS_FIXOP as _HAS_FIXOP,
+    adapt_issue as _to_taskfile_issue,
+    adapt_issues,
+    make_host_ctx as _make_host_ctx,
 )
 
 if TYPE_CHECKING:
@@ -24,64 +22,8 @@ if TYPE_CHECKING:
 
 try:
     import fixop
-    from fixop.models import Issue as FixopIssue, Category as FixopCategory, Severity as FixopSeverity
-    from fixop.models import HostContext
-    _HAS_FIXOP = True
 except ImportError:
-    _HAS_FIXOP = False
-
-
-# ── Adapter: fixop Issue → taskfile Issue ──────────────
-
-_CATEGORY_MAP: dict = {}
-_SEVERITY_MAP: dict = {}
-if _HAS_FIXOP:
-    _CATEGORY_MAP = {
-        FixopCategory.SSH: IssueCategory.CONFIG_ERROR,
-        FixopCategory.DNS: IssueCategory.EXTERNAL_ERROR,
-        FixopCategory.FIREWALL: IssueCategory.EXTERNAL_ERROR,
-        FixopCategory.CONTAINER: IssueCategory.DEPENDENCY_MISSING,
-        FixopCategory.SYSTEMD: IssueCategory.EXTERNAL_ERROR,
-        FixopCategory.TLS: IssueCategory.EXTERNAL_ERROR,
-        FixopCategory.PORT: IssueCategory.RUNTIME_ERROR,
-        FixopCategory.DEPLOY: IssueCategory.CONFIG_ERROR,
-    }
-    _SEVERITY_MAP = {
-        FixopSeverity.INFO: SEVERITY_INFO,
-        FixopSeverity.WARNING: SEVERITY_WARNING,
-        FixopSeverity.ERROR: SEVERITY_ERROR,
-        FixopSeverity.CRITICAL: SEVERITY_ERROR,
-    }
-
-
-def _to_taskfile_issue(fi: "FixopIssue", env_name: str = "") -> Issue:
-    """Convert fixop Issue to taskfile Issue."""
-    context = {}
-    if fi.host:
-        context["host"] = fi.host
-    if env_name:
-        context["env"] = env_name
-
-    return Issue(
-        category=_CATEGORY_MAP.get(fi.category, IssueCategory.EXTERNAL_ERROR),
-        message=fi.message,
-        fix_strategy=FixStrategy.CONFIRM if fi.fix_command else FixStrategy.MANUAL,
-        severity=_SEVERITY_MAP.get(fi.severity, SEVERITY_WARNING),
-        fix_command=fi.fix_command,
-        fix_description=fi.details,
-        context=context if context else None,
-        layer=3,
-    )
-
-
-def _make_host_ctx(env) -> "HostContext":
-    """Build a fixop HostContext from a taskfile environment."""
-    return HostContext(
-        host=env.ssh_host,
-        user=env.ssh_user or "root",
-        port=env.ssh_port or 22,
-        key=env.ssh_key or "~/.ssh/id_ed25519",
-    )
+    pass
 
 
 # ── Public checks ─────────────────────────────────────

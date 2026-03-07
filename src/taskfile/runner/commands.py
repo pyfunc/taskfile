@@ -41,46 +41,9 @@ def _md(text: str) -> None:
         print(text)
 
 
-# ─── Source location tracing ─────────────────────────────────────────────────
+# ─── Source location tracing (delegated to failure.py) ───────────────────────
 
-def _find_task_line(source_path: str | None, task_name: str) -> int | None:
-    """Find the line number where a task is defined in the YAML source file."""
-    if not source_path or not os.path.isfile(source_path):
-        return None
-    try:
-        with open(source_path) as f:
-            for i, line in enumerate(f, 1):
-                # Match '  task_name:' as a YAML key under tasks
-                if re.match(rf'^\s{{2,4}}{re.escape(task_name)}\s*:', line):
-                    return i
-    except OSError:
-        pass
-    return None
-
-
-def _find_cmd_line(source_path: str | None, task_name: str, cmd: str) -> int | None:
-    """Find the line number of a specific command within a task."""
-    if not source_path or not os.path.isfile(source_path):
-        return None
-    try:
-        cmd_stripped = cmd.strip().rstrip('"').lstrip('- ').strip('"').strip("'")
-        # Use first 40 chars for matching (commands can be long)
-        needle = cmd_stripped[:40]
-        with open(source_path) as f:
-            for i, line in enumerate(f, 1):
-                if needle and needle in line:
-                    return i
-    except OSError:
-        pass
-    return None
-
-
-def _source_ref(source_path: str | None, line: int | None) -> str:
-    """Format a source file reference like 'Taskfile.yml:37'."""
-    if not source_path or not line:
-        return ""
-    name = os.path.basename(source_path)
-    return f"{name}:{line}"
+from taskfile.runner.failure import _find_task_line, _find_cmd_line, _source_ref  # noqa: E402
 
 
 # ─── Step-by-step rendering ──────────────────────────────────────────────────
@@ -196,102 +159,13 @@ def _validate_all_commands(runner, task: Task, task_name: str) -> list[str]:
     return all_warnings
 
 
-# ─── Learning tips ───────────────────────────────────────────────────────────
+# ─── Learning tips (delegated to failure.py) ─────────────────────────────────
 
-_TIPS: list[tuple[str, str, str]] = [
-    # (trigger_pattern, tip_title, tip_body)
-    (
-        "scp",
-        "💡 Tip: Use rsync instead of scp",
-        "`rsync -avz` handles globs, partial transfers, and resume better than `scp`.\n"
-        "Example: `rsync -avz deploy/quadlet/ user@host:/etc/containers/systemd/`",
-    ),
-    (
-        "quadlet",
-        "💡 Tip: Generate Quadlet files first",
-        "Run `taskfile quadlet generate --env-file .env.prod -o deploy/quadlet` before deploy.\n"
-        "Add `quadlet-generate` as a dependency: `deps: [build, quadlet-generate]`",
-    ),
-    (
-        "@remote",
-        "💡 Tip: Test SSH connectivity",
-        "Run `taskfile fleet status` to verify all remote hosts are reachable.\n"
-        "Use `taskfile --dry-run` to preview SSH commands without executing.",
-    ),
-    (
-        "docker compose",
-        "💡 Tip: Check Docker Compose",
-        "Run `docker compose config` to validate your compose file.\n"
-        "Use `taskfile doctor --category runtime` to check Docker health.",
-    ),
-    (
-        "systemctl",
-        "💡 Tip: Quadlet + systemctl",
-        "Podman Quadlet auto-generates systemd units from `.container` files.\n"
-        "After uploading, run `systemctl daemon-reload` then `systemctl start <unit>`.",
-    ),
-    (
-        ".env",
-        "💡 Tip: Environment files",
-        "Keep `.env.prod` gitignored. Use `.env.prod.example` as a template.\n"
-        "Run `taskfile doctor --fix` to auto-create missing .env files from examples.",
-    ),
-]
-
-
-def _get_tip_for_command(cmd: str) -> tuple[str, str] | None:
-    """Return a (title, body) learning tip relevant to the command, or None."""
-    cmd_lower = cmd.lower()
-    for trigger, title, body in _TIPS:
-        if trigger in cmd_lower:
-            return title, body
-    return None
-
-
-def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None:
-    """Return a learning tip relevant to a specific failure.
-
-    Delegates to fixop.classify.get_tip_for_failure when available.
-    """
-    if _HAS_FIXOP_CLASSIFY:
-        tip = _fixop_get_tip(cmd, returncode)
-        if tip:
-            return tip
-
-    # Legacy fallback / additional taskfile-specific tips
-    cmd_lower = cmd.lower()
-
-    if "no such file" in cmd_lower or returncode == 1:
-        if "scp" in cmd_lower or "rsync" in cmd_lower:
-            return (
-                "**Missing files?** Run `taskfile doctor --fix` to check for missing "
-                "deploy artifacts.\nGenerate Quadlet files: `taskfile quadlet generate`"
-            )
-
-    if returncode == 255 and ("ssh" in cmd_lower or "scp" in cmd_lower):
-        return (
-            "**SSH error (exit 255)?** Common causes:\n"
-            "- Host unreachable — check `ssh_host` in Taskfile.yml\n"
-            "- Key rejected — check `ssh_key` and `chmod 600`\n"
-            "- Run `taskfile fleet status` to diagnose"
-        )
-
-    if returncode == 126:
-        return (
-            "**Permission denied?** Check:\n"
-            "- Script is executable: `chmod +x scripts/*.sh`\n"
-            "- Correct path in `script:` field"
-        )
-
-    if returncode == 127:
-        return (
-            "**Command not found?** Check:\n"
-            "- Tool is installed: `which <command>`\n"
-            "- PATH includes the tool's directory\n"
-            "- Run `taskfile doctor` to check missing dependencies"
-        )
-
-    return None
+from taskfile.runner.failure import (  # noqa: E402
+    _get_tip_for_command,
+    _get_tip_for_failure,
+    _TIPS,
+)
 
 
 # Shell operators that must NOT be quoted during glob expansion
@@ -583,125 +457,15 @@ def _run_with_retries(fn, task: Task) -> int:
     return returncode
 
 
-try:
-    from fixop.classify import classify_error as _fixop_classify_error
-    from fixop.classify import get_tip_for_failure as _fixop_get_tip
-    from fixop.models import Category as _FixopCategory
-    _HAS_FIXOP_CLASSIFY = True
-except ImportError:
-    _HAS_FIXOP_CLASSIFY = False
+# ─── Failure handling (delegated to failure.py) ──────────────────────────────
 
-# Map fixop Category → legacy category tag used in _handle_failure
-_FIXOP_CAT_TO_TAG: dict = {}
-if _HAS_FIXOP_CLASSIFY:
-    _FIXOP_CAT_TO_TAG = {
-        _FixopCategory.SSH: "infra",
-        _FixopCategory.DNS: "infra",
-        _FixopCategory.FIREWALL: "infra",
-        _FixopCategory.CONTAINER: "runtime",
-        _FixopCategory.SYSTEMD: "infra",
-        _FixopCategory.TLS: "infra",
-        _FixopCategory.PORT: "runtime",
-        _FixopCategory.DEPLOY: "config",
-    }
-
-
-def _classify_exit_code(returncode: int) -> tuple[str, str]:
-    """Classify exit code into error category and hint.
-
-    Returns (category_tag, hint) where category_tag is one of:
-        runtime  — the executed software failed
-        config   — likely a taskfile/env misconfiguration
-        infra    — infrastructure problem (network, permissions, etc.)
-
-    Delegates to fixop.classify when available.
-    """
-    if _HAS_FIXOP_CLASSIFY:
-        fi = _fixop_classify_error(returncode)
-        tag = _FIXOP_CAT_TO_TAG.get(fi.category, "runtime")
-        return tag, fi.message
-
-    # Legacy fallback
-    if returncode == 126:
-        return "config", "Permission denied or not executable — check script permissions"
-    if returncode == 127:
-        return "config", "Command not found — check task commands or PATH"
-    if returncode == 128 + 9:  # SIGKILL
-        return "infra", "Process killed (OOM?) — check system resources"
-    if returncode == 128 + 15:  # SIGTERM
-        return "infra", "Process terminated — check if another process interfered"
-    if returncode == 124:
-        return "infra", "Command timed out — increase timeout or check network"
-    if returncode == 130:
-        return "runtime", "Interrupted by user (Ctrl+C)"
-    if returncode == 1:
-        return "runtime", "Command returned error — check the software's logs above"
-    if returncode == 2:
-        return "config", "Invalid arguments — check task command syntax"
-    return "runtime", f"Exit code {returncode} — check the software's output above"
-
-
-def _handle_failure(
-    returncode: int, task: Task, task_name: str, start: float, label: str,
-    cmd: str = "", source_path: str | None = None,
-    runner=None,
-) -> bool:
-    """Handle a non-zero return code. Returns False if execution should stop."""
-    if returncode == 0:
-        return True
-    if task.ignore_errors:
-        console.print(f"  [yellow]⚠ {label} failed (ignored)[/]")
-        return True
-    elapsed = time.time() - start
-    category, hint = _classify_exit_code(returncode)
-
-    # Show failure with config location
-    cmd_line = _find_cmd_line(source_path, task_name, cmd) if cmd else None
-    ref = _source_ref(source_path, cmd_line)
-    ref_info = f" at `{ref}`" if ref else ""
-
-    _md(
-        f"### ❌ Task `{task_name}` {label} failed\n\n"
-        f"- **Exit code:** {returncode} ({category})\n"
-        f"- **Duration:** {elapsed:.1f}s\n"
-        f"- **Hint:** {hint}\n"
-        + (f"- **Location:**{ref_info}\n" if ref_info else "")
-    )
-
-    # Show the failing command in context
-    if cmd and source_path:
-        _md(f"```yaml\n# Failing command in task '{task_name}':\n- {cmd.strip()}\n```")
-
-    # Rich contextual diagnosis via ErrorPresenter
-    if runner and cmd:
-        try:
-            from taskfile.runner.error_presenter import ErrorPresenter
-            stderr = runner._last_stderr if hasattr(runner, '_last_stderr') else ""
-            ErrorPresenter().present(
-                cmd=cmd,
-                exit_code=returncode,
-                stderr=stderr,
-                task_name=task_name,
-                env_name=runner.env_name,
-                variables=runner.variables,
-            )
-        except Exception:
-            pass  # fallback to legacy tips below
-
-    # Contextual learning tip
-    tip = _get_tip_for_failure(cmd, returncode, category)
-    if tip:
-        _md(f"\n{tip}")
-
-    # Actionable next steps
-    if category == "config":
-        _md("\n**Next steps:** `taskfile doctor --fix` or `taskfile validate`")
-    elif category == "infra":
-        _md("\n**Next steps:** `taskfile doctor --llm` for AI-assisted troubleshooting")
-    else:
-        _md("\n**Next steps:** Check output above, then `taskfile doctor` for diagnostics")
-
-    return False
+from taskfile.runner.failure import (  # noqa: E402
+    _classify_exit_code,
+    _handle_failure,
+    _format_failure_header,
+    _run_error_presenter,
+    _format_next_steps,
+)
 
 
 def _execute_script_step(

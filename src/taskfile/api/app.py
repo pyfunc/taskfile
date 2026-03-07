@@ -555,6 +555,16 @@ def _register_doctor_routes(app: FastAPI) -> None:
         )
 
 
+# ── Category filter for doctor endpoint ──────────────────────────
+
+_CATEGORY_FILTER = {
+    "config": {"config_error", "taskfile_bug"},
+    "env": {"dependency_missing"},
+    "infra": {"external_error"},
+    "runtime": {"runtime_error"},
+}
+
+
 def _run_doctor(
     app: FastAPI,
     *,
@@ -567,37 +577,45 @@ def _run_doctor(
     from taskfile.diagnostics import ProjectDiagnostics
 
     diagnostics = ProjectDiagnostics()
-
     diagnostics.run_all_checks(verbose=verbose)
 
-    # Layer 4: Auto-fix
-    fixed_count = 0
-    if fix and diagnostics.issues:
-        fixed_count = diagnostics.auto_fix()
+    fixed_count = _apply_layer4_fixes(diagnostics, fix)
+    llm_suggestions = _apply_layer5_llm(diagnostics, llm)
+    issues = _filter_issues_by_category(diagnostics._issues, category)
+    issue_infos, by_category = _build_issue_infos(issues)
 
-    # Layer 5: LLM assist
-    llm_suggestions: list[str] = []
+    return _build_doctor_response(issue_infos, by_category, fixed_count, llm_suggestions)
+
+
+def _apply_layer4_fixes(diagnostics, fix: bool) -> int:
+    """Layer 4: Apply auto-fixes if requested. Returns fixed count."""
+    if fix and diagnostics.issues:
+        return diagnostics.auto_fix()
+    return 0
+
+
+def _apply_layer5_llm(diagnostics, llm: bool) -> list[str]:
+    """Layer 5: Ask LLM for suggestions on unresolved issues."""
     if llm and diagnostics._issues:
         try:
-            llm_suggestions = diagnostics.llm_repair()
+            return diagnostics.llm_repair()
         except Exception:
             pass
+    return []
 
-    # Filter by category if requested
-    CATEGORY_FILTER = {
-        "config": {"config_error", "taskfile_bug"},
-        "env": {"dependency_missing"},
-        "infra": {"external_error"},
-        "runtime": {"runtime_error"},
-    }
-    issues = diagnostics._issues
-    if category != "all" and category in CATEGORY_FILTER:
-        allowed = CATEGORY_FILTER[category]
-        issues = [i for i in issues if i.category.value in allowed]
 
-    # Build response
-    issue_infos = []
-    categories: dict[str, list[DoctorIssueInfo]] = {}
+def _filter_issues_by_category(issues, category: str):
+    """Filter issues by doctor category (config/env/infra/runtime/all)."""
+    if category == "all" or category not in _CATEGORY_FILTER:
+        return issues
+    allowed = _CATEGORY_FILTER[category]
+    return [i for i in issues if i.category.value in allowed]
+
+
+def _build_issue_infos(issues) -> tuple[list[DoctorIssueInfo], dict[str, list[DoctorIssueInfo]]]:
+    """Convert Issue objects to API response models, grouped by category."""
+    infos: list[DoctorIssueInfo] = []
+    by_category: dict[str, list[DoctorIssueInfo]] = {}
     for iss in issues:
         info = DoctorIssueInfo(
             category=iss.category.value,
@@ -611,13 +629,22 @@ def _run_doctor(
             teach=iss.teach,
             context={k: v for k, v in iss.context.items() if not k.startswith("_")} if iss.context else None,
         )
-        issue_infos.append(info)
-        categories.setdefault(iss.category.value, []).append(info)
+        infos.append(info)
+        by_category.setdefault(iss.category.value, []).append(info)
+    return infos, by_category
 
-    error_count = sum(1 for i in issues if i.severity == "error")
-    warn_count = sum(1 for i in issues if i.severity == "warning")
-    info_count = sum(1 for i in issues if i.severity == "info")
-    fixable = sum(1 for i in issues if i.auto_fixable)
+
+def _build_doctor_response(
+    issue_infos: list[DoctorIssueInfo],
+    categories: dict[str, list[DoctorIssueInfo]],
+    fixed_count: int,
+    llm_suggestions: list[str],
+) -> DoctorResponse:
+    """Assemble the final DoctorResponse from computed parts."""
+    error_count = sum(1 for i in issue_infos if i.severity == "error")
+    warn_count = sum(1 for i in issue_infos if i.severity == "warning")
+    info_count = sum(1 for i in issue_infos if i.severity == "info")
+    fixable = sum(1 for i in issue_infos if i.auto_fixable)
 
     parts = []
     if error_count:

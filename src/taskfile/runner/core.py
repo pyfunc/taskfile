@@ -327,10 +327,20 @@ class TaskfileRunner:
 
     def run(self, task_names: list[str]) -> bool:
         """Run multiple tasks in order. Returns True if all succeed."""
-        from taskfile.notifications import notify_task_complete
-        import time
+        self._print_run_header(task_names)
 
-        # Show run context header via clickmd
+        if not self._validate_pre_run(task_names):
+            return False
+
+        start_time = time.time()
+        success = self._execute_task_list(task_names)
+        total_duration = time.time() - start_time
+
+        self._print_run_summary(task_names, success, total_duration)
+        return success
+
+    def _print_run_header(self, task_names: list[str]) -> None:
+        """Print run context header with config, env, platform info."""
         source_name = os.path.basename(self.config.source_path) if self.config.source_path else "Taskfile.yml"
         _md(
             f"## 🚀 Running: {', '.join(f'`{t}`' for t in task_names)}\n\n"
@@ -340,12 +350,12 @@ class TaskfileRunner:
             + (f"\n- **Mode:** dry-run" if self.dry_run else "")
         )
 
-        # Validate first
+    def _validate_pre_run(self, task_names: list[str]) -> bool:
+        """Validate taskfile and run pre-run diagnostics. Returns False on errors."""
         warnings = validate_taskfile(self.config)
         for w in warnings:
             console.print(f"[yellow]⚠ {w}[/]")
 
-        # Pre-run diagnostics — catch config/env errors before execution
         from taskfile.diagnostics.checks import validate_before_run
         from taskfile.diagnostics.models import CATEGORY_HINTS
         pre_issues = validate_before_run(self.config, self.env_name, task_names)
@@ -365,25 +375,27 @@ class TaskfileRunner:
                 "**Fix:** `taskfile doctor --fix`\n"
                 "**Diagnose:** `taskfile validate`"
             )
-            return False
+        return not has_errors
 
-        start_time = time.time()
+    def _execute_task_list(self, task_names: list[str]) -> bool:
+        """Execute tasks with appropriate runner (plain or progress). Cleans up SSH."""
         try:
             has_script_task = any(
                 (self.config.tasks.get(n) is not None and self.config.tasks[n].script)
                 for n in task_names
             )
             if has_script_task:
-                success = self._run_tasks_plain(task_names)
+                return self._run_tasks_plain(task_names)
             else:
-                success = self._run_tasks_with_progress(task_names)
+                return self._run_tasks_with_progress(task_names)
         finally:
             if self.use_embedded_ssh:
                 ssh_close_all()
 
-        total_duration = time.time() - start_time
+    def _print_run_summary(self, task_names: list[str], success: bool, total_duration: float) -> None:
+        """Print run result summary and send notification for long tasks."""
+        from taskfile.notifications import notify_task_complete
 
-        # Run summary
         if success:
             _md(
                 f"\n## ✅ All tasks completed ({total_duration:.1f}s)\n\n"
@@ -398,8 +410,6 @@ class TaskfileRunner:
 
         if len(task_names) == 1 and total_duration > 10:
             notify_task_complete(task_names[0], success, total_duration)
-
-        return success
 
     # ─── List tasks ───
 

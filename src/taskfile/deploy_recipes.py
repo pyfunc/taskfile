@@ -40,13 +40,23 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
     health_check = deploy_section.get("health_check", "/health")
     health_retries = deploy_section.get("health_retries", 5)
     health_delay = deploy_section.get("health_delay", 5)
-    rollback_mode = deploy_section.get("rollback", "manual")  # auto | manual
     restart_delay = deploy_section.get("restart_delay", 3)  # seconds between stop→start
     tag_var = "${TAG}"
 
     tasks: dict[str, dict] = {}
+    tasks.update(_build_tasks(images, registry, tag_var))
+    tasks.update(_push_tasks(images, registry, tag_var))
+    tasks["validate-deploy"] = _validate_task()
+    tasks["deploy"] = _deploy_task(strategy, images, registry, tag_var, restart_delay)
+    tasks.update(_health_tasks(images, health_check, health_retries, health_delay, registry, tag_var))
+    tasks.update(_rollback_tasks(images, registry, tag_var, restart_delay))
 
-    # ── Build tasks (one per image) ──
+    return tasks
+
+
+def _build_tasks(images: dict, registry: str, tag_var: str) -> dict[str, dict]:
+    """Generate build-<svc> and build-all tasks."""
+    tasks: dict[str, dict] = {}
     for svc_name, dockerfile in images.items():
         image_var = f"{registry}/{svc_name}:{tag_var}"
         tasks[f"build-{svc_name}"] = {
@@ -55,8 +65,6 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
             "tags": ["ci", "build"],
             "cmds": [f"docker build -t {image_var} -f {dockerfile} ."],
         }
-
-    # ── build-all ──
     if len(images) > 1:
         tasks["build-all"] = {
             "desc": "Build all images",
@@ -65,8 +73,12 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
             "tags": ["ci", "build"],
             "cmds": ["echo 'All images built'"],
         }
+    return tasks
 
-    # ── Push tasks ──
+
+def _push_tasks(images: dict, registry: str, tag_var: str) -> dict[str, dict]:
+    """Generate push-<svc> and push-all tasks."""
+    tasks: dict[str, dict] = {}
     for svc_name in images:
         image_var = f"{registry}/{svc_name}:{tag_var}"
         tasks[f"push-{svc_name}"] = {
@@ -76,7 +88,6 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
             "tags": ["ci", "push"],
             "cmds": [f"docker push {image_var}"],
         }
-
     if len(images) > 1:
         tasks["push-all"] = {
             "desc": "Push all images to registry",
@@ -86,9 +97,12 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
             "tags": ["ci", "push"],
             "cmds": [f"echo 'All images pushed to {registry}'"],
         }
+    return tasks
 
-    # ── Validate deploy artifacts (pre-deploy gate) ──
-    tasks["validate-deploy"] = {
+
+def _validate_task() -> dict:
+    """Generate the validate-deploy gate task."""
+    return {
         "desc": "Validate deploy artifacts — check for unresolved variables and placeholders",
         "tags": ["ci", "validate"],
         "silent": True,
@@ -103,60 +117,69 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
         ],
     }
 
-    # ── Deploy task (strategy-specific) ──
+
+def _deploy_task(
+    strategy: str, images: dict, registry: str, tag_var: str, restart_delay: int,
+) -> dict:
+    """Generate the deploy task based on strategy. Dispatches to strategy-specific builders."""
     push_dep = "push-all" if len(images) > 1 else f"push-{list(images)[0]}" if images else None
     deploy_deps = ["validate-deploy"]
     if push_dep:
         deploy_deps.insert(0, push_dep)
 
-    if strategy == "compose":
-        tasks["deploy"] = _compose_deploy(deploy_deps)
-    elif strategy == "quadlet":
-        tasks["deploy"] = _quadlet_deploy(deploy_deps, images, registry, tag_var, restart_delay)
-    elif strategy == "ssh-push":
-        tasks["deploy"] = _ssh_push_deploy(deploy_deps, images, registry, tag_var, restart_delay)
-    else:
-        tasks["deploy"] = _compose_deploy(deploy_deps)
+    _STRATEGY_DISPATCH = {
+        "compose": lambda: _compose_deploy(deploy_deps),
+        "quadlet": lambda: _quadlet_deploy(deploy_deps, images, registry, tag_var, restart_delay),
+        "ssh-push": lambda: _ssh_push_deploy(deploy_deps, images, registry, tag_var, restart_delay),
+    }
+    builder = _STRATEGY_DISPATCH.get(strategy, _STRATEGY_DISPATCH["compose"])
+    return builder()
 
-    # ── Health check ──
-    tasks["health"] = {
-        "desc": "Check application health",
-        "tags": ["ops", "health"],
-        "silent": True,
-        "retries": health_retries,
-        "retry_delay": health_delay,
-        "cmds": [
-            f"curl -sf https://${{DOMAIN}}{health_check} && echo 'OK' || exit 1",
-        ],
+
+def _health_tasks(
+    images: dict, health_check: str, health_retries: int, health_delay: int,
+    registry: str, tag_var: str,
+) -> dict[str, dict]:
+    """Generate health and post-deploy health gate tasks."""
+    return {
+        "health": {
+            "desc": "Check application health",
+            "tags": ["ops", "health"],
+            "silent": True,
+            "retries": health_retries,
+            "retry_delay": health_delay,
+            "cmds": [
+                f"curl -sf https://${{DOMAIN}}{health_check} && echo 'OK' || exit 1",
+            ],
+        },
+        "post-deploy": {
+            "desc": "Post-deploy health gate — verify all services are healthy after deploy",
+            "tags": ["deploy", "health"],
+            "silent": True,
+            "retries": health_retries,
+            "retry_delay": health_delay,
+            "cmds": _post_deploy_health_cmds(images, health_check, registry, tag_var),
+        },
     }
 
-    # ── Post-deploy health gate ──
-    tasks["post-deploy"] = {
-        "desc": "Post-deploy health gate — verify all services are healthy after deploy",
-        "tags": ["deploy", "health"],
-        "silent": True,
-        "retries": health_retries,
-        "retry_delay": health_delay,
-        "cmds": _post_deploy_health_cmds(images, health_check, registry, tag_var),
-    }
 
-    # ── Rollback ──
-    if images:
-        rollback_cmds = []
-        for svc_name in images:
-            image_var = f"{registry}/{svc_name}:{tag_var}"
-            rollback_cmds.append(f"@remote podman pull {image_var}")
-        for svc_name in images:
-            rollback_cmds.extend(
-                _graceful_restart_cmds(svc_name, restart_delay)
-            )
-        tasks["rollback"] = {
+def _rollback_tasks(images: dict, registry: str, tag_var: str, restart_delay: int) -> dict[str, dict]:
+    """Generate rollback task if images are defined."""
+    if not images:
+        return {}
+    rollback_cmds = []
+    for svc_name in images:
+        image_var = f"{registry}/{svc_name}:{tag_var}"
+        rollback_cmds.append(f"@remote podman pull {image_var}")
+    for svc_name in images:
+        rollback_cmds.extend(_graceful_restart_cmds(svc_name, restart_delay))
+    return {
+        "rollback": {
             "desc": "Rollback to specified version (--var TAG=<prev>)",
             "tags": ["deploy", "rollback"],
             "cmds": rollback_cmds,
-        }
-
-    return tasks
+        },
+    }
 
 
 def _graceful_restart_cmds(svc_name: str, restart_delay: int = 3) -> list[str]:

@@ -74,7 +74,7 @@ def resolve_variables(text: str, variables: dict[str, str]) -> str:
         name = groups.get("n") or groups.get("name") or groups.get("simple")
         default = groups.get("default")
         if name and name in variables:
-            return variables[name]
+            return str(variables[name])
         if default is not None:
             return default
         # Keep unresolved vars as-is (useful for runtime vars)

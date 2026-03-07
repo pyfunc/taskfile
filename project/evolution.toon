@@ -1,58 +1,38 @@
-# code2llm/evolution | 774 func | 88f | 2026-03-07
+# code2llm/evolution | 807 func | 94f | 2026-03-07
 
-NEXT[10] (ranked by impact):
-  [1] !! SPLIT           src/taskfile/diagnostics/checks.py
-      WHY: 1225L, 0 classes, max CC=11
-      EFFORT: ~4h  IMPACT: 13475
-
-  [2] !! SPLIT-FUNC      _run_doctor  CC=27  fan=15
-      WHY: CC=27 exceeds 15
-      EFFORT: ~1h  IMPACT: 405
-
-  [3] !  SPLIT-FUNC      run  CC=15  fan=23
-      WHY: CC=15 exceeds 15
-      EFFORT: ~1h  IMPACT: 345
-
-  [4] !  SPLIT-FUNC      doctor  CC=18  fan=18
-      WHY: CC=18 exceeds 15
-      EFFORT: ~1h  IMPACT: 324
-
-  [5] !  SPLIT-FUNC      TaskfileRunner.run  CC=18  fan=15
-      WHY: CC=18 exceeds 15
-      EFFORT: ~1h  IMPACT: 270
-
-  [6] !  SPLIT-FUNC      check_ports  CC=17  fan=15
-      WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 255
-
-  [7] !  SPLIT-FUNC      expand_deploy_recipe  CC=17  fan=13
-      WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 221
-
-  [8] !  SPLIT-FUNC      prompt  CC=18  fan=10
+NEXT[5] (ranked by impact):
+  [1] !  SPLIT-FUNC      prompt  CC=18  fan=10
       WHY: CC=18 exceeds 15
       EFFORT: ~1h  IMPACT: 180
 
-  [9] !  SPLIT-FUNC      _handle_failure  CC=15  fan=11
+  [2] !  SPLIT-FUNC      _check_file_arg  CC=15  fan=10
       WHY: CC=15 exceeds 15
-      EFFORT: ~1h  IMPACT: 165
+      EFFORT: ~1h  IMPACT: 150
 
-  [10] !! SPLIT           tests/test_doctor_e2e.py
+  [3] !! SPLIT           tests/test_doctor_e2e.py
       WHY: 1292L, 0 classes, max CC=0
+      EFFORT: ~4h  IMPACT: 0
+
+  [4] !! SPLIT           tests/test_dsl_commands.py
+      WHY: 1212L, 0 classes, max CC=0
+      EFFORT: ~4h  IMPACT: 0
+
+  [5] !! SPLIT           tests/test_e2e_examples.py
+      WHY: 1094L, 0 classes, max CC=0
       EFFORT: ~4h  IMPACT: 0
 
 
 RISKS[3]:
   ⚠ Splitting tests/test_doctor_e2e.py may break 0 import paths
-  ⚠ Splitting src/taskfile/diagnostics/checks.py may break 44 import paths
   ⚠ Splitting tests/test_dsl_commands.py may break 0 import paths
+  ⚠ Splitting tests/test_e2e_examples.py may break 0 import paths
 
 METRICS-TARGET:
-  CC̄:          4.4 → ≤3.1
-  max-CC:      27 → ≤13
+  CC̄:          4.3 → ≤3.0
+  max-CC:      18 → ≤9
   god-modules: 11 → 0
-  high-CC(≥15): 11 → ≤5
+  high-CC(≥15): 4 → ≤2
   hub-types:   0 → ≤0
 
 HISTORY:
-  prev CC̄=4.4 → now CC̄=4.4
+  prev CC̄=4.3 → now CC̄=4.3

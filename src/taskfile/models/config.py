@@ -9,6 +9,52 @@ from taskfile.models.environment import Environment, Platform, EnvironmentGroup
 from taskfile.models.task import Task, Function, _normalize_commands
 from taskfile.models.pipeline import PipelineStage, PipelineConfig
 
+# ── Hosts shorthand key mappings ──────────────────────────────────
+
+_HOST_KEY_MAP = {
+    "host": "ssh_host",
+    "user": "ssh_user",
+    "port": "ssh_port",
+    "key": "ssh_key",
+    "runtime": "container_runtime",
+    "manager": "service_manager",
+    "compose_cmd": "compose_command",
+}
+
+_ENV_FIELDS = {
+    "ssh_host", "ssh_user", "ssh_port", "ssh_key",
+    "container_runtime", "compose_command", "service_manager",
+    "env_file", "compose_file", "quadlet_dir",
+    "quadlet_remote_dir", "variables",
+}
+
+
+def _normalize_host_keys(d: dict) -> dict:
+    """Replace short alias keys with canonical Environment field names."""
+    return {_HOST_KEY_MAP.get(k, k): v for k, v in d.items()}
+
+
+def _expand_single_host(name: str, entry, norm_defaults: dict) -> dict | None:
+    """Expand a single host entry into an environment dict. Returns None if invalid."""
+    if isinstance(entry, str):
+        return {**norm_defaults, "ssh_host": entry}
+    if not isinstance(entry, dict):
+        return None
+    merged = {**norm_defaults, **_normalize_host_keys(entry)}
+    env_data: dict[str, Any] = {}
+    extra_vars: dict[str, str] = {}
+    for k, v in merged.items():
+        if k in _ENV_FIELDS:
+            env_data[k] = v
+        else:
+            extra_vars[k.upper()] = str(v)
+    if extra_vars:
+        env_vars = env_data.get("variables", {})
+        if isinstance(env_vars, dict):
+            extra_vars.update(env_vars)
+        env_data["variables"] = extra_vars
+    return env_data
+
 
 @dataclass
 class ComposeConfig:
@@ -143,58 +189,13 @@ class TaskfileConfig:
 
         defaults = hosts_section.pop("_defaults", {}) or {}
         groups_raw = hosts_section.pop("_groups", {}) or {}
-
-        # Map short keys to full Environment field names
-        _KEY_MAP = {
-            "host": "ssh_host",
-            "user": "ssh_user",
-            "port": "ssh_port",
-            "key": "ssh_key",
-            "runtime": "container_runtime",
-            "manager": "service_manager",
-            "compose_cmd": "compose_command",
-        }
-
-        def _normalize(d: dict) -> dict:
-            """Replace short alias keys with canonical field names."""
-            out: dict[str, Any] = {}
-            for k, v in d.items():
-                out[_KEY_MAP.get(k, k)] = v
-            return out
-
-        norm_defaults = _normalize(defaults)
+        norm_defaults = _normalize_host_keys(defaults)
 
         environments: dict[str, dict] = {}
         for name, entry in hosts_section.items():
-            if isinstance(entry, dict):
-                norm_entry = _normalize(entry)
-                # Merge defaults under entry (entry wins)
-                merged = {**norm_defaults, **norm_entry}
-                # Pull extra keys into variables
-                _ENV_FIELDS = {
-                    "ssh_host", "ssh_user", "ssh_port", "ssh_key",
-                    "container_runtime", "compose_command", "service_manager",
-                    "env_file", "compose_file", "quadlet_dir",
-                    "quadlet_remote_dir", "variables",
-                }
-                env_data: dict[str, Any] = {}
-                extra_vars: dict[str, str] = {}
-                for k, v in merged.items():
-                    if k in _ENV_FIELDS:
-                        env_data[k] = v
-                    else:
-                        # Extra keys become variables (e.g. region, role)
-                        extra_vars[k.upper()] = str(v)
-                if extra_vars:
-                    env_vars = env_data.get("variables", {})
-                    if isinstance(env_vars, dict):
-                        extra_vars.update(env_vars)
-                    env_data["variables"] = extra_vars
+            env_data = _expand_single_host(name, entry, norm_defaults)
+            if env_data is not None:
                 environments[name] = env_data
-            elif isinstance(entry, str):
-                # Shorthand: host name is just the ssh_host
-                merged = {**norm_defaults, "ssh_host": entry}
-                environments[name] = merged
 
         # Parse _groups (already in standard format)
         groups: dict[str, dict] = {}
