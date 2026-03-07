@@ -95,32 +95,52 @@ def _strip_cmd_prefix(cmd: str) -> str:
     return stripped
 
 
+def _is_flag_or_special(part: str) -> bool:
+    """Return True if part is a flag, remote path (host:path), or stdin marker."""
+    return part.startswith('-') or ':' in part or part == '-'
+
+
+def _has_variable(part: str) -> bool:
+    """Return True if part contains an unexpanded variable."""
+    return '$' in part
+
+
+def _check_glob_pattern(part: str, base: Path) -> str | None:
+    """Check a glob pattern for matches. Returns warning or None."""
+    path = Path(part)
+    matches = glob.glob(part, root_dir=str(base)) if not path.is_absolute() else glob.glob(part)
+    if not matches:
+        return (
+            f"**No files match** `{part}` — generate them first "
+            f"(e.g. `taskfile quadlet generate`)"
+        )
+    return None
+
+
+def _check_literal_path(part: str, resolved: Path) -> str | None:
+    """Check that a literal file path exists. Returns warning with suggestions or None."""
+    if resolved.exists():
+        return None
+    parent = resolved.parent
+    suffix = resolved.suffix
+    similar = []
+    if parent.exists():
+        similar = sorted(p.name for p in parent.iterdir() if p.suffix == suffix)[:5]
+    hint = f" Available: `{'`, `'.join(similar)}`" if similar else ""
+    return f"**File not found:** `{part}`{hint}"
+
+
 def _check_file_arg(part: str, base: Path) -> str | None:
     """Check a single file argument from a transfer command. Returns warning or None."""
-    if part.startswith('-') or ':' in part or part == '-':
-        return None
-    if '$' in part:
+    if _is_flag_or_special(part) or _has_variable(part):
         return None
 
     path = Path(part)
     resolved = path if path.is_absolute() else base / part
 
     if '*' in part or '?' in part:
-        matches = glob.glob(part, root_dir=str(base)) if not path.is_absolute() else glob.glob(part)
-        if not matches:
-            return (
-                f"**No files match** `{part}` — generate them first "
-                f"(e.g. `taskfile quadlet generate`)"
-            )
-    elif not resolved.exists():
-        parent = resolved.parent
-        suffix = resolved.suffix
-        similar = []
-        if parent.exists():
-            similar = sorted(p.name for p in parent.iterdir() if p.suffix == suffix)[:5]
-        hint = f" Available: `{'`, `'.join(similar)}`" if similar else ""
-        return f"**File not found:** `{part}`{hint}"
-    return None
+        return _check_glob_pattern(part, base)
+    return _check_literal_path(part, resolved)
 
 
 def _validate_command_files(cmd: str, cwd: str | Path | None = None) -> list[str]:
@@ -515,6 +535,27 @@ def _execute_cmd_step(
                            runner=runner)
 
 
+def _pre_validate_files(runner, task: Task, task_name: str) -> None:
+    """Show pre-run file validation warnings (verbose mode only)."""
+    if not (runner.verbose and task.commands):
+        return
+    file_warnings = _validate_all_commands(runner, task, task_name)
+    if file_warnings:
+        _md("### ⚠️ Pre-run file check\n")
+        for w in file_warnings:
+            _md(f"- {w}")
+        _md("")
+
+
+def _show_success_tip(runner, task: Task) -> None:
+    """Show a learning tip for the last command on success (verbose mode only)."""
+    if not (task.commands and runner.verbose):
+        return
+    tip = _get_tip_for_command(task.commands[-1])
+    if tip:
+        _md(f"\n{tip[0]}\n\n{tip[1]}")
+
+
 def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
     """Execute all commands in a task. Returns False if any failed (and not ignored).
 
@@ -530,14 +571,7 @@ def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
     total_steps = len(task.commands) + (1 if task.script else 0)
     step = 0
 
-    # Pre-run file validation — catch missing files before execution
-    if runner.verbose and task.commands:
-        file_warnings = _validate_all_commands(runner, task, task_name)
-        if file_warnings:
-            _md("### ⚠️ Pre-run file check\n")
-            for w in file_warnings:
-                _md(f"- {w}")
-            _md("")
+    _pre_validate_files(runner, task, task_name)
 
     # Execute external script if defined
     if task.script:
@@ -550,10 +584,5 @@ def execute_commands(runner, task: Task, task_name: str, start: float) -> bool:
         if not _execute_cmd_step(runner, task, task_name, cmd, start, step, total_steps):
             return False
 
-    # Success tip — show a learning tip for the last command (occasionally)
-    if task.commands and runner.verbose:
-        tip = _get_tip_for_command(task.commands[-1])
-        if tip:
-            _md(f"\n{tip[0]}\n\n{tip[1]}")
-
+    _show_success_tip(runner, task)
     return True

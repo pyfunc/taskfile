@@ -1,4 +1,4 @@
-# taskfile/flow | 807 func | 12 pipelines | 19 hub-types | 2026-03-07
+# taskfile/flow | 811 func | 12 pipelines | 19 hub-types | 2026-03-07
 
 PIPELINES[12] (IO:12):
   Src [IO]: list[str] → list[tuple[Path, int]]
@@ -713,30 +713,30 @@ CONTRACTS:
       SIDE-EFFECT: pure
 
 
-DATA_TYPES (by cross-function usage) [740 annotated, 0 inferred / 807 functions]:
-  str                  consumed:445 produced:85   !! HUB-TYPE → split interface
-  bool                 consumed:87  produced:96   !! HUB-TYPE → split interface
+DATA_TYPES (by cross-function usage) [744 annotated, 0 inferred / 811 functions]:
+  str                  consumed:449 produced:85   !! HUB-TYPE → split interface
+  bool                 consumed:87  produced:98   !! HUB-TYPE → split interface
   int                  consumed:87  produced:30   !! HUB-TYPE → split interface
   dict                 consumed:65  produced:31   !! HUB-TYPE → split interface
   list[str]            consumed:43  produced:41   !! HUB-TYPE → split interface
-  str | None           consumed:59  produced:18   !! HUB-TYPE → split interface
+  str | None           consumed:59  produced:20   !! HUB-TYPE → split interface
   TaskfileConfig       consumed:50  produced:3    !! HUB-TYPE → split interface
-  Path                 consumed:39  produced:10   !! HUB-TYPE → split interface
+  Path                 consumed:41  produced:10   !! HUB-TYPE → split interface
   list[Issue]          consumed:10  produced:37   !! HUB-TYPE → split interface
   Task                 consumed:42  produced:0    !! HUB-TYPE → split interface
   dict[str, str]       consumed:18  produced:15   !! HUB-TYPE → split interface
   list[str] | None     consumed:22  produced:1    !! HUB-TYPE → split interface
   Issue                consumed:11  produced:5    !! HUB-TYPE → split interface
   str | Path           consumed:14  produced:0    !! HUB-TYPE → split interface
+  dict[str, str] | None consumed:13  produced:0    !! HUB-TYPE → split interface
   str | Path | None    consumed:13  produced:0    !! HUB-TYPE → split interface
   FleetConfig          consumed:11  produced:2    !! HUB-TYPE → split interface
-  dict[str, str] | None consumed:13  produced:0    !! HUB-TYPE → split interface
   float                consumed:12  produced:0    !! HUB-TYPE → split interface
-  ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
   E2EResult            consumed:0   produced:11   output-heavy
+  ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
 
   HUB TYPES (consumed ≥10):
-    str → 445 consumers → split into:
+    str → 449 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     bool → 87 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
@@ -750,7 +750,7 @@ DATA_TYPES (by cross-function usage) [740 annotated, 0 inferred / 807 functions]
       - (analyze consumers to suggest sub-interfaces)
     TaskfileConfig → 50 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    Path → 39 consumers → split into:
+    Path → 41 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     list[Issue] → 10 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
@@ -764,11 +764,11 @@ DATA_TYPES (by cross-function usage) [740 annotated, 0 inferred / 807 functions]
       - (analyze consumers to suggest sub-interfaces)
     str | Path → 14 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
+    dict[str, str] | None → 13 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
     str | Path | None → 13 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     FleetConfig → 11 consumers → split into:
-      - (analyze consumers to suggest sub-interfaces)
-    dict[str, str] | None → 13 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     float → 12 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
@@ -776,10 +776,10 @@ DATA_TYPES (by cross-function usage) [740 annotated, 0 inferred / 807 functions]
       - (analyze consumers to suggest sub-interfaces)
 
 SIDE_EFFECTS:
-  IO:        GitHubActionsConverter.export_workflow, NpmScriptsConverter.import_package_json, NpmScriptsConverter.export_package_json, DockerComposeConverter.export_docker_compose, import_file, generate_container_resolv_conf, FileWatcher.start, FileWatcher.stop, watch_tasks, VPSProvisioner.provision
+  IO:        VPSProvisioner.provision, VPSProvisioner._system_update, VPSProvisioner._install_podman, VPSProvisioner._setup_firewall, VPSProvisioner._create_deploy_user, VPSProvisioner._setup_traefik, VPSProvisioner._setup_tls, provision_vps, generate_container_resolv_conf, GitHubActionsConverter.export_workflow
   Cache:     TaskCache.__init__, TaskCache.save, TaskCache.clear, TaskCache.get_stats
-  Mutation:  check_all, expand_deploy_recipe, _deploy_task, _rollback_tasks, _post_deploy_health_cmds, _quadlet_deploy, _ssh_push_deploy, MakefileConverter.export_makefile, check_host_dns, check_container_dns
-  Pure:      _build_tasks, _push_tasks, _validate_task, _health_tasks, _graceful_restart_cmds, _compose_deploy, MakefileConverter.import_makefile, GitHubActionsConverter.import_workflow, GitLabCIConverter.import_gitlab_ci, detect_format
+  Mutation:  check_all, VPSProvisioner.__init__, check_host_dns, check_container_dns, check_systemd_resolved, expand_deploy_recipe, _deploy_task, _rollback_tasks, _post_deploy_health_cmds, _quadlet_deploy
+  Pure:      VPSProvisioner._ssh, VPSProvisioner._check_command, VPSProvisioner.is_provisioned, fix_resolv_conf, fix_disable_systemd_resolved, _build_tasks, _push_tasks, _validate_task, _health_tasks, _graceful_restart_cmds
 
   PIPELINE PURITY:
     Src             ░░░░ 20% pure

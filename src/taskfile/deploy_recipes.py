@@ -1,7 +1,15 @@
-"""Deploy recipes — auto-generate build/push/deploy/rollback/health tasks.
+"""Deploy recipes — auto-generate build/push/deploy/ops/rollback/health tasks.
 
 When a Taskfile contains a `deploy:` section, this module generates standard
-tasks that would otherwise be 40+ lines of boilerplate YAML.
+tasks that would otherwise be 200+ lines of boilerplate YAML.
+
+Generated task categories:
+    Build:   build-<svc>, build-all
+    Push:    push-<svc>, push-all
+    Deploy:  validate-deploy, deploy, post-deploy
+    Ops:     status, logs, stop, restart, backup
+    Health:  health
+    Rescue:  rollback
 
 Supported strategies:
     compose  — docker compose up/down (local/staging)
@@ -17,7 +25,10 @@ Example YAML:
       registry: ghcr.io/myorg
       health_check: /health
       health_retries: 5
-      rollback: auto
+      restart_delay: 3
+      log_lines: 50
+      backup_paths:
+        - /data/volumes
 """
 
 from __future__ import annotations
@@ -43,6 +54,10 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
     restart_delay = deploy_section.get("restart_delay", 3)  # seconds between stop→start
     tag_var = "${TAG}"
 
+    log_lines = deploy_section.get("log_lines", 50)
+    backup_paths = deploy_section.get("backup_paths", [])
+    containers = deploy_section.get("containers", list(images.keys()))
+
     tasks: dict[str, dict] = {}
     tasks.update(_build_tasks(images, registry, tag_var))
     tasks.update(_push_tasks(images, registry, tag_var))
@@ -50,6 +65,12 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
     tasks["deploy"] = _deploy_task(strategy, images, registry, tag_var, restart_delay)
     tasks.update(_health_tasks(images, health_check, health_retries, health_delay, registry, tag_var))
     tasks.update(_rollback_tasks(images, registry, tag_var, restart_delay))
+    tasks.update(_ops_tasks(strategy, containers, restart_delay, log_lines, backup_paths))
+
+    # Optional fixop integration (presence of key signals intent, even if empty)
+    if "fixop" in deploy_section:
+        fixop_cfg = deploy_section.get("fixop") or {}
+        tasks.update(_fixop_tasks(fixop_cfg, containers))
 
     return tasks
 
@@ -280,3 +301,184 @@ def _ssh_push_deploy(
         "retry_delay": 10,
         "cmds": cmds,
     }
+
+
+# ─── Ops tasks (status, logs, stop, restart, backup) ─────────────────────────
+
+
+def _ops_tasks(
+    strategy: str,
+    containers: list[str],
+    restart_delay: int,
+    log_lines: int,
+    backup_paths: list[str],
+) -> dict[str, dict]:
+    """Generate operational tasks: status, logs, stop, restart, backup.
+
+    These are the day-to-day tasks that operators use after deploy.
+    Strategy-aware: compose uses docker compose, quadlet/ssh-push use systemctl+podman.
+    """
+    tasks: dict[str, dict] = {}
+
+    if strategy == "compose":
+        tasks.update(_compose_ops_tasks(containers, log_lines))
+    else:
+        tasks.update(_systemd_ops_tasks(containers, restart_delay, log_lines))
+
+    if backup_paths:
+        tasks["backup"] = _backup_task(backup_paths)
+
+    return tasks
+
+
+def _compose_ops_tasks(containers: list[str], log_lines: int) -> dict[str, dict]:
+    """Generate ops tasks for compose strategy."""
+    return {
+        "status": {
+            "desc": "Show status of all services",
+            "tags": ["ops"],
+            "cmds": ["docker compose ps"],
+        },
+        "logs": {
+            "desc": f"Tail logs (last {log_lines} lines)",
+            "tags": ["ops"],
+            "cmds": [f"docker compose logs --tail={log_lines} -f"],
+        },
+        "stop": {
+            "desc": "Stop all services",
+            "tags": ["ops"],
+            "cmds": ["docker compose stop"],
+        },
+        "restart": {
+            "desc": "Restart all services",
+            "tags": ["ops"],
+            "cmds": ["docker compose restart"],
+        },
+    }
+
+
+def _systemd_ops_tasks(
+    containers: list[str], restart_delay: int, log_lines: int,
+) -> dict[str, dict]:
+    """Generate ops tasks for quadlet/ssh-push strategies (systemd + podman)."""
+    # status: check each unit + show running containers
+    status_cmds: list[str] = []
+    for c in containers:
+        status_cmds.append(
+            f"@remote systemctl --user is-active --quiet ${{APP_NAME}}-{c} "
+            f"&& echo '{c}: ✓ running' || echo '{c}: ✗ stopped'"
+        )
+    status_cmds.append("@remote podman ps --format 'table {{{{.Names}}}}\\t{{{{.Status}}}}\\t{{{{.Ports}}}}'")
+
+    # logs: journal + podman logs
+    logs_cmds: list[str] = []
+    for c in containers:
+        logs_cmds.append(f"@remote podman logs --tail={log_lines} ${{APP_NAME}}-{c}")
+
+    # stop: graceful stop each service
+    stop_cmds = [f"@remote systemctl --user stop ${{APP_NAME}}-{c}" for c in containers]
+
+    # restart: graceful restart (stop → delay → start) per service
+    restart_cmds: list[str] = []
+    for c in containers:
+        restart_cmds.extend(_graceful_restart_cmds(c, restart_delay))
+
+    return {
+        "status": {
+            "desc": "Show status of all services on remote",
+            "tags": ["ops"],
+            "cmds": status_cmds,
+        },
+        "logs": {
+            "desc": f"Tail remote container logs (last {log_lines} lines)",
+            "tags": ["ops"],
+            "cmds": logs_cmds,
+        },
+        "stop": {
+            "desc": "Gracefully stop all services on remote",
+            "tags": ["ops"],
+            "cmds": stop_cmds,
+        },
+        "restart": {
+            "desc": "Gracefully restart all services on remote",
+            "tags": ["ops"],
+            "cmds": restart_cmds,
+        },
+    }
+
+
+def _backup_task(backup_paths: list[str]) -> dict:
+    """Generate backup task for specified paths."""
+    timestamp = "$(date +%Y%m%d_%H%M%S)"
+    cmds = [f"@remote mkdir -p /tmp/backup-{timestamp}"]
+    for p in backup_paths:
+        cmds.append(f"@remote cp -a {p} /tmp/backup-{timestamp}/")
+    cmds.append(f"@remote tar czf /tmp/backup-{timestamp}.tar.gz -C /tmp backup-{timestamp}")
+    cmds.append(f"@remote rm -rf /tmp/backup-{timestamp}")
+    cmds.append(f"echo 'Backup saved to /tmp/backup-{timestamp}.tar.gz'")
+    return {
+        "desc": "Backup data volumes before deploy",
+        "tags": ["ops", "backup"],
+        "cmds": cmds,
+    }
+
+
+# ─── Fixop integration ───────────────────────────────────────────────────────
+
+
+def _fixop_tasks(fixop_cfg: dict, containers: list[str]) -> dict[str, dict]:
+    """Generate fixop integration tasks: doctor, drift-check, fix.
+
+    Config example:
+        fixop:
+          domains: ["example.com"]
+          readme: README.md
+          source_dir: sandbox/
+          auto_fix: true
+    """
+    tasks: dict[str, dict] = {}
+
+    domains = fixop_cfg.get("domains", [])
+    readme = fixop_cfg.get("readme", "README.md")
+    source_dir = fixop_cfg.get("source_dir", "sandbox/")
+    auto_fix = fixop_cfg.get("auto_fix", False)
+
+    # doctor: run fixop checks against the environment
+    doctor_cmds = ["fixop check"]
+    if domains:
+        for d in domains:
+            doctor_cmds.append(f"fixop check --domain {d}")
+    if containers:
+        doctor_cmds.append(
+            f"fixop check --containers {' '.join(containers)}"
+        )
+
+    tasks["doctor"] = {
+        "desc": "Run infrastructure health checks (fixop)",
+        "tags": ["ops", "fixop"],
+        "cmds": doctor_cmds,
+    }
+
+    # drift-check: compare README blocks against disk files
+    tasks["drift-check"] = {
+        "desc": "Check for file drift between README and disk",
+        "tags": ["ci", "fixop"],
+        "silent": True,
+        "cmds": [
+            f"@python from fixop.drift import check_file_drift, check_untracked_files; "
+            f"issues = check_file_drift('{readme}', '{source_dir}'); "
+            f"issues += check_untracked_files('{readme}', '{source_dir}'); "
+            f"[print(f'{{i.severity.value}}: {{i.message}}') for i in issues]; "
+            f"exit(1) if any(i.severity.value == 'error' for i in issues) else None",
+        ],
+    }
+
+    # fix: auto-fix issues if enabled
+    if auto_fix:
+        tasks["fix"] = {
+            "desc": "Auto-fix infrastructure issues (fixop)",
+            "tags": ["ops", "fixop"],
+            "cmds": ["fixop fix --auto"],
+        }
+
+    return tasks

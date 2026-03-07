@@ -170,6 +170,43 @@ def _get_tip_for_command(cmd: str) -> tuple[str, str] | None:
     return None
 
 
+# (returncode_or_None, cmd_keywords_or_None, tip_text)
+_FAILURE_TIPS: list[tuple[int | None, tuple[str, ...] | None, str]] = [
+    (
+        255, ("ssh", "scp"),
+        "**SSH error (exit 255)?** Common causes:\n"
+        "- Host unreachable — check `ssh_host` in Taskfile.yml\n"
+        "- Key rejected — check `ssh_key` and `chmod 600`\n"
+        "- Run `taskfile fleet status` to diagnose",
+    ),
+    (
+        126, None,
+        "**Permission denied?** Check:\n"
+        "- Script is executable: `chmod +x scripts/*.sh`\n"
+        "- Correct path in `script:` field",
+    ),
+    (
+        127, None,
+        "**Command not found?** Check:\n"
+        "- Tool is installed: `which <command>`\n"
+        "- PATH includes the tool's directory\n"
+        "- Run `taskfile doctor` to check missing dependencies",
+    ),
+]
+
+
+def _match_transfer_tip(cmd_lower: str, returncode: int) -> str | None:
+    """Return tip for file-transfer failures (scp/rsync with missing files)."""
+    if ("no such file" in cmd_lower or returncode == 1) and (
+        "scp" in cmd_lower or "rsync" in cmd_lower
+    ):
+        return (
+            "**Missing files?** Run `taskfile doctor --fix` to check for missing "
+            "deploy artifacts.\nGenerate Quadlet files: `taskfile quadlet generate`"
+        )
+    return None
+
+
 def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None:
     """Return a learning tip relevant to a specific failure.
 
@@ -180,38 +217,18 @@ def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None
         if tip:
             return tip
 
-    # Legacy fallback / additional taskfile-specific tips
     cmd_lower = cmd.lower()
 
-    if "no such file" in cmd_lower or returncode == 1:
-        if "scp" in cmd_lower or "rsync" in cmd_lower:
-            return (
-                "**Missing files?** Run `taskfile doctor --fix` to check for missing "
-                "deploy artifacts.\nGenerate Quadlet files: `taskfile quadlet generate`"
-            )
+    transfer_tip = _match_transfer_tip(cmd_lower, returncode)
+    if transfer_tip:
+        return transfer_tip
 
-    if returncode == 255 and ("ssh" in cmd_lower or "scp" in cmd_lower):
-        return (
-            "**SSH error (exit 255)?** Common causes:\n"
-            "- Host unreachable — check `ssh_host` in Taskfile.yml\n"
-            "- Key rejected — check `ssh_key` and `chmod 600`\n"
-            "- Run `taskfile fleet status` to diagnose"
-        )
-
-    if returncode == 126:
-        return (
-            "**Permission denied?** Check:\n"
-            "- Script is executable: `chmod +x scripts/*.sh`\n"
-            "- Correct path in `script:` field"
-        )
-
-    if returncode == 127:
-        return (
-            "**Command not found?** Check:\n"
-            "- Tool is installed: `which <command>`\n"
-            "- PATH includes the tool's directory\n"
-            "- Run `taskfile doctor` to check missing dependencies"
-        )
+    for rc, keywords, tip_text in _FAILURE_TIPS:
+        if rc is not None and returncode != rc:
+            continue
+        if keywords and not any(k in cmd_lower for k in keywords):
+            continue
+        return tip_text
 
     return None
 

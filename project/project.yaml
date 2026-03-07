@@ -3,16 +3,16 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-07T17:26:27Z'
+  analyzed_at: '2026-03-07T17:35:47Z'
   tool: code2llm
   stats:
     files: 87
-    lines: 32261
-    functions: 798
+    lines: 32281
+    functions: 802
     classes: 96
 health:
   cc_avg: 4.3
-  critical_count: 48
+  critical_count: 47
   critical_limit: 10
   duplicates: 4
   cycles: 0
@@ -113,7 +113,7 @@ health:
     limit: 15
     severity: warning
   - type: cc_exceeded
-    target: _check_file_arg
+    target: _print_teach_alt_env
     value: 15
     limit: 15
     severity: warning
@@ -164,23 +164,6 @@ modules:
   - name: format_summary
     type: function
     cc: 6
-- path: src/taskfile/runner/commands.py
-  lines: 559
-  classes: 0
-  methods: 23
-  cc_max: 15
-  inbound_deps: 1
-  exports:
-  - name: run_command
-    type: function
-    cc: 4
-  - name: execute_script
-    type: function
-    cc: 11
-    fan_out: 12
-  - name: execute_commands
-    type: function
-    cc: 13
 - path: src/taskfile/runner/explainer.py
   lines: 395
   classes: 4
@@ -305,6 +288,23 @@ modules:
   - name: classify_runtime_error
     type: function
     cc: 3
+- path: src/taskfile/runner/commands.py
+  lines: 579
+  classes: 0
+  methods: 27
+  cc_max: 13
+  inbound_deps: 1
+  exports:
+  - name: run_command
+    type: function
+    cc: 4
+  - name: execute_script
+    type: function
+    cc: 11
+    fan_out: 12
+  - name: execute_commands
+    type: function
+    cc: 13
 - path: src/taskfile/runner/error_presenter.py
   lines: 280
   classes: 1
@@ -1934,9 +1934,6 @@ hotspots:
     ## Shows'
 refactoring:
   priorities:
-  - action: Split god module src/taskfile/runner/commands.py (559L, 0 classes)
-    impact: high
-    effort: high
   - action: Split god module src/taskfile/api/app.py (722L, 0 classes)
     impact: high
     effort: high
@@ -1944,6 +1941,9 @@ refactoring:
     impact: high
     effort: high
   - action: Split god module src/taskfile/cli/interactive/wizards.py (663L, 1 classes)
+    impact: high
+    effort: high
+  - action: Split god module src/taskfile/runner/commands.py (579L, 0 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/diagnostics/checks.py (692L, 0 classes)
@@ -1956,10 +1956,6 @@ refactoring:
     impact: medium
     effort: low
     module: report.py
-  - action: Split _check_file_arg (CC=15 → target CC<10)
-    impact: medium
-    effort: low
-    module: commands.py
   - action: Split _print_teach_alt_env (CC=15 → target CC<10)
     impact: medium
     effort: low
@@ -1990,6 +1986,6 @@ evolution:
   note: Automated analysis
 - date: '2026-03-07'
   cc_avg: 4.3
-  critical: 48
-  lines: 32261
+  critical: 47
+  lines: 32281
   note: Automated analysis

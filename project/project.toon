@@ -1,4 +1,4 @@
-# taskfile | 138f 32749L | python:138
+# taskfile | 138f 32778L | python:138
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
 M[138]:
   TODO/__init__.py,73
@@ -90,7 +90,7 @@ M[138]:
   src/taskfile/registry.py,258
   src/taskfile/runner/__init__.py,11
   src/taskfile/runner/classifier.py,105
-  src/taskfile/runner/commands.py,419
+  src/taskfile/runner/commands.py,439
   src/taskfile/runner/core.py,391
   src/taskfile/runner/error_presenter.py,231
   src/taskfile/runner/explainer.py,310
@@ -780,11 +780,11 @@ D:
     _md(text:str)->None
     _render_step_header(runner;task_name:str;cmd:str;step:int;total:int;task:Task)->None
     _strip_cmd_prefix(cmd:str)->str
+    _is_flag_or_special(part:str)->bool
+    _has_variable(part:str)->bool
+    _check_glob_pattern(part:str;base:Path)->str | None
+    _check_literal_path(part:str;resolved:Path)->str | None
     _check_file_arg(part:str;base:Path)->str | None
-    _validate_command_files(cmd:str;cwd:Any=None)->list[str]
-    _validate_all_commands(runner;task:Task;task_name:str)->list[str]
-    _safe_glob_expand(token:str;cwd:Any=None)->list[str]
-    _expand_globs_in_command(cmd:str;cwd:Any=None)->str
   src/taskfile/runner/core.py:
     i: os,subprocess,time,concurrent.futures.{ThreadPoolExecutor,as_completed},pathlib.Path,rich.console.Console,rich.panel.Panel,rich.text.Text,taskfile.models.Environment
     e: TaskRunError,TaskfileRunner
