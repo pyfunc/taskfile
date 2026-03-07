@@ -227,4 +227,40 @@ def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
             except (ValueError, IndexError):
                 pass
 
+        # DNS resolution inside containers (critical for ACME/Let's Encrypt)
+        try:
+            dns_result = subprocess.run(
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
+                 "-o", "StrictHostKeyChecking=no",
+                 f"-p", str(env.ssh_port),
+                 f"{env.ssh_user}@{env.ssh_host}",
+                 "podman exec traefik nslookup acme-v02.api.letsencrypt.org 8.8.8.8 2>&1 | head -1"],
+                capture_output=True, text=True, timeout=15,
+            )
+            if dns_result.returncode != 0 or "timed out" in dns_result.stdout.lower():
+                issues.append(Issue(
+                    category=IssueCategory.EXTERNAL_ERROR,
+                    message=f"Container DNS broken on {env.ssh_host} — Let's Encrypt will fail",
+                    fix_strategy=FixStrategy.MANUAL,
+                    severity=SEVERITY_WARNING,
+                    fix_description=(
+                        "Mount a resolv.conf with public DNS into traefik container:\n"
+                        "  echo 'nameserver 8.8.8.8' > deploy/resolv.conf\n"
+                        "  Add to traefik.container: Volume=.../resolv.conf:/etc/resolv.conf:ro\n"
+                        "  Also check: ufw route allow in on podman1 out on <iface> from 10.89.0.0/24"
+                    ),
+                    teach=(
+                        "Podman containers on a named bridge network use an internal DNS server "
+                        "(10.89.0.x) that only resolves container names, not external domains. "
+                        "For Let's Encrypt ACME to work, traefik needs to reach "
+                        "acme-v02.api.letsencrypt.org. Fix: mount a resolv.conf with 8.8.8.8 "
+                        "into the container. Also ensure the host firewall allows FORWARD traffic "
+                        "from the podman subnet."
+                    ),
+                    context={"host": env.ssh_host, "env": env_name},
+                    layer=3,
+                ))
+        except Exception:
+            pass  # Container might not exist yet — skip silently
+
     return issues

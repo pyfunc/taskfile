@@ -31,6 +31,7 @@ from taskfile.diagnostics.checks import (
     check_task_commands,
     check_examples,
     check_placeholder_values,
+    check_deploy_artifacts,
     validate_before_run,
 )
 from taskfile.diagnostics.fixes import apply_fixes, apply_single_fix
@@ -168,6 +169,12 @@ class ProjectDiagnostics:
         if config:
             self._add_issues(check_remote_health(config))
 
+    def check_deploy_artifacts(self) -> None:
+        """Scan deploy/ directory for unresolved variables and placeholders."""
+        config = self._load_config()
+        if config:
+            self._add_issues(check_deploy_artifacts(config))
+
     # ─── Layer 4: Algorithmic fix ───
 
     def auto_fix(self) -> int:
@@ -257,6 +264,7 @@ __all__ = [
     "check_task_commands",
     "check_examples",
     "check_placeholder_values",
+    "check_deploy_artifacts",
     "apply_fixes",
     "apply_single_fix",
     "print_report",

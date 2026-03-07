@@ -26,6 +26,7 @@ from taskfile.runner.ssh import (
     wrap_scp_push, wrap_scp_pull,
 )
 from taskfile.runner.functions import run_function, run_inline_python
+from taskfile.runner.classifier import classify_command, CommandType, should_expand_globs, has_glob_pattern
 
 console = Console()
 
@@ -284,12 +285,45 @@ def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None
     return None
 
 
-def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
-    """Expand glob patterns (wildcards) in a command string locally.
+# Shell operators that must NOT be quoted during glob expansion
+_SHELL_OPS = frozenset({
+    '&&', '||', ';', '|', '>', '>>', '<', '<<', '2>', '2>>', '&>', '&',
+})
 
-    This ensures patterns like 'deploy/quadlet/*.container' are expanded
-    to actual file paths before the command is executed, preventing
-    'No such file or directory' errors when using scp/ssh.
+# Redirect patterns: 2>/dev/null, 2>&1, &>/dev/null, >/dev/null, etc.
+_REDIRECT_RE = re.compile(r'^[0-9]*[<>]+.*')
+
+
+def _safe_glob_expand(token: str, cwd: str | Path | None = None) -> list[str]:
+    """Expand a single token's glob pattern to matching file paths.
+
+    Args:
+        token: A single command token potentially containing glob chars
+        cwd: Working directory for relative glob resolution
+
+    Returns:
+        List of expanded paths (quoted), or [token] if no glob or no matches
+    """
+    if not ('*' in token or '?' in token or '[' in token):
+        return [shlex.quote(token)]
+
+    if cwd and not token.startswith('/'):
+        matches = glob.glob(token, root_dir=cwd)
+    else:
+        matches = glob.glob(token)
+
+    if matches:
+        return [shlex.quote(m) for m in sorted(matches)]
+    # No matches — keep original to let shell handle error
+    return [token]
+
+
+def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
+    """Expand glob patterns (wildcards) in a plain command string locally.
+
+    IMPORTANT: Only call this on PLAIN_CMD types (use should_expand_globs()
+    or classify_command() first). Shell constructs, @fn/@python, and
+    multiline commands must NOT be passed through shlex.split.
 
     Args:
         cmd: Command string potentially containing globs
@@ -304,53 +338,22 @@ def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
         # If shlex fails (e.g., unbalanced quotes), return original
         return cmd
 
-    # Shell operators that must NOT be quoted
-    _SHELL_OPS = frozenset({
-        '&&', '||', ';', '|', '>', '>>', '<', '<<', '2>', '2>>', '&>', '&',
-    })
-
-    import re
-    # Redirect patterns: 2>/dev/null, 2>&1, &>/dev/null, >/dev/null, etc.
-    _REDIRECT_RE = re.compile(r'^[0-9]*[<>]+.*')
-
     expanded_parts = []
     for part in parts:
         # Preserve shell operators verbatim
         if part in _SHELL_OPS:
             expanded_parts.append(part)
-            continue
-
         # Preserve shell redirects (2>/dev/null, 2>&1, >/dev/null, etc.)
-        if _REDIRECT_RE.match(part):
+        elif _REDIRECT_RE.match(part):
             expanded_parts.append(part)
-            continue
-
-        # Skip if it looks like a variable or option
-        if part.startswith('$') or part.startswith('-'):
+        # Skip variables and options
+        elif part.startswith('$') or part.startswith('-'):
             expanded_parts.append(shlex.quote(part))
-            continue
-
         # Preserve @-prefixes (@remote, @local, @push, etc.)
-        if part.startswith('@'):
+        elif part.startswith('@'):
             expanded_parts.append(part)
-            continue
-
-        # Check for glob patterns
-        if '*' in part or '?' in part or '[' in part:
-            # Resolve glob relative to cwd if provided
-            if cwd and not part.startswith('/'):
-                matches = glob.glob(part, root_dir=cwd)
-            else:
-                matches = glob.glob(part)
-
-            if matches:
-                sorted_matches = sorted(matches)
-                expanded_parts.extend(shlex.quote(m) for m in sorted_matches)
-            else:
-                # No matches found - keep original to let shell handle error
-                expanded_parts.append(part)
         else:
-            expanded_parts.append(shlex.quote(part))
+            expanded_parts.extend(_safe_glob_expand(part, cwd))
 
     # Reconstruct command — operators already unquoted, paths quoted
     return ' '.join(expanded_parts)
@@ -489,14 +492,14 @@ def run_command(runner, cmd: str, task: Task) -> int:
     """Execute a single command, locally or via SSH.
 
     Expands variables and glob patterns before execution.
+    Uses the command classifier to determine if glob expansion is safe.
     """
     expanded = runner.expand_variables(cmd)
-    # Skip glob expansion for @fn/@python and multiline shell scripts —
-    # shlex.split would mangle if/then/fi, for loops, etc.
-    stripped = expanded.strip()
-    if not (stripped.startswith("@fn ") or stripped.startswith("@python ")
-            or '\n' in stripped):
-        # Expand globs locally (e.g., deploy/quadlet/*.container → actual files)
+
+    # Classify command and only expand globs for PLAIN_CMD types.
+    # Shell constructs (for/while/if), @fn/@python, multiline scripts
+    # are NOT passed through shlex.split — it would mangle them.
+    if should_expand_globs(expanded) and has_glob_pattern(expanded):
         expanded = _expand_globs_in_command(expanded, cwd=task.working_dir)
 
     # Try special prefix dispatch first (@fn, @python, @remote/@ssh)

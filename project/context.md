@@ -4,16 +4,20 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 717
-- **Total Classes**: 89
-- **Modules**: 94
-- **Entry Points**: 339
+- **Total Functions**: 753
+- **Total Classes**: 90
+- **Modules**: 97
+- **Entry Points**: 344
 
 ## Architecture by Module
 
 ### src.taskfile.diagnostics.checks
-- **Functions**: 37
+- **Functions**: 42
 - **File**: `checks.py`
+
+### src.taskfile.runner.commands
+- **Functions**: 30
+- **File**: `commands.py`
 
 ### src.taskfile.runner.core
 - **Functions**: 30
@@ -21,22 +25,23 @@
 - **File**: `core.py`
 
 ### src.taskfile.diagnostics
-- **Functions**: 25
+- **Functions**: 26
 - **Classes**: 1
 - **File**: `__init__.py`
 
-### src.taskfile.runner.commands
+### src.taskfile.quadlet
 - **Functions**: 24
-- **File**: `commands.py`
+- **Classes**: 1
+- **File**: `quadlet.py`
 
 ### src.taskfile.cli.main
 - **Functions**: 23
 - **File**: `main.py`
 
-### src.taskfile.quadlet
+### src.taskfile.cli.interactive.wizards
 - **Functions**: 22
 - **Classes**: 1
-- **File**: `quadlet.py`
+- **File**: `wizards.py`
 
 ### src.taskfile.importer
 - **Functions**: 20
@@ -57,14 +62,14 @@
 - **Classes**: 2
 - **File**: `deploy_utils.py`
 
+### src.taskfile.cli.fleet
+- **Functions**: 18
+- **File**: `fleet.py`
+
 ### src.taskfile.cli.deploy
 - **Functions**: 18
 - **Classes**: 1
 - **File**: `deploy.py`
-
-### src.taskfile.cli.fleet
-- **Functions**: 18
-- **File**: `fleet.py`
 
 ### src.taskfile.cli.e2e_cmd
 - **Functions**: 18
@@ -90,20 +95,15 @@
 - **Classes**: 2
 - **File**: `registry.py`
 
-### src.taskfile.runner.explainer
-- **Functions**: 14
-- **Classes**: 4
-- **File**: `explainer.py`
-
 ### src.taskfile.runner.resolver
 - **Functions**: 14
 - **Classes**: 1
 - **File**: `resolver.py`
 
-### src.taskfile.cli.interactive.wizards
+### src.taskfile.runner.explainer
 - **Functions**: 14
-- **Classes**: 1
-- **File**: `wizards.py`
+- **Classes**: 4
+- **File**: `explainer.py`
 
 ## Key Entry Points
 
@@ -200,13 +200,6 @@ Validates infrastructure-as-code and tests running services.
 > Parse all task definitions.
 - **Calls**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance, Task, isinstance, task_data.get
 
-### src.taskfile.diagnostics.checks.check_registry_access
-> Check if container image registries are reachable.
-
-Finds IMAGE_* variables pointing to remote registries and verifies
-network connectivity. Suggests 
-- **Calls**: None.items, None.items, Path, compose_path.exists, image_vars.items, registries.items, None.items, src.taskfile.diagnostics.checks._extract_registry_host
-
 ### src.taskfile.cli.auth.auth_setup
 > Interactive registry authentication setup.
 
@@ -283,6 +276,10 @@ Package names can be:
 - Dependencies exist
 - Script files are accessi
 - **Calls**: main.command, click.option, click.option, src.taskfile.parser.load_taskfile, src.taskfile.parser.validate_taskfile, console.print, console.print, console.print
+
+### src.taskfile.diagnostics.checks_ssh.check_remote_health
+> Check remote host health — podman, disk space, container status.
+- **Calls**: config.environments.items, Path.cwd, src.taskfile.diagnostics.checks._resolve_env_fields, src.taskfile.deploy_utils.test_ssh_connection, src.taskfile.deploy_utils.check_remote_podman, src.taskfile.deploy_utils.check_remote_disk, Path, issues.append
 
 ### src.taskfile.runner.core.TaskfileRunner.run
 > Run multiple tasks in order. Returns True if all succeed.
@@ -419,7 +416,7 @@ Composes:
 > Facade composing checks + fixes + report — backward compatible API.
 
 This replaces the old monolithi
-- **Methods**: 25
+- **Methods**: 26
 - **Key Methods**: src.taskfile.diagnostics.ProjectDiagnostics.__init__, src.taskfile.diagnostics.ProjectDiagnostics._add_issue, src.taskfile.diagnostics.ProjectDiagnostics._add_issues, src.taskfile.diagnostics.ProjectDiagnostics._load_config, src.taskfile.diagnostics.ProjectDiagnostics.check_preflight, src.taskfile.diagnostics.ProjectDiagnostics.check_taskfile, src.taskfile.diagnostics.ProjectDiagnostics.check_env_files, src.taskfile.diagnostics.ProjectDiagnostics.validate_taskfile_variables, src.taskfile.diagnostics.ProjectDiagnostics.check_placeholder_values, src.taskfile.diagnostics.ProjectDiagnostics.check_ports
 
 ### src.taskfile.runner.resolver.TaskResolver
@@ -713,7 +710,7 @@ Smart defaults — when ssh_host i
 Functions exposed as public API (no underscore prefix):
 
 - `src.taskfile.cli.interactive.menu.prod` - 55 calls
-- `src.taskfile.cli.interactive.wizards.doctor` - 46 calls
+- `src.taskfile.cli.interactive.wizards.doctor` - 47 calls
 - `src.taskfile.cli.ci.ci_generate` - 41 calls
 - `src.taskfile.cli.main.run` - 36 calls
 - `src.taskfile.cli.quadlet.quadlet_generate` - 35 calls
@@ -721,7 +718,6 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.interactive.menu.env` - 32 calls
 - `src.taskfile.cli.version.bump` - 31 calls
 - `src.taskfile.cli.e2e_cmd.e2e_cmd` - 31 calls
-- `src.taskfile.diagnostics.checks.check_registry_access` - 30 calls
 - `src.taskfile.cli.auth.auth_setup` - 30 calls
 - `src.taskfile.cli.fleet.fleet_repair_cmd` - 29 calls
 - `src.taskfile.cirunner.PipelineRunner.run` - 28 calls
@@ -729,11 +725,11 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.import_export.import_cmd` - 27 calls
 - `src.taskfile.cli.import_export.export_cmd` - 27 calls
 - `src.taskfile.models.TaskfileConfig.from_dict` - 26 calls
-- `src.taskfile.diagnostics.checks.check_placeholder_values` - 26 calls
 - `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
 - `src.taskfile.cli.version.set` - 26 calls
 - `src.taskfile.models.PipelineConfig.from_dict` - 25 calls
 - `src.taskfile.cli.main.validate` - 25 calls
+- `src.taskfile.diagnostics.checks_ssh.check_remote_health` - 24 calls
 - `src.taskfile.runner.core.TaskfileRunner.run` - 23 calls
 - `src.taskfile.cli.import_export.detect` - 23 calls
 - `src.taskfile.graph.print_task_tree` - 22 calls
@@ -741,17 +737,18 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.health.check_http_endpoint` - 21 calls
 - `src.taskfile.cli.api_cmd.api_serve` - 21 calls
 - `src.taskfile.cli.fleet.fleet_status_cmd` - 21 calls
+- `src.taskfile.deploy_recipes.expand_deploy_recipe` - 20 calls
 - `src.taskfile.importer.parse_makefile` - 20 calls
 - `src.taskfile.runner.commands.execute_script` - 20 calls
 - `src.taskfile.cli.interactive.wizards.init` - 20 calls
-- `src.taskfile.deploy_recipes.expand_deploy_recipe` - 19 calls
-- `src.taskfile.diagnostics.checks.check_remote_health` - 19 calls
 - `src.taskfile.cli.registry_cmds.pkg_search` - 19 calls
 - `src.taskfile.cli.registry_cmds.pkg_info` - 19 calls
 - `src.taskfile.cli.explain_cmd.explain` - 19 calls
 - `src.taskfile.cli.interactive.menu.hosts` - 19 calls
-- `src.taskfile.diagnostics.checks.check_ports` - 18 calls
+- `src.taskfile.diagnostics.checks_ports.check_ports` - 18 calls
 - `src.taskfile.cigen.makefile.MakefileTarget.generate` - 18 calls
+- `examples.mega-saas.scripts.report.generate_report` - 18 calls
+- `examples.mega-saas-v2.scripts.report.generate_report` - 18 calls
 
 ## System Interactions
 

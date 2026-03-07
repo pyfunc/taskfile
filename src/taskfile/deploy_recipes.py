@@ -86,9 +86,27 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
             "cmds": [f"echo 'All images pushed to {registry}'"],
         }
 
+    # ── Validate deploy artifacts (pre-deploy gate) ──
+    tasks["validate-deploy"] = {
+        "desc": "Validate deploy artifacts — check for unresolved variables and placeholders",
+        "tags": ["ci", "validate"],
+        "silent": True,
+        "cmds": [
+            '@python from taskfile.diagnostics.checks import check_deploy_artifacts; '
+            'from taskfile.parser import find_taskfile, load_taskfile; '
+            'cfg = load_taskfile(find_taskfile()); '
+            'issues = check_deploy_artifacts(cfg); '
+            '[print(f"ERROR: {i.message}") for i in issues if i.severity == "error"]; '
+            '[print(f"WARN: {i.message}") for i in issues]; '
+            'exit(1) if any(i.severity == "error" for i in issues) else None',
+        ],
+    }
+
     # ── Deploy task (strategy-specific) ──
     push_dep = "push-all" if len(images) > 1 else f"push-{list(images)[0]}" if images else None
-    deploy_deps = [push_dep] if push_dep else []
+    deploy_deps = ["validate-deploy"]
+    if push_dep:
+        deploy_deps.insert(0, push_dep)
 
     if strategy == "compose":
         tasks["deploy"] = _compose_deploy(deploy_deps)

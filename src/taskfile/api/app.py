@@ -582,6 +582,7 @@ def _run_doctor(
     diagnostics.check_registry_access()
     diagnostics.check_ssh_keys()
     diagnostics.check_git()
+    diagnostics.check_deploy_artifacts()
     # Layer 3+: verbose checks
     if verbose:
         diagnostics.check_task_commands()

@@ -278,6 +278,7 @@ curl -X POST http://localhost:8000/doctor -H "Content-Type: application/json" \
         diagnostics.check_registry_access()
         diagnostics.check_ssh_keys()
         diagnostics.check_git()
+        diagnostics.check_deploy_artifacts()
         # Layer 3+: Task command checks and remote health (if verbose or remote)
         if verbose or remote:
             diagnostics.check_task_commands()

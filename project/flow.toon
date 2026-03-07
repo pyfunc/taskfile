@@ -1,4 +1,4 @@
-# taskfile/flow | 717 func | 12 pipelines | 18 hub-types | 2026-03-06
+# taskfile/flow | 753 func | 12 pipelines | 19 hub-types | 2026-03-07
 
 PIPELINES[12] (IO:12):
   Src [IO]: list[str] → None
@@ -32,7 +32,7 @@ PIPELINES[12] (IO:12):
               → _execute_deploy_strategy(strategy:DeployStrategy) → None CC=5    IO
               → _deploy_quadlet(env, env_name, env_file_path, compose_path, var_overrides, dry_run) CC=1    pure
               → _quadlet_step1_generate(env, compose_path, env_file_path, var_overrides, dry_run) CC=2    IO
-              → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None) → list[Path] CC=1    IO
+              → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None, dns_fix:bool) → list[Path] CC=3    IO
               → _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None) → tuple[list[Path], set[str]] CC=4    IO
               → generate_container_unit(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool, env:dict[str, str] | None) → str CC=1    pure
               → _build_container_section(service_name:str, service:ServiceConfig, network_name:str, auto_update:bool, env:dict[str, str] | None) → list[str] CC=4    mutation
@@ -67,7 +67,7 @@ PIPELINES[12] (IO:12):
 
   Src [IO]: ctx → list[tuple[Path, int]]
               → quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services, dry_run) CC=13   IO ▶
-              → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None) → list[Path] CC=1    IO
+              → compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None, dns_fix:bool) → list[Path] CC=3    IO
               → _generate_container_files(outdir:Path, compose:ComposeFile, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None) → tuple[list[Path], set[str]] CC=4    IO
               → _collect_named_volumes(service:ServiceConfig) → set[str] CC=6    mutation
               → set(ctx, new_version, dry_run, force)   CC=8    IO
@@ -142,21 +142,21 @@ PIPELINES[12] (IO:12):
 
 
 TRANSFORMS (fan-out ≥10):
-  doctor(fix, verbose, report, check_examples_flag, llm, category, teach, remote) fan=31   !! mutation-heavy
-  _run_doctor(app:FastAPI) → DoctorResponse               fan=28   !! side-effects
+  doctor(fix, verbose, report, check_examples_flag, llm, category, teach, remote) fan=32   !! mutation-heavy
+  _run_doctor(app:FastAPI) → DoctorResponse               fan=29   !! side-effects
   run(ctx, tasks, run_tags, explain, teach)               fan=23   !! side-effects
   _register_run_routes(app:FastAPI) → None                fan=23   !! side-effects
-  check_placeholder_values(config:TaskfileConfig) → list[Issue] fan=22   !! side-effects
   prod(env_file)                                          fan=21   !! side-effects
-  check_registry_access(config:TaskfileConfig) → list[Issue] fan=20   !! side-effects
   bump(ctx, part, dry_run, force)                         fan=20   !! side-effects
   _install_from_github(repo:str, version:str | None, save:bool) → Path fan=18   PIPELINE:RegistryClient.entry
-  _dispatch_special_prefix(runner, expanded:str, task:Task) → int | None fan=18   fan=18
   e2e_cmd(ctx, check_only, url, port_web, port_landing)   fan=18   fan=18
+  check_remote_health(config:TaskfileConfig) → list[Issue] fan=17   fan=17
   set(ctx, new_version, dry_run, force)                   fan=16   fan=16
   auth_setup(registry)                                    fan=16   fan=16
   explain(ctx, task_name)                                 fan=16   fan=16
   quadlet_generate(ctx, compose_path, env_file, output_dir, network, no_auto_update, services, dry_run) fan=16   fan=16
+  fleet_status_cmd(ctx, group)                            fan=16   fan=16
+  fleet_repair_cmd(ctx, env_name, auto_fix)               fan=16   fan=16
 
 CONTRACTS:
   Pipeline: Src
@@ -278,8 +278,8 @@ CONTRACTS:
       OUT: None
       SIDE-EFFECT: IO(print, print)
 
-    compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None) → list[Path]
-      IN:  compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None
+    compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None, dns_fix:bool) → list[Path]
+      IN:  compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None, dns_fix:bool
       OUT: list[Path]
       SIDE-EFFECT: IO(mkdir)
 
@@ -413,8 +413,8 @@ CONTRACTS:
       OUT: None
       SIDE-EFFECT: IO(print, print, print)
 
-    compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None) → list[Path]
-      IN:  compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None
+    compose_to_quadlet(compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None, dns_fix:bool) → list[Path]
+      IN:  compose:ComposeFile, output_dir:str | Path, network_name:str, auto_update:bool, services_filter:list[str] | None, env:dict[str, str] | None, dns_fix:bool
       OUT: list[Path]
       SIDE-EFFECT: IO(mkdir)
 
@@ -684,64 +684,66 @@ CONTRACTS:
       SIDE-EFFECT: pure
 
 
-DATA_TYPES (by cross-function usage) [650 annotated, 0 inferred / 717 functions]:
-  str                  consumed:381 produced:81   !! HUB-TYPE → split interface
-  bool                 consumed:83  produced:87   !! HUB-TYPE → split interface
-  int                  consumed:68  produced:24   !! HUB-TYPE → split interface
+DATA_TYPES (by cross-function usage) [686 annotated, 0 inferred / 753 functions]:
+  str                  consumed:403 produced:81   !! HUB-TYPE → split interface
+  bool                 consumed:84  produced:92   !! HUB-TYPE → split interface
+  int                  consumed:69  produced:29   !! HUB-TYPE → split interface
   dict                 consumed:53  produced:28   !! HUB-TYPE → split interface
-  str | None           consumed:56  produced:17   !! HUB-TYPE → split interface
-  list[str]            consumed:33  produced:37   !! HUB-TYPE → split interface
-  TaskfileConfig       consumed:44  produced:3    !! HUB-TYPE → split interface
-  Path                 consumed:35  produced:9    !! HUB-TYPE → split interface
-  Task                 consumed:37  produced:0    !! HUB-TYPE → split interface
-  list[Issue]          consumed:10  produced:22   !! HUB-TYPE → split interface
-  dict[str, str]       consumed:15  produced:12   !! HUB-TYPE → split interface
+  str | None           consumed:57  produced:18   !! HUB-TYPE → split interface
+  list[str]            consumed:34  produced:38   !! HUB-TYPE → split interface
+  TaskfileConfig       consumed:50  produced:3    !! HUB-TYPE → split interface
+  Path                 consumed:39  produced:10   !! HUB-TYPE → split interface
+  Task                 consumed:42  produced:0    !! HUB-TYPE → split interface
+  list[Issue]          consumed:10  produced:29   !! HUB-TYPE → split interface
+  dict[str, str]       consumed:18  produced:15   !! HUB-TYPE → split interface
   list[str] | None     consumed:18  produced:1    !! HUB-TYPE → split interface
+  str | Path           consumed:14  produced:0    !! HUB-TYPE → split interface
+  Issue                consumed:11  produced:2    !! HUB-TYPE → split interface
+  str | Path | None    consumed:13  produced:0    !! HUB-TYPE → split interface
   dict[str, str] | None consumed:13  produced:0    !! HUB-TYPE → split interface
-  str | Path           consumed:13  produced:0    !! HUB-TYPE → split interface
   FleetConfig          consumed:11  produced:2    !! HUB-TYPE → split interface
-  Issue                consumed:11  produced:1    !! HUB-TYPE → split interface
-  str | Path | None    consumed:12  produced:0    !! HUB-TYPE → split interface
   ServiceConfig        consumed:11  produced:0    !! HUB-TYPE → split interface
   E2EResult            consumed:0   produced:11   output-heavy
-  SetupConfig          consumed:8   produced:2  
+  float                consumed:10  produced:0    !! HUB-TYPE → split interface
 
   HUB TYPES (consumed ≥10):
-    str → 381 consumers → split into:
+    str → 403 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    bool → 83 consumers → split into:
+    bool → 84 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    int → 68 consumers → split into:
+    int → 69 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     dict → 53 consumers → split into:
       - replace with typed alternatives (dataclass/TypedDict)
-    str | None → 56 consumers → split into:
+    str | None → 57 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    list[str] → 33 consumers → split into:
+    list[str] → 34 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    TaskfileConfig → 44 consumers → split into:
+    TaskfileConfig → 50 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    Path → 35 consumers → split into:
+    Path → 39 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    Task → 37 consumers → split into:
+    Task → 42 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     list[Issue] → 10 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    dict[str, str] → 15 consumers → split into:
+    dict[str, str] → 18 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     list[str] | None → 18 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    dict[str, str] | None → 13 consumers → split into:
-      - (analyze consumers to suggest sub-interfaces)
-    str | Path → 13 consumers → split into:
-      - (analyze consumers to suggest sub-interfaces)
-    FleetConfig → 11 consumers → split into:
+    str | Path → 14 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     Issue → 11 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
-    str | Path | None → 12 consumers → split into:
+    str | Path | None → 13 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
+    dict[str, str] | None → 13 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
+    FleetConfig → 11 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
     ServiceConfig → 11 consumers → split into:
+      - (analyze consumers to suggest sub-interfaces)
+    float → 10 consumers → split into:
       - (analyze consumers to suggest sub-interfaces)
 
 SIDE_EFFECTS:

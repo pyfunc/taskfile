@@ -3,43 +3,33 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-06T21:54:32Z'
+  analyzed_at: '2026-03-07T08:29:17Z'
   tool: code2llm
   stats:
-    files: 72
-    lines: 29857
-    functions: 708
-    classes: 89
+    files: 75
+    lines: 30969
+    functions: 744
+    classes: 90
 health:
-  cc_avg: 4.5
-  critical_count: 57
+  cc_avg: 4.4
+  critical_count: 54
   critical_limit: 10
   duplicates: 2
   cycles: 0
   alerts:
   - type: high_fan_out
     target: doctor
-    value: 31
+    value: 32
     limit: 10
-    severity: critical
-  - type: cc_exceeded
-    target: _run_remote_diagnostics
-    value: 28
-    limit: 15
-    severity: critical
-  - type: cc_exceeded
-    target: _run_doctor
-    value: 28
-    limit: 15
     severity: critical
   - type: high_fan_out
     target: _run_doctor
-    value: 28
+    value: 29
     limit: 10
     severity: critical
   - type: cc_exceeded
-    target: check_registry_access
-    value: 25
+    target: _run_doctor
+    value: 28
     limit: 15
     severity: critical
   - type: high_fan_out
@@ -53,18 +43,8 @@ health:
     limit: 10
     severity: critical
   - type: high_fan_out
-    target: check_placeholder_values
-    value: 22
-    limit: 10
-    severity: critical
-  - type: high_fan_out
     target: prod
     value: 21
-    limit: 10
-    severity: critical
-  - type: high_fan_out
-    target: check_registry_access
-    value: 20
     limit: 10
     severity: critical
   - type: high_fan_out
@@ -83,13 +63,13 @@ health:
     limit: 10
     severity: error
   - type: high_fan_out
-    target: _dispatch_special_prefix
+    target: e2e_cmd
     value: 18
     limit: 10
     severity: error
   - type: high_fan_out
-    target: e2e_cmd
-    value: 18
+    target: check_remote_health
+    value: 17
     limit: 10
     severity: error
   - type: high_fan_out
@@ -117,9 +97,29 @@ health:
     value: 16
     limit: 10
     severity: error
+  - type: high_fan_out
+    target: fleet_repair_cmd
+    value: 16
+    limit: 10
+    severity: error
+  - type: high_fan_out
+    target: _register_metadata_routes
+    value: 16
+    limit: 10
+    severity: error
+  - type: high_fan_out
+    target: check_ports
+    value: 15
+    limit: 10
+    severity: error
+  - type: high_fan_out
+    target: _scan_file_for_unresolved
+    value: 15
+    limit: 10
+    severity: error
 modules:
 - path: src/taskfile/api/app.py
-  lines: 713
+  lines: 714
   classes: 0
   methods: 10
   cc_max: 28
@@ -129,10 +129,10 @@ modules:
     type: function
     cc: 1
 - path: src/taskfile/cli/interactive/wizards.py
-  lines: 619
+  lines: 629
   classes: 1
-  methods: 14
-  cc_max: 28
+  methods: 22
+  cc_max: 20
   inbound_deps: 0
   exports:
   - name: _nullcontext
@@ -142,75 +142,11 @@ modules:
     type: function
     cc: 20
     flag: split
-    fan_out: 31
+    fan_out: 32
   - name: init
     type: function
     cc: 6
     fan_out: 12
-- path: src/taskfile/diagnostics/checks.py
-  lines: 1192
-  classes: 0
-  methods: 37
-  cc_max: 25
-  inbound_deps: 3
-  exports:
-  - name: check_preflight
-    type: function
-    cc: 5
-  - name: check_taskfile
-    type: function
-    cc: 3
-  - name: check_env_files
-    type: function
-    cc: 8
-  - name: check_unresolved_variables
-    type: function
-    cc: 3
-  - name: check_ports
-    type: function
-    cc: 17
-    flag: split
-    fan_out: 15
-  - name: check_dependent_files
-    type: function
-    cc: 2
-  - name: check_registry_access
-    type: function
-    cc: 25
-    flag: split
-    fan_out: 20
-  - name: check_docker
-    type: function
-    cc: 2
-  - name: check_ssh_keys
-    type: function
-    cc: 3
-  - name: check_ssh_connectivity
-    type: function
-    cc: 10
-  - name: check_remote_health
-    type: function
-    cc: 12
-    fan_out: 14
-  - name: check_git
-    type: function
-    cc: 2
-  - name: check_task_commands
-    type: function
-    cc: 9
-    fan_out: 12
-  - name: check_examples
-    type: function
-    cc: 10
-    fan_out: 12
-  - name: check_placeholder_values
-    type: function
-    cc: 19
-    flag: split
-    fan_out: 22
-  - name: validate_before_run
-    type: function
-    cc: 2
 - path: src/taskfile/cli/click_compat.py
   lines: 218
   classes: 3
@@ -260,7 +196,7 @@ modules:
       flag: split
       fan_out: 15
 - path: src/taskfile/deploy_recipes.py
-  lines: 188
+  lines: 206
   classes: 0
   methods: 4
   cc_max: 17
@@ -270,6 +206,19 @@ modules:
     type: function
     cc: 17
     flag: split
+    fan_out: 10
+- path: src/taskfile/diagnostics/checks_ports.py
+  lines: 157
+  classes: 0
+  methods: 7
+  cc_max: 17
+  inbound_deps: 0
+  exports:
+  - name: check_ports
+    type: function
+    cc: 17
+    flag: split
+    fan_out: 15
 - path: src/taskfile/diagnostics/llm_repair.py
   lines: 222
   classes: 0
@@ -306,23 +255,6 @@ modules:
   - name: format_summary
     type: function
     cc: 6
-- path: src/taskfile/runner/commands.py
-  lines: 752
-  classes: 0
-  methods: 24
-  cc_max: 16
-  inbound_deps: 1
-  exports:
-  - name: run_command
-    type: function
-    cc: 4
-  - name: execute_script
-    type: function
-    cc: 11
-    fan_out: 12
-  - name: execute_commands
-    type: function
-    cc: 13
 - path: src/taskfile/cli/main.py
   lines: 698
   classes: 0
@@ -352,6 +284,41 @@ modules:
     type: function
     cc: 4
     fan_out: 11
+- path: src/taskfile/diagnostics/checks_ssh.py
+  lines: 266
+  classes: 0
+  methods: 4
+  cc_max: 15
+  inbound_deps: 0
+  exports:
+  - name: check_ssh_keys
+    type: function
+    cc: 3
+  - name: check_ssh_connectivity
+    type: function
+    cc: 10
+  - name: check_remote_health
+    type: function
+    cc: 15
+    flag: split
+    fan_out: 17
+- path: src/taskfile/runner/commands.py
+  lines: 755
+  classes: 0
+  methods: 30
+  cc_max: 15
+  inbound_deps: 1
+  exports:
+  - name: run_command
+    type: function
+    cc: 4
+  - name: execute_script
+    type: function
+    cc: 11
+    fan_out: 12
+  - name: execute_commands
+    type: function
+    cc: 13
 - path: src/taskfile/runner/explainer.py
   lines: 395
   classes: 4
@@ -388,7 +355,7 @@ modules:
     type: function
     cc: 8
 - path: src/taskfile/models.py
-  lines: 592
+  lines: 598
   classes: 9
   methods: 20
   cc_max: 14
@@ -396,7 +363,7 @@ modules:
   exports:
   - name: Environment
     type: class
-    cc_avg: 3.0
+    cc_avg: 7.0
   - name: Platform
     type: class
     cc_avg: 3.0
@@ -428,6 +395,25 @@ modules:
     - name: _expand_hosts
       cc: 14
       fan_out: 12
+- path: src/taskfile/runner/classifier.py
+  lines: 147
+  classes: 1
+  methods: 3
+  cc_max: 14
+  inbound_deps: 1
+  exports:
+  - name: CommandType
+    type: class
+    cc_avg: 0.0
+  - name: classify_command
+    type: function
+    cc: 14
+  - name: should_expand_globs
+    type: function
+    cc: 1
+  - name: has_glob_pattern
+    type: function
+    cc: 3
 - path: src/taskfile/cli/quadlet.py
   lines: 268
   classes: 0
@@ -525,6 +511,67 @@ modules:
     type: function
     cc: 5
     fan_out: 16
+- path: src/taskfile/diagnostics/checks.py
+  lines: 1081
+  classes: 0
+  methods: 42
+  cc_max: 11
+  inbound_deps: 4
+  exports:
+  - name: check_preflight
+    type: function
+    cc: 5
+  - name: check_taskfile
+    type: function
+    cc: 3
+  - name: check_env_files
+    type: function
+    cc: 8
+  - name: check_unresolved_variables
+    type: function
+    cc: 3
+  - name: check_ports
+    type: function
+    cc: 1
+  - name: check_dependent_files
+    type: function
+    cc: 2
+  - name: check_registry_access
+    type: function
+    cc: 3
+  - name: check_docker
+    type: function
+    cc: 2
+  - name: check_ssh_keys
+    type: function
+    cc: 1
+  - name: check_ssh_connectivity
+    type: function
+    cc: 1
+  - name: check_remote_health
+    type: function
+    cc: 1
+  - name: check_git
+    type: function
+    cc: 2
+  - name: check_task_commands
+    type: function
+    cc: 9
+    fan_out: 12
+  - name: check_examples
+    type: function
+    cc: 10
+    fan_out: 12
+  - name: check_placeholder_values
+    type: function
+    cc: 4
+  - name: check_deploy_artifacts
+    type: function
+    cc: 7
+    fan_out: 11
+  - name: validate_before_run
+    type: function
+    cc: 2
 - path: src/taskfile/health.py
   lines: 408
   classes: 2
@@ -879,9 +926,9 @@ modules:
     type: function
     cc: 5
 - path: src/taskfile/diagnostics/__init__.py
-  lines: 266
+  lines: 274
   classes: 1
-  methods: 25
+  methods: 26
   cc_max: 9
   inbound_deps: 0
   exports:
@@ -902,9 +949,9 @@ modules:
     type: function
     cc: 9
 - path: src/taskfile/quadlet.py
-  lines: 350
+  lines: 410
   classes: 1
-  methods: 22
+  methods: 24
   cc_max: 9
   inbound_deps: 2
   exports:
@@ -920,9 +967,12 @@ modules:
   - name: generate_volume_unit
     type: function
     cc: 1
-  - name: compose_to_quadlet
+  - name: generate_resolv_conf
     type: function
     cc: 1
+  - name: compose_to_quadlet
+    type: function
+    cc: 3
 - path: src/taskfile/registry.py
   lines: 349
   classes: 2
@@ -1639,7 +1689,7 @@ modules:
   cc_max: 0
   inbound_deps: 0
 - path: src/taskfile/runner/__init__.py
-  lines: 10
+  lines: 14
   classes: 0
   methods: 0
   cc_max: 0
@@ -1694,7 +1744,7 @@ modules:
   inbound_deps: 0
 hotspots:
 - name: doctor
-  fan_out: 31
+  fan_out: 32
   note: '**🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
 
@@ -1703,7 +1753,7 @@ hotspots:
 
     | Layer |'
 - name: _run_doctor
-  fan_out: 28
+  fan_out: 29
   note: Shared doctor logic for GET and POST endpoints.
 - name: run
   fan_out: 23
@@ -1719,21 +1769,12 @@ hotspots:
 - name: _register_run_routes
   fan_out: 23
   note: Register task execution endpoint.
-- name: check_placeholder_values
-  fan_out: 22
-  note: Detect variables with placeholder values (example.com, changeme, etc.).
 - name: prod
   fan_out: 21
   note: '**Interactive production server setup** — SSH, podman, .env.
 
 
     All-in-one interac'
-- name: check_registry_access
-  fan_out: 20
-  note: 'Check if container image registries are reachable.
-
-
-    Finds IMAGE_* variables poin'
 - name: bump
   fan_out: 20
   note: 'Bump version number (patch, minor, or major).
@@ -1743,39 +1784,41 @@ hotspots:
 - name: RegistryClient._install_from_github
   fan_out: 18
   note: Install package from GitHub repository.
-- name: _dispatch_special_prefix
+- name: e2e_cmd
   fan_out: 18
-  note: 18-way dispatch
+  note: '**🧪 End-to-end tests** for services and IaC.
+
+
+    Validates infrastructure-as-code a'
+- name: check_remote_health
+  fan_out: 17
+  note: Check remote host health — podman, disk space, container status.
+- name: set
+  fan_out: 16
+  note: "Set specific version number.\n\n\b\nExamples:\n    taskfile version set 1.0.0\
+    \      # "
 refactoring:
   priorities:
-  - action: Split check_registry_access (CC=25 → target CC<10)
-    impact: high
-    effort: low
-    module: checks.py
-  - action: Split _run_remote_diagnostics (CC=28 → target CC<10)
-    impact: high
-    effort: low
-    module: wizards.py
   - action: Split _run_doctor (CC=28 → target CC<10)
     impact: high
     effort: low
     module: app.py
-  - action: Split god module src/taskfile/api/app.py (713L, 0 classes)
+  - action: Split god module src/taskfile/api/app.py (714L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/cli/interactive/wizards.py (619L, 1 classes)
-    impact: high
-    effort: high
-  - action: Split god module src/taskfile/diagnostics/checks.py (1192L, 0 classes)
-    impact: high
-    effort: high
-  - action: Split god module src/taskfile/runner/commands.py (752L, 0 classes)
+  - action: Split god module src/taskfile/cli/interactive/wizards.py (629L, 1 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/cli/main.py (698L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/models.py (592L, 9 classes)
+  - action: Split god module src/taskfile/runner/commands.py (755L, 0 classes)
+    impact: high
+    effort: high
+  - action: Split god module src/taskfile/models.py (598L, 9 classes)
+    impact: high
+    effort: high
+  - action: Split god module src/taskfile/diagnostics/checks.py (1081L, 0 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)
@@ -1792,15 +1835,23 @@ refactoring:
   - action: Split check_ports (CC=17 → target CC<10)
     impact: medium
     effort: low
-    module: checks.py
-  - action: Split check_placeholder_values (CC=19 → target CC<10)
-    impact: medium
-    effort: low
-    module: checks.py
+    module: checks_ports.py
   - action: Split _print_summary (CC=17 → target CC<10)
     impact: medium
     effort: low
     module: report.py
+  - action: Split _check_file_arg (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: commands.py
+  - action: Split _handle_failure (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: commands.py
+  - action: Split check_remote_health (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: checks_ssh.py
 evolution:
 - date: '2026-03-05'
   cc_avg: 4.3
@@ -1811,4 +1862,9 @@ evolution:
   cc_avg: 4.5
   critical: 57
   lines: 29857
+  note: Automated analysis
+- date: '2026-03-07'
+  cc_avg: 4.4
+  critical: 54
+  lines: 30969
   note: Automated analysis

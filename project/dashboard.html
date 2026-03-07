@@ -56,29 +56,24 @@
   taskfile — Good
 </h1>
 <p style="color:var(--muted);font-size:.85rem;">
-  Analyzed 2026-03-06 by code2llm
+  Analyzed 2026-03-07 by code2llm
 </p>
 
 <div class="grid">
-  <div class="card"><div class="value">4.5</div><div class="label">Avg CC</div></div>
-  <div class="card"><div class="value">57</div><div class="label">Critical (CC≥10)</div></div>
-  <div class="card"><div class="value">708</div><div class="label">Functions</div></div>
-  <div class="card"><div class="value">89</div><div class="label">Classes</div></div>
-  <div class="card"><div class="value">72</div><div class="label">Files</div></div>
-  <div class="card"><div class="value">29857</div><div class="label">Lines</div></div>
+  <div class="card"><div class="value">4.4</div><div class="label">Avg CC</div></div>
+  <div class="card"><div class="value">54</div><div class="label">Critical (CC≥10)</div></div>
+  <div class="card"><div class="value">744</div><div class="label">Functions</div></div>
+  <div class="card"><div class="value">90</div><div class="label">Classes</div></div>
+  <div class="card"><div class="value">75</div><div class="label">Files</div></div>
+  <div class="card"><div class="value">30969</div><div class="label">Lines</div></div>
   <div class="card"><div class="value">2</div><div class="label">Duplicates</div></div>
   <div class="card"><div class="value">0</div><div class="label">Cycles</div></div>
 </div>
 
 <div class="two-col">
   <div class="chart-container">
-    <h2 style="border:none;margin:0 0 .5rem;">Evolution (2026-03-06)</h2>
-    <div class="evo-cards">
-      <div class="card"><div class="value">4.5</div><div class="label">CC̄ ↑</div></div>
-      <div class="card"><div class="value">57</div><div class="label">Critical ↑</div></div>
-      <div class="card"><div class="value">29857</div><div class="label">Lines</div></div>
-    </div>
-    <p class="trend" style="margin-top:.5rem;">Run analysis multiple times to build a trend chart (≥3 data points needed).</p>
+    <h2 style="border:none;margin:0 0 .5rem;">Evolution</h2>
+    <canvas id="evoChart" height="200"></canvas>
   </div>
   <div class="chart-container">
     <h2 style="border:none;margin:0 0 .5rem;">Module CC (top 15)</h2>
@@ -95,35 +90,21 @@
                 <td><span class="badge critical">critical</span></td>
                 <td>doctor</td>
                 <td>high_fan_out</td>
-                <td>31</td>
+                <td>32</td>
                 <td>10</td>
-            </tr>
-            <tr class="critical">
-                <td><span class="badge critical">critical</span></td>
-                <td>_run_remote_diagnostics</td>
-                <td>cc_exceeded</td>
-                <td>28</td>
-                <td>15</td>
-            </tr>
-            <tr class="critical">
-                <td><span class="badge critical">critical</span></td>
-                <td>_run_doctor</td>
-                <td>cc_exceeded</td>
-                <td>28</td>
-                <td>15</td>
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
                 <td>_run_doctor</td>
                 <td>high_fan_out</td>
-                <td>28</td>
+                <td>29</td>
                 <td>10</td>
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>check_registry_access</td>
+                <td>_run_doctor</td>
                 <td>cc_exceeded</td>
-                <td>25</td>
+                <td>28</td>
                 <td>15</td>
             </tr>
             <tr class="critical">
@@ -142,23 +123,9 @@
             </tr>
             <tr class="critical">
                 <td><span class="badge critical">critical</span></td>
-                <td>check_placeholder_values</td>
-                <td>high_fan_out</td>
-                <td>22</td>
-                <td>10</td>
-            </tr>
-            <tr class="critical">
-                <td><span class="badge critical">critical</span></td>
                 <td>prod</td>
                 <td>high_fan_out</td>
                 <td>21</td>
-                <td>10</td>
-            </tr>
-            <tr class="critical">
-                <td><span class="badge critical">critical</span></td>
-                <td>check_registry_access</td>
-                <td>high_fan_out</td>
-                <td>20</td>
                 <td>10</td>
             </tr>
             <tr class="critical">
@@ -184,16 +151,44 @@
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
-                <td>_dispatch_special_prefix</td>
+                <td>e2e_cmd</td>
                 <td>high_fan_out</td>
                 <td>18</td>
                 <td>10</td>
             </tr>
             <tr class="error">
                 <td><span class="badge error">error</span></td>
-                <td>e2e_cmd</td>
+                <td>check_remote_health</td>
                 <td>high_fan_out</td>
-                <td>18</td>
+                <td>17</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>set</td>
+                <td>high_fan_out</td>
+                <td>16</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>auth_setup</td>
+                <td>high_fan_out</td>
+                <td>16</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>explain</td>
+                <td>high_fan_out</td>
+                <td>16</td>
+                <td>10</td>
+            </tr>
+            <tr class="error">
+                <td><span class="badge error">error</span></td>
+                <td>quadlet_generate</td>
+                <td>high_fan_out</td>
+                <td>16</td>
                 <td>10</td>
             </tr></tbody>
 </table>
@@ -208,7 +203,7 @@
   <tbody>
             <tr>
                 <td><strong>doctor</strong></td>
-                <td>31</td>
+                <td>32</td>
                 <td>**🔧 Diagnose project** — 5-layer self-healing diagnostics.
 
 ## Layers
@@ -217,7 +212,7 @@
             </tr>
             <tr>
                 <td><strong>_run_doctor</strong></td>
-                <td>28</td>
+                <td>29</td>
                 <td>Shared doctor logic for GET and POST endpoints.</td>
             </tr>
             <tr>
@@ -236,23 +231,11 @@ taskfile r</td>
                 <td>Register task execution endpoint.</td>
             </tr>
             <tr>
-                <td><strong>check_placeholder_values</strong></td>
-                <td>22</td>
-                <td>Detect variables with placeholder values (example.com, changeme, etc.).</td>
-            </tr>
-            <tr>
                 <td><strong>prod</strong></td>
                 <td>21</td>
                 <td>**Interactive production server setup** — SSH, podman, .env.
 
 All-in-one interac</td>
-            </tr>
-            <tr>
-                <td><strong>check_registry_access</strong></td>
-                <td>20</td>
-                <td>Check if container image registries are reachable.
-
-Finds IMAGE_* variables poin</td>
             </tr>
             <tr>
                 <td><strong>bump</strong></td>
@@ -267,9 +250,25 @@ Updates VERSION file and optional</td>
                 <td>Install package from GitHub repository.</td>
             </tr>
             <tr>
-                <td><strong>_dispatch_special_prefix</strong></td>
+                <td><strong>e2e_cmd</strong></td>
                 <td>18</td>
-                <td>18-way dispatch</td>
+                <td>**🧪 End-to-end tests** for services and IaC.
+
+Validates infrastructure-as-code a</td>
+            </tr>
+            <tr>
+                <td><strong>check_remote_health</strong></td>
+                <td>17</td>
+                <td>Check remote host health — podman, disk space, container status.</td>
+            </tr>
+            <tr>
+                <td><strong>set</strong></td>
+                <td>16</td>
+                <td>Set specific version number.
+
+
+Examples:
+    taskfile version set 1.0.0      # </td>
             </tr></tbody>
 </table>
 </div></div>
@@ -283,81 +282,100 @@ Updates VERSION file and optional</td>
   <tbody>
             <tr>
                 <td>1</td>
-                <td>Split check_registry_access (CC=25 → target CC<10)</td>
-                <td><span class="badge high">high</span></td>
-                <td>low</td>
-            </tr>
-            <tr>
-                <td>2</td>
-                <td>Split _run_remote_diagnostics (CC=28 → target CC<10)</td>
-                <td><span class="badge high">high</span></td>
-                <td>low</td>
-            </tr>
-            <tr>
-                <td>3</td>
                 <td>Split _run_doctor (CC=28 → target CC<10)</td>
                 <td><span class="badge high">high</span></td>
                 <td>low</td>
             </tr>
             <tr>
+                <td>2</td>
+                <td>Split god module src/taskfile/api/app.py (714L, 0 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Split god module src/taskfile/cli/interactive/wizards.py (629L, 1 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
+            </tr>
+            <tr>
                 <td>4</td>
-                <td>Split god module src/taskfile/api/app.py (713L, 0 classes)</td>
-                <td><span class="badge high">high</span></td>
-                <td>high</td>
-            </tr>
-            <tr>
-                <td>5</td>
-                <td>Split god module src/taskfile/cli/interactive/wizards.py (619L, 1 classes)</td>
-                <td><span class="badge high">high</span></td>
-                <td>high</td>
-            </tr>
-            <tr>
-                <td>6</td>
-                <td>Split god module src/taskfile/diagnostics/checks.py (1192L, 0 classes)</td>
-                <td><span class="badge high">high</span></td>
-                <td>high</td>
-            </tr>
-            <tr>
-                <td>7</td>
-                <td>Split god module src/taskfile/runner/commands.py (752L, 0 classes)</td>
-                <td><span class="badge high">high</span></td>
-                <td>high</td>
-            </tr>
-            <tr>
-                <td>8</td>
                 <td>Split god module src/taskfile/cli/main.py (698L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
-                <td>9</td>
-                <td>Split god module src/taskfile/models.py (592L, 9 classes)</td>
+                <td>5</td>
+                <td>Split god module src/taskfile/runner/commands.py (755L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
             </tr>
             <tr>
-                <td>10</td>
+                <td>6</td>
+                <td>Split god module src/taskfile/models.py (598L, 9 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>Split god module src/taskfile/diagnostics/checks.py (1081L, 0 classes)</td>
+                <td><span class="badge high">high</span></td>
+                <td>high</td>
+            </tr>
+            <tr>
+                <td>8</td>
                 <td>Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)</td>
                 <td><span class="badge high">high</span></td>
                 <td>high</td>
+            </tr>
+            <tr>
+                <td>9</td>
+                <td>Split expand_deploy_recipe (CC=17 → target CC<10)</td>
+                <td><span class="badge medium">medium</span></td>
+                <td>low</td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td>Split classify_runtime_error (CC=17 → target CC<10)</td>
+                <td><span class="badge medium">medium</span></td>
+                <td>low</td>
             </tr></tbody>
 </table>
 </div></div>
 </div>
 </div>
 
-<footer>Generated by code2llm on 2026-03-06 21:54</footer>
+<footer>Generated by code2llm on 2026-03-07 08:29</footer>
 
 <script>
-// Evolution chart disabled — fewer than 3 data points
+const evoCtx = document.getElementById('evoChart').getContext('2d');
+new Chart(evoCtx, {
+  type: 'line',
+  data: {
+    labels: ['2026-03-05', '2026-03-06', '2026-03-07'],
+    datasets: [
+      { label: 'CC avg', data: [4.3, 4.5, 4.4], borderColor: '#3b82f6', tension: .3, yAxisID: 'y' },
+      { label: 'Critical', data: [32, 57, 54], borderColor: '#ef4444', tension: .3, yAxisID: 'y1' }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: { position:'left', grid:{color:'#334155'}, ticks:{color:'#94a3b8'} },
+      y1: { position:'right', grid:{drawOnChartArea:false}, ticks:{color:'#94a3b8'} },
+      x: { ticks:{color:'#94a3b8'}, grid:{color:'#334155'} }
+    },
+    plugins: { legend: { labels: { color:'#e2e8f0' } } }
+  }
+});
 
 const modCtx = document.getElementById('modChart').getContext('2d');
 new Chart(modCtx, {
   type: 'bar',
   data: {
-    labels: ['app.py', 'wizards.py', 'checks.py', 'click_compat.py', 'core.py', 'deploy_recipes.py', 'llm_repair.py', 'report.py', 'commands.py', 'main.py', 'explainer.py', 'models.py', 'quadlet.py', 'error_presenter.py', 'auth.py'],
-    datasets: [{ label: 'Max CC', data: [28, 28, 25, 18, 18, 17, 17, 17, 16, 15, 15, 14, 13, 13, 12],
-      backgroundColor: [28, 28, 25, 18, 18, 17, 17, 17, 16, 15, 15, 14, 13, 13, 12].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
+    labels: ['app.py', 'wizards.py', 'click_compat.py', 'core.py', 'deploy_recipes.py', 'checks_ports.py', 'llm_repair.py', 'report.py', 'main.py', 'checks_ssh.py', 'commands.py', 'explainer.py', 'models.py', 'classifier.py', 'quadlet.py'],
+    datasets: [{ label: 'Max CC', data: [28, 20, 18, 18, 17, 17, 17, 17, 15, 15, 15, 15, 14, 14, 13],
+      backgroundColor: [28, 20, 18, 18, 17, 17, 17, 17, 15, 15, 15, 15, 14, 14, 13].map(v => v >= 15 ? '#ef4444' : v >= 10 ? '#eab308' : '#22c55e')
     }]
   },
   options: {
