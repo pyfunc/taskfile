@@ -3,33 +3,23 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-07T08:29:17Z'
+  analyzed_at: '2026-03-07T08:41:42Z'
   tool: code2llm
   stats:
-    files: 75
-    lines: 30969
-    functions: 744
+    files: 78
+    lines: 31420
+    functions: 750
     classes: 90
 health:
   cc_avg: 4.4
-  critical_count: 54
+  critical_count: 55
   critical_limit: 10
   duplicates: 2
   cycles: 0
   alerts:
-  - type: high_fan_out
-    target: doctor
-    value: 32
-    limit: 10
-    severity: critical
-  - type: high_fan_out
-    target: _run_doctor
-    value: 29
-    limit: 10
-    severity: critical
   - type: cc_exceeded
     target: _run_doctor
-    value: 28
+    value: 27
     limit: 15
     severity: critical
   - type: high_fan_out
@@ -52,11 +42,6 @@ health:
     value: 20
     limit: 10
     severity: critical
-  - type: cc_exceeded
-    target: doctor
-    value: 20
-    limit: 15
-    severity: error
   - type: high_fan_out
     target: RegistryClient._install_from_github
     value: 18
@@ -65,6 +50,16 @@ health:
   - type: high_fan_out
     target: e2e_cmd
     value: 18
+    limit: 10
+    severity: error
+  - type: high_fan_out
+    target: doctor
+    value: 18
+    limit: 10
+    severity: error
+  - type: high_fan_out
+    target: ProjectDiagnostics.run_all_checks
+    value: 17
     limit: 10
     severity: error
   - type: high_fan_out
@@ -117,36 +112,22 @@ health:
     value: 15
     limit: 10
     severity: error
+  - type: high_fan_out
+    target: TaskfileRunner.run
+    value: 15
+    limit: 10
+    severity: error
 modules:
 - path: src/taskfile/api/app.py
-  lines: 714
+  lines: 695
   classes: 0
   methods: 10
-  cc_max: 28
+  cc_max: 27
   inbound_deps: 1
   exports:
   - name: create_app
     type: function
     cc: 1
-- path: src/taskfile/cli/interactive/wizards.py
-  lines: 629
-  classes: 1
-  methods: 22
-  cc_max: 20
-  inbound_deps: 0
-  exports:
-  - name: _nullcontext
-    type: class
-    cc_avg: 1.0
-  - name: doctor
-    type: function
-    cc: 20
-    flag: split
-    fan_out: 32
-  - name: init
-    type: function
-    cc: 6
-    fan_out: 12
 - path: src/taskfile/cli/click_compat.py
   lines: 218
   classes: 3
@@ -174,6 +155,25 @@ modules:
   - name: version_option
     type: function
     cc: 5
+- path: src/taskfile/cli/interactive/wizards.py
+  lines: 610
+  classes: 1
+  methods: 22
+  cc_max: 18
+  inbound_deps: 0
+  exports:
+  - name: _nullcontext
+    type: class
+    cc_avg: 1.0
+  - name: doctor
+    type: function
+    cc: 18
+    flag: split
+    fan_out: 18
+  - name: init
+    type: function
+    cc: 6
+    fan_out: 12
 - path: src/taskfile/runner/core.py
   lines: 476
   classes: 2
@@ -196,9 +196,9 @@ modules:
       flag: split
       fan_out: 15
 - path: src/taskfile/deploy_recipes.py
-  lines: 206
+  lines: 259
   classes: 0
-  methods: 4
+  methods: 6
   cc_max: 17
   inbound_deps: 1
   exports:
@@ -206,7 +206,7 @@ modules:
     type: function
     cc: 17
     flag: split
-    fan_out: 10
+    fan_out: 13
 - path: src/taskfile/diagnostics/checks_ports.py
   lines: 157
   classes: 0
@@ -219,23 +219,6 @@ modules:
     cc: 17
     flag: split
     fan_out: 15
-- path: src/taskfile/diagnostics/llm_repair.py
-  lines: 222
-  classes: 0
-  methods: 5
-  cc_max: 17
-  inbound_deps: 2
-  exports:
-  - name: is_available
-    type: function
-    cc: 2
-  - name: ask_llm_for_fix
-    type: function
-    cc: 5
-  - name: classify_runtime_error
-    type: function
-    cc: 17
-    flag: split
 - path: src/taskfile/diagnostics/report.py
   lines: 204
   classes: 0
@@ -354,37 +337,16 @@ modules:
   - name: print_teach_report
     type: function
     cc: 8
-- path: src/taskfile/models.py
-  lines: 598
-  classes: 9
-  methods: 20
+- path: src/taskfile/models/config.py
+  lines: 365
+  classes: 2
+  methods: 13
   cc_max: 14
   inbound_deps: 0
   exports:
-  - name: Environment
-    type: class
-    cc_avg: 7.0
-  - name: Platform
-    type: class
-    cc_avg: 3.0
-  - name: EnvironmentGroup
-    type: class
-    cc_avg: 0.0
   - name: ComposeConfig
     type: class
     cc_avg: 0.0
-  - name: Function
-    type: class
-    cc_avg: 0.0
-  - name: Task
-    type: class
-    cc_avg: 2.5
-  - name: PipelineStage
-    type: class
-    cc_avg: 0.0
-  - name: PipelineConfig
-    type: class
-    cc_avg: 4.5
   - name: TaskfileConfig
     type: class
     cc_avg: 4.8
@@ -431,6 +393,22 @@ modules:
   - name: quadlet_upload
     type: function
     cc: 5
+- path: src/taskfile/diagnostics/llm_repair.py
+  lines: 176
+  classes: 0
+  methods: 4
+  cc_max: 13
+  inbound_deps: 2
+  exports:
+  - name: is_available
+    type: function
+    cc: 2
+  - name: ask_llm_for_fix
+    type: function
+    cc: 5
+  - name: classify_runtime_error
+    type: function
+    cc: 13
 - path: src/taskfile/runner/error_presenter.py
   lines: 280
   classes: 1
@@ -512,9 +490,9 @@ modules:
     cc: 5
     fan_out: 16
 - path: src/taskfile/diagnostics/checks.py
-  lines: 1081
+  lines: 1225
   classes: 0
-  methods: 42
+  methods: 44
   cc_max: 11
   inbound_deps: 4
   exports:
@@ -926,15 +904,19 @@ modules:
     type: function
     cc: 5
 - path: src/taskfile/diagnostics/__init__.py
-  lines: 274
+  lines: 320
   classes: 1
-  methods: 26
+  methods: 29
   cc_max: 9
   inbound_deps: 0
   exports:
   - name: ProjectDiagnostics
     type: class
     cc_avg: 2.4
+    methods:
+    - name: run_all_checks
+      cc: 5
+      fan_out: 17
 - path: src/taskfile/diagnostics/fixes.py
   lines: 204
   classes: 0
@@ -1209,6 +1191,22 @@ modules:
   - name: DoctorReport
     type: class
     cc_avg: 4.5
+- path: src/taskfile/models/environment.py
+  lines: 107
+  classes: 3
+  methods: 2
+  cc_max: 7
+  inbound_deps: 0
+  exports:
+  - name: Environment
+    type: class
+    cc_avg: 7.0
+  - name: Platform
+    type: class
+    cc_avg: 3.0
+  - name: EnvironmentGroup
+    type: class
+    cc_avg: 0.0
 - path: src/taskfile/ssh.py
   lines: 151
   classes: 0
@@ -1332,6 +1330,19 @@ modules:
   - name: clean_project
     type: function
     cc: 5
+- path: src/taskfile/models/task.py
+  lines: 68
+  classes: 2
+  methods: 3
+  cc_max: 6
+  inbound_deps: 1
+  exports:
+  - name: Function
+    type: class
+    cc_avg: 0.0
+  - name: Task
+    type: class
+    cc_avg: 2.5
 - path: src/taskfile/runner/resolver.py
   lines: 197
   classes: 1
@@ -1366,6 +1377,19 @@ modules:
   - name: info
     type: function
     cc: 5
+- path: src/taskfile/models/pipeline.py
+  lines: 81
+  classes: 2
+  methods: 2
+  cc_max: 5
+  inbound_deps: 0
+  exports:
+  - name: PipelineStage
+    type: class
+    cc_avg: 0.0
+  - name: PipelineConfig
+    type: class
+    cc_avg: 4.5
 - path: src/taskfile/provisioner.py
   lines: 308
   classes: 2
@@ -1688,6 +1712,12 @@ modules:
   methods: 0
   cc_max: 0
   inbound_deps: 0
+- path: src/taskfile/models/__init__.py
+  lines: 29
+  classes: 0
+  methods: 0
+  cc_max: 0
+  inbound_deps: 0
 - path: src/taskfile/runner/__init__.py
   lines: 14
   classes: 0
@@ -1743,18 +1773,6 @@ modules:
   cc_max: 0
   inbound_deps: 0
 hotspots:
-- name: doctor
-  fan_out: 32
-  note: '**🔧 Diagnose project** — 5-layer self-healing diagnostics.
-
-
-    ## Layers
-
-
-    | Layer |'
-- name: _run_doctor
-  fan_out: 29
-  note: Shared doctor logic for GET and POST endpoints.
 - name: run
   fan_out: 23
   note: '**Run one or more tasks** defined in Taskfile.yml.
@@ -1790,6 +1808,21 @@ hotspots:
 
 
     Validates infrastructure-as-code a'
+- name: doctor
+  fan_out: 18
+  note: '**🔧 Diagnose project** — 5-layer self-healing diagnostics.
+
+
+    ## Layers
+
+
+    | Layer |'
+- name: ProjectDiagnostics.run_all_checks
+  fan_out: 17
+  note: 'Run Layers 1-3 checks — single entry point for doctor pipeline.
+
+
+    This replaces t'
 - name: check_remote_health
   fan_out: 17
   note: Check remote host health — podman, disk space, container status.
@@ -1799,14 +1832,14 @@ hotspots:
     \      # "
 refactoring:
   priorities:
-  - action: Split _run_doctor (CC=28 → target CC<10)
+  - action: Split _run_doctor (CC=27 → target CC<10)
     impact: high
     effort: low
     module: app.py
-  - action: Split god module src/taskfile/api/app.py (714L, 0 classes)
+  - action: Split god module src/taskfile/api/app.py (695L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/cli/interactive/wizards.py (629L, 1 classes)
+  - action: Split god module src/taskfile/cli/interactive/wizards.py (610L, 1 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/cli/main.py (698L, 0 classes)
@@ -1815,10 +1848,7 @@ refactoring:
   - action: Split god module src/taskfile/runner/commands.py (755L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/models.py (598L, 9 classes)
-    impact: high
-    effort: high
-  - action: Split god module src/taskfile/diagnostics/checks.py (1081L, 0 classes)
+  - action: Split god module src/taskfile/diagnostics/checks.py (1225L, 0 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)
@@ -1828,10 +1858,6 @@ refactoring:
     impact: medium
     effort: low
     module: deploy_recipes.py
-  - action: Split classify_runtime_error (CC=17 → target CC<10)
-    impact: medium
-    effort: low
-    module: llm_repair.py
   - action: Split check_ports (CC=17 → target CC<10)
     impact: medium
     effort: low
@@ -1840,6 +1866,14 @@ refactoring:
     impact: medium
     effort: low
     module: report.py
+  - action: Split check_remote_health (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: checks_ssh.py
+  - action: Split _print_teach_alt_env (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: explainer.py
   - action: Split _check_file_arg (CC=15 → target CC<10)
     impact: medium
     effort: low
@@ -1848,10 +1882,10 @@ refactoring:
     impact: medium
     effort: low
     module: commands.py
-  - action: Split check_remote_health (CC=15 → target CC<10)
+  - action: Split TaskfileRunner.run (CC=18 → target CC<10)
     impact: medium
     effort: low
-    module: checks_ssh.py
+    module: core.py
 evolution:
 - date: '2026-03-05'
   cc_avg: 4.3
@@ -1865,6 +1899,6 @@ evolution:
   note: Automated analysis
 - date: '2026-03-07'
   cc_avg: 4.4
-  critical: 54
-  lines: 30969
+  critical: 55
+  lines: 31420
   note: Automated analysis

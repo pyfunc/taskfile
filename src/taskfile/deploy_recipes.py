@@ -41,6 +41,7 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
     health_retries = deploy_section.get("health_retries", 5)
     health_delay = deploy_section.get("health_delay", 5)
     rollback_mode = deploy_section.get("rollback", "manual")  # auto | manual
+    restart_delay = deploy_section.get("restart_delay", 3)  # seconds between stop→start
     tag_var = "${TAG}"
 
     tasks: dict[str, dict] = {}
@@ -111,9 +112,9 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
     if strategy == "compose":
         tasks["deploy"] = _compose_deploy(deploy_deps)
     elif strategy == "quadlet":
-        tasks["deploy"] = _quadlet_deploy(deploy_deps, images, registry, tag_var)
+        tasks["deploy"] = _quadlet_deploy(deploy_deps, images, registry, tag_var, restart_delay)
     elif strategy == "ssh-push":
-        tasks["deploy"] = _ssh_push_deploy(deploy_deps, images, registry, tag_var)
+        tasks["deploy"] = _ssh_push_deploy(deploy_deps, images, registry, tag_var, restart_delay)
     else:
         tasks["deploy"] = _compose_deploy(deploy_deps)
 
@@ -129,6 +130,16 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
         ],
     }
 
+    # ── Post-deploy health gate ──
+    tasks["post-deploy"] = {
+        "desc": "Post-deploy health gate — verify all services are healthy after deploy",
+        "tags": ["deploy", "health"],
+        "silent": True,
+        "retries": health_retries,
+        "retry_delay": health_delay,
+        "cmds": _post_deploy_health_cmds(images, health_check, registry, tag_var),
+    }
+
     # ── Rollback ──
     if images:
         rollback_cmds = []
@@ -136,7 +147,9 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
             image_var = f"{registry}/{svc_name}:{tag_var}"
             rollback_cmds.append(f"@remote podman pull {image_var}")
         for svc_name in images:
-            rollback_cmds.append(f"@remote systemctl --user restart ${{APP_NAME}}-{svc_name}")
+            rollback_cmds.extend(
+                _graceful_restart_cmds(svc_name, restart_delay)
+            )
         tasks["rollback"] = {
             "desc": "Rollback to specified version (--var TAG=<prev>)",
             "tags": ["deploy", "rollback"],
@@ -144,6 +157,38 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
         }
 
     return tasks
+
+
+def _graceful_restart_cmds(svc_name: str, restart_delay: int = 3) -> list[str]:
+    """Generate graceful restart commands for a single service.
+
+    Pattern: stop → sleep(delay) → start
+    This avoids the hard restart that causes dropped connections.
+    The delay allows in-flight requests to complete.
+    """
+    return [
+        f"@remote systemctl --user stop ${{APP_NAME}}-{svc_name}",
+        f"sleep {restart_delay}",
+        f"@remote systemctl --user start ${{APP_NAME}}-{svc_name}",
+    ]
+
+
+def _post_deploy_health_cmds(
+    images: dict, health_check: str, registry: str, tag_var: str,
+) -> list[str]:
+    """Generate post-deploy health verification commands."""
+    cmds: list[str] = []
+    # Check each service container is running
+    for svc_name in images:
+        cmds.append(
+            f"@remote systemctl --user is-active --quiet ${{APP_NAME}}-{svc_name} "
+            f"&& echo '{svc_name}: running' || (echo '{svc_name}: NOT RUNNING' && exit 1)"
+        )
+    # Check HTTP health endpoint
+    cmds.append(
+        f"curl -sf https://${{DOMAIN}}{health_check} && echo 'Health: OK' || exit 1"
+    )
+    return cmds
 
 
 def _compose_deploy(deps: list[str]) -> dict:
@@ -161,8 +206,11 @@ def _compose_deploy(deps: list[str]) -> dict:
     }
 
 
-def _quadlet_deploy(deps: list[str], images: dict, registry: str, tag_var: str) -> dict:
-    """Generate Quadlet-based deploy task."""
+def _quadlet_deploy(
+    deps: list[str], images: dict, registry: str, tag_var: str,
+    restart_delay: int = 3,
+) -> dict:
+    """Generate Quadlet-based deploy task with graceful restart."""
     cmds = [
         "taskfile quadlet generate",
         "taskfile quadlet upload",
@@ -171,12 +219,13 @@ def _quadlet_deploy(deps: list[str], images: dict, registry: str, tag_var: str) 
     for svc_name in images:
         image_var = f"{registry}/{svc_name}:{tag_var}"
         cmds.append(f"@remote podman pull {image_var}")
+    # Graceful restart: stop → delay → start (one service at a time)
     for svc_name in images:
-        cmds.append(f"@remote systemctl --user restart ${{APP_NAME}}-{svc_name}")
+        cmds.extend(_graceful_restart_cmds(svc_name, restart_delay))
     cmds.append("@remote podman image prune -f")
 
     return {
-        "desc": "Deploy via Podman Quadlet (generate → upload → pull → restart)",
+        "desc": "Deploy via Podman Quadlet (generate → upload → pull → graceful restart)",
         "deps": deps,
         "tags": ["ci", "deploy"],
         "retries": 2,
@@ -186,18 +235,22 @@ def _quadlet_deploy(deps: list[str], images: dict, registry: str, tag_var: str) 
     }
 
 
-def _ssh_push_deploy(deps: list[str], images: dict, registry: str, tag_var: str) -> dict:
-    """Generate simple SSH pull+restart deploy task."""
+def _ssh_push_deploy(
+    deps: list[str], images: dict, registry: str, tag_var: str,
+    restart_delay: int = 3,
+) -> dict:
+    """Generate simple SSH pull+graceful restart deploy task."""
     cmds = []
     for svc_name in images:
         image_var = f"{registry}/{svc_name}:{tag_var}"
         cmds.append(f"@remote podman pull {image_var}")
+    # Graceful restart: stop → delay → start (one service at a time)
     for svc_name in images:
-        cmds.append(f"@remote systemctl --user restart ${{APP_NAME}}-{svc_name}")
+        cmds.extend(_graceful_restart_cmds(svc_name, restart_delay))
     cmds.append("@remote podman image prune -f")
 
     return {
-        "desc": "Deploy via SSH (pull + restart)",
+        "desc": "Deploy via SSH (pull + graceful restart)",
         "deps": deps,
         "tags": ["ci", "deploy"],
         "retries": 1,

@@ -32,6 +32,8 @@ from taskfile.diagnostics.checks import (
     check_examples,
     check_placeholder_values,
     check_deploy_artifacts,
+    _check_ufw_forward_policy,
+    _check_container_dns,
     validate_before_run,
 )
 from taskfile.diagnostics.fixes import apply_fixes, apply_single_fix
@@ -174,6 +176,50 @@ class ProjectDiagnostics:
         config = self._load_config()
         if config:
             self._add_issues(check_deploy_artifacts(config))
+
+    def check_ufw_forward_policy(self) -> None:
+        """Check if UFW default FORWARD policy is set to ACCEPT (needed for containers)."""
+        self._add_issues(_check_ufw_forward_policy())
+
+    def check_container_dns(self) -> None:
+        """Check if Podman bridge network DNS resolves external domains."""
+        self._add_issues(_check_container_dns())
+
+    # ─── Composite pipelines ───
+
+    def run_all_checks(self, *, verbose: bool = False, remote: bool = False) -> None:
+        """Run Layers 1-3 checks — single entry point for doctor pipeline.
+
+        This replaces the duplicated check sequences in wizards.py and api/app.py.
+
+        Args:
+            verbose: Include expensive checks (task commands, SSH connectivity, remote health)
+            remote: Include container infrastructure checks (UFW, DNS)
+        """
+        # Layer 1: Preflight
+        self.check_preflight()
+        # Layer 2: Validation
+        self.check_taskfile()
+        # Layer 3: Diagnostics
+        self.check_env_files()
+        self.validate_taskfile_variables()
+        self.check_placeholder_values()
+        self.check_dependent_files()
+        self.check_ports()
+        self.check_docker()
+        self.check_registry_access()
+        self.check_ssh_keys()
+        self.check_git()
+        self.check_deploy_artifacts()
+        # Layer 3+: expensive checks (verbose or remote)
+        if verbose or remote:
+            self.check_task_commands()
+            self.check_ssh_connectivity()
+            self.check_remote_health()
+        # Infra checks for container deployments
+        if remote or verbose:
+            self.check_ufw_forward_policy()
+            self.check_container_dns()
 
     # ─── Layer 4: Algorithmic fix ───
 

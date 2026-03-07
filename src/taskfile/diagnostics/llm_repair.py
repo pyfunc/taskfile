@@ -100,34 +100,6 @@ def classify_runtime_error(
             layer=3,
         )
 
-    # Detect podman/docker pull localhost/ — image not transferred to remote
-    if ("connection refused" in stderr_lower and "localhost" in stderr_lower
-            and ("pull" in cmd.lower() or "pull" in stderr_lower)):
-        # Extract image name from stderr or cmd
-        image = _extract_image_name(cmd, stderr)
-        return Issue(
-            category=IssueCategory.CONFIG_ERROR,
-            message=f"Cannot pull '{image}' — no local registry on remote server",
-            fix_strategy=FixStrategy.MANUAL,
-            severity=SEVERITY_ERROR,
-            fix_description=(
-                f"Images with 'localhost/' prefix must be transferred before deploy.\n"
-                f"  Fix: taskfile push {image}\n"
-                f"  This transfers the image via SSH (docker save | ssh podman load).\n"
-                f"  Then re-run the deploy."
-            ),
-            teach=(
-                "Images prefixed with 'localhost/' are local-only — they exist on your machine "
-                "but not on the remote server. 'podman pull localhost/...' on the remote server "
-                "tries to contact a local registry there, which doesn't exist.\n\n"
-                "**Solution:** Use `taskfile push` to transfer images via SSH before deploying:\n"
-                "```\ntaskfile push myapp-web:latest myapp-landing:latest\n```\n"
-                "This uses `docker save | ssh podman load` — no registry needed."
-            ),
-            context={"cmd": cmd, "stderr": stderr[:500], "image": image},
-            layer=3,
-        )
-
     if "connection refused" in stderr_lower or "no route to host" in stderr_lower:
         return Issue(
             category=IssueCategory.EXTERNAL_ERROR,
@@ -191,24 +163,6 @@ def classify_runtime_error(
         context={"exit_code": exit_code, "cmd": cmd, "stderr": stderr[:500]},
         layer=3,
     )
-
-
-def _extract_image_name(cmd: str, stderr: str) -> str:
-    """Extract Docker/Podman image name from pull command or stderr."""
-    import re
-    # Try from stderr: "Trying to pull localhost/foo:latest..."
-    m = re.search(r'Trying to pull\s+(\S+)', stderr)
-    if m:
-        return m.group(1).rstrip(".")
-    # Try from stderr: "docker://localhost/foo:latest"
-    m = re.search(r'docker://(\S+?):', stderr)
-    if m:
-        return m.group(1)
-    # Try from cmd: "podman pull IMAGE" or "docker pull IMAGE"
-    m = re.search(r'(?:podman|docker)\s+pull\s+(\S+)', cmd)
-    if m:
-        return m.group(1)
-    return "unknown-image"
 
 
 def _extract_missing_binary(stderr: str) -> str:

@@ -264,26 +264,7 @@ curl -X POST http://localhost:8000/doctor -H "Content-Type: application/json" \
         ))
 
     with console.status("[bold green]Checking project...[/]" if not remote else "[bold green]Checking remote server...[/]") if not report else _nullcontext():
-        # Layer 1: Preflight
-        diagnostics.check_preflight()
-        # Layer 2: Validation
-        diagnostics.check_taskfile()
-        # Layer 3: Diagnostics
-        diagnostics.check_env_files()
-        diagnostics.validate_taskfile_variables()
-        diagnostics.check_placeholder_values()
-        diagnostics.check_dependent_files()
-        diagnostics.check_ports()
-        diagnostics.check_docker()
-        diagnostics.check_registry_access()
-        diagnostics.check_ssh_keys()
-        diagnostics.check_git()
-        diagnostics.check_deploy_artifacts()
-        # Layer 3+: Task command checks and remote health (if verbose or remote)
-        if verbose or remote:
-            diagnostics.check_task_commands()
-            diagnostics.check_ssh_connectivity()
-            diagnostics.check_remote_health()
+        diagnostics.run_all_checks(verbose=verbose, remote=remote)
         # Remote-only: extended remote diagnostics
         if remote:
             _run_remote_diagnostics(diagnostics)
