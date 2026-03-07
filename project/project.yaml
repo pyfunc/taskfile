@@ -3,16 +3,16 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-07T17:35:47Z'
+  analyzed_at: '2026-03-07T18:45:17Z'
   tool: code2llm
   stats:
-    files: 87
-    lines: 32281
-    functions: 802
+    files: 88
+    lines: 32867
+    functions: 811
     classes: 96
 health:
-  cc_avg: 4.3
-  critical_count: 47
+  cc_avg: 4.2
+  critical_count: 46
   critical_limit: 10
   duplicates: 4
   cycles: 0
@@ -288,23 +288,6 @@ modules:
   - name: classify_runtime_error
     type: function
     cc: 3
-- path: src/taskfile/runner/commands.py
-  lines: 579
-  classes: 0
-  methods: 27
-  cc_max: 13
-  inbound_deps: 1
-  exports:
-  - name: run_command
-    type: function
-    cc: 4
-  - name: execute_script
-    type: function
-    cc: 11
-    fan_out: 12
-  - name: execute_commands
-    type: function
-    cc: 13
 - path: src/taskfile/runner/error_presenter.py
   lines: 280
   classes: 1
@@ -391,12 +374,6 @@ modules:
     type: function
     cc: 12
     fan_out: 14
-- path: src/taskfile/runner/failure.py
-  lines: 293
-  classes: 0
-  methods: 11
-  cc_max: 12
-  inbound_deps: 2
 - path: src/taskfile/cli/explain_cmd.py
   lines: 208
   classes: 0
@@ -532,6 +509,23 @@ modules:
     type: function
     cc: 2
     fan_out: 10
+- path: src/taskfile/runner/commands.py
+  lines: 588
+  classes: 0
+  methods: 29
+  cc_max: 11
+  inbound_deps: 1
+  exports:
+  - name: run_command
+    type: function
+    cc: 4
+  - name: execute_script
+    type: function
+    cc: 11
+    fan_out: 12
+  - name: execute_commands
+    type: function
+    cc: 6
 - path: src/taskfile/cli/ci.py
   lines: 202
   classes: 0
@@ -727,6 +721,12 @@ modules:
   - name: export_to_dot
     type: function
     cc: 6
+- path: src/taskfile/runner/failure.py
+  lines: 310
+  classes: 0
+  methods: 12
+  cc_max: 10
+  inbound_deps: 2
 - path: src/taskfile/runner/functions.py
   lines: 140
   classes: 0
@@ -1268,7 +1268,7 @@ modules:
     cc: 5
     fan_out: 12
 - path: src/taskfile/addons/__init__.py
-  lines: 68
+  lines: 69
   classes: 0
   methods: 2
   cc_max: 6
@@ -1410,6 +1410,16 @@ modules:
     - name: _resolve_variables
       cc: 6
       fan_out: 10
+- path: src/taskfile/addons/fixop_addon.py
+  lines: 67
+  classes: 0
+  methods: 1
+  cc_max: 5
+  inbound_deps: 0
+  exports:
+  - name: generate_tasks
+    type: function
+    cc: 5
 - path: src/taskfile/cigen/gitlab.py
   lines: 105
   classes: 1
@@ -1430,6 +1440,17 @@ modules:
   - name: info
     type: function
     cc: 5
+- path: src/taskfile/deploy_recipes.py
+  lines: 484
+  classes: 0
+  methods: 17
+  cc_max: 5
+  inbound_deps: 1
+  exports:
+  - name: expand_deploy_recipe
+    type: function
+    cc: 4
+    fan_out: 13
 - path: src/taskfile/diagnostics/fixop_adapter.py
   lines: 113
   classes: 0
@@ -1504,16 +1525,6 @@ modules:
   - name: cache_clear
     type: function
     cc: 4
-- path: src/taskfile/deploy_recipes.py
-  lines: 282
-  classes: 0
-  methods: 12
-  cc_max: 4
-  inbound_deps: 1
-  exports:
-  - name: expand_deploy_recipe
-    type: function
-    cc: 2
 - path: src/taskfile/runner/ssh.py
   lines: 121
   classes: 0
@@ -1943,10 +1954,10 @@ refactoring:
   - action: Split god module src/taskfile/cli/interactive/wizards.py (663L, 1 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/runner/commands.py (579L, 0 classes)
+  - action: Split god module src/taskfile/diagnostics/checks.py (692L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/diagnostics/checks.py (692L, 0 classes)
+  - action: Split god module src/taskfile/runner/commands.py (588L, 0 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)
@@ -1985,7 +1996,7 @@ evolution:
   lines: 29857
   note: Automated analysis
 - date: '2026-03-07'
-  cc_avg: 4.3
-  critical: 47
-  lines: 32281
+  cc_avg: 4.2
+  critical: 46
+  lines: 32867
   note: Automated analysis

@@ -26,10 +26,11 @@ def _load_registry() -> None:
     """Lazily populate the addon registry."""
     if _ADDON_REGISTRY:
         return
-    from taskfile.addons import postgres, monitoring, redis_addon
+    from taskfile.addons import postgres, monitoring, redis_addon, fixop_addon
     _ADDON_REGISTRY["postgres"] = postgres.generate_tasks
     _ADDON_REGISTRY["monitoring"] = monitoring.generate_tasks
     _ADDON_REGISTRY["redis"] = redis_addon.generate_tasks
+    _ADDON_REGISTRY["fixop"] = fixop_addon.generate_tasks
 
 
 def expand_addons(addons_section: list) -> dict[str, dict]:

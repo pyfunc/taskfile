@@ -1,6 +1,6 @@
-# taskfile | 138f 32778L | python:138
+# taskfile | 139f 33356L | python:139
 # Keys: M=modules, D=details, i=imports, c=classes, f=functions, m=methods
-M[138]:
+M[139]:
   TODO/__init__.py,73
   TODO/dns.py,162
   TODO/models.py,80
@@ -14,7 +14,8 @@ M[138]:
   examples/script-extraction/scripts/report.py,25
   src/taskfile/__init__.py,34
   src/taskfile/__main__.py,4
-  src/taskfile/addons/__init__.py,51
+  src/taskfile/addons/__init__.py,52
+  src/taskfile/addons/fixop_addon.py,51
   src/taskfile/addons/monitoring.py,53
   src/taskfile/addons/postgres.py,74
   src/taskfile/addons/redis_addon.py,52
@@ -58,7 +59,7 @@ M[138]:
   src/taskfile/cli/version.py,231
   src/taskfile/compose.py,187
   src/taskfile/converters.py,216
-  src/taskfile/deploy_recipes.py,241
+  src/taskfile/deploy_recipes.py,401
   src/taskfile/deploy_utils.py,402
   src/taskfile/diagnostics/__init__.py,255
   src/taskfile/diagnostics/checks.py,576
@@ -94,7 +95,7 @@ M[138]:
   src/taskfile/runner/core.py,391
   src/taskfile/runner/error_presenter.py,231
   src/taskfile/runner/explainer.py,310
-  src/taskfile/runner/failure.py,233
+  src/taskfile/runner/failure.py,248
   src/taskfile/runner/functions.py,112
   src/taskfile/runner/resolver.py,154
   src/taskfile/runner/ssh.py,89
@@ -127,10 +128,10 @@ M[138]:
   tests/test_dsl_commands.py,942
   tests/test_e2e_examples.py,847
   tests/test_fleet.py,208
-  tests/test_graceful_restart.py,186
+  tests/test_graceful_restart.py,386
   tests/test_health.py,166
   tests/test_landing.py,197
-  tests/test_models.py,671
+  tests/test_models.py,708
   tests/test_parser.py,94
   tests/test_provisioner.py,268
   tests/test_quadlet.py,188
@@ -200,6 +201,9 @@ D:
     e: _ADDON_REGISTRY,expand_addons
     _load_registry()->None
     expand_addons(addons_section:list)->dict[str, dict]
+  src/taskfile/addons/fixop_addon.py:
+    e: generate_tasks
+    generate_tasks(config:dict)->dict[str, dict]
   src/taskfile/addons/monitoring.py:
     e: generate_tasks
     generate_tasks(config:dict)->dict[str, dict]
@@ -810,15 +814,15 @@ D:
     _cmd_type_icon(cmd_type:str)->str
   src/taskfile/runner/failure.py:
     i: time,clickmd.MarkdownRenderer,fixop.classify.{_fixop_classify_error,_fixop_get_tip},rich.console.Console,taskfile.diagnostics.fixop_adapter.{_HAS_FIXOP_CLASSIFY,fixop_category_to_tag},taskfile.models.Task
-    e: _TIPS
+    e: _TIPS,_FAILURE_TIPS
     _md(text:str)->None
     _find_task_line(source_path:Any;task_name:str)->int | None
     _find_cmd_line(source_path:Any;task_name:str;cmd:str)->int | None
     _source_ref(source_path:Any;line:Any)->str
     _classify_exit_code(returncode:int)->tuple[str, str]
     _get_tip_for_command(cmd:str)->tuple[str, str] | None
+    _match_transfer_tip(cmd_lower:str;returncode:int)->str | None
     _get_tip_for_failure(cmd:str;returncode:int;category:str)->str | None
-    _handle_failure(returncode:int;task:Task;task_name:str;start:float;label:str;cmd:str='';...+1)->bool
   src/taskfile/runner/functions.py:
     i: os,subprocess,sys,rich.console.Console,taskfile.models.Task
     e: run_function,run_inline_python
@@ -984,7 +988,7 @@ D:
     TestDeviceStatus: test_default_status(0)
   tests/test_graceful_restart.py:
     i: pytest,taskfile.deploy_recipes.{_graceful_restart_cmds,_post_deploy_health_cmds,expand_deploy_recipe}
-    e: TestGracefulRestartCmds,TestPostDeployHealthCmds,TestQuadletGracefulRestart,TestSshPushGracefulRestart,TestRollbackGracefulRestart,TestPostDeployHealthGate
+    e: TestGracefulRestartCmds,TestPostDeployHealthCmds,TestQuadletGracefulRestart,TestSshPushGracefulRestart,TestRollbackGracefulRestart,TestPostDeployHealthGate,TestOpsTasksCompose,TestOpsTasksQuadlet
     TestGracefulRestartCmds: test_default_delay(0),test_custom_delay(0),test_zero_delay(0),test_uses_app_name_var(0),test_stop_before_start(0)
     TestPostDeployHealthCmds: test_single_service(0),test_multiple_services(0),test_uses_domain_var(0)
     TestQuadletGracefulRestart: _make_quadlet(0),test_no_hard_restart_in_deploy(0),test_has_stop_and_start(0),test_has_sleep_between_stop_start(0),test_default_delay_is_3(0)

@@ -259,6 +259,47 @@ class TestAddons:
         with pytest.raises(ValueError, match="Unknown addon"):
             TaskfileConfig.from_dict(data)
 
+    def test_fixop_addon_defaults(self):
+        data = {
+            "addons": ["fixop"],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "fixop-doctor" in config.tasks
+        assert "fixop-drift" in config.tasks
+
+    def test_fixop_addon_with_config(self):
+        data = {
+            "addons": [{"fixop": {
+                "host": "prod.example.com",
+                "domains": ["example.com", "api.example.com"],
+                "auto_fix": True,
+            }}],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "fixop-doctor" in config.tasks
+        assert "fixop-drift" in config.tasks
+        assert "fixop-tls" in config.tasks
+        assert "fixop-fix" in config.tasks
+
+    def test_fixop_addon_no_tls_without_domains(self):
+        data = {
+            "addons": [{"fixop": {"host": "server.com"}}],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "fixop-doctor" in config.tasks
+        assert "fixop-tls" not in config.tasks
+
+    def test_fixop_addon_no_fix_by_default(self):
+        data = {
+            "addons": ["fixop"],
+            "tasks": {},
+        }
+        config = TaskfileConfig.from_dict(data)
+        assert "fixop-fix" not in config.tasks
+
 
 class TestDeployRecipe:
     """Test deploy: recipe expansion into tasks."""

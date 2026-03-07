@@ -4,10 +4,10 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 811
+- **Total Functions**: 820
 - **Total Classes**: 96
-- **Modules**: 110
-- **Entry Points**: 360
+- **Modules**: 111
+- **Entry Points**: 361
 
 ## Architecture by Module
 
@@ -22,7 +22,7 @@
 - **File**: `__init__.py`
 
 ### src.taskfile.runner.commands
-- **Functions**: 27
+- **Functions**: 29
 - **File**: `commands.py`
 
 ### src.taskfile.cli.interactive.wizards
@@ -57,19 +57,23 @@
 - **Classes**: 2
 - **File**: `deploy_utils.py`
 
-### src.taskfile.cli.fleet
-- **Functions**: 18
-- **File**: `fleet.py`
-
 ### src.taskfile.cli.deploy
 - **Functions**: 18
 - **Classes**: 1
 - **File**: `deploy.py`
 
+### src.taskfile.cli.fleet
+- **Functions**: 18
+- **File**: `fleet.py`
+
 ### src.taskfile.cli.e2e_cmd
 - **Functions**: 18
 - **Classes**: 1
 - **File**: `e2e_cmd.py`
+
+### src.taskfile.deploy_recipes
+- **Functions**: 17
+- **File**: `deploy_recipes.py`
 
 ### src.taskfile.fleet
 - **Functions**: 16
@@ -81,14 +85,14 @@
 - **Classes**: 2
 - **File**: `config.py`
 
-### src.taskfile.cli.release
-- **Functions**: 15
-- **File**: `release.py`
-
 ### src.taskfile.cli.setup
 - **Functions**: 15
 - **Classes**: 1
 - **File**: `setup.py`
+
+### src.taskfile.cli.release
+- **Functions**: 15
+- **File**: `release.py`
 
 ### src.taskfile.api.app
 - **Functions**: 15
@@ -98,11 +102,6 @@
 - **Functions**: 14
 - **Classes**: 2
 - **File**: `registry.py`
-
-### src.taskfile.runner.resolver
-- **Functions**: 14
-- **Classes**: 1
-- **File**: `resolver.py`
 
 ## Key Entry Points
 
@@ -523,6 +522,13 @@ Reuses the shared filename→type map from ``taskfile.importer`` for
 Ma
 - **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
 
+### src.taskfile.registry.RegistryClient._parse_package_name
+> Parse package name and return (source, name).
+
+Examples:
+    "tom-sapletta/web-tasks" -> ("github", 
+- **Output to**: name.startswith, name.startswith, name.startswith
+
 ### src.taskfile.importer._convert_gh_job_to_task
 > Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
 - **Output to**: src.taskfile.importer._extract_gh_steps_as_commands, src.taskfile.importer._extract_gh_job_deps, src.taskfile.importer._slugify, job_data.get, job_data.get
@@ -539,12 +545,13 @@ Ma
 > Parse Makefile into a Taskfile dict.
 - **Output to**: re.finditer, re.compile, target_re.finditer, None.strip, match.group
 
-### src.taskfile.registry.RegistryClient._parse_package_name
-> Parse package name and return (source, name).
+### src.taskfile.compose.ComposeFile._parse_port_mapping
+> Parse a port mapping string or dict.
 
-Examples:
-    "tom-sapletta/web-tasks" -> ("github", 
-- **Output to**: name.startswith, name.startswith, name.startswith
+Handles formats like:
+- "8080:80" (host:container)
+- "127.0.0.
+- **Output to**: isinstance, port_mapping.split, isinstance, int, int
 
 ### src.taskfile.parser._parse_include_entry
 > Parse a single include entry into (path, prefix). Returns None if invalid.
@@ -584,14 +591,6 @@ Examples:
 > Validate a TaskfileConfig and return list of warnings.
 - **Output to**: warnings.extend, config.tasks.items, warnings.extend, warnings.extend, src.taskfile.parser._validate_tasks_exist
 
-### src.taskfile.compose.ComposeFile._parse_port_mapping
-> Parse a port mapping string or dict.
-
-Handles formats like:
-- "8080:80" (host:container)
-- "127.0.0.
-- **Output to**: isinstance, port_mapping.split, isinstance, int, int
-
 ### src.taskfile.fleet._parse_status_output
 > Parse pipe-delimited SSH output into DeviceStatus fields.
 - **Output to**: None.split, None.isdigit, None.isdigit, int, None.isdigit
@@ -599,6 +598,12 @@ Handles formats like:
 ### src.taskfile.ssh._ssh_exec_subprocess
 > Fallback: execute via subprocess `ssh` command.
 - **Output to**: command.replace, subprocess.run, None.rstrip, None.codeblock, print
+
+### src.taskfile.diagnostics.checks_ports._parse_compose_host_port
+- **Output to**: port_entry.strip, entry.split, re.match, entry.split, len
+
+### src.taskfile.diagnostics.checks_ports._is_docker_process
+- **Output to**: any, _fixop_is_container, None.lower
 
 ### src.taskfile.quadlet._parse_port
 > Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
@@ -610,12 +615,6 @@ Handles formats like:
 ### src.taskfile.quadlet._parse_cpus_limit
 > Extract CPU limit from deploy.resources.limits.cpus.
 - **Output to**: str
-
-### src.taskfile.diagnostics.checks_ports._parse_compose_host_port
-- **Output to**: port_entry.strip, entry.split, re.match, entry.split, len
-
-### src.taskfile.diagnostics.checks_ports._is_docker_process
-- **Output to**: any, _fixop_is_container, None.lower
 
 ## Behavioral Patterns
 
@@ -707,6 +706,7 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.e2e_cmd.e2e_cmd` - 31 calls
 - `src.taskfile.cli.auth.auth_setup` - 30 calls
 - `src.taskfile.cli.fleet.fleet_repair_cmd` - 29 calls
+- `src.taskfile.deploy_recipes.expand_deploy_recipe` - 28 calls
 - `src.taskfile.cirunner.PipelineRunner.run` - 28 calls
 - `src.taskfile.cli.release.rollback` - 28 calls
 - `src.taskfile.cli.import_export.import_cmd` - 27 calls
@@ -731,7 +731,6 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.registry_cmds.pkg_info` - 19 calls
 - `src.taskfile.cli.explain_cmd.explain` - 19 calls
 - `src.taskfile.cli.interactive.menu.hosts` - 19 calls
-- `src.taskfile.deploy_recipes.expand_deploy_recipe` - 18 calls
 - `src.taskfile.diagnostics.checks_infra.check_ufw_forward_policy` - 18 calls
 - `src.taskfile.diagnostics.checks_infra.check_container_dns` - 18 calls
 - `src.taskfile.cigen.makefile.MakefileTarget.generate` - 18 calls
