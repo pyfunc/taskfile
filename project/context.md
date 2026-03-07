@@ -4,10 +4,10 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Analysis Mode**: static
-- **Total Functions**: 759
-- **Total Classes**: 90
-- **Modules**: 101
-- **Entry Points**: 347
+- **Total Functions**: 774
+- **Total Classes**: 96
+- **Modules**: 104
+- **Entry Points**: 353
 
 ## Architecture by Module
 
@@ -76,14 +76,14 @@
 - **Classes**: 5
 - **File**: `fleet.py`
 
+### src.taskfile.cli.release
+- **Functions**: 15
+- **File**: `release.py`
+
 ### src.taskfile.cli.setup
 - **Functions**: 15
 - **Classes**: 1
 - **File**: `setup.py`
-
-### src.taskfile.cli.release
-- **Functions**: 15
-- **File**: `release.py`
 
 ### src.taskfile.registry
 - **Functions**: 14
@@ -278,8 +278,10 @@ Package names can be:
 - **Calls**: main.command, click.option, click.option, src.taskfile.parser.load_taskfile, src.taskfile.parser.validate_taskfile, console.print, console.print, console.print
 
 ### src.taskfile.diagnostics.checks_ssh.check_remote_health
-> Check remote host health — podman, disk space, container status.
-- **Calls**: config.environments.items, Path.cwd, src.taskfile.diagnostics.checks._resolve_env_fields, src.taskfile.deploy_utils.test_ssh_connection, src.taskfile.deploy_utils.check_remote_podman, src.taskfile.deploy_utils.check_remote_disk, Path, issues.append
+> Check remote host health — DNS, firewall, containers, disk, memory.
+
+Delegates all infra checks to fixop, converts results to taskfile Issues.
+- **Calls**: config.environments.items, Path.cwd, src.taskfile.diagnostics.checks._resolve_env_fields, src.taskfile.diagnostics.checks_ssh._make_host_ctx, fixop.check_ssh_connectivity, fixop.check_host_dns, fixop.check_container_dns, fixop.check_ufw_forward_policy
 
 ### src.taskfile.runner.core.TaskfileRunner.run
 > Run multiple tasks in order. Returns True if all succeed.
@@ -291,6 +293,15 @@ Package names can be:
 Scans for Makefile, package.json, .github/workflows/, etc.
 and shows what can be imported.
 - **Calls**: main.command, Path.cwd, console.print, console.print, console.print, console.print, console.print, console.print
+
+### TODO.check_all
+> Run all infrastructure checks on a remote host.
+
+Args:
+    ctx: SSH connection context.
+    domains: Domains to check TLS certificates for.
+    contai
+- **Calls**: src.taskfile.diagnostics.ProjectDiagnostics.check_ssh_connectivity, issues.extend, issues.extend, issues.extend, issues.extend, issues.extend, issues.extend, issues.extend
 
 ### src.taskfile.cli.interactive.menu.push
 > **📦 Push Docker images to remote server** via SSH.
@@ -331,12 +342,6 @@ Examples:
 ### src.taskfile.registry.RegistryClient._install_from_github
 > Install package from GitHub repository.
 - **Calls**: pkg_dir.mkdir, repo.replace, urllib.request.urlretrieve, tarfile.open, temp_dir.mkdir, tar.extractall, list, self._save_dependency
-
-### src.taskfile.cli.registry_cmds.pkg_search
-> Search for packages in the registry.
-
-Searches GitHub repositories with 'taskfile' topic.
-- **Calls**: pkg.command, click.argument, click.option, click.option, RegistryClient, console.print, client.search, Table
 
 ## Process Flows
 
@@ -521,6 +526,13 @@ Reuses the shared filename→type map from ``taskfile.importer`` for
 Ma
 - **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
 
+### src.taskfile.registry.RegistryClient._parse_package_name
+> Parse package name and return (source, name).
+
+Examples:
+    "tom-sapletta/web-tasks" -> ("github", 
+- **Output to**: name.startswith, name.startswith, name.startswith
+
 ### src.taskfile.importer._convert_gh_job_to_task
 > Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
 - **Output to**: src.taskfile.importer._extract_gh_steps_as_commands, src.taskfile.importer._extract_gh_job_deps, src.taskfile.importer._slugify, job_data.get, job_data.get
@@ -536,29 +548,6 @@ Ma
 ### src.taskfile.importer.parse_makefile
 > Parse Makefile into a Taskfile dict.
 - **Output to**: re.finditer, re.compile, target_re.finditer, None.strip, match.group
-
-### src.taskfile.registry.RegistryClient._parse_package_name
-> Parse package name and return (source, name).
-
-Examples:
-    "tom-sapletta/web-tasks" -> ("github", 
-- **Output to**: name.startswith, name.startswith, name.startswith
-
-### src.taskfile.fleet._parse_status_output
-> Parse pipe-delimited SSH output into DeviceStatus fields.
-- **Output to**: None.split, None.isdigit, None.isdigit, int, None.isdigit
-
-### src.taskfile.compose.ComposeFile._parse_port_mapping
-> Parse a port mapping string or dict.
-
-Handles formats like:
-- "8080:80" (host:container)
-- "127.0.0.
-- **Output to**: isinstance, port_mapping.split, isinstance, int, int
-
-### src.taskfile.ssh._ssh_exec_subprocess
-> Fallback: execute via subprocess `ssh` command.
-- **Output to**: command.replace, subprocess.run, None.rstrip, None.codeblock, print
 
 ### src.taskfile.parser._parse_include_entry
 > Parse a single include entry into (path, prefix). Returns None if invalid.
@@ -598,6 +587,22 @@ Handles formats like:
 > Validate a TaskfileConfig and return list of warnings.
 - **Output to**: warnings.extend, config.tasks.items, warnings.extend, warnings.extend, src.taskfile.parser._validate_tasks_exist
 
+### src.taskfile.compose.ComposeFile._parse_port_mapping
+> Parse a port mapping string or dict.
+
+Handles formats like:
+- "8080:80" (host:container)
+- "127.0.0.
+- **Output to**: isinstance, port_mapping.split, isinstance, int, int
+
+### src.taskfile.fleet._parse_status_output
+> Parse pipe-delimited SSH output into DeviceStatus fields.
+- **Output to**: None.split, None.isdigit, None.isdigit, int, None.isdigit
+
+### src.taskfile.ssh._ssh_exec_subprocess
+> Fallback: execute via subprocess `ssh` command.
+- **Output to**: command.replace, subprocess.run, None.rstrip, None.codeblock, print
+
 ### src.taskfile.diagnostics.checks_ports._parse_compose_host_port
 - **Output to**: port_entry.strip, entry.split, re.match, entry.split, len
 
@@ -607,17 +612,16 @@ Handles formats like:
 ### src.taskfile.diagnostics.ProjectDiagnostics.validate_taskfile_variables
 - **Output to**: self._load_config, self._add_issues, src.taskfile.diagnostics.checks.check_unresolved_variables
 
-### src.taskfile.diagnostics.report.format_summary
-> Format a one-line summary string.
-- **Output to**: parts.append, parts.append, parts.append, parts.append, None.join
-
-### src.taskfile.diagnostics.checks.validate_before_run
-> Quick pre-run validation — returns issues that would cause task failure.
-- **Output to**: issues.extend, issues.extend, issues.extend, issues.extend, Path.cwd
-
 ### src.taskfile.quadlet._parse_port
 > Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
 - **Output to**: None.split, len, str
+
+### src.taskfile.quadlet._parse_memory_limit
+> Extract memory limit from deploy.resources.limits.memory.
+
+### src.taskfile.quadlet._parse_cpus_limit
+> Extract CPU limit from deploy.resources.limits.cpus.
+- **Output to**: str
 
 ## Behavioral Patterns
 
@@ -724,9 +728,9 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.deploy_recipes.expand_deploy_recipe` - 23 calls
 - `src.taskfile.runner.core.TaskfileRunner.run` - 23 calls
 - `src.taskfile.cli.import_export.detect` - 23 calls
+- `TODO.check_all` - 22 calls
 - `src.taskfile.graph.print_task_tree` - 22 calls
 - `src.taskfile.cli.interactive.menu.push` - 22 calls
-- `src.taskfile.health.check_http_endpoint` - 21 calls
 - `src.taskfile.cli.api_cmd.api_serve` - 21 calls
 - `src.taskfile.cli.fleet.fleet_status_cmd` - 21 calls
 - `src.taskfile.importer.parse_makefile` - 20 calls

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taskfile"
-version = "0.3.78"
+version = "0.3.79"
 description = "Universal Taskfile runner with multi-environment deploy support. CI/CD agnostic — run locally or from any pipeline."
 readme = "README.md"
 license = "Apache-2.0"
@@ -25,6 +25,7 @@ dependencies = [
     "click>=8.0",
     "rich>=13.0",
     "clickmd>=1.1.1",
+    "fixop>=0.1.0",
 ]
 
 [project.optional-dependencies]

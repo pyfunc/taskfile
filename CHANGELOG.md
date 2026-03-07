@@ -131,6 +131,25 @@
   - Added 27 new `TaskResolver` unit tests
   - All backward compatibility preserved via `__init__.py` re-exports
 
+## [0.3.79] - 2026-03-07
+
+### Docs
+- Update project/README.md
+- Update project/context.md
+
+### Other
+- Update TODO/pyproject.toml
+- Update TODO/tests/test_fixop.py
+- Update examples/ai-copilot/Taskfile.yml
+- Update examples/ai-cursor/Taskfile.yml
+- Update examples/ai-gemini-cli/Taskfile.yml
+- Update project.sh
+- Update project/analysis.json
+- Update project/analysis.toon
+- Update project/analysis.yaml
+- Update project/calls.mmd
+- ... and 11 more files
+
 ## [0.3.78] - 2026-03-07
 
 ### Docs

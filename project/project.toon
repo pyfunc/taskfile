@@ -1,7 +1,7 @@
-# taskfile | 750 func | 78f | 31420L | 2026-03-07
+# taskfile | 765 func | 81f | 31863L | 2026-03-07
 
 HEALTH:
-  CC̄=4.4  critical=55 (limit:10)  dup=2  cycles=0
+  CC̄=4.4  critical=55 (limit:10)  dup=4  cycles=0
 
 ALERTS[20]:
   !!! cc_exceeded      _run_doctor = 27 (limit:15)
@@ -13,9 +13,9 @@ ALERTS[20]:
   !!  high_fan_out     e2e_cmd = 18 (limit:10)
   !!  high_fan_out     doctor = 18 (limit:10)
   !!  high_fan_out     ProjectDiagnostics.run_all_checks = 17 (limit:10)
-  !!  high_fan_out     check_remote_health = 17 (limit:10)
+  !!  high_fan_out     set = 16 (limit:10)
 
-MODULES[94] (top by CC):
+MODULES[97] (top by CC):
   M[src/taskfile/api/app.py] 695L C:0 M:10 CC↑27 D:1
   M[src/taskfile/cli/click_compat.py] 218L C:3 M:5 CC↑18 D:6
   M[src/taskfile/cli/interactive/wizards.py] 610L C:1 M:22 CC↑18 D:0
@@ -24,8 +24,8 @@ MODULES[94] (top by CC):
   M[src/taskfile/diagnostics/checks_ports.py] 157L C:0 M:7 CC↑17 D:0
   M[src/taskfile/diagnostics/report.py] 204L C:0 M:11 CC↑17 D:0
   M[src/taskfile/cli/main.py] 698L C:0 M:23 CC↑15 D:3
-  M[src/taskfile/diagnostics/checks_ssh.py] 266L C:0 M:4 CC↑15 D:0
-  M[src/taskfile/runner/commands.py] 755L C:0 M:30 CC↑15 D:1
+  M[src/taskfile/runner/commands.py] 795L C:0 M:30 CC↑15 D:1
+  M[src/taskfile/runner/explainer.py] 395L C:4 M:14 CC↑15 D:1
 
 HOTSPOTS[10]:
   ★ run fan=23  // **Run one or more tasks** defined in Taskfile.yml.
@@ -48,9 +48,9 @@ REFACTOR[15]:
   [2] H/H Split god module src/taskfile/api/app.py (695L, 0 classes)
   [3] H/H Split god module src/taskfile/cli/interactive/wizards.py (610L, 1 classes)
   [4] H/H Split god module src/taskfile/cli/main.py (698L, 0 classes)
-  [5] H/H Split god module src/taskfile/runner/commands.py (755L, 0 classes)
+  [5] H/H Split god module src/taskfile/runner/commands.py (795L, 0 classes)
 
 EVOLUTION:
   2026-03-05 CC̄=4.3 crit=32 17790L // Automated analysis
   2026-03-06 CC̄=4.5 crit=57 29857L // Automated analysis
-  2026-03-07 CC̄=4.4 crit=55 31420L // Automated analysis
+  2026-03-07 CC̄=4.4 crit=55 31863L // Automated analysis

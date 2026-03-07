@@ -1200,7 +1200,7 @@ from taskfile.diagnostics.checks_ports import (  # noqa: E402, F401
 
 
 # SSH helpers — delegated to checks_ssh.py (backward-compat re-export)
-from taskfile.diagnostics.checks_ssh import _test_ssh  # noqa: E402, F401
+# NOTE: _test_ssh removed — SSH transport now handled by fixop.ssh
 
 
 def _extract_binary(cmd: str) -> str | None:

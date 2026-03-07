@@ -3,18 +3,18 @@ project:
   name: taskfile
   repo: /home/tom/github/pyfunc/taskfile
   language: python
-  analyzed_at: '2026-03-07T08:41:42Z'
+  analyzed_at: '2026-03-07T09:20:34Z'
   tool: code2llm
   stats:
-    files: 78
-    lines: 31420
-    functions: 750
-    classes: 90
+    files: 81
+    lines: 31863
+    functions: 765
+    classes: 96
 health:
   cc_avg: 4.4
   critical_count: 55
   critical_limit: 10
-  duplicates: 2
+  duplicates: 4
   cycles: 0
   alerts:
   - type: cc_exceeded
@@ -59,11 +59,6 @@ health:
     severity: error
   - type: high_fan_out
     target: ProjectDiagnostics.run_all_checks
-    value: 17
-    limit: 10
-    severity: error
-  - type: high_fan_out
-    target: check_remote_health
     value: 17
     limit: 10
     severity: error
@@ -114,6 +109,11 @@ health:
     severity: error
   - type: high_fan_out
     target: TaskfileRunner.run
+    value: 15
+    limit: 10
+    severity: error
+  - type: high_fan_out
+    target: import_cmd
     value: 15
     limit: 10
     severity: error
@@ -267,26 +267,8 @@ modules:
     type: function
     cc: 4
     fan_out: 11
-- path: src/taskfile/diagnostics/checks_ssh.py
-  lines: 266
-  classes: 0
-  methods: 4
-  cc_max: 15
-  inbound_deps: 0
-  exports:
-  - name: check_ssh_keys
-    type: function
-    cc: 3
-  - name: check_ssh_connectivity
-    type: function
-    cc: 10
-  - name: check_remote_health
-    type: function
-    cc: 15
-    flag: split
-    fan_out: 17
 - path: src/taskfile/runner/commands.py
-  lines: 755
+  lines: 795
   classes: 0
   methods: 30
   cc_max: 15
@@ -394,9 +376,9 @@ modules:
     type: function
     cc: 5
 - path: src/taskfile/diagnostics/llm_repair.py
-  lines: 176
+  lines: 232
   classes: 0
-  methods: 4
+  methods: 5
   cc_max: 13
   inbound_deps: 2
   exports:
@@ -408,7 +390,7 @@ modules:
     cc: 5
   - name: classify_runtime_error
     type: function
-    cc: 13
+    cc: 3
 - path: src/taskfile/runner/error_presenter.py
   lines: 280
   classes: 1
@@ -455,6 +437,23 @@ modules:
     type: function
     cc: 8
     fan_out: 12
+- path: src/taskfile/diagnostics/checks_ssh.py
+  lines: 158
+  classes: 0
+  methods: 5
+  cc_max: 12
+  inbound_deps: 0
+  exports:
+  - name: check_ssh_keys
+    type: function
+    cc: 3
+  - name: check_ssh_connectivity
+    type: function
+    cc: 6
+  - name: check_remote_health
+    type: function
+    cc: 12
+    fan_out: 14
 - path: src/taskfile/importer.py
   lines: 442
   classes: 0
@@ -551,9 +550,9 @@ modules:
     type: function
     cc: 2
 - path: src/taskfile/health.py
-  lines: 408
+  lines: 458
   classes: 2
-  methods: 7
+  methods: 10
   cc_max: 11
   inbound_deps: 2
   exports:
@@ -565,11 +564,10 @@ modules:
     cc_avg: 0.0
   - name: check_http_endpoint
     type: function
-    cc: 11
-    fan_out: 10
+    cc: 2
   - name: check_ssh_service
     type: function
-    cc: 6
+    cc: 2
   - name: check_traefik_dashboard
     type: function
     cc: 5
@@ -826,6 +824,31 @@ modules:
   - name: watch_tasks
     type: function
     cc: 2
+- path: TODO/dns.py
+  lines: 194
+  classes: 0
+  methods: 6
+  cc_max: 9
+  inbound_deps: 1
+  exports:
+  - name: check_host_dns
+    type: function
+    cc: 6
+  - name: check_container_dns
+    type: function
+    cc: 9
+  - name: check_systemd_resolved
+    type: function
+    cc: 5
+  - name: fix_resolv_conf
+    type: function
+    cc: 4
+  - name: fix_disable_systemd_resolved
+    type: function
+    cc: 1
+  - name: generate_container_resolv_conf
+    type: function
+    cc: 3
 - path: src/taskfile/cache.py
   lines: 231
   classes: 1
@@ -908,7 +931,7 @@ modules:
   classes: 1
   methods: 29
   cc_max: 9
-  inbound_deps: 0
+  inbound_deps: 1
   exports:
   - name: ProjectDiagnostics
     type: class
@@ -1152,6 +1175,17 @@ modules:
   - name: TaskfileHandler
     type: class
     cc_avg: 2.5
+- path: TODO/__init__.py
+  lines: 108
+  classes: 0
+  methods: 1
+  cc_max: 7
+  inbound_deps: 0
+  exports:
+  - name: check_all
+    type: function
+    cc: 7
+    fan_out: 12
 - path: src/taskfile/cigen/github.py
   lines: 127
   classes: 1
@@ -1266,7 +1300,7 @@ modules:
   classes: 2
   methods: 18
   cc_max: 6
-  inbound_deps: 5
+  inbound_deps: 4
   exports:
   - name: SSHResult
     type: class
@@ -1530,6 +1564,31 @@ modules:
   - name: serve_dashboard
     type: function
     cc: 1
+- path: TODO/models.py
+  lines: 103
+  classes: 6
+  methods: 3
+  cc_max: 2
+  inbound_deps: 0
+  exports:
+  - name: Severity
+    type: class
+    cc_avg: 0.0
+  - name: Category
+    type: class
+    cc_avg: 0.0
+  - name: FixStrategy
+    type: class
+    cc_avg: 0.0
+  - name: Issue
+    type: class
+    cc_avg: 1.0
+  - name: FixResult
+    type: class
+    cc_avg: 2.0
+  - name: HostContext
+    type: class
+    cc_avg: 1.0
 - path: src/taskfile/cigen/jenkins.py
   lines: 54
   classes: 1
@@ -1823,13 +1882,16 @@ hotspots:
 
 
     This replaces t'
-- name: check_remote_health
-  fan_out: 17
-  note: Check remote host health — podman, disk space, container status.
 - name: set
   fan_out: 16
   note: "Set specific version number.\n\n\b\nExamples:\n    taskfile version set 1.0.0\
     \      # "
+- name: auth_setup
+  fan_out: 16
+  note: 'Interactive registry authentication setup.
+
+
+    Guides you through obtaining API tok'
 refactoring:
   priorities:
   - action: Split _run_doctor (CC=27 → target CC<10)
@@ -1845,7 +1907,7 @@ refactoring:
   - action: Split god module src/taskfile/cli/main.py (698L, 0 classes)
     impact: high
     effort: high
-  - action: Split god module src/taskfile/runner/commands.py (755L, 0 classes)
+  - action: Split god module src/taskfile/runner/commands.py (795L, 0 classes)
     impact: high
     effort: high
   - action: Split god module src/taskfile/diagnostics/checks.py (1225L, 0 classes)
@@ -1866,14 +1928,6 @@ refactoring:
     impact: medium
     effort: low
     module: report.py
-  - action: Split check_remote_health (CC=15 → target CC<10)
-    impact: medium
-    effort: low
-    module: checks_ssh.py
-  - action: Split _print_teach_alt_env (CC=15 → target CC<10)
-    impact: medium
-    effort: low
-    module: explainer.py
   - action: Split _check_file_arg (CC=15 → target CC<10)
     impact: medium
     effort: low
@@ -1882,10 +1936,18 @@ refactoring:
     impact: medium
     effort: low
     module: commands.py
+  - action: Split _print_teach_alt_env (CC=15 → target CC<10)
+    impact: medium
+    effort: low
+    module: explainer.py
   - action: Split TaskfileRunner.run (CC=18 → target CC<10)
     impact: medium
     effort: low
     module: core.py
+  - action: Split prompt (CC=18 → target CC<10)
+    impact: medium
+    effort: low
+    module: click_compat.py
 evolution:
 - date: '2026-03-05'
   cc_avg: 4.3
@@ -1900,5 +1962,5 @@ evolution:
 - date: '2026-03-07'
   cc_avg: 4.4
   critical: 55
-  lines: 31420
+  lines: 31863
   note: Automated analysis

@@ -3,7 +3,7 @@ name = "fixop"
 version = "0.1.0"
 description = "Infrastructure fix operations — detect and repair DNS, firewall, containers, TLS, systemd issues"
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [{ name = "Tom Sapletta", email = "tom@sapletta.com" }]
 keywords = ["infrastructure", "devops", "diagnostics", "podman", "docker", "dns", "firewall", "systemd"]

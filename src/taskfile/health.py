@@ -21,6 +21,15 @@ if TYPE_CHECKING:
 
 console = Console()
 
+try:
+    from fixop.health import (
+        check_http_endpoint as _fixop_check_http,
+        check_ssh_service as _fixop_check_ssh,
+    )
+    _HAS_FIXOP_HEALTH = True
+except ImportError:
+    _HAS_FIXOP_HEALTH = False
+
 
 @dataclass
 class HealthCheckResult:
@@ -65,6 +74,18 @@ def _unhealthy_result(
     )
 
 
+def _from_fixop_result(fr) -> HealthCheckResult:
+    """Convert fixop HealthCheckResult to taskfile HealthCheckResult."""
+    return HealthCheckResult(
+        name=fr.name,
+        url=fr.url,
+        status=fr.status,
+        status_code=fr.status_code,
+        response_time_ms=fr.response_time_ms,
+        error=fr.error,
+    )
+
+
 def check_http_endpoint(
     name: str,
     url: str,
@@ -73,6 +94,8 @@ def check_http_endpoint(
     retries: int = 1,
 ) -> HealthCheckResult:
     """Check HTTP endpoint health.
+
+    Delegates to fixop.health when available.
 
     Args:
         name: Service name for display
@@ -84,6 +107,19 @@ def check_http_endpoint(
     Returns:
         HealthCheckResult with status details
     """
+    if _HAS_FIXOP_HEALTH:
+        return _from_fixop_result(
+            _fixop_check_http(name, url, expected_status, timeout, retries)
+        )
+
+    return _check_http_endpoint_legacy(name, url, expected_status, timeout, retries)
+
+
+def _check_http_endpoint_legacy(
+    name: str, url: str, expected_status: int = 200,
+    timeout: int = 10, retries: int = 1,
+) -> HealthCheckResult:
+    """Legacy HTTP check — used when fixop is not available."""
     start = time.time()
 
     for attempt in range(retries):
@@ -121,7 +157,6 @@ def check_http_endpoint(
                 return _unhealthy_result(name, url, start, f"Error: {str(e)[:50]}")
             time.sleep(1)
 
-    # Should not reach here, but just in case
     return HealthCheckResult(
         name=name,
         url=url,
@@ -140,6 +175,8 @@ def check_ssh_service(
 ) -> HealthCheckResult:
     """Check SSH service availability.
 
+    Delegates to fixop.health when available.
+
     Args:
         name: Service name for display
         host: SSH host
@@ -151,6 +188,19 @@ def check_ssh_service(
     Returns:
         HealthCheckResult with status details
     """
+    if _HAS_FIXOP_HEALTH:
+        return _from_fixop_result(
+            _fixop_check_ssh(name, host, user, ssh_key, port, timeout)
+        )
+
+    return _check_ssh_service_legacy(name, host, user, ssh_key, port, timeout)
+
+
+def _check_ssh_service_legacy(
+    name: str, host: str, user: str,
+    ssh_key: str | None = None, port: int = 22, timeout: int = 10,
+) -> HealthCheckResult:
+    """Legacy SSH check — used when fixop is not available."""
     start = time.time()
 
     opts = f"-p {port}"

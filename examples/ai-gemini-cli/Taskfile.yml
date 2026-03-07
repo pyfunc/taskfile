@@ -102,4 +102,4 @@ tasks:
   commit-msg:
     desc: "Generate commit message"
     cmds:
-      - git diff --staged | gemini "Write a conventional commit message for this diff. Format: type(scope): description. No markdown."
+      - 'git diff --staged | gemini "Write a conventional commit message for this diff. Format: type(scope): description. No markdown."'

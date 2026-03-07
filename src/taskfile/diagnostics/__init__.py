@@ -223,8 +223,8 @@ class ProjectDiagnostics:
 
     # ─── Layer 4: Algorithmic fix ───
 
-    def auto_fix(self) -> int:
-        fixed_count = apply_fixes(self._issues)
+    def auto_fix(self, *, interactive: bool = False) -> int:
+        fixed_count = apply_fixes(self._issues, interactive=interactive)
         # Remove fixed issues from legacy list
         fixed_msgs = {i.message for i in self._issues if i.context and i.context.get("_fixed")}
         self.issues = [(m, s, f) for m, s, f in self.issues if m not in fixed_msgs]

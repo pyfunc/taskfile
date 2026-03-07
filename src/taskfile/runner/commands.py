@@ -249,19 +249,28 @@ def _get_tip_for_command(cmd: str) -> tuple[str, str] | None:
 
 
 def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None:
-    """Return a learning tip relevant to a specific failure."""
+    """Return a learning tip relevant to a specific failure.
+
+    Delegates to fixop.classify.get_tip_for_failure when available.
+    """
+    if _HAS_FIXOP_CLASSIFY:
+        tip = _fixop_get_tip(cmd, returncode)
+        if tip:
+            return tip
+
+    # Legacy fallback / additional taskfile-specific tips
     cmd_lower = cmd.lower()
 
     if "no such file" in cmd_lower or returncode == 1:
         if "scp" in cmd_lower or "rsync" in cmd_lower:
             return (
-                "**💡 Missing files?** Run `taskfile doctor --fix` to check for missing "
+                "**Missing files?** Run `taskfile doctor --fix` to check for missing "
                 "deploy artifacts.\nGenerate Quadlet files: `taskfile quadlet generate`"
             )
 
     if returncode == 255 and ("ssh" in cmd_lower or "scp" in cmd_lower):
         return (
-            "**💡 SSH error (exit 255)?** Common causes:\n"
+            "**SSH error (exit 255)?** Common causes:\n"
             "- Host unreachable — check `ssh_host` in Taskfile.yml\n"
             "- Key rejected — check `ssh_key` and `chmod 600`\n"
             "- Run `taskfile fleet status` to diagnose"
@@ -269,14 +278,14 @@ def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None
 
     if returncode == 126:
         return (
-            "**💡 Permission denied?** Check:\n"
+            "**Permission denied?** Check:\n"
             "- Script is executable: `chmod +x scripts/*.sh`\n"
             "- Correct path in `script:` field"
         )
 
     if returncode == 127:
         return (
-            "**💡 Command not found?** Check:\n"
+            "**Command not found?** Check:\n"
             "- Tool is installed: `which <command>`\n"
             "- PATH includes the tool's directory\n"
             "- Run `taskfile doctor` to check missing dependencies"
@@ -574,6 +583,29 @@ def _run_with_retries(fn, task: Task) -> int:
     return returncode
 
 
+try:
+    from fixop.classify import classify_error as _fixop_classify_error
+    from fixop.classify import get_tip_for_failure as _fixop_get_tip
+    from fixop.models import Category as _FixopCategory
+    _HAS_FIXOP_CLASSIFY = True
+except ImportError:
+    _HAS_FIXOP_CLASSIFY = False
+
+# Map fixop Category → legacy category tag used in _handle_failure
+_FIXOP_CAT_TO_TAG: dict = {}
+if _HAS_FIXOP_CLASSIFY:
+    _FIXOP_CAT_TO_TAG = {
+        _FixopCategory.SSH: "infra",
+        _FixopCategory.DNS: "infra",
+        _FixopCategory.FIREWALL: "infra",
+        _FixopCategory.CONTAINER: "runtime",
+        _FixopCategory.SYSTEMD: "infra",
+        _FixopCategory.TLS: "infra",
+        _FixopCategory.PORT: "runtime",
+        _FixopCategory.DEPLOY: "config",
+    }
+
+
 def _classify_exit_code(returncode: int) -> tuple[str, str]:
     """Classify exit code into error category and hint.
 
@@ -581,7 +613,15 @@ def _classify_exit_code(returncode: int) -> tuple[str, str]:
         runtime  — the executed software failed
         config   — likely a taskfile/env misconfiguration
         infra    — infrastructure problem (network, permissions, etc.)
+
+    Delegates to fixop.classify when available.
     """
+    if _HAS_FIXOP_CLASSIFY:
+        fi = _fixop_classify_error(returncode)
+        tag = _FIXOP_CAT_TO_TAG.get(fi.category, "runtime")
+        return tag, fi.message
+
+    # Legacy fallback
     if returncode == 126:
         return "config", "Permission denied or not executable — check script permissions"
     if returncode == 127:

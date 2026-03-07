@@ -1,42 +1,45 @@
-# code2llm | 94f 21692L | py:94 | 2026-03-07
-# CC̄=4.4 | critical:55/759 | dups:0 | cycles:0
+# code2llm | 97f 22135L | py:97 | 2026-03-07
+# CC̄=4.4 | critical:55/774 | dups:0 | cycles:0
 
-HEALTH[12]:
+HEALTH[11]:
   🟡 CC    expand_deploy_recipe CC=17 (limit:15)
   🟡 CC    check_ports CC=17 (limit:15)
   🟡 CC    _print_summary CC=17 (limit:15)
-  🟡 CC    check_remote_health CC=15 (limit:15)
-  🟡 CC    _print_teach_alt_env CC=15 (limit:15)
   🟡 CC    _check_file_arg CC=15 (limit:15)
   🟡 CC    _handle_failure CC=15 (limit:15)
+  🟡 CC    _print_teach_alt_env CC=15 (limit:15)
   🟡 CC    run CC=18 (limit:15)
-  🟡 CC    run CC=15 (limit:15)
   🟡 CC    prompt CC=18 (limit:15)
+  🟡 CC    run CC=15 (limit:15)
   🟡 CC    doctor CC=18 (limit:15)
   🟡 CC    _run_doctor CC=27 (limit:15)
 
 REFACTOR[1]:
-  1. split 12 high-CC methods  (CC>15)
+  1. split 11 high-CC methods  (CC>15)
 
-COUPLING: no cross-package imports detected
+COUPLING:
+                        TODO  src.taskfile
+          TODO            ──             2
+  src.taskfile            ←2            ──
+  CYCLES: none
 
 LAYERS:
   src/                            CC̄=4.4    ←in:0  →out:0
   │ !! checks                    1225L  0C   44m  CC=11     ←4
-  │ !! commands                   755L  0C   30m  CC=15     ←1
+  │ !! commands                   795L  0C   30m  CC=15     ←1
   │ !! main                       698L  0C   23m  CC=15     ←3
   │ !! app                        695L  0C   10m  CC=27     ←1
   │ !! wizards                    610L  1C   22m  CC=18     ←0
   │ !! menu                       552L  0C    9m  CC=8      ←0
-  │ deploy_utils               492L  2C   18m  CC=6      ←5
+  │ deploy_utils               492L  2C   18m  CC=6      ←4
   │ !  fleet                      483L  5C   16m  CC=10     ←0
   │ !! core                       476L  2C   30m  CC=18     ←0
+  │ !  health                     458L  2C   10m  CC=11     ←2
   │ !  setup                      448L  1C   15m  CC=10     ←0
   │ !  importer                   442L  0C   20m  CC=12     ←1
   │ dashboard                  424L  0C    1m  CC=1      ←1
   │ !  e2e_cmd                    415L  1C   18m  CC=10     ←0
   │ quadlet                    410L  1C   24m  CC=9      ←2
-  │ !  health                     408L  2C    7m  CC=11     ←2
   │ !  fleet                      408L  0C   18m  CC=10     ←0
   │ !! explainer                  395L  4C   14m  CC=15     ←1
   │ !  deploy                     383L  1C   18m  CC=10     ←0
@@ -45,18 +48,18 @@ LAYERS:
   │ !  config                     365L  2C   13m  CC=14     ←1
   │ registry                   349L  2C   14m  CC=9      ←0
   │ !  parser                     344L  2C   19m  CC=11     ←22
-  │ __init__                   320L  1C   29m  CC=9      ←1
+  │ __init__                   320L  1C   29m  CC=9      ←2
   │ provisioner                308L  2C   12m  CC=5      ←0
   │ !  version                    307L  0C   11m  CC=10     ←11
   │ converters                 306L  5C   11m  CC=9      ←2
   │ !  error_presenter            280L  1C   12m  CC=13     ←0
   │ publish                    280L  0C    0m  CC=0.0    ←0
   │ !  quadlet                    268L  0C    6m  CC=13     ←0
-  │ !! checks_ssh                 266L  0C    4m  CC=15     ←0
   │ cirunner                   262L  3C    9m  CC=8      ←0
   │ !! deploy_recipes             259L  0C    6m  CC=17     ←1
   │ !  auth                       257L  0C    7m  CC=12     ←0
   │ compose                    241L  2C   12m  CC=9      ←5
+  │ !  llm_repair                 232L  0C    5m  CC=13     ←2
   │ cache                      231L  1C   13m  CC=9      ←1
   │ registry_cmds              230L  0C    6m  CC=8      ←0
   │ models                     225L  20C    0m  CC=0.0    ←0
@@ -74,7 +77,7 @@ LAYERS:
   │ docker_cmds                187L  1C    9m  CC=6      ←0
   │ !  watch                      182L  1C    7m  CC=10     ←1
   │ full                       181L  0C    0m  CC=0.0    ←0
-  │ !  llm_repair                 176L  0C    4m  CC=13     ←2
+  │ !  checks_ssh                 158L  0C    5m  CC=12     ←0
   │ !! checks_ports               157L  0C    7m  CC=17     ←0
   │ ssh                        151L  0C    6m  CC=7      ←2
   │ models                     147L  4C    3m  CC=7      ←0
@@ -117,10 +120,15 @@ LAYERS:
   │ __init__                     8L  0C    0m  CC=0.0    ←0
   │ __main__                     6L  0C    0m  CC=0.0    ←0
   │
+  TODO/                           CC̄=3.9    ←in:0  →out:2
+  │ dns                        194L  0C    6m  CC=9      ←1
+  │ __init__                   108L  0C    1m  CC=7      ←0
+  │ models                     103L  6C    3m  CC=2      ←0
+  │
 
 DUPLICATES[0]: none
 
-FUNCTIONS (CC≥10, 55 of 750):
+FUNCTIONS (CC≥10, 55 of 765):
    27.0  _run_doctor                                18n   2exit  loops+cond+ret  !! split
    18.0  TaskfileRunner.run                         16n   3exit  loops+cond+ret  !! split
    18.0  prompt                                     13n   2exit  cond+ret  !! split
@@ -128,52 +136,52 @@ FUNCTIONS (CC≥10, 55 of 750):
    17.0  expand_deploy_recipe                       24n   3exit  loops+cond+ret  !! split
    17.0  check_ports                                17n   4exit  loops+cond+ret  !! split
    17.0  _print_summary                             14n   1exit  cond  !! split
-   15.0  check_remote_health                        12n   2exit  loops+cond+ret  !! split
-   15.0  _print_teach_alt_env                       12n   1exit  loops+cond  !! split
    15.0  _check_file_arg                            19n   6exit  cond+ret  !! split
    15.0  _handle_failure                            19n   4exit  cond+ret  !! split
+   15.0  _print_teach_alt_env                       12n   1exit  loops+cond  !! split
    15.0  run                                         2n   1exit    !! split
    14.0  classify_command                           37n  13exit  loops+cond+ret
    14.0  TaskfileConfig._expand_hosts               21n   3exit  loops+cond+ret
    14.0  validate                                    2n   1exit  
-   13.0  classify_runtime_error                     24n   9exit  cond+ret
+   13.0  _classify_runtime_error_legacy             24n   9exit  cond+ret
    13.0  ErrorPresenter._build_diagnosis            13n   2exit  cond+ret
-   13.0  print_explain_report                       15n   1exit  loops+cond
    13.0  execute_commands                           21n   4exit  loops+cond+ret
+   13.0  print_explain_report                       15n   1exit  loops+cond
    13.0  quadlet_generate                            2n   1exit  
    13.0  _run_examples_check                        19n   2exit  loops+cond+ret
    12.0  parse_makefile                             16n   2exit  loops+cond+ret
    12.0  _import_shell_script                       13n   2exit  loops+cond+ret
+   12.0  check_remote_health                        17n   3exit  loops+cond+ret
+   12.0  _get_tip_for_failure                       22n   7exit  cond+ret
    12.0  TaskExplainer._check_files                 18n   3exit  loops+cond+ret
    12.0  auth_setup                                 14n   1exit  loops+cond
-   12.0  _check_compose_services                     6n   3exit  cond+ret
    12.0  release                                    10n   1exit  cond
+   12.0  _check_compose_services                     6n   3exit  cond+ret
    12.0  _apply_init_extras                         10n   1exit  cond
-   11.0  check_http_endpoint                         4n   2exit  loops+ret
-   11.0  run_health_checks                          15n   2exit  cond+ret
    11.0  _merge_include_sections                    11n   1exit  loops+cond
+   11.0  _check_http_endpoint_legacy                 4n   2exit  loops+ret
+   11.0  run_health_checks                          15n   2exit  cond+ret
    11.0  _print_layer_issues                        11n   1exit  loops+cond
    11.0  _collect_required_vars                     10n   2exit  loops+cond+ret
-   11.0  TaskExplainer._analyze_command             17n   2exit  cond+ret
    11.0  execute_script                             20n   4exit  loops+cond+ret
+   11.0  TaskExplainer._analyze_command             17n   2exit  cond+ret
    11.0  _collect_requirements                       9n   2exit  cond+ret
    10.0  FileWatcher._get_files                     10n   2exit  loops+cond+ret
    10.0  print_task_tree                            14n   3exit  loops+cond+ret
    10.0  save_fleet                                 18n   2exit  loops+cond+ret
    10.0  _parse_status_output                       12n   1exit  cond
-   10.0  check_ssh_connectivity                     14n   2exit  loops+cond+ret
+   10.0  run_function                               22n   7exit  cond+ret
    10.0  _resolve_env_fields                        12n   1exit  loops+cond
    10.0  check_examples                             13n   3exit  loops+cond+ret
    10.0  _check_ufw_forward_policy                   9n   4exit  cond+ret
    10.0  _scan_file_for_unresolved                  12n   2exit  loops+cond+ret
-   10.0  run_function                               22n   7exit  cond+ret
-   10.0  _get_tip_for_failure                       17n   6exit  cond+ret
+   10.0  _classify_exit_code                        30n  11exit  cond+ret
    10.0  bump                                       12n   1exit  cond
    10.0  ci_generate                                 2n   1exit  
    10.0  _collect_interactive_setup                 15n   2exit  cond+ret
 
   summary:
-    critical(≥10): 55 | high(5-10): 243 | medium(2-5): 302 | low(<2): 150
+    critical(≥10): 55 | high(5-10): 248 | medium(2-5): 308 | low(<2): 154
     7% CC≥10  40% CC≥5
 
 HOTSPOTS:
@@ -185,8 +193,8 @@ HOTSPOTS:
   #6  e2e_cmd                              fan=18   "calls 18 functions"
   #7  doctor                               fan=18   "calls 18 functions"
   #8  ProjectDiagnostics.run_all_checks    fan=17   "ProjectDiagnostics method, fan-out=17"
-  #9  check_remote_health                  fan=17   "calls 17 functions"
-  #10 set                                  fan=16   "calls 16 functions"
+  #9  set                                  fan=16   "calls 16 functions"
+  #10 auth_setup                           fan=16   "calls 16 functions"
 
 CLASSES:
   TaskfileRunner                 ████████████████████████  30m  CC̄=3.4   max=18    !!
@@ -212,52 +220,58 @@ CLASSES:
   GitHubActionsConverter         █                          2m  CC̄=5.0   max=9   
   NpmScriptsConverter            █                          2m  CC̄=3.0   max=4   
   DoctorReport                   █                          2m  CC̄=4.5   max=5   
-  Task                           █                          2m  CC̄=2.5   max=3   
   PipelineConfig                 █                          2m  CC̄=4.5   max=5   
+  Task                           █                          2m  CC̄=2.5   max=3   
   DiagnosticIssue                █                          2m  CC̄=1.0   max=1   
-  JenkinsTarget                  █                          2m  CC̄=1.5   max=2   
   GiteaActionsTarget             █                          2m  CC̄=4.5   max=8   
+  JenkinsTarget                  █                          2m  CC̄=1.5   max=2   
   _nullcontext                   █                          2m  CC̄=1.0   max=1   
   GitLabCIConverter                                         1m  CC̄=1.0   max=1   
   DockerComposeConverter                                    1m  CC̄=9.0   max=9   
+  TaskfileNotFoundError                                     1m  CC̄=2.0   max=2   
   PipelineError                                             1m  CC̄=1.0   max=1   
   StageResult                                               1m  CC̄=1.0   max=1   
   FleetConfig                                               1m  CC̄=7.0   max=7   
-  TaskfileNotFoundError                                     1m  CC̄=2.0   max=2   
   Issue                                                     1m  CC̄=7.0   max=7   
+  Issue                                                     1m  CC̄=1.0   max=1   
+  FixResult                                                 1m  CC̄=2.0   max=2   
+  HostContext                                               1m  CC̄=1.0   max=1   
   TaskRunError                                              1m  CC̄=1.0   max=1   
   Environment                                               1m  CC̄=7.0   max=7   
   Platform                                                  1m  CC̄=3.0   max=3   
   SetupConfig                                               1m  CC̄=1.0   max=1   
   DeployStrategy                                            1m  CC̄=1.0   max=1   
-  E2EResult                                                 1m  CC̄=1.0   max=1   
   BadParameter                                              1m  CC̄=1.0   max=1   
   ClickException                                            1m  CC̄=1.0   max=1   
+  E2EResult                                                 1m  CC̄=1.0   max=1   
   MakefileTarget                                            1m  CC̄=7.0   max=7   
   ProvisionConfig                                           0m  CC̄=0.0   max=0.0 
+  TaskfileParseError                                        0m  CC̄=0.0   max=0.0 
   HealthCheckResult                                         0m  CC̄=0.0   max=0.0 
   HealthReport                                              0m  CC̄=0.0   max=0.0 
+  PortMapping                                               0m  CC̄=0.0   max=0.0 
   FleetApp                                                  0m  CC̄=0.0   max=0.0 
   DeviceGroup                                               0m  CC̄=0.0   max=0.0 
   Device                                                    0m  CC̄=0.0   max=0.0 
   DeviceStatus                                              0m  CC̄=0.0   max=0.0 
-  PortMapping                                               0m  CC̄=0.0   max=0.0 
-  TaskfileParseError                                        0m  CC̄=0.0   max=0.0 
   IssueCategory                                             0m  CC̄=0.0   max=0.0 
   FixStrategy                                               0m  CC̄=0.0   max=0.0 
   ServiceConfig                                             0m  CC̄=0.0   max=0.0 
+  Severity                                                  0m  CC̄=0.0   max=0.0 
+  Category                                                  0m  CC̄=0.0   max=0.0 
+  FixStrategy                                               0m  CC̄=0.0   max=0.0 
+  SSHResult                                                 0m  CC̄=0.0   max=0.0 
+  RemoteInfo                                                0m  CC̄=0.0   max=0.0 
   StepIssue                                                 0m  CC̄=0.0   max=0.0 
   ExplainStep                                               0m  CC̄=0.0   max=0.0 
   ExplainReport                                             0m  CC̄=0.0   max=0.0 
-  CommandType                                               0m  CC̄=0.0   max=0.0 
-  Function                                                  0m  CC̄=0.0   max=0.0 
   PipelineStage                                             0m  CC̄=0.0   max=0.0 
+  Function                                                  0m  CC̄=0.0   max=0.0 
+  CommandType                                               0m  CC̄=0.0   max=0.0 
   EnvironmentGroup                                          0m  CC̄=0.0   max=0.0 
-  SSHResult                                                 0m  CC̄=0.0   max=0.0 
-  RemoteInfo                                                0m  CC̄=0.0   max=0.0 
   DockerContainer                                           0m  CC̄=0.0   max=0.0 
-  ComposeConfig                                             0m  CC̄=0.0   max=0.0 
   IssueCategory                                             0m  CC̄=0.0   max=0.0 
+  ComposeConfig                                             0m  CC̄=0.0   max=0.0 
   Abort                                                     0m  CC̄=0.0   max=0.0 
   TaskStatus                                                0m  CC̄=0.0   max=0.0 
   DeployStrategy                                            0m  CC̄=0.0   max=0.0 
@@ -369,26 +383,6 @@ Composes:
     format_summary(report)
     _severity_icon(severity)
     _fix_tag(issue)
-  src/taskfile/diagnostics/checks_ssh.py:
-    e: check_ssh_keys,_test_ssh,check_ssh_connectivity,check_remote_health
-    check_ssh_keys()
-    _test_ssh(env)
-    check_ssh_connectivity(config)
-    check_remote_health(config)
-  src/taskfile/runner/explainer.py:
-    e: StepIssue,ExplainStep,ExplainReport,TaskExplainer,print_explain_report,_print_teach_deps,_print_teach_prefix_info,_print_teach_current_env,_print_teach_alt_env,print_teach_report,_cmd_type_icon
-    StepIssue  # A potential problem detected in a step....
-    ExplainStep  # Analysis of a single command in the execution plan....
-    ExplainReport  # Full pre-run analysis report....
-    TaskExplainer  # Analyzes execution plan and explains what will happen....
-      __init__(1)  CC=1.0
-    print_explain_report(report,task_names,env_name)
-    _print_teach_deps(task_names,config)
-    _print_teach_prefix_info(has_local,has_remote)
-    _print_teach_current_env(report,env_name)
-    _print_teach_alt_env(report,env_name,config)
-    print_teach_report(report,task_names,env_name,config)
-    _cmd_type_icon(cmd_type)
   src/taskfile/runner/commands.py:
     e: _md,_find_task_line,_find_cmd_line,_source_ref,_render_step_header,_strip_cmd_prefix,_check_file_arg,_validate_command_files,_validate_all_commands,_get_tip_for_command,_get_tip_for_failure,_safe_glob_expand,_expand_globs_in_command,_skip_msg,_handle_local,_handle_remote,_handle_push,_handle_pull,_dispatch_special_prefix,_render_output,_run_subprocess,_run_local,run_command,execute_script,_run_with_retries,_classify_exit_code,_handle_failure,_execute_script_step,_execute_cmd_step,execute_commands
     _md(text)
@@ -421,6 +415,20 @@ Composes:
     _execute_script_step(runner,task,task_name,start,step,total_steps)
     _execute_cmd_step(runner,task,task_name,cmd,start,step,total_steps)
     execute_commands(runner,task,task_name,start)
+  src/taskfile/runner/explainer.py:
+    e: StepIssue,ExplainStep,ExplainReport,TaskExplainer,print_explain_report,_print_teach_deps,_print_teach_prefix_info,_print_teach_current_env,_print_teach_alt_env,print_teach_report,_cmd_type_icon
+    StepIssue  # A potential problem detected in a step....
+    ExplainStep  # Analysis of a single command in the execution plan....
+    ExplainReport  # Full pre-run analysis report....
+    TaskExplainer  # Analyzes execution plan and explains what will happen....
+      __init__(1)  CC=1.0
+    print_explain_report(report,task_names,env_name)
+    _print_teach_deps(task_names,config)
+    _print_teach_prefix_info(has_local,has_remote)
+    _print_teach_current_env(report,env_name)
+    _print_teach_alt_env(report,env_name,config)
+    print_teach_report(report,task_names,env_name,config)
+    _cmd_type_icon(cmd_type)
   src/taskfile/cli/main.py:
     e: _format_nearby_path,_nearby_cd_hint,_print_nearby_taskfiles,_suggest_similar_tasks,_check_unknown_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_filter_tasks_by_tags,list_tasks,validate,_check_script_files_status,_check_env_files_status,_check_compose_services,_check_common_files,_validate_dependent_files,_print_dependency_tree,_print_transitive_deps,import_cmd
     _format_nearby_path(path,level)
@@ -471,10 +479,11 @@ Composes:
         → _parse_pipeline(1)  CC=2.0
         → from_dict(1)  CC=1.0
   src/taskfile/diagnostics/llm_repair.py:
-    e: is_available,ask_llm_for_fix,classify_runtime_error,_extract_missing_binary
+    e: is_available,ask_llm_for_fix,classify_runtime_error,_classify_runtime_error_legacy,_extract_missing_binary
     is_available()
     ask_llm_for_fix(issue,project_context)
     classify_runtime_error(exit_code,stderr,cmd)
+    _classify_runtime_error_legacy(exit_code,stderr,cmd)
     _extract_missing_binary(stderr)
   src/taskfile/runner/error_presenter.py:
     e: ErrorPresenter
@@ -521,6 +530,13 @@ Composes:
     _import_dockerfile(content)
     _slugify(name)
     _dump_taskfile(data)
+  src/taskfile/diagnostics/checks_ssh.py:
+    e: _to_taskfile_issue,_make_host_ctx,check_ssh_keys,check_ssh_connectivity,check_remote_health
+    _to_taskfile_issue(fi,env_name)
+    _make_host_ctx(env)
+    check_ssh_keys()
+    check_ssh_connectivity(config)
+    check_remote_health(config)
   src/taskfile/cli/auth.py:
     e: _read_env_file,_write_env_var,_ensure_gitignore,_check_tool,auth,auth_setup,auth_verify
     _read_env_file(path)
@@ -547,17 +563,6 @@ Composes:
     _print_release_summary(success,current_tag,domain)
     release(ctx,tag_version,skip_desktop,skip_landing,skip_health,dry_run,force)
     rollback(ctx,target_tag,domain,dry_run)
-  src/taskfile/health.py:
-    e: HealthCheckResult,HealthReport,_unhealthy_result,check_http_endpoint,check_ssh_service,check_traefik_dashboard,run_health_checks,print_health_report,health_check_all
-    HealthCheckResult  # Result of a single health check....
-    HealthReport  # Aggregated health check report....
-    _unhealthy_result(name,url,start,error,status_code)
-    check_http_endpoint(name,url,expected_status,timeout,retries)
-    check_ssh_service(name,host,user,ssh_key,port,timeout)
-    check_traefik_dashboard(host,user,ssh_key)
-    run_health_checks(domain,ssh_host,ssh_user,ssh_key,check_web,check_landing,check_api,api_path,verbose)
-    print_health_report(report)
-    health_check_all(domain,ssh_host,ssh_user,ssh_key,exit_on_error)
   src/taskfile/parser.py:
     e: TaskfileNotFoundError,TaskfileParseError,_scan_dir_for_taskfiles,_scan_subdirectories,scan_nearby_taskfiles,find_taskfile,_parse_include_entry,_load_include_file,_merge_include_sections,_resolve_includes,load_taskfile,_validate_tasks_exist,_validate_task_commands,_validate_task_dependencies,_validate_task_env_filter,_validate_task_platform_filter,_validate_task_script_files,_validate_circular_dependencies,_validate_referenced_files,validate_taskfile
     TaskfileNotFoundError  # Raised when no Taskfile is found in the search path....
@@ -582,6 +587,20 @@ Composes:
     _validate_circular_dependencies(config)
     _validate_referenced_files(config)
     validate_taskfile(config)
+  src/taskfile/health.py:
+    e: HealthCheckResult,HealthReport,_unhealthy_result,_from_fixop_result,check_http_endpoint,_check_http_endpoint_legacy,check_ssh_service,_check_ssh_service_legacy,check_traefik_dashboard,run_health_checks,print_health_report,health_check_all
+    HealthCheckResult  # Result of a single health check....
+    HealthReport  # Aggregated health check report....
+    _unhealthy_result(name,url,start,error,status_code)
+    _from_fixop_result(fr)
+    check_http_endpoint(name,url,expected_status,timeout,retries)
+    _check_http_endpoint_legacy(name,url,expected_status,timeout,retries)
+    check_ssh_service(name,host,user,ssh_key,port,timeout)
+    _check_ssh_service_legacy(name,host,user,ssh_key,port,timeout)
+    check_traefik_dashboard(host,user,ssh_key)
+    run_health_checks(domain,ssh_host,ssh_user,ssh_key,check_web,check_landing,check_api,api_path,verbose)
+    print_health_report(report)
+    health_check_all(domain,ssh_host,ssh_user,ssh_key,exit_on_error)
   src/taskfile/diagnostics/checks.py:
     e: _load_dotenv_vars,_resolve_env_fields,check_preflight,check_taskfile,check_env_files,_collect_required_vars,_check_env_file_vars,check_unresolved_variables,check_ports,_check_script_files,_check_env_files,_check_circular_deps,check_dependent_files,_extract_registry_host,_check_registry_reachable,_is_image_var,_collect_image_vars_from_config,_collect_image_vars_from_envs,_collect_image_vars_from_compose,_group_by_registry,_build_unreachable_registry_issue,check_registry_access,check_docker,check_ssh_keys,check_ssh_connectivity,check_remote_health,check_git,check_task_commands,check_examples,_load_env_file_vars,_extract_fields_to_check,_is_placeholder,_should_skip_placeholder,_check_env_placeholders,check_placeholder_values,_check_env_file_for_target,_check_tasks_and_deps,_check_ufw_forward_policy,_check_container_dns,_scan_file_for_unresolved,check_deploy_artifacts,_check_ssh_key_for_env,validate_before_run,_extract_binary
     _load_dotenv_vars(env_file_path)
@@ -784,6 +803,14 @@ Composes:
     _run_service_checks(env,config,is_remote,url,port_web,port_landing)
     _print_e2e_results(results)
     e2e_cmd(ctx,check_only,url,port_web,port_landing)
+  TODO/dns.py:
+    e: check_host_dns,check_container_dns,check_systemd_resolved,fix_resolv_conf,fix_disable_systemd_resolved,generate_container_resolv_conf
+    check_host_dns(ctx,domain)
+    check_container_dns(ctx,container,domain)
+    check_systemd_resolved(ctx)
+    fix_resolv_conf(ctx,nameservers)
+    fix_disable_systemd_resolved(ctx)
+    generate_container_resolv_conf(output_path,nameservers)
   src/taskfile/converters.py:
     e: MakefileConverter,GitHubActionsConverter,NpmScriptsConverter,GitLabCIConverter,DockerComposeConverter,detect_format,import_file,export_file
     MakefileConverter  # Convert between Taskfile and Makefile....
@@ -820,6 +847,10 @@ Composes:
       __init__(1)  CC=1.0
         → _load_cache(0)  CC=3.0
     get_project_hash(taskfile_path)
+  src/taskfile/diagnostics/__init__.py:
+    e: ProjectDiagnostics
+    ProjectDiagnostics  # Facade composing checks + fixes + report — backward compatib...
+      __init__(0)  CC=1.0
   src/taskfile/diagnostics/fixes.py:
     e: apply_fixes,apply_single_fix,_fix_copy_env_example,_fix_create_taskfile,_fix_init_git,_fix_rename_port,_fix_missing_variable,_fix_run_command,_mark_fixed,_upsert_env_value
     apply_fixes(issues,interactive)
@@ -832,10 +863,6 @@ Composes:
     _fix_run_command(issue,interactive)
     _mark_fixed(issue)
     _upsert_env_value(env_path,key,value)
-  src/taskfile/diagnostics/__init__.py:
-    e: ProjectDiagnostics
-    ProjectDiagnostics  # Facade composing checks + fixes + report — backward compatib...
-      __init__(0)  CC=1.0
   src/taskfile/quadlet.py:
     e: ServiceConfig,_parse_port,_parse_memory_limit,_parse_cpus_limit,_build_unit_section,_build_container_env,_build_container_ports,_resolve_env_in_port,_build_container_volumes,_build_container_networks,_build_container_labels,_build_container_podman_args,_build_container_section,_build_service_section,_build_install_section,generate_container_unit,generate_network_unit,generate_volume_unit,_collect_named_volumes,_generate_network_file,_generate_container_files,_generate_volume_files,generate_resolv_conf,compose_to_quadlet,_inject_resolv_volume
     ServiceConfig  # Type definition for a docker-compose service configuration....
@@ -927,6 +954,9 @@ Th...
     e: TaskfileHandler
     TaskfileHandler  # HTTP request handler for taskfile web UI....
       log_message(1)  CC=1.0
+  TODO/__init__.py:
+    e: check_all
+    check_all(ctx,domains,containers)
   src/taskfile/ssh.py:
     e: has_paramiko,_pool_key,_get_connection,close_all,ssh_exec,_ssh_exec_subprocess
     has_paramiko()
@@ -959,21 +989,6 @@ Th...
     GitHubActionsTarget
       _tag_var(0)  CC=2.0
         → _has_tag_stages(0)  CC=2.0
-  src/taskfile/runner/resolver.py:
-    e: TaskResolver
-    TaskResolver  # Pure-logic task resolver: variable expansion, filtering, dep...
-      __init__(4)  CC=4.0
-        → _load_dotenv(0)  CC=6.0
-        → _resolve_environment(0)  CC=2.0
-        → _resolve_env_fields(1)  CC=5.0
-        → _resolve_platform(0)  CC=2.0
-        → _resolve_variables(0)  CC=6.0
-  src/taskfile/models/task.py:
-    e: Function,Task,_normalize_commands
-    Function  # Embedded function callable from tasks via @fn prefix....
-    Task  # Single task definition....
-      should_run_on(1)  CC=2.0
-    _normalize_commands(cmds)
   src/taskfile/deploy_utils.py:
     e: SSHResult,RemoteInfo,load_env_file,update_env_var,remove_env_var,test_ssh_connection,ssh_exec,setup_ssh_key,check_remote_podman,check_remote_disk,list_remote_images,check_remote_info,install_remote_podman,transfer_image_via_ssh,transfer_images_via_ssh,deploy_container_remote,stop_container_remote,get_remote_logs,get_remote_status,clean_project
     SSHResult  # Result of an SSH operation....
@@ -996,6 +1011,21 @@ Th...
     get_remote_logs(host,container_name,user,port,runtime,tail)
     get_remote_status(host,container_names,user,port,runtime)
     clean_project(level,project_dir)
+  src/taskfile/runner/resolver.py:
+    e: TaskResolver
+    TaskResolver  # Pure-logic task resolver: variable expansion, filtering, dep...
+      __init__(4)  CC=4.0
+        → _load_dotenv(0)  CC=6.0
+        → _resolve_environment(0)  CC=2.0
+        → _resolve_env_fields(1)  CC=5.0
+        → _resolve_platform(0)  CC=2.0
+        → _resolve_variables(0)  CC=6.0
+  src/taskfile/models/task.py:
+    e: Function,Task,_normalize_commands
+    Function  # Embedded function callable from tasks via @fn prefix....
+    Task  # Single task definition....
+      should_run_on(1)  CC=2.0
+    _normalize_commands(cmds)
   src/taskfile/cli/docker_cmds.py:
     e: DockerContainer,_docker_ps,_container_publishes_port,_containers_using_port,_docker_stop,docker_group,docker_ps_cmd,docker_stop_port_cmd,docker_stop_all_cmd,docker_compose_down_cmd
     DockerContainer
@@ -1094,6 +1124,17 @@ Th...
     e: _load_template,generate_taskfile
     _load_template(name)
     generate_taskfile(template)
+  TODO/models.py:
+    e: Severity,Category,FixStrategy,Issue,FixResult,HostContext
+    Severity
+    Category
+    FixStrategy
+    Issue  # A detected infrastructure problem....
+      __str__(0)  CC=1.0
+    FixResult  # Result of applying a fix....
+      __str__(0)  CC=2.0
+    HostContext  # SSH connection context for remote operations....
+      __str__(0)  CC=1.0
   src/taskfile/cli/diagnostics.py:
     e: IssueCategory,DiagnosticIssue,validate_before_run,_map_new_to_old_category
     IssueCategory  # Old 4-category system — kept for backward compatibility.

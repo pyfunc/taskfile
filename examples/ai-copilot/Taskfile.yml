@@ -42,7 +42,7 @@ tasks:
       - echo ""
       - git diff --staged
       - echo ""
-      - echo "Paste into Copilot Chat: 'Review these changes for bugs and security issues'"
+      - 'echo "Paste into Copilot Chat: Review these changes for bugs and security issues"'
 
   # ─── Copilot + Testing ────────────────────────────────
 
@@ -63,7 +63,7 @@ tasks:
     cmds:
       - pytest ${TESTS} -x --tb=long 2>&1 | tee /tmp/test-fail.txt || true
       - echo ""
-      - echo "Paste into Copilot Chat: 'Fix the failing test based on this output'"
+      - 'echo "Paste into Copilot Chat: Fix the failing test based on this output"'
 
   # ─── Quality ───────────────────────────────────────────
 
