@@ -1,6 +1,6 @@
-# taskfile | 105f 22856L | python:104,shell:1 | 2026-03-29
-# stats: 811 func | 0 cls | 105 mod | CC̄=4.2 | critical:3 | cycles:0
-# alerts[5]: fan-out _register_run_routes=23; fan-out prod=21; fan-out bump=20; CC prompt=18; fan-out RegistryClient._install_from_github=18
+# taskfile | 105f 22915L | python:104,shell:1 | 2026-03-29
+# stats: 819 func | 0 cls | 105 mod | CC̄=4.2 | critical:0 | cycles:0
+# alerts[5]: fan-out _register_run_routes=23; fan-out prod=21; fan-out bump=20; fan-out RegistryClient._install_from_github=18; fan-out e2e_cmd=18
 # hotspots[5]: _register_run_routes fan=23; prod fan=21; bump fan=20; RegistryClient._install_from_github fan=18; e2e_cmd fan=18
 # evolution: CC̄ 4.2→4.2 (flat 0.0)
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
@@ -34,7 +34,7 @@ M[105]:
   src/taskfile/cli/auth.py,257
   src/taskfile/cli/cache_cmds.py,73
   src/taskfile/cli/ci.py,202
-  src/taskfile/cli/click_compat.py,218
+  src/taskfile/cli/click_compat.py,240
   src/taskfile/cli/completion.py,197
   src/taskfile/cli/deploy.py,383
   src/taskfile/cli/diagnostics.py,132
@@ -70,7 +70,7 @@ M[105]:
   src/taskfile/diagnostics/fixop_adapter.py,113
   src/taskfile/diagnostics/llm_repair.py,203
   src/taskfile/diagnostics/models.py,147
-  src/taskfile/diagnostics/report.py,204
+  src/taskfile/diagnostics/report.py,221
   src/taskfile/fleet.py,483
   src/taskfile/graph.py,211
   src/taskfile/health.py,458
@@ -91,7 +91,7 @@ M[105]:
   src/taskfile/runner/commands.py,588
   src/taskfile/runner/core.py,486
   src/taskfile/runner/error_presenter.py,280
-  src/taskfile/runner/explainer.py,395
+  src/taskfile/runner/explainer.py,415
   src/taskfile/runner/failure.py,310
   src/taskfile/runner/functions.py,140
   src/taskfile/runner/resolver.py,197
@@ -111,40 +111,6 @@ M[105]:
   src/taskfile/webui/handlers.py,147
   src/taskfile/webui/server.py,43
 D:
-  src/taskfile/cli/click_compat.py:
-    e: Abort,BadParameter,ClickException,confirm,prompt,version_option
-    Abort(Exception):  # Exception to signal that the application should exit...
-    BadParameter(Exception): __init__(4)  # Exception raised for bad parameter values...
-    ClickException(Exception): __init__(1)  # Base class for click exceptions...
-    confirm(text;default;abort;prompt_suffix;show_default;err)
-    prompt(text;default;type;value_proc;prompt_suffix;show_default;err;hide_input;confirmation_prompt;allow_missing_auto)
-    version_option(version;prog_name;message;help)
-  src/taskfile/diagnostics/report.py:
-    e: print_report,_group_issues_by_layer,_print_layer_issues,_print_summary,_print_layered_report,_print_flat_report,print_report_json,get_report_dict,format_summary,_severity_icon,_fix_tag
-    print_report(issues;categorized;show_teach)
-    _group_issues_by_layer(issues)
-    _print_layer_issues(layer_name;layer_issues;show_teach)
-    _print_summary(issues;show_teach)
-    _print_layered_report(issues;show_teach)
-    _print_flat_report(issues)
-    print_report_json(issues)
-    get_report_dict(issues)
-    format_summary(report)
-    _severity_icon(severity)
-    _fix_tag(issue)
-  src/taskfile/runner/explainer.py:
-    e: StepIssue,ExplainStep,ExplainReport,TaskExplainer,print_explain_report,_print_teach_deps,_print_teach_prefix_info,_print_teach_current_env,_print_teach_alt_env,print_teach_report,_cmd_type_icon
-    StepIssue:  # A potential problem detected in a step...
-    ExplainStep:  # Analysis of a single command in the execution plan...
-    ExplainReport:  # Full pre-run analysis report...
-    TaskExplainer: __init__(1),explain(1),_analyze_command(4),_analyze_script(3),_check_placeholders(2),_check_binary(3),_check_files(2)  # Analyzes execution plan and explains what will happen...
-    print_explain_report(report;task_names;env_name)
-    _print_teach_deps(task_names;config)
-    _print_teach_prefix_info(has_local;has_remote)
-    _print_teach_current_env(report;env_name)
-    _print_teach_alt_env(report;env_name;config)
-    print_teach_report(report;task_names;env_name;config)
-    _cmd_type_icon(cmd_type)
   src/taskfile/cli/main.py:
     e: _format_nearby_path,_nearby_cd_hint,_print_nearby_taskfiles,_suggest_similar_tasks,_check_unknown_tasks,_run_env_group,_group_rolling,_group_canary,_group_parallel,parse_var,main,run,_run_explain_mode,_run_tasks,_filter_tasks_by_tags,list_tasks,validate,_check_script_files_status,_check_env_files_status,_check_compose_services,_check_common_files,_validate_dependent_files,_print_dependency_tree,_print_transitive_deps,import_cmd
     _format_nearby_path(path;level)
@@ -196,9 +162,39 @@ D:
     classify_runtime_error(exit_code;stderr;cmd)
     _classify_runtime_error_legacy(exit_code;stderr;cmd)
     _extract_missing_binary(stderr)
+  src/taskfile/diagnostics/report.py:
+    e: print_report,_group_issues_by_layer,_print_layer_issues,_build_summary_parts,_get_summary_hints,_print_summary,_print_layered_report,_print_flat_report,print_report_json,get_report_dict,format_summary,_severity_icon,_fix_tag
+    print_report(issues;categorized;show_teach)
+    _group_issues_by_layer(issues)
+    _print_layer_issues(layer_name;layer_issues;show_teach)
+    _build_summary_parts(issues)
+    _get_summary_hints(issues;show_teach)
+    _print_summary(issues;show_teach)
+    _print_layered_report(issues;show_teach)
+    _print_flat_report(issues)
+    print_report_json(issues)
+    get_report_dict(issues)
+    format_summary(report)
+    _severity_icon(severity)
+    _fix_tag(issue)
   src/taskfile/runner/error_presenter.py:
     e: ErrorPresenter
     ErrorPresenter: present(6),_build_diagnosis(5),_diagnose_hostname(2),_diagnose_command_not_found(2),_diagnose_permission_denied(2),_diagnose_file_not_found(2),_first_meaningful_line(0),_extract_hostname(0),_extract_missing_binary(0),_find_variable_for_value(1),_looks_like_placeholder(0),_first_word(0)  # Formats runtime errors with context, diagnosis, and fix sugg...
+  src/taskfile/runner/explainer.py:
+    e: StepIssue,ExplainStep,ExplainReport,TaskExplainer,print_explain_report,_print_teach_deps,_print_teach_prefix_info,_print_teach_current_env,_print_remote_alt_env,_print_local_alt_env,_print_teach_alt_env,print_teach_report,_cmd_type_icon
+    StepIssue:  # A potential problem detected in a step...
+    ExplainStep:  # Analysis of a single command in the execution plan...
+    ExplainReport:  # Full pre-run analysis report...
+    TaskExplainer: __init__(1),explain(1),_analyze_command(4),_analyze_script(3),_check_placeholders(2),_check_binary(3),_check_files(2)  # Analyzes execution plan and explains what will happen...
+    print_explain_report(report;task_names;env_name)
+    _print_teach_deps(task_names;config)
+    _print_teach_prefix_info(has_local;has_remote)
+    _print_teach_current_env(report;env_name)
+    _print_remote_alt_env(remote_envs;env_name;report;config)
+    _print_local_alt_env(local_envs;env_name;report)
+    _print_teach_alt_env(report;env_name;config)
+    print_teach_report(report;task_names;env_name;config)
+    _cmd_type_icon(cmd_type)
   src/taskfile/cli/quadlet.py:
     e: quadlet,quadlet_generate,_get_upload_env,_get_upload_files,_run_upload_commands,quadlet_upload
     quadlet()
@@ -533,6 +529,18 @@ D:
     fleet_status_cmd(ctx;group)
     fleet_repair_cmd(ctx;env_name;auto_fix)
     fleet_list_cmd(ctx)
+  src/taskfile/cli/click_compat.py:
+    e: Abort,BadParameter,ClickException,confirm,_get_prompt_text,_get_user_input,_convert_value,_confirm_value,prompt,version_option
+    Abort(Exception):  # Exception to signal that the application should exit...
+    BadParameter(Exception): __init__(4)  # Exception raised for bad parameter values...
+    ClickException(Exception): __init__(1)  # Base class for click exceptions...
+    confirm(text;default;abort;prompt_suffix;show_default;err)
+    _get_prompt_text(text;default;prompt_suffix;show_default)
+    _get_user_input(hide_input;err)
+    _convert_value(value;type)
+    _confirm_value(value;err)
+    prompt(text;default;type;value_proc;prompt_suffix;show_default;err;hide_input;confirmation_prompt;allow_missing_auto)
+    version_option(version;prog_name;message;help)
   src/taskfile/cli/e2e_cmd.py:
     e: E2EResult,_check_taskfile_valid,_check_env_file,_check_compose_file,_check_quadlet_files,_check_local_tools,_check_http_endpoint,_get_running_containers_remote,_get_running_containers_local,_match_containers,_check_containers_running,_check_ssh_connectivity,_check_remote_podman,_check_remote_disk,_run_iac_checks,_run_service_checks,_print_e2e_results,e2e_cmd
     E2EResult: __init__(4)  # Single e2e test result...
@@ -737,6 +745,11 @@ Composes:
     FixStrategy(str,Enum):  # How an issue can be resolved...
     Issue: as_dict(0)  # Single diagnostic issue with category, severity, fix strateg...
     DoctorReport: classify(0),as_dict(0)  # Aggregated report from a full doctor run...
+  src/taskfile/models/environment.py:
+    e: Environment,Platform,EnvironmentGroup
+    Environment: resolve_variables(2)  # Deployment environment configuration...
+    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
+    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
   src/taskfile/runner/classifier.py:
     e: CommandType,classify_command,_is_shell_construct,should_expand_globs,has_glob_pattern
     CommandType(str,Enum):  # Classification of a command string for routing to the correc...
@@ -744,11 +757,6 @@ Composes:
     _is_shell_construct(stripped)
     should_expand_globs(cmd)
     has_glob_pattern(cmd)
-  src/taskfile/models/environment.py:
-    e: Environment,Platform,EnvironmentGroup
-    Environment: resolve_variables(2)  # Deployment environment configuration...
-    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
-    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
   src/taskfile/cigen/makefile.py:
     e: MakefileTarget
     MakefileTarget(CITarget): generate(0)
@@ -886,16 +894,16 @@ Composes:
     register_target(name)
     _sanitize_id(name)
     _yaml_dump(data)
-  src/taskfile/webui/server.py:
-    e: WebUIServer,serve_dashboard
-    WebUIServer: __init__(1),start(1),stop(0)  # Web UI server for taskfile...
-    serve_dashboard(port;open_browser)
   src/taskfile/cigen/__init__.py:
     e: generate_ci,generate_all_ci,list_targets,preview_ci
     generate_ci(config;target;project_dir)
     generate_all_ci(config;project_dir;targets)
     list_targets()
     preview_ci(config;target)
+  src/taskfile/webui/server.py:
+    e: WebUIServer,serve_dashboard
+    WebUIServer: __init__(1),start(1),stop(0)  # Web UI server for taskfile...
+    serve_dashboard(port;open_browser)
   src/taskfile/addons/redis_addon.py:
     e: generate_tasks
     generate_tasks(config)

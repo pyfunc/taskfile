@@ -1,35 +1,35 @@
-# redup/duplication | 4 groups | 94f 21596L | 2026-03-29
+# redup/duplication | 4 groups | 94f 21655L | 2026-03-29
 
 SUMMARY:
   files_scanned: 94
-  total_lines:   21596
+  total_lines:   21655
   dup_groups:    4
   dup_fragments: 17
   saved_lines:   202
-  scan_ms:       6049
+  scan_ms:       10560
 
 DUPLICATES[4] (ranked by impact):
   [4c2991aa6376ee76] !! STRU  version  L=14 N=9 saved=112 sim=1.00
       src/taskfile/cli/version.py:0-13  (version)
       src/taskfile/cli/registry_cmds.py:0-17  (pkg)
       src/taskfile/cli/cache_cmds.py:0-16  (cache)
-      src/taskfile/cli/quadlet.py:0-30  (quadlet)
       src/taskfile/cli/auth.py:0-15  (auth)
-      src/taskfile/cli/ci.py:0-11  (ci)
       src/taskfile/cli/api_cmd.py:0-11  (api)
-      src/taskfile/cli/interactive/menu.py:0-23  (setup)
+      src/taskfile/cli/quadlet.py:0-30  (quadlet)
       src/taskfile/cli/fleet.py:0-20  (fleet)
+      src/taskfile/cli/ci.py:0-11  (ci)
+      src/taskfile/cli/interactive/menu.py:0-23  (setup)
   [862479f3e75e71fe] ! EXAC  generate_report  L=67 N=2 saved=67 sim=1.00
-      examples/mega-saas/scripts/report.py:0-66  (generate_report)
       examples/mega-saas-v2/scripts/report.py:0-66  (generate_report)
+      examples/mega-saas/scripts/report.py:0-66  (generate_report)
   [e8e1ba5d936993f1]   STRU  _tag_var  L=4 N=4 saved=12 sim=1.00
-      src/taskfile/cigen/drone.py:0-3  (_tag_var)
       src/taskfile/cigen/jenkins.py:0-3  (_tag_var)
-      src/taskfile/cigen/gitlab.py:0-3  (_tag_var)
       src/taskfile/cigen/gitea.py:0-3  (_tag_var)
+      src/taskfile/cigen/gitlab.py:0-3  (_tag_var)
+      src/taskfile/cigen/drone.py:0-3  (_tag_var)
   [e1909830f631eb17]   EXAC  _md  L=11 N=2 saved=11 sim=1.00
-      src/taskfile/runner/commands.py:0-10  (_md)
       src/taskfile/runner/failure.py:0-10  (_md)
+      src/taskfile/runner/commands.py:0-10  (_md)
 
 REFACTOR[4] (ranked by priority):
   [1] ○ extract_function   → src/taskfile/cli/utils/version.py

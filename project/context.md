@@ -6,7 +6,7 @@
 - **Primary Language**: python
 - **Languages**: python: 111, shell: 15
 - **Analysis Mode**: static
-- **Total Functions**: 825
+- **Total Functions**: 833
 - **Total Classes**: 96
 - **Modules**: 126
 - **Entry Points**: 366
@@ -82,28 +82,28 @@
 - **Classes**: 5
 - **File**: `fleet.py`
 
+### src.taskfile.runner.explainer
+- **Functions**: 16
+- **Classes**: 4
+- **File**: `explainer.py`
+
 ### src.taskfile.models.config
 - **Functions**: 15
 - **Classes**: 2
 - **File**: `config.py`
-
-### src.taskfile.cli.release
-- **Functions**: 15
-- **File**: `release.py`
 
 ### src.taskfile.cli.setup
 - **Functions**: 15
 - **Classes**: 1
 - **File**: `setup.py`
 
+### src.taskfile.cli.release
+- **Functions**: 15
+- **File**: `release.py`
+
 ### src.taskfile.api.app
 - **Functions**: 15
 - **File**: `app.py`
-
-### src.taskfile.registry
-- **Functions**: 14
-- **Classes**: 2
-- **File**: `registry.py`
 
 ## Key Entry Points
 
@@ -524,6 +524,13 @@ Reuses the shared filename→type map from ``taskfile.importer`` for
 Ma
 - **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
 
+### src.taskfile.registry.RegistryClient._parse_package_name
+> Parse package name and return (source, name).
+
+Examples:
+    "tom-sapletta/web-tasks" -> ("github", 
+- **Output to**: name.startswith, name.startswith, name.startswith
+
 ### src.taskfile.importer._convert_gh_job_to_task
 > Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
 - **Output to**: src.taskfile.importer._extract_gh_steps_as_commands, src.taskfile.importer._extract_gh_job_deps, src.taskfile.importer._slugify, job_data.get, job_data.get
@@ -539,13 +546,6 @@ Ma
 ### src.taskfile.importer.parse_makefile
 > Parse Makefile into a Taskfile dict.
 - **Output to**: re.finditer, re.compile, target_re.finditer, None.strip, match.group
-
-### src.taskfile.registry.RegistryClient._parse_package_name
-> Parse package name and return (source, name).
-
-Examples:
-    "tom-sapletta/web-tasks" -> ("github", 
-- **Output to**: name.startswith, name.startswith, name.startswith
 
 ### src.taskfile.compose.ComposeFile._parse_port_mapping
 > Parse a port mapping string or dict.
@@ -601,6 +601,12 @@ Handles formats like:
 > Fallback: execute via subprocess `ssh` command.
 - **Output to**: command.replace, subprocess.run, None.rstrip, None.codeblock, print
 
+### src.taskfile.diagnostics.checks_ports._parse_compose_host_port
+- **Output to**: port_entry.strip, entry.split, re.match, entry.split, len
+
+### src.taskfile.diagnostics.checks_ports._is_docker_process
+- **Output to**: any, _fixop_is_container, None.lower
+
 ### src.taskfile.quadlet._parse_port
 > Parse '8080:80' → ('8080', '80') or '80' → ('80', '80').
 - **Output to**: None.split, len, str
@@ -611,12 +617,6 @@ Handles formats like:
 ### src.taskfile.quadlet._parse_cpus_limit
 > Extract CPU limit from deploy.resources.limits.cpus.
 - **Output to**: str
-
-### src.taskfile.diagnostics.checks_ports._parse_compose_host_port
-- **Output to**: port_entry.strip, entry.split, re.match, entry.split, len
-
-### src.taskfile.diagnostics.checks_ports._is_docker_process
-- **Output to**: any, _fixop_is_container, None.lower
 
 ## Behavioral Patterns
 

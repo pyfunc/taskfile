@@ -145,6 +145,26 @@ def _confirm_value(value: str, err: bool) -> None:
         raise BadParameter("Confirmed value does not match")
 
 
+def _apply_prompt_default(value: Any, default: Any) -> Any:
+    if value or default is None:
+        return value
+    return default
+
+
+def _convert_prompt_value(value: Any, value_type: Any) -> Any:
+    if value_type is None or value is None:
+        return value
+    try:
+        return _convert_value(value, value_type)
+    except (ValueError, TypeError) as e:
+        raise BadParameter(f"Invalid value: {e}")
+
+
+def _confirm_prompt_value(value: Any, confirmation_prompt: bool, hide_input: bool, err: bool) -> None:
+    if confirmation_prompt and not hide_input:
+        _confirm_value(value, err)
+
+
 def prompt(text: str, default: Any = None, type: Any = None, value_proc: Any = None, prompt_suffix: str = ": ", show_default: bool = True, err: bool = False, hide_input: bool = False, confirmation_prompt: bool = False, allow_missing_auto: bool = False) -> Any:
     """Prompt for user input.
     
@@ -171,19 +191,13 @@ def prompt(text: str, default: Any = None, type: Any = None, value_proc: Any = N
     value = _get_user_input(hide_input, err)
     
     # Apply default if empty
-    if not value and default is not None:
-        value = default
+    value = _apply_prompt_default(value, default)
     
     # Convert type
-    if type is not None and value is not None:
-        try:
-            value = _convert_value(value, type)
-        except (ValueError, TypeError) as e:
-            raise BadParameter(f"Invalid value: {e}")
+    value = _convert_prompt_value(value, type)
     
     # Handle confirmation prompt (but not for hidden inputs)
-    if confirmation_prompt and not hide_input:
-        _confirm_value(value, err)
+    _confirm_prompt_value(value, confirmation_prompt, hide_input, err)
     
     return value
 

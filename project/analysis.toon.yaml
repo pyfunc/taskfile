@@ -1,13 +1,9 @@
-# code2llm | 105f 22856L | python:104,shell:1 | 2026-03-29
-# CC̄=4.2 | critical:3/825 | dups:0 | cycles:0
+# code2llm | 105f 22915L | python:104,shell:1 | 2026-03-29
+# CC̄=4.2 | critical:0/833 | dups:0 | cycles:0
 
-HEALTH[3]:
-  🟡 CC    _print_summary CC=17 (limit:15)
-  🟡 CC    _print_teach_alt_env CC=15 (limit:15)
-  🟡 CC    prompt CC=18 (limit:15)
+HEALTH[0]: ok
 
-REFACTOR[1]:
-  1. split 3 high-CC methods  (CC>15)
+REFACTOR[0]: none needed
 
 PIPELINES[322]:
   [1] Src [fix_resolv_conf]: fix_resolv_conf
@@ -22,7 +18,7 @@ PIPELINES[322]:
       PURITY: 100% pure
 
 LAYERS:
-  src/                            CC̄=4.3    ←in:0  →out:0
+  src/                            CC̄=4.2    ←in:0  →out:0
   │ !! app                        722L  0C   15m  CC=14     ←1
   │ !! main                       705L  0C   25m  CC=14     ←3
   │ !! checks                     692L  0C   24m  CC=11     ←4
@@ -37,10 +33,10 @@ LAYERS:
   │ setup                      448L  1C   15m  CC=10     ←0
   │ importer                   442L  0C   20m  CC=12     ←1
   │ dashboard                  424L  0C    1m  CC=1      ←1
+  │ explainer                  415L  4C   16m  CC=13     ←1
   │ e2e_cmd                    415L  1C   18m  CC=10     ←0
   │ quadlet                    410L  1C   24m  CC=9      ←2
   │ fleet                      408L  0C   18m  CC=10     ←0
-  │ !! explainer                  395L  4C   14m  CC=15     ←1
   │ deploy                     383L  1C   18m  CC=10     ←0
   │ release                    368L  0C   15m  CC=12     ←0
   │ config                     366L  2C   15m  CC=9      ←1
@@ -58,17 +54,17 @@ LAYERS:
   │ cirunner                   262L  3C    9m  CC=8      ←0
   │ auth                       257L  0C    7m  CC=12     ←0
   │ compose                    241L  2C   12m  CC=9      ←5
+  │ click_compat               240L  3C    9m  CC=10     ←6
   │ cache                      231L  1C   13m  CC=9      ←1
   │ registry_cmds              230L  0C    6m  CC=8      ←0
   │ models                     225L  20C    0m  CC=0.0    ←0
   │ multiplatform              222L  0C    0m  CC=0.0    ←0
+  │ report                     221L  0C   13m  CC=13     ←0
   │ import_export              220L  0C    3m  CC=8      ←0
-  │ !! click_compat               218L  3C    5m  CC=18     ←6
   │ graph                      211L  0C    6m  CC=10     ←1
   │ explain_cmd                208L  0C    8m  CC=11     ←0
   │ codereview                 207L  0C    0m  CC=0.0    ←0
   │ fixes                      204L  0C   10m  CC=9      ←1
-  │ !! report                     204L  0C   11m  CC=17     ←0
   │ llm_repair                 203L  0C    5m  CC=13     ←2
   │ ci                         202L  0C    6m  CC=10     ←0
   │ resolver                   197L  1C   14m  CC=6      ←0

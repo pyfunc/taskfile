@@ -1,17 +1,9 @@
-# vallm batch | 407f | 158✓ 13⚠ 4✗ | 2026-03-29
+# vallm batch | 407f | 158✓ 11⚠ 4✗ | 2026-03-29
 
 SUMMARY:
-  scanned: 407  passed: 158 (38.8%)  warnings: 13  errors: 4  unsupported: 245
+  scanned: 407  passed: 158 (38.8%)  warnings: 11  errors: 4  unsupported: 245
 
-WARNINGS[13]{path,score}:
-  src/taskfile/cli/click_compat.py,0.97
-    issues[2]{rule,severity,message,line}:
-      complexity.cyclomatic,warning,prompt has cyclomatic complexity 18 (max: 15),101
-      complexity.lizard_cc,warning,prompt: CC=18 exceeds limit 15,101
-  src/taskfile/diagnostics/report.py,0.97
-    issues[2]{rule,severity,message,line}:
-      complexity.cyclomatic,warning,_print_summary has cyclomatic complexity 17 (max: 15),91
-      complexity.lizard_cc,warning,_print_summary: CC=17 exceeds limit 15,91
+WARNINGS[11]{path,score}:
   src/taskfile/cli/interactive/wizards.py,0.98
     issues[1]{rule,severity,message,line}:
       complexity.maintainability,warning,Low maintainability index: 18.8 (threshold: 20),

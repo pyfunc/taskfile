@@ -1,5 +1,29 @@
 ## [Unreleased]
 
+## [0.3.86] - 2026-03-29
+
+### Docs
+- Update TODO.md
+- Update docs/README.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/test_click_compat.py
+
+### Other
+- Update project/analysis.toon.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/compact_flow.mmd
+- Update project/compact_flow.png
+- Update project/duplication.toon.yaml
+- Update project/evolution.toon.yaml
+- Update project/flow.mmd
+- Update project/flow.png
+- Update project/index.html
+- ... and 4 more files
+
 ## [0.3.85] - 2026-03-29
 
 ## [0.3.84] - 2026-03-29
