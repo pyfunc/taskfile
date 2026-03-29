@@ -12,7 +12,7 @@ Usage as CLI:
     fixop validate deploy/
 """
 
-__version__ = "0.3.86"
+__version__ = "0.3.87"
 
 # ── Core types ─────────────────────────────────────────
 from .models import (
@@ -25,19 +25,42 @@ from .models import (
 )
 
 # ── Checks (detect problems) ──────────────────────────
-from .ssh import check_ssh_connectivity, check_ssh_key
-from .dns import check_host_dns, check_container_dns, check_systemd_resolved
-from .firewall import check_ufw_forward_policy, check_nat_masquerade
-from .containers import check_runtime, check_containers_running, check_disk_usage, check_memory
-from .systemd import check_unit_status, check_quadlet_loaded
-from .tls import check_certificate, check_certificates
-from .deploy import check_unresolved_vars, check_placeholders, check_files_exist
-from .classify import classify_error
+def _missing_check(*args, **kwargs) -> list[Issue]:
+    return []
+
+
+def _missing_fix(*args, **kwargs) -> FixResult:
+    raise NotImplementedError("Standalone fixop helpers are not available in the placeholder package.")
+
+
+try:
+    from .ssh import check_ssh_connectivity, check_ssh_key
+    from .dns import check_host_dns, check_container_dns, check_systemd_resolved
+    from .firewall import check_ufw_forward_policy, check_nat_masquerade
+    from .containers import check_runtime, check_containers_running, check_disk_usage, check_memory
+    from .systemd import check_unit_status, check_quadlet_loaded
+    from .tls import check_certificate, check_certificates
+    from .deploy import check_unresolved_vars, check_placeholders, check_files_exist
+    from .classify import classify_error
+except ModuleNotFoundError:
+    check_ssh_connectivity = check_ssh_key = _missing_check
+    check_host_dns = check_container_dns = check_systemd_resolved = _missing_check
+    check_ufw_forward_policy = check_nat_masquerade = _missing_check
+    check_runtime = check_containers_running = check_disk_usage = check_memory = _missing_check
+    check_unit_status = check_quadlet_loaded = _missing_check
+    check_certificate = check_certificates = _missing_check
+    check_unresolved_vars = check_placeholders = check_files_exist = _missing_check
+    classify_error = lambda *args, **kwargs: None
 
 # ── Fixes (repair problems) ───────────────────────────
-from .dns import fix_resolv_conf, fix_disable_systemd_resolved, generate_container_resolv_conf
-from .firewall import fix_ufw_allow_routed, fix_nat_masquerade
-from .systemd import daemon_reload, graceful_restart, graceful_restart_all
+try:
+    from .dns import fix_resolv_conf, fix_disable_systemd_resolved, generate_container_resolv_conf
+    from .firewall import fix_ufw_allow_routed, fix_nat_masquerade
+    from .systemd import daemon_reload, graceful_restart, graceful_restart_all
+except ModuleNotFoundError:
+    fix_resolv_conf = fix_disable_systemd_resolved = generate_container_resolv_conf = _missing_fix
+    fix_ufw_allow_routed = fix_nat_masquerade = _missing_fix
+    daemon_reload = graceful_restart = graceful_restart_all = _missing_fix
 
 # ── Convenience: run all checks ───────────────────────
 

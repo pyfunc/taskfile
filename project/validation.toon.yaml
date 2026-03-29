@@ -1,7 +1,7 @@
-# vallm batch | 407f | 158✓ 11⚠ 4✗ | 2026-03-29
+# vallm batch | 408f | 159✓ 11⚠ 4✗ | 2026-03-29
 
 SUMMARY:
-  scanned: 407  passed: 158 (38.8%)  warnings: 11  errors: 4  unsupported: 245
+  scanned: 408  passed: 159 (39.0%)  warnings: 11  errors: 4  unsupported: 245
 
 WARNINGS[11]{path,score}:
   src/taskfile/cli/interactive/wizards.py,0.98

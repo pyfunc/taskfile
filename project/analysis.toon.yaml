@@ -1,18 +1,18 @@
-# code2llm | 105f 22915L | python:104,shell:1 | 2026-03-29
-# CC̄=4.2 | critical:0/833 | dups:0 | cycles:0
+# code2llm | 105f 22929L | python:104,shell:1 | 2026-03-29
+# CC̄=4.2 | critical:0/836 | dups:0 | cycles:0
 
 HEALTH[0]: ok
 
 REFACTOR[0]: none needed
 
 PIPELINES[322]:
-  [1] Src [fix_resolv_conf]: fix_resolv_conf
+  [1] Src [check_all]: check_all → check_ssh_connectivity
       PURITY: 100% pure
-  [2] Src [fix_disable_systemd_resolved]: fix_disable_systemd_resolved
+  [2] Src [fix_resolv_conf]: fix_resolv_conf
       PURITY: 100% pure
-  [3] Src [generate_container_resolv_conf]: generate_container_resolv_conf
+  [3] Src [fix_disable_systemd_resolved]: fix_disable_systemd_resolved
       PURITY: 100% pure
-  [4] Src [check_all]: check_all → check_ssh_connectivity
+  [4] Src [generate_container_resolv_conf]: generate_container_resolv_conf
       PURITY: 100% pure
   [5] Src [import_makefile]: import_makefile → parse_makefile → _slugify
       PURITY: 100% pure
@@ -53,8 +53,8 @@ LAYERS:
   │ quadlet                    268L  0C    6m  CC=13     ←0
   │ cirunner                   262L  3C    9m  CC=8      ←0
   │ auth                       257L  0C    7m  CC=12     ←0
+  │ click_compat               254L  3C   12m  CC=10     ←6
   │ compose                    241L  2C   12m  CC=9      ←5
-  │ click_compat               240L  3C    9m  CC=10     ←6
   │ cache                      231L  1C   13m  CC=9      ←1
   │ registry_cmds              230L  0C    6m  CC=8      ←0
   │ models                     225L  20C    0m  CC=0.0    ←0

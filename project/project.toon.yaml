@@ -1,4 +1,4 @@
-# taskfile | 819 func | 88f | 32950L | python | 2026-03-29
+# taskfile | 822 func | 88f | 33029L | python | 2026-03-29
 
 HEALTH:
   CC̄=4.2  critical=44 (limit:10)  dup=4  cycles=0
@@ -11,9 +11,9 @@ ALERTS[20]:
   !!  high_fan_out     e2e_cmd = 18 (limit:10)
   !!  high_fan_out     ProjectDiagnostics.run_all_checks = 17 (limit:10)
   !!  high_fan_out     check_ufw_forward_policy = 16 (limit:10)
-  !!  high_fan_out     auth_setup = 16 (limit:10)
   !!  high_fan_out     set = 16 (limit:10)
-  !!  high_fan_out     quadlet_generate = 16 (limit:10)
+  !!  high_fan_out     auth_setup = 16 (limit:10)
+  !!  high_fan_out     explain = 16 (limit:10)
 
 MODULES[105] (top by size):
   M[src/taskfile/api/app.py] 722L C:0 F:15 CC↑14 D:1 (python)
@@ -56,4 +56,4 @@ REFACTOR[9]:
 EVOLUTION:
   2026-03-06 CC̄=4.5 crit=57 29857L // Automated analysis
   2026-03-07 CC̄=4.2 crit=46 32867L // Automated analysis
-  2026-03-29 CC̄=4.2 crit=44 32950L // Automated analysis
+  2026-03-29 CC̄=4.2 crit=44 33029L // Automated analysis

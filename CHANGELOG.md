@@ -1,5 +1,27 @@
 ## [Unreleased]
 
+## [0.3.87] - 2026-03-29
+
+### Docs
+- Update TODO.md
+- Update TODO/README.md
+- Update docs/README.md
+- Update project/README.md
+- Update project/context.md
+
+### Other
+- Update TODO/__init__.py
+- Update TODO/src/fixop/__init__.py
+- Update TODO/src/fixop/cli.py
+- Update project/analysis.toon.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/compact_flow.mmd
+- Update project/compact_flow.png
+- Update project/duplication.toon.yaml
+- Update project/evolution.toon.yaml
+- ... and 6 more files
+
 ## [0.3.86] - 2026-03-29
 
 ### Docs

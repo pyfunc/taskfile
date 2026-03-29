@@ -1,5 +1,5 @@
-# taskfile | 105f 22915L | python:104,shell:1 | 2026-03-29
-# stats: 819 func | 0 cls | 105 mod | CC̄=4.2 | critical:0 | cycles:0
+# taskfile | 105f 22929L | python:104,shell:1 | 2026-03-29
+# stats: 822 func | 0 cls | 105 mod | CC̄=4.2 | critical:0 | cycles:0
 # alerts[5]: fan-out _register_run_routes=23; fan-out prod=21; fan-out bump=20; fan-out RegistryClient._install_from_github=18; fan-out e2e_cmd=18
 # hotspots[5]: _register_run_routes fan=23; prod fan=21; bump fan=20; RegistryClient._install_from_github fan=18; e2e_cmd fan=18
 # evolution: CC̄ 4.2→4.2 (flat 0.0)
@@ -34,7 +34,7 @@ M[105]:
   src/taskfile/cli/auth.py,257
   src/taskfile/cli/cache_cmds.py,73
   src/taskfile/cli/ci.py,202
-  src/taskfile/cli/click_compat.py,240
+  src/taskfile/cli/click_compat.py,254
   src/taskfile/cli/completion.py,197
   src/taskfile/cli/deploy.py,383
   src/taskfile/cli/diagnostics.py,132
@@ -529,18 +529,6 @@ D:
     fleet_status_cmd(ctx;group)
     fleet_repair_cmd(ctx;env_name;auto_fix)
     fleet_list_cmd(ctx)
-  src/taskfile/cli/click_compat.py:
-    e: Abort,BadParameter,ClickException,confirm,_get_prompt_text,_get_user_input,_convert_value,_confirm_value,prompt,version_option
-    Abort(Exception):  # Exception to signal that the application should exit...
-    BadParameter(Exception): __init__(4)  # Exception raised for bad parameter values...
-    ClickException(Exception): __init__(1)  # Base class for click exceptions...
-    confirm(text;default;abort;prompt_suffix;show_default;err)
-    _get_prompt_text(text;default;prompt_suffix;show_default)
-    _get_user_input(hide_input;err)
-    _convert_value(value;type)
-    _confirm_value(value;err)
-    prompt(text;default;type;value_proc;prompt_suffix;show_default;err;hide_input;confirmation_prompt;allow_missing_auto)
-    version_option(version;prog_name;message;help)
   src/taskfile/cli/e2e_cmd.py:
     e: E2EResult,_check_taskfile_valid,_check_env_file,_check_compose_file,_check_quadlet_files,_check_local_tools,_check_http_endpoint,_get_running_containers_remote,_get_running_containers_local,_match_containers,_check_containers_running,_check_ssh_connectivity,_check_remote_podman,_check_remote_disk,_run_iac_checks,_run_service_checks,_print_e2e_results,e2e_cmd
     E2EResult: __init__(4)  # Single e2e test result...
@@ -561,6 +549,21 @@ D:
     _run_service_checks(env;config;is_remote;url;port_web;port_landing)
     _print_e2e_results(results)
     e2e_cmd(ctx;check_only;url;port_web;port_landing)
+  src/taskfile/cli/click_compat.py:
+    e: Abort,BadParameter,ClickException,confirm,_get_prompt_text,_get_user_input,_convert_value,_confirm_value,_apply_prompt_default,_convert_prompt_value,_confirm_prompt_value,prompt,version_option
+    Abort(Exception):  # Exception to signal that the application should exit...
+    BadParameter(Exception): __init__(4)  # Exception raised for bad parameter values...
+    ClickException(Exception): __init__(1)  # Base class for click exceptions...
+    confirm(text;default;abort;prompt_suffix;show_default;err)
+    _get_prompt_text(text;default;prompt_suffix;show_default)
+    _get_user_input(hide_input;err)
+    _convert_value(value;type)
+    _confirm_value(value;err)
+    _apply_prompt_default(value;default)
+    _convert_prompt_value(value;value_type)
+    _confirm_prompt_value(value;confirmation_prompt;hide_input;err)
+    prompt(text;default;type;value_proc;prompt_suffix;show_default;err;hide_input;confirmation_prompt;allow_missing_auto)
+    version_option(version;prog_name;message;help)
   TODO/dns.py:
     e: check_host_dns,check_container_dns,check_systemd_resolved,fix_resolv_conf,fix_disable_systemd_resolved,generate_container_resolv_conf
     check_host_dns(ctx;domain)
@@ -646,15 +649,15 @@ D:
     _fix_run_command(issue;interactive)
     _mark_fixed(issue)
     _upsert_env_value(env_path;key;value)
+  src/taskfile/cli/health.py:
+    e: health_cmd
+    health_cmd(ctx;domain;ssh_host;ssh_user;ssh_key;no_ssh)
   src/taskfile/models/config.py:
     e: ComposeConfig,TaskfileConfig,_normalize_host_keys,_expand_single_host
     ComposeConfig:  # Compose-based deployment configuration...
     TaskfileConfig: from_dict(1),_apply_environment_defaults(0),_expand_hosts_section(1),_expand_addons_section(0),_expand_deploy_section(0),_expand_hosts(0),_parse_compose(0),_parse_environments(0),_parse_environment_groups(0),_parse_platforms(0),_parse_functions(0),_parse_tasks(0),_parse_pipeline(1)  # Parsed Taskfile configuration...
     _normalize_host_keys(d)
     _expand_single_host(name;entry;norm_defaults)
-  src/taskfile/cli/health.py:
-    e: health_cmd
-    health_cmd(ctx;domain;ssh_host;ssh_user;ssh_key;no_ssh)
   src/taskfile/cirunner.py:
     e: PipelineError,PipelineRunner,StageResult
     PipelineError(Exception): __init__(2)  # Raised when a pipeline stage fails...
@@ -745,11 +748,6 @@ Composes:
     FixStrategy(str,Enum):  # How an issue can be resolved...
     Issue: as_dict(0)  # Single diagnostic issue with category, severity, fix strateg...
     DoctorReport: classify(0),as_dict(0)  # Aggregated report from a full doctor run...
-  src/taskfile/models/environment.py:
-    e: Environment,Platform,EnvironmentGroup
-    Environment: resolve_variables(2)  # Deployment environment configuration...
-    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
-    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
   src/taskfile/runner/classifier.py:
     e: CommandType,classify_command,_is_shell_construct,should_expand_globs,has_glob_pattern
     CommandType(str,Enum):  # Classification of a command string for routing to the correc...
@@ -757,6 +755,11 @@ Composes:
     _is_shell_construct(stripped)
     should_expand_globs(cmd)
     has_glob_pattern(cmd)
+  src/taskfile/models/environment.py:
+    e: Environment,Platform,EnvironmentGroup
+    Environment: resolve_variables(2)  # Deployment environment configuration...
+    Platform: resolve_variables(2)  # Target platform configuration (e.g. desktop, web, mobile)...
+    EnvironmentGroup:  # Group of environments sharing an update strategy (e.g. RPi f...
   src/taskfile/cigen/makefile.py:
     e: MakefileTarget
     MakefileTarget(CITarget): generate(0)

@@ -6,7 +6,7 @@
 - **Primary Language**: python
 - **Languages**: python: 111, shell: 15
 - **Analysis Mode**: static
-- **Total Functions**: 833
+- **Total Functions**: 836
 - **Total Classes**: 96
 - **Modules**: 126
 - **Entry Points**: 366
@@ -171,16 +171,16 @@ Validates infrastructure-as-code and tests running services.
 | Layer | What is tested |
 - **Calls**: main.command, click.option, click.option, click.option, click.option, ctx.ensure_object, console.print, console.print
 
-### src.taskfile.models.config.TaskfileConfig._parse_tasks
-> Parse all task definitions.
-- **Calls**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance, Task, isinstance, task_data.get
-
 ### src.taskfile.cli.auth.auth_setup
 > Interactive registry authentication setup.
 
 Guides you through obtaining API tokens for each registry
 and saves them to .env (automatically gitignored
 - **Calls**: auth.command, click.option, console.print, Path, enumerate, src.taskfile.cli.auth._ensure_gitignore, console.print, console.print
+
+### src.taskfile.models.config.TaskfileConfig._parse_tasks
+> Parse all task definitions.
+- **Calls**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance, Task, isinstance, task_data.get
 
 ### src.taskfile.cli.fleet.fleet_repair_cmd
 > Diagnose and repair a remote device.
@@ -227,10 +227,6 @@ Supported targets:
     makefile        — GNU M
 - **Calls**: main.command, click.argument, click.option, click.option, click.option, click.option, Path, defaults.get
 
-### src.taskfile.models.config.TaskfileConfig.from_dict
-> Parse raw YAML dict into TaskfileConfig.
-- **Calls**: cls._apply_environment_defaults, cls._expand_hosts_section, cls._expand_addons_section, cls._expand_deploy_section, cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups
-
 ### src.taskfile.cli.registry_cmds.pkg_install
 > Install a package from the registry.
 
@@ -238,6 +234,10 @@ Package names can be:
     - GitHub repo: user/repo or github:user/repo
     - Direct URL: https://example.com/tas
 - **Calls**: pkg.command, click.argument, click.option, click.option, click.option, click.option, RegistryClient, console.print
+
+### src.taskfile.models.config.TaskfileConfig.from_dict
+> Parse raw YAML dict into TaskfileConfig.
+- **Calls**: cls._apply_environment_defaults, cls._expand_hosts_section, cls._expand_addons_section, cls._expand_deploy_section, cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups
 
 ### src.taskfile.models.pipeline.PipelineConfig.from_dict
 - **Calls**: cls, data.get, isinstance, str, data.get, data.get, data.get, data.get
@@ -388,14 +388,14 @@ bump [src.taskfile.cli.version]
 e2e_cmd [src.taskfile.cli.e2e_cmd]
 ```
 
-### Flow 9: _parse_tasks
-```
-_parse_tasks [src.taskfile.models.config.TaskfileConfig]
-```
-
-### Flow 10: auth_setup
+### Flow 9: auth_setup
 ```
 auth_setup [src.taskfile.cli.auth]
+```
+
+### Flow 10: _parse_tasks
+```
+_parse_tasks [src.taskfile.models.config.TaskfileConfig]
 ```
 
 ## Key Classes
@@ -524,13 +524,6 @@ Reuses the shared filename→type map from ``taskfile.importer`` for
 Ma
 - **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
 
-### src.taskfile.registry.RegistryClient._parse_package_name
-> Parse package name and return (source, name).
-
-Examples:
-    "tom-sapletta/web-tasks" -> ("github", 
-- **Output to**: name.startswith, name.startswith, name.startswith
-
 ### src.taskfile.importer._convert_gh_job_to_task
 > Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
 - **Output to**: src.taskfile.importer._extract_gh_steps_as_commands, src.taskfile.importer._extract_gh_job_deps, src.taskfile.importer._slugify, job_data.get, job_data.get
@@ -547,13 +540,12 @@ Examples:
 > Parse Makefile into a Taskfile dict.
 - **Output to**: re.finditer, re.compile, target_re.finditer, None.strip, match.group
 
-### src.taskfile.compose.ComposeFile._parse_port_mapping
-> Parse a port mapping string or dict.
+### src.taskfile.registry.RegistryClient._parse_package_name
+> Parse package name and return (source, name).
 
-Handles formats like:
-- "8080:80" (host:container)
-- "127.0.0.
-- **Output to**: isinstance, port_mapping.split, isinstance, int, int
+Examples:
+    "tom-sapletta/web-tasks" -> ("github", 
+- **Output to**: name.startswith, name.startswith, name.startswith
 
 ### src.taskfile.parser._parse_include_entry
 > Parse a single include entry into (path, prefix). Returns None if invalid.
@@ -592,6 +584,14 @@ Handles formats like:
 ### src.taskfile.parser.validate_taskfile
 > Validate a TaskfileConfig and return list of warnings.
 - **Output to**: warnings.extend, config.tasks.items, warnings.extend, warnings.extend, src.taskfile.parser._validate_tasks_exist
+
+### src.taskfile.compose.ComposeFile._parse_port_mapping
+> Parse a port mapping string or dict.
+
+Handles formats like:
+- "8080:80" (host:container)
+- "127.0.0.
+- **Output to**: isinstance, port_mapping.split, isinstance, int, int
 
 ### src.taskfile.fleet._parse_status_output
 > Parse pipe-delimited SSH output into DeviceStatus fields.
@@ -713,9 +713,9 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.release.rollback` - 28 calls
 - `src.taskfile.cli.import_export.import_cmd` - 27 calls
 - `src.taskfile.cli.import_export.export_cmd` - 27 calls
-- `src.taskfile.models.config.TaskfileConfig.from_dict` - 26 calls
 - `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
 - `src.taskfile.cli.version.set` - 26 calls
+- `src.taskfile.models.config.TaskfileConfig.from_dict` - 26 calls
 - `src.taskfile.models.pipeline.PipelineConfig.from_dict` - 25 calls
 - `src.taskfile.cli.main.validate` - 25 calls
 - `src.taskfile.diagnostics.checks_ssh.check_remote_health` - 24 calls
@@ -773,9 +773,9 @@ graph TD
     bump --> exists
     e2e_cmd --> command
     e2e_cmd --> option
-    _parse_tasks --> items
-    _parse_tasks --> isinstance
-    _parse_tasks --> get
+    auth_setup --> command
+    auth_setup --> option
+    auth_setup --> print
 ```
 
 ## Reverse Engineering Guidelines
