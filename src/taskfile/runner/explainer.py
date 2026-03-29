@@ -331,6 +331,40 @@ def _print_teach_current_env(report: ExplainReport, env_name: str) -> None:
             console.print(f"    [green]✅[/] {step.cmd[:80]}")
 
 
+def _print_remote_alt_env(
+    remote_envs: list[str], env_name: str, report: ExplainReport, config: TaskfileConfig
+) -> None:
+    """Print alternative environment steps for remote environments."""
+    if not remote_envs or env_name in remote_envs:
+        return
+    alt = remote_envs[0]
+    console.print(f"\n  Przy env='[cyan]{alt}[/]' (zdalny) zostaną uruchomione:")
+    for step in report.steps:
+        is_remote = step.cmd_type == "remote"
+        is_non_local = step.cmd_type != "local" and "@local" not in step.cmd
+        if is_remote or is_non_local:
+            console.print(f"    [green]✅[/] {step.cmd[:80]}")
+        else:
+            skip_reason = f"pomijany — {alt} jest zdalny"
+            console.print(f"    [dim]⏭ {step.cmd[:80]} ({skip_reason})[/]")
+
+
+def _print_local_alt_env(
+    local_envs: list[str], env_name: str, report: ExplainReport
+) -> None:
+    """Print alternative environment steps for local environments."""
+    if not local_envs or env_name in local_envs:
+        return
+    alt = local_envs[0]
+    console.print(f"\n  Przy env='[cyan]{alt}[/]' (lokalny) zostaną uruchomione:")
+    for step in report.steps:
+        if step.cmd_type != "remote":
+            console.print(f"    [green]✅[/] {step.cmd[:80]}")
+        else:
+            skip_reason = f"pomijany — {alt} brak SSH"
+            console.print(f"    [dim]⏭ {step.cmd[:80]} ({skip_reason})[/]")
+
+
 def _print_teach_alt_env(
     report: ExplainReport, env_name: str, config: TaskfileConfig,
 ) -> None:
@@ -338,22 +372,8 @@ def _print_teach_alt_env(
     remote_envs = [n for n, e in config.environments.items() if e.is_remote]
     local_envs = [n for n, e in config.environments.items() if not e.is_remote]
 
-    if remote_envs and env_name not in remote_envs:
-        alt = remote_envs[0]
-        console.print(f"\n  Przy env='[cyan]{alt}[/]' (zdalny) zostaną uruchomione:")
-        for step in report.steps:
-            if step.cmd_type == "remote" or (step.cmd_type != "local" and "@local" not in step.cmd):
-                console.print(f"    [green]✅[/] {step.cmd[:80]}")
-            else:
-                console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {alt} jest zdalny)[/]")
-    elif local_envs and env_name not in local_envs:
-        alt = local_envs[0]
-        console.print(f"\n  Przy env='[cyan]{alt}[/]' (lokalny) zostaną uruchomione:")
-        for step in report.steps:
-            if step.cmd_type != "remote":
-                console.print(f"    [green]✅[/] {step.cmd[:80]}")
-            else:
-                console.print(f"    [dim]⏭ {step.cmd[:80]} (pomijany — {alt} brak SSH)[/]")
+    _print_remote_alt_env(remote_envs, env_name, report, config)
+    _print_local_alt_env(local_envs, env_name, report)
 
 
 def print_teach_report(

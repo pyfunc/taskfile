@@ -88,14 +88,14 @@ def _print_layer_issues(layer_name: str, layer_issues: list[Issue], show_teach: 
             console.print(f"     💡 AI: {iss.context['llm_suggestion']}")
 
 
-def _print_summary(issues: list[Issue], show_teach: bool) -> None:
-    """Print summary footer with counts and hints."""
+def _build_summary_parts(issues: list[Issue]) -> list[str]:
+    """Build the list of summary parts with counts."""
+    parts = []
     error_count = sum(1 for i in issues if i.severity == SEVERITY_ERROR)
     warn_count = sum(1 for i in issues if i.severity == "warning")
     info_count = sum(1 for i in issues if i.severity == "info")
     fixable = sum(1 for i in issues if i.auto_fixable)
 
-    parts = []
     if error_count:
         parts.append(f"[red]❌ Errors: {error_count}[/]")
     if warn_count:
@@ -104,12 +104,29 @@ def _print_summary(issues: list[Issue], show_teach: bool) -> None:
         parts.append(f"[blue]ℹ Info: {info_count}[/]")
     if fixable:
         parts.append(f"[green]🔧 Auto-fixable: {fixable}[/]")
+    return parts
 
-    console.print(f"\n{'  '.join(parts)}")
+
+def _get_summary_hints(issues: list[Issue], show_teach: bool) -> list[str]:
+    """Get help hints for the summary."""
+    hints = []
+    fixable = sum(1 for i in issues if i.auto_fixable)
+    has_teach = any(i.teach for i in issues)
+
     if fixable:
-        console.print("  [cyan]taskfile doctor --fix[/]    ← napraw automatycznie co się da")
-    if not show_teach and any(i.teach for i in issues):
-        console.print("  [cyan]taskfile doctor --teach[/]  ← szczegółowe wyjaśnienia")
+        hints.append("  [cyan]taskfile doctor --fix[/]    ← napraw automatycznie co się da")
+    if not show_teach and has_teach:
+        hints.append("  [cyan]taskfile doctor --teach[/]  ← szczegółowe wyjaśnienia")
+    return hints
+
+
+def _print_summary(issues: list[Issue], show_teach: bool) -> None:
+    """Print summary footer with counts and hints."""
+    parts = _build_summary_parts(issues)
+    console.print(f"\n{'  '.join(parts)}")
+
+    for hint in _get_summary_hints(issues, show_teach):
+        console.print(hint)
 
 
 def _print_layered_report(issues: list[Issue], show_teach: bool = False) -> None:

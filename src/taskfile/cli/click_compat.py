@@ -98,6 +98,53 @@ def confirm(text: str, default: bool = False, abort: bool = False, prompt_suffix
             click.echo("Invalid input. Please enter 'y' or 'n'.", err=err)
 
 
+def _get_prompt_text(text: str, default: Any, prompt_suffix: str, show_default: bool) -> str:
+    """Build the prompt text with optional default value display."""
+    if show_default and default is not None:
+        return f"{text}{prompt_suffix}[{default}]"
+    return f"{text}{prompt_suffix}"
+
+
+def _get_user_input(hide_input: bool, err: bool) -> str:
+    """Get user input, optionally hiding it (for passwords)."""
+    try:
+        if hide_input:
+            import getpass
+            return getpass.getpass("")
+        return input()
+    except (EOFError, KeyboardInterrupt):
+        click.echo("", err=err)
+        raise Abort()
+
+
+def _convert_value(value: str, type: Any) -> Any:
+    """Convert string value to the specified type."""
+    if type is None or value is None:
+        return value
+    if callable(type):
+        return type(value)
+    # Handle basic types
+    if type == int:
+        return int(value)
+    elif type == float:
+        return float(value)
+    elif type == bool:
+        return value.lower() in ("true", "1", "yes", "y")
+    return value
+
+
+def _confirm_value(value: str, err: bool) -> None:
+    """Ask for confirmation and raise error if values don't match."""
+    click.echo("Repeat for confirmation: ", err=err, nl=False)
+    try:
+        confirmation = input()
+    except (EOFError, KeyboardInterrupt):
+        click.echo("", err=err)
+        raise Abort()
+    if confirmation != value:
+        raise BadParameter("Confirmed value does not match")
+
+
 def prompt(text: str, default: Any = None, type: Any = None, value_proc: Any = None, prompt_suffix: str = ": ", show_default: bool = True, err: bool = False, hide_input: bool = False, confirmation_prompt: bool = False, allow_missing_auto: bool = False) -> Any:
     """Prompt for user input.
     
@@ -116,52 +163,27 @@ def prompt(text: str, default: Any = None, type: Any = None, value_proc: Any = N
     Returns:
         User input value
     """
-    prompt_text = text
-    if show_default and default is not None:
-        prompt_text += f"{prompt_suffix}[{default}]"
-    else:
-        prompt_text += prompt_suffix
-    
+    # Build and display prompt
+    prompt_text = _get_prompt_text(text, default, prompt_suffix, show_default)
     click.echo(prompt_text, err=err, nl=False)
     
-    try:
-        if hide_input:
-            import getpass
-            value = getpass.getpass("")
-        else:
-            value = input()
-    except (EOFError, KeyboardInterrupt):
-        click.echo("", err=err)
-        raise Abort()
+    # Get user input
+    value = _get_user_input(hide_input, err)
     
+    # Apply default if empty
     if not value and default is not None:
         value = default
     
+    # Convert type
     if type is not None and value is not None:
         try:
-            if callable(type):
-                value = type(value)
-            else:
-                # Handle basic types
-                if type == int:
-                    value = int(value)
-                elif type == float:
-                    value = float(value)
-                elif type == bool:
-                    value = value.lower() in ("true", "1", "yes", "y")
+            value = _convert_value(value, type)
         except (ValueError, TypeError) as e:
             raise BadParameter(f"Invalid value: {e}")
     
+    # Handle confirmation prompt (but not for hidden inputs)
     if confirmation_prompt and not hide_input:
-        click.echo(f"Repeat for confirmation: ", err=err, nl=False)
-        try:
-            confirmation = input()
-        except (EOFError, KeyboardInterrupt):
-            click.echo("", err=err)
-            raise Abort()
-        
-        if confirmation != value:
-            raise BadParameter("Confirmed value does not match")
+        _confirm_value(value, err)
     
     return value
 
