@@ -1,7 +1,7 @@
-# vallm batch | 412f | 157✓ 13⚠ 3✗ | 2026-03-29
+# vallm batch | 407f | 158✓ 13⚠ 4✗ | 2026-03-29
 
 SUMMARY:
-  scanned: 412  passed: 157 (38.1%)  warnings: 13  errors: 3  unsupported: 252
+  scanned: 407  passed: 158 (38.8%)  warnings: 13  errors: 4  unsupported: 245
 
 WARNINGS[13]{path,score}:
   src/taskfile/cli/click_compat.py,0.97
@@ -46,17 +46,19 @@ WARNINGS[13]{path,score}:
     issues[1]{rule,severity,message,line}:
       complexity.cyclomatic,warning,test_generate_container_unit has cyclomatic complexity 16 (max: 15),121
 
-ERRORS[3]{path,score}:
-  TODO/__init__.py,0.64
-    issues[10]{rule,severity,message,line}:
+ERRORS[4]{path,score}:
+  TODO/__init__.py,0.57
+    issues[12]{rule,severity,message,line}:
       python.import.resolvable,error,Module 'models' not found,18
       python.import.resolvable,error,Module 'ssh' not found,28
+      python.import.resolvable,error,Module 'dns' not found,29
       python.import.resolvable,error,Module 'firewall' not found,30
       python.import.resolvable,error,Module 'containers' not found,31
       python.import.resolvable,error,Module 'systemd' not found,32
       python.import.resolvable,error,Module 'tls' not found,33
       python.import.resolvable,error,Module 'deploy' not found,34
       python.import.resolvable,error,Module 'classify' not found,35
+      python.import.resolvable,error,Module 'dns' not found,38
       python.import.resolvable,error,Module 'firewall' not found,39
       python.import.resolvable,error,Module 'systemd' not found,40
   TODO/dns.py,0.86
@@ -66,10 +68,13 @@ ERRORS[3]{path,score}:
   src/taskfile/ssh.py,0.95
     issues[1]{rule,severity,message,line}:
       python.import.resolvable,error,Module 'paramiko' not found,36
+  src/taskfile/cli/api_cmd.py,0.97
+    issues[1]{rule,severity,message,line}:
+      python.import.resolvable,error,Module 'uvicorn' not found,49
 
 UNSUPPORTED[5]{bucket,count}:
   *.md,71
   *.txt,1
   *.yml,67
-  *.example,62
+  *.example,55
   other,51
