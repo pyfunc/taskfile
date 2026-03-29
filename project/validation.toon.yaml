@@ -1,0 +1,75 @@
+# vallm batch | 412f | 157✓ 13⚠ 3✗ | 2026-03-29
+
+SUMMARY:
+  scanned: 412  passed: 157 (38.1%)  warnings: 13  errors: 3  unsupported: 252
+
+WARNINGS[13]{path,score}:
+  src/taskfile/cli/click_compat.py,0.97
+    issues[2]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,prompt has cyclomatic complexity 18 (max: 15),101
+      complexity.lizard_cc,warning,prompt: CC=18 exceeds limit 15,101
+  src/taskfile/diagnostics/report.py,0.97
+    issues[2]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,_print_summary has cyclomatic complexity 17 (max: 15),91
+      complexity.lizard_cc,warning,_print_summary: CC=17 exceeds limit 15,91
+  src/taskfile/cli/interactive/wizards.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 18.8 (threshold: 20),
+  src/taskfile/cli/main.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 16.5 (threshold: 20),
+  src/taskfile/runner/core.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 19.0 (threshold: 20),
+  tests/test_diagnostics.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 2.5 (threshold: 20),
+  tests/test_doctor_e2e.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 0.0 (threshold: 20),
+  tests/test_dsl_commands.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 0.0 (threshold: 20),
+  tests/test_e2e_examples.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 0.0 (threshold: 20),
+  tests/test_fleet.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,test_from_dict_full has cyclomatic complexity 20 (max: 15),30
+  tests/test_graceful_restart.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 14.9 (threshold: 20),
+  tests/test_models.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 0.0 (threshold: 20),
+  tests/test_quadlet.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,test_generate_container_unit has cyclomatic complexity 16 (max: 15),121
+
+ERRORS[3]{path,score}:
+  TODO/__init__.py,0.64
+    issues[10]{rule,severity,message,line}:
+      python.import.resolvable,error,Module 'models' not found,18
+      python.import.resolvable,error,Module 'ssh' not found,28
+      python.import.resolvable,error,Module 'firewall' not found,30
+      python.import.resolvable,error,Module 'containers' not found,31
+      python.import.resolvable,error,Module 'systemd' not found,32
+      python.import.resolvable,error,Module 'tls' not found,33
+      python.import.resolvable,error,Module 'deploy' not found,34
+      python.import.resolvable,error,Module 'classify' not found,35
+      python.import.resolvable,error,Module 'firewall' not found,39
+      python.import.resolvable,error,Module 'systemd' not found,40
+  TODO/dns.py,0.86
+    issues[2]{rule,severity,message,line}:
+      python.import.resolvable,error,Module 'models' not found,17
+      python.import.resolvable,error,Module 'ssh' not found,18
+  src/taskfile/ssh.py,0.95
+    issues[1]{rule,severity,message,line}:
+      python.import.resolvable,error,Module 'paramiko' not found,36
+
+UNSUPPORTED[5]{bucket,count}:
+  *.md,71
+  *.txt,1
+  *.yml,67
+  *.example,62
+  other,51

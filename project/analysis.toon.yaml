@@ -1,0 +1,145 @@
+# code2llm | 105f 22856L | python:104,shell:1 | 2026-03-29
+# CC̄=4.2 | critical:3/825 | dups:0 | cycles:0
+
+HEALTH[3]:
+  🟡 CC    _print_summary CC=17 (limit:15)
+  🟡 CC    _print_teach_alt_env CC=15 (limit:15)
+  🟡 CC    prompt CC=18 (limit:15)
+
+REFACTOR[1]:
+  1. split 3 high-CC methods  (CC>15)
+
+PIPELINES[322]:
+  [1] Src [fix_resolv_conf]: fix_resolv_conf
+      PURITY: 100% pure
+  [2] Src [fix_disable_systemd_resolved]: fix_disable_systemd_resolved
+      PURITY: 100% pure
+  [3] Src [generate_container_resolv_conf]: generate_container_resolv_conf
+      PURITY: 100% pure
+  [4] Src [check_all]: check_all → check_ssh_connectivity
+      PURITY: 100% pure
+  [5] Src [import_makefile]: import_makefile → parse_makefile → _slugify
+      PURITY: 100% pure
+
+LAYERS:
+  src/                            CC̄=4.3    ←in:0  →out:0
+  │ !! app                        722L  0C   15m  CC=14     ←1
+  │ !! main                       705L  0C   25m  CC=14     ←3
+  │ !! checks                     692L  0C   24m  CC=11     ←4
+  │ !! wizards                    663L  1C   26m  CC=13     ←0
+  │ !! commands                   588L  0C   29m  CC=11     ←1
+  │ !! menu                       552L  0C    9m  CC=8      ←0
+  │ deploy_utils               492L  2C   18m  CC=6      ←4
+  │ core                       486L  2C   34m  CC=8      ←0
+  │ deploy_recipes             484L  0C   17m  CC=5      ←1
+  │ fleet                      483L  5C   16m  CC=10     ←0
+  │ health                     458L  2C   10m  CC=11     ←2
+  │ setup                      448L  1C   15m  CC=10     ←0
+  │ importer                   442L  0C   20m  CC=12     ←1
+  │ dashboard                  424L  0C    1m  CC=1      ←1
+  │ e2e_cmd                    415L  1C   18m  CC=10     ←0
+  │ quadlet                    410L  1C   24m  CC=9      ←2
+  │ fleet                      408L  0C   18m  CC=10     ←0
+  │ !! explainer                  395L  4C   14m  CC=15     ←1
+  │ deploy                     383L  1C   18m  CC=10     ←0
+  │ release                    368L  0C   15m  CC=12     ←0
+  │ config                     366L  2C   15m  CC=9      ←1
+  │ landing                    365L  0C    4m  CC=2      ←1
+  │ registry                   349L  2C   14m  CC=9      ←0
+  │ parser                     344L  2C   19m  CC=11     ←22
+  │ __init__                   320L  1C   29m  CC=9      ←2
+  │ failure                    310L  0C   12m  CC=10     ←2
+  │ provisioner                308L  2C   12m  CC=5      ←0
+  │ version                    307L  0C   11m  CC=10     ←13
+  │ converters                 306L  5C   11m  CC=9      ←2
+  │ error_presenter            280L  1C   12m  CC=13     ←0
+  │ publish                    280L  0C    0m  CC=0.0    ←0
+  │ quadlet                    268L  0C    6m  CC=13     ←0
+  │ cirunner                   262L  3C    9m  CC=8      ←0
+  │ auth                       257L  0C    7m  CC=12     ←0
+  │ compose                    241L  2C   12m  CC=9      ←5
+  │ cache                      231L  1C   13m  CC=9      ←1
+  │ registry_cmds              230L  0C    6m  CC=8      ←0
+  │ models                     225L  20C    0m  CC=0.0    ←0
+  │ multiplatform              222L  0C    0m  CC=0.0    ←0
+  │ import_export              220L  0C    3m  CC=8      ←0
+  │ !! click_compat               218L  3C    5m  CC=18     ←6
+  │ graph                      211L  0C    6m  CC=10     ←1
+  │ explain_cmd                208L  0C    8m  CC=11     ←0
+  │ codereview                 207L  0C    0m  CC=0.0    ←0
+  │ fixes                      204L  0C   10m  CC=9      ←1
+  │ !! report                     204L  0C   11m  CC=17     ←0
+  │ llm_repair                 203L  0C    5m  CC=13     ←2
+  │ ci                         202L  0C    6m  CC=10     ←0
+  │ resolver                   197L  1C   14m  CC=6      ←0
+  │ completion                 197L  0C    4m  CC=8      ←0
+  │ checks_ports               191L  0C   10m  CC=6      ←0
+  │ docker_cmds                187L  1C    9m  CC=6      ←0
+  │ watch                      182L  1C    7m  CC=10     ←1
+  │ full                       181L  0C    0m  CC=0.0    ←0
+  │ checks_infra               179L  0C    2m  CC=11     ←1
+  │ checks_deploy              171L  0C    2m  CC=10     ←0
+  │ checks_registry            166L  0C    9m  CC=8      ←0
+  │ checks_placeholders        161L  0C    7m  CC=9      ←1
+  │ ssh                        151L  0C    6m  CC=7      ←2
+  │ models                     147L  4C    3m  CC=7      ←0
+  │ handlers                   147L  1C   10m  CC=8      ←0
+  │ classifier                 146L  1C    4m  CC=7      ←1
+  │ functions                  140L  0C    7m  CC=10     ←2
+  │ diagnostics                132L  2C    4m  CC=2      ←0
+  │ github                     127L  1C    7m  CC=7      ←0
+  │ ssh                        121L  0C   12m  CC=4      ←3
+  │ api_cmd                    119L  0C    3m  CC=8      ←0
+  │ fixop_adapter              113L  0C    4m  CC=5      ←3
+  │ notifications              109L  0C    5m  CC=8      ←1
+  │ environment                107L  3C    2m  CC=7      ←0
+  │ gitlab                     105L  1C    8m  CC=5      ←0
+  │ checks_ssh                 100L  0C    3m  CC=12     ←0
+  │ podman                      94L  0C    0m  CC=0.0    ←0
+  │ web                         93L  0C    0m  CC=0.0    ←0
+  │ pipeline                    81L  2C    2m  CC=5      ←1
+  │ postgres                    80L  0C    1m  CC=1      ←0
+  │ cache_cmds                  73L  0C    3m  CC=4      ←0
+  │ info_cmd                    72L  0C    3m  CC=5      ←0
+  │ health                      70L  0C    1m  CC=9      ←0
+  │ __init__                    69L  0C    2m  CC=6      ←1
+  │ task                        68L  2C    3m  CC=6      ←1
+  │ base                        67L  1C    9m  CC=3      ←4
+  │ fixop_addon                 67L  0C    1m  CC=5      ←0
+  │ drone                       63L  1C    5m  CC=4      ←0
+  │ redis_addon                 61L  0C    1m  CC=3      ←0
+  │ __init__                    58L  0C    4m  CC=3      ←1
+  │ monitoring                  58L  0C    1m  CC=1      ←0
+  │ jenkins                     54L  1C    2m  CC=2      ←0
+  │ makefile                    53L  1C    1m  CC=7      ←0
+  │ gitea                       51L  1C    2m  CC=8      ←0
+  │ server                      43L  1C    4m  CC=3      ←1
+  │ minimal                     40L  0C    0m  CC=0.0    ←0
+  │ __init__                    39L  0C    0m  CC=0.0    ←0
+  │ __init__                    33L  0C    2m  CC=2      ←2
+  │ __init__                    29L  0C    0m  CC=0.0    ←0
+  │ __init__                    19L  0C    0m  CC=0.0    ←0
+  │ __init__                    14L  0C    0m  CC=0.0    ←0
+  │ __init__                    13L  0C    0m  CC=0.0    ←0
+  │ __init__                     9L  0C    0m  CC=0.0    ←0
+  │ __init__                     8L  0C    0m  CC=0.0    ←0
+  │ __main__                     6L  0C    0m  CC=0.0    ←0
+  │
+  TODO/                           CC̄=3.9    ←in:0  →out:2
+  │ dns                        194L  0C    6m  CC=9      ←1
+  │ __init__                   108L  0C    1m  CC=7      ←0
+  │ models                     103L  6C    3m  CC=2      ←0
+  │
+  ./                              CC̄=0.0    ←in:0  →out:0
+  │ project.sh                  24L  0C    0m  CC=0.0    ←0
+  │
+
+COUPLING:
+                        TODO  src.taskfile
+          TODO            ──             2
+  src.taskfile            ←2            ──
+  CYCLES: none
+
+EXTERNAL:
+  validation: run `vallm batch .` → validation.toon
+  duplication: run `redup scan .` → duplication.toon

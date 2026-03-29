@@ -1,5 +1,141 @@
 ## [Unreleased]
 
+## [0.3.83] - 2026-03-29
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update TODO.md
+- Update docs/README.md
+- Update project/README.md
+- Update project/context.md
+
+### Other
+- Update .env.example
+- Update TODO/.env.example
+- Update TODO/.gitignore
+- Update TODO/pyproject.toml
+- Update planfile.yaml
+- Update prefact.yaml
+- Update project.sh
+- Update project/analysis.toon.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- ... and 11 more files
+
+## [0.1.10] - 2026-03-29
+
+### Fixed
+- Fix relative-imports issues (ticket-f3f28073)
+- Fix relative-imports issues (ticket-c6f9fa8e)
+- Fix smart-return-type issues (ticket-2bf32c00)
+- Fix ai-boilerplate issues (ticket-bb448132)
+- Fix smart-return-type issues (ticket-a044ed98)
+- Fix ai-boilerplate issues (ticket-c420681c)
+- Fix smart-return-type issues (ticket-c06bf63d)
+- Fix ai-boilerplate issues (ticket-c390ac6a)
+- Fix smart-return-type issues (ticket-62e8db30)
+- Fix unused-imports issues (ticket-e86c805e)
+- Fix ai-boilerplate issues (ticket-19153e2e)
+- Fix smart-return-type issues (ticket-c38c7138)
+- Fix ai-boilerplate issues (ticket-e8fb17e2)
+- Fix smart-return-type issues (ticket-2e30b39c)
+- Fix ai-boilerplate issues (ticket-f85ca535)
+- Fix unused-imports issues (ticket-11960774)
+- Fix magic-numbers issues (ticket-cf079b78)
+- Fix ai-boilerplate issues (ticket-c3b746bb)
+- Fix smart-return-type issues (ticket-543708b5)
+- Fix string-concat issues (ticket-6cad84ab)
+- Fix ai-boilerplate issues (ticket-2b137cb7)
+- Fix unused-imports issues (ticket-cdfb8cfe)
+- Fix unused-imports issues (ticket-79032430)
+- Fix magic-numbers issues (ticket-9e246e3a)
+- Fix unused-imports issues (ticket-189eee74)
+- Fix duplicate-imports issues (ticket-61f49d4f)
+- Fix wildcard-imports issues (ticket-ac65651e)
+- Fix unused-imports issues (ticket-c4ed9161)
+- Fix magic-numbers issues (ticket-885a61e2)
+- Fix duplicate-imports issues (ticket-8af9532d)
+- Fix duplicate-imports issues (ticket-8806009f)
+- Fix custom-import-organization issues (ticket-eaf34594)
+- Fix unused-imports issues (ticket-e49f8a8e)
+- Fix llm-generated-code issues (ticket-51268741)
+- Fix smart-return-type issues (ticket-48ff5ed1)
+- Fix string-concat issues (ticket-45f9d0e0)
+- Fix unused-imports issues (ticket-6f8aee8c)
+- Fix llm-generated-code issues (ticket-4acc7d73)
+- Fix ai-boilerplate issues (ticket-6b3c1309)
+- Fix duplicate-imports issues (ticket-2ec9e1bf)
+- Fix string-concat issues (ticket-344ec67f)
+- Fix unused-imports issues (ticket-5f30942f)
+- Fix llm-generated-code issues (ticket-7983393c)
+- Fix duplicate-imports issues (ticket-228f5e58)
+- Fix sorted-imports issues (ticket-fc046bdc)
+- Fix unused-imports issues (ticket-014eab6f)
+- Fix smart-return-type issues (ticket-6cdba626)
+- Fix unused-imports issues (ticket-2213dd08)
+- Fix smart-return-type issues (ticket-7736d48e)
+- Fix unused-imports issues (ticket-4a883be3)
+- Fix unused-imports issues (ticket-019c010a)
+- Fix magic-numbers issues (ticket-a3659a5e)
+- Fix llm-generated-code issues (ticket-d2c4b2c3)
+- Fix unused-imports issues (ticket-a7a57a08)
+- Fix string-concat issues (ticket-a9180b34)
+- Fix unused-imports issues (ticket-59d053fd)
+- Fix magic-numbers issues (ticket-2c2e44d7)
+- Fix llm-generated-code issues (ticket-dda025ef)
+- Fix string-concat issues (ticket-c5f6834a)
+- Fix unused-imports issues (ticket-a4395fd7)
+- Fix magic-numbers issues (ticket-ae66daee)
+- Fix llm-generated-code issues (ticket-f00914a1)
+- Fix unused-imports issues (ticket-be5d79b7)
+- Fix magic-numbers issues (ticket-96e272b4)
+- Fix llm-generated-code issues (ticket-7b06db1c)
+- Fix string-concat issues (ticket-7b61195e)
+- Fix unused-imports issues (ticket-3c63ab37)
+- Fix llm-generated-code issues (ticket-4f935489)
+- Fix unused-imports issues (ticket-d132f5e3)
+- Fix magic-numbers issues (ticket-40217d13)
+- Fix string-concat issues (ticket-9aa90cbc)
+- Fix unused-imports issues (ticket-3378d6a1)
+- Fix magic-numbers issues (ticket-ed59da26)
+- Fix unused-imports issues (ticket-397fbdd8)
+- Fix unused-imports issues (ticket-85967f80)
+- Fix string-concat issues (ticket-68eca909)
+- Fix unused-imports issues (ticket-6b05e1d0)
+- Fix llm-generated-code issues (ticket-2339b331)
+- Fix unused-imports issues (ticket-77c5caa8)
+- Fix magic-numbers issues (ticket-a11ab237)
+- Fix llm-generated-code issues (ticket-ca51db2f)
+- Fix unused-imports issues (ticket-db141527)
+- Fix llm-generated-code issues (ticket-c894688c)
+- Fix unused-imports issues (ticket-b9293531)
+- Fix magic-numbers issues (ticket-3201f778)
+- Fix string-concat issues (ticket-322b83fb)
+- Fix unused-imports issues (ticket-ff749bc1)
+- Fix duplicate-imports issues (ticket-ab23813a)
+- Fix llm-generated-code issues (ticket-1524b8cd)
+- Fix unused-imports issues (ticket-bd667e8f)
+- Fix magic-numbers issues (ticket-ca0300f0)
+- Fix unused-imports issues (ticket-aaade140)
+- Fix magic-numbers issues (ticket-0fbb2181)
+- Fix llm-generated-code issues (ticket-a62ffa8b)
+- Fix custom-import-organization issues (ticket-a12ec891)
+- Fix unused-imports issues (ticket-d5319a12)
+- Fix magic-numbers issues (ticket-ce198473)
+- Fix llm-generated-code issues (ticket-c680ed0d)
+- Fix string-concat issues (ticket-1d0813ab)
+- Fix unused-imports issues (ticket-e2d067e0)
+- Fix magic-numbers issues (ticket-d51e811b)
+- Fix string-concat issues (ticket-2a349382)
+- Fix unused-imports issues (ticket-339749df)
+- Fix unused-imports issues (ticket-cfa31f16)
+- Fix magic-numbers issues (ticket-b65a5de8)
+- Fix smart-return-type issues (ticket-59ac0d35)
+- Fix unused-imports issues (ticket-c843d599)
+- Fix duplicate-imports issues (ticket-7a181f5b)
+- Fix magic-numbers issues (ticket-b602b72f)
+
 ### Features
 - **Step-by-step execution tracing** — Each command shows `Step 2/4 — 🌐 remote Taskfile.yml:37` with source line reference. Use `-v` for full YAML snippet context.
 - **Pre-run file validation** — `scp`/`rsync`/`cp` commands are checked for missing local files *before* execution. Catches missing `deploy/quadlet/*.container` with actionable hints.

@@ -1,0 +1,50 @@
+# redup/duplication | 4 groups | 94f 21596L | 2026-03-29
+
+SUMMARY:
+  files_scanned: 94
+  total_lines:   21596
+  dup_groups:    4
+  dup_fragments: 17
+  saved_lines:   234
+  scan_ms:       5246
+
+DUPLICATES[4] (ranked by impact):
+  [18db911a9ea9c0c0] !! STRU  pkg  L=18 N=9 saved=144 sim=1.00
+      src/taskfile/cli/registry_cmds.py:0-17  (pkg)
+      src/taskfile/cli/version.py:0-13  (version)
+      src/taskfile/cli/quadlet.py:0-30  (quadlet)
+      src/taskfile/cli/auth.py:0-15  (auth)
+      src/taskfile/cli/api_cmd.py:0-11  (api)
+      src/taskfile/cli/cache_cmds.py:0-16  (cache)
+      src/taskfile/cli/ci.py:0-11  (ci)
+      src/taskfile/cli/fleet.py:0-20  (fleet)
+      src/taskfile/cli/interactive/menu.py:0-23  (setup)
+  [38a5c95368763636] ! EXAC  generate_report  L=67 N=2 saved=67 sim=1.00
+      examples/mega-saas/scripts/report.py:0-66  (generate_report)
+      examples/mega-saas-v2/scripts/report.py:0-66  (generate_report)
+  [29501f879176304a]   STRU  _tag_var  L=4 N=4 saved=12 sim=1.00
+      src/taskfile/cigen/drone.py:0-3  (_tag_var)
+      src/taskfile/cigen/gitlab.py:0-3  (_tag_var)
+      src/taskfile/cigen/gitea.py:0-3  (_tag_var)
+      src/taskfile/cigen/jenkins.py:0-3  (_tag_var)
+  [e7d73f7645388b86]   EXAC  _md  L=11 N=2 saved=11 sim=1.00
+      src/taskfile/runner/failure.py:0-10  (_md)
+      src/taskfile/runner/commands.py:0-10  (_md)
+
+REFACTOR[4] (ranked by priority):
+  [1] ○ extract_function   → src/taskfile/cli/utils/pkg.py
+      WHY: 9 occurrences of 18-line block across 9 files — saves 144 lines
+      FILES: src/taskfile/cli/api_cmd.py, src/taskfile/cli/auth.py, src/taskfile/cli/cache_cmds.py, src/taskfile/cli/ci.py, src/taskfile/cli/fleet.py +4 more
+  [2] ◐ extract_module     → examples/utils/generate_report.py
+      WHY: 2 occurrences of 67-line block across 2 files — saves 67 lines
+      FILES: examples/mega-saas-v2/scripts/report.py, examples/mega-saas/scripts/report.py
+  [3] ○ extract_function   → src/taskfile/cigen/utils/_tag_var.py
+      WHY: 4 occurrences of 4-line block across 4 files — saves 12 lines
+      FILES: src/taskfile/cigen/drone.py, src/taskfile/cigen/gitea.py, src/taskfile/cigen/gitlab.py, src/taskfile/cigen/jenkins.py
+  [4] ○ extract_function   → src/taskfile/runner/utils/_md.py
+      WHY: 2 occurrences of 11-line block across 2 files — saves 11 lines
+      FILES: src/taskfile/runner/commands.py, src/taskfile/runner/failure.py
+
+METRICS-TARGET:
+  dup_groups:  4 → 0
+  saved_lines: 234 lines recoverable

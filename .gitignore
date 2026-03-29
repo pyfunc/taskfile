@@ -1,3 +1,5 @@
+.env.example
+TODO/.env.example
 .env.prod
 tests/test-results
 releases

@@ -12,7 +12,7 @@ Usage as CLI:
     fixop validate deploy/
 """
 
-__version__ = "0.3.82"
+__version__ = "0.3.83"
 
 # ── Core types ─────────────────────────────────────────
 from .models import (

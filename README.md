@@ -8,6 +8,21 @@
 [![Documentation Status](https://readthedocs.org/projects/taskfile/badge/?version=latest)](https://taskfile.readthedocs.io/en/latest/?badge=latest)
 
 
+## AI Cost Tracking
+
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.3.83-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-30.1h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+
+- 🤖 **LLM usage:** $7.5000 (52 commits)
+- 👤 **Human dev:** ~$3014 (30.1h @ $100/h, 30min dedup)
+
+Generated on 2026-03-29 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
+
+---
+
+
+
+
 **Universal task runner with multi-environment deploy support.**
 
 Write your deploy logic once in `Taskfile.yml`, run it from your terminal, GitLab CI, GitHub Actions, Gitea, Jenkins — or any other pipeline. Zero CI/CD lock-in.
@@ -1757,8 +1772,7 @@ taskfile doctor --llm
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
-
+Licensed under Apache-2.0.
 ## Author
 
-Created by **Tom Sapletta** - [tom@sapletta.com](mailto:tom@sapletta.com)
+Tom Sapletta
