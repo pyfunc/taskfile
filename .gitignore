@@ -1,3 +1,11 @@
+examples/enhanced-error-reporting/.env.local.example
+examples/enhanced-error-reporting/.env.prod.example
+examples/enhanced-error-reporting/.env.staging
+examples/enhanced-error-reporting/.env.staging.example
+examples/mega-saas-v2/.env.staging
+examples/mega-saas/.env.prod-asia
+examples/mega-saas/.env.prod-eu
+examples/mega-saas/.env.prod-us
 .env.example
 TODO/.env.example
 .env.prod

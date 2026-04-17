@@ -1,4 +1,9 @@
-"""CLI interface for taskfile."""
+"""CLI interface for taskfile.
+
+Extracted modules:
+- group_strategies.py  — rolling/canary/parallel env group execution
+- validate_cmd.py      — file validation helpers for --files / --deps
+"""
 
 from __future__ import annotations
 
@@ -19,6 +24,7 @@ from taskfile.parser import (
 )
 from taskfile.runner import TaskfileRunner
 from taskfile.scaffold import generate_taskfile
+from taskfile.cli.group_strategies import run_env_group as _run_env_group
 
 console = Console()
 
@@ -96,123 +102,6 @@ def _check_unknown_tasks(task_list: list[str], available_tasks: dict) -> None:
     if len(task_names) > 20:
         console.print(f"[dim]  ... and {len(task_names) - 20} more[/]")
     sys.exit(1)
-
-
-def _run_env_group(
-    taskfile_path,
-    env_group: str,
-    task_names: list[str],
-    platform_name: str | None = None,
-    var_overrides: dict[str, str] | None = None,
-    dry_run: bool = False,
-    verbose: bool = False,
-) -> bool:
-    """Run tasks across all environments in a group using the group's strategy.
-
-    Strategies:
-        rolling  — one environment at a time, pause between each
-        canary   — first N environments, then rest after confirmation
-        parallel — all environments concurrently (via ThreadPoolExecutor)
-    """
-    import time
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    config = load_taskfile(taskfile_path)
-
-    if env_group not in config.environment_groups:
-        console.print(f"[red]Error: Environment group '{env_group}' not found[/]")
-        available = ", ".join(sorted(config.environment_groups.keys()))
-        if available:
-            console.print(f"[dim]  Available groups: {available}[/]")
-        return False
-
-    group = config.environment_groups[env_group]
-    if not group.members:
-        console.print(f"[yellow]Group '{env_group}' has no members[/]")
-        return True
-
-    console.print(
-        f"[bold]Running on group '{env_group}' "
-        f"({len(group.members)} envs, strategy={group.strategy})[/]\n"
-    )
-
-    def run_on_env(env_name: str) -> bool:
-        console.print(f"[cyan]━━━ {env_name} ━━━[/]")
-        runner = TaskfileRunner(
-            config=config,
-            env_name=env_name,
-            platform_name=platform_name,
-            var_overrides=var_overrides or {},
-            dry_run=dry_run,
-            verbose=verbose,
-        )
-        return runner.run(task_names)
-
-    if group.strategy == "rolling":
-        return _group_rolling(group.members, run_on_env)
-    elif group.strategy == "canary":
-        return _group_canary(group.members, run_on_env, group.canary_count)
-    else:
-        return _group_parallel(group.members, run_on_env, group.max_parallel)
-
-
-def _group_rolling(members: list[str], run_fn) -> bool:
-    """Execute on each member sequentially with a pause between."""
-    import time
-    all_ok = True
-    for i, env_name in enumerate(members):
-        if not run_fn(env_name):
-            console.print(f"[red]✗ Failed on {env_name} — stopping rolling deploy[/]")
-            return False
-        if i < len(members) - 1:
-            console.print("[dim]  ⏳ Pause before next...[/]")
-            time.sleep(2)
-    return all_ok
-
-
-def _group_canary(members: list[str], run_fn, canary_count: int) -> bool:
-    """Deploy to canary members first, then the rest."""
-    canaries = members[:canary_count]
-    rest = members[canary_count:]
-
-    console.print(f"[bold]🐤 Canary: {', '.join(canaries)}[/]\n")
-    for env_name in canaries:
-        if not run_fn(env_name):
-            console.print(f"[red]✗ Canary failed on {env_name} — aborting[/]")
-            return False
-
-    if rest:
-        console.print(f"\n[green]✓ Canary OK[/] — deploying to remaining {len(rest)} env(s)\n")
-        for env_name in rest:
-            if not run_fn(env_name):
-                console.print(f"[red]✗ Failed on {env_name}[/]")
-                return False
-
-    return True
-
-
-def _group_parallel(members: list[str], run_fn, max_parallel: int) -> bool:
-    """Execute on all members in parallel."""
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    failed: list[str] = []
-    with ThreadPoolExecutor(max_workers=min(max_parallel, len(members))) as ex:
-        futures = {ex.submit(run_fn, env): env for env in members}
-        for future in as_completed(futures):
-            env = futures[future]
-            try:
-                if not future.result():
-                    failed.append(env)
-            except Exception as exc:
-                console.print(f"[red]✗ {env}: {exc}[/]")
-                failed.append(env)
-
-    if failed:
-        console.print(f"\n[red]✗ Failed on: {', '.join(failed)}[/]")
-        return False
-
-    console.print(f"\n[green]✓ All {len(members)} environments completed[/]")
-    return True
 
 
 def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
@@ -513,146 +402,19 @@ taskfile validate --deps
 
         # --files: detailed file checks
         if check_files:
-            _validate_dependent_files(config)
+            from taskfile.cli.validate_cmd import validate_dependent_files
+            validate_dependent_files(config)
 
         # --deps: show dependency tree
         if show_deps:
-            _print_dependency_tree(config)
+            from taskfile.cli.validate_cmd import print_dependency_tree
+            print_dependency_tree(config)
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         if isinstance(e, TaskfileNotFoundError):
             _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
-
-
-def _check_script_files_status(config, taskfile_dir) -> bool:
-    """Check script files and print status. Returns True if all found."""
-    all_ok = True
-    for name, task in sorted(config.tasks.items()):
-        if not task.script:
-            continue
-        script_path = taskfile_dir / task.script
-        if script_path.exists():
-            console.print(f"  [green]✓[/] {task.script} [dim](task: {name})[/]")
-        else:
-            console.print(f"  [red]✗[/] {task.script} [dim](task: {name})[/] [red]— not found[/]")
-            all_ok = False
-    return all_ok
-
-
-def _check_env_files_status(config, taskfile_dir) -> bool:
-    """Check env files and print status. Returns True if all found."""
-    all_ok = True
-    for env_name, env in sorted(config.environments.items()):
-        if env.env_file:
-            p = taskfile_dir / env.env_file
-            if p.exists():
-                console.print(f"  [green]✓[/] {env.env_file} [dim](env: {env_name})[/]")
-            else:
-                console.print(f"  [red]✗[/] {env.env_file} [dim](env: {env_name})[/] [red]— not found[/]")
-                all_ok = False
-    return all_ok
-
-
-def _check_compose_services(taskfile_dir) -> bool:
-    """Check docker-compose.yml services (build contexts, Dockerfiles). Returns True if all OK."""
-    import yaml
-
-    compose_path = taskfile_dir / "docker-compose.yml"
-    if not compose_path.exists():
-        return True
-
-    console.print(f"  [green]✓[/] docker-compose.yml")
-    all_ok = True
-    try:
-        compose_data = yaml.safe_load(compose_path.read_text()) or {}
-        services = compose_data.get("services", {})
-        for svc_name, svc_data in services.items():
-            if not isinstance(svc_data, dict):
-                continue
-            build = svc_data.get("build")
-            if isinstance(build, str):
-                build_path = taskfile_dir / build
-                if build_path.exists():
-                    console.print(f"  [green]✓[/] {build} [dim](service: {svc_name})[/]")
-                else:
-                    console.print(f"  [red]✗[/] {build} [dim](service: {svc_name})[/] [red]— not found[/]")
-                    all_ok = False
-            elif isinstance(build, dict):
-                context = build.get("context", ".")
-                dockerfile = build.get("dockerfile", "Dockerfile")
-                context_path = taskfile_dir / context
-                if context_path.exists():
-                    console.print(f"  [green]✓[/] {context}/ [dim](context for {svc_name})[/]")
-                else:
-                    console.print(f"  [red]✗[/] {context}/ [dim](context for {svc_name})[/] [red]— not found[/]")
-                    all_ok = False
-                df_path = context_path / dockerfile if context != "." else taskfile_dir / dockerfile
-                if df_path.exists():
-                    console.print(f"  [green]✓[/] {context}/{dockerfile} [dim]({svc_name})[/]")
-                else:
-                    console.print(f"  [red]✗[/] {context}/{dockerfile} [dim]({svc_name})[/] [red]— not found[/]")
-                    all_ok = False
-    except Exception as e:
-        console.print(f"  [yellow]⚠[/] Could not parse docker-compose.yml: {e}")
-    return all_ok
-
-
-def _check_common_files(taskfile_dir) -> None:
-    """Check common project files presence."""
-    for common_file in (".env", ".gitignore", "README.md", "VERSION"):
-        p = taskfile_dir / common_file
-        if p.exists():
-            console.print(f"  [green]✓[/] {common_file}")
-        else:
-            console.print(f"  [dim]·[/] {common_file} [dim]— not present[/]")
-
-
-def _validate_dependent_files(config) -> None:
-    """Check all files referenced by the Taskfile and report status."""
-    from pathlib import Path as _Path
-
-    taskfile_dir = _Path(config.source_path).parent if config.source_path else _Path.cwd()
-    console.print("\n[bold]📁 Dependent files:[/]")
-
-    ok_scripts = _check_script_files_status(config, taskfile_dir)
-    ok_envs = _check_env_files_status(config, taskfile_dir)
-    ok_compose = _check_compose_services(taskfile_dir)
-    _check_common_files(taskfile_dir)
-
-    if ok_scripts and ok_envs and ok_compose:
-        console.print("[green]  All referenced files found.[/]")
-    else:
-        console.print("[yellow]  Some files are missing — run 'taskfile doctor --fix' for auto-fix options[/]")
-
-
-def _print_dependency_tree(config) -> None:
-    """Print dependency tree for all tasks."""
-    console.print("\n[bold]🌳 Dependency tree:[/]")
-    for name, task in sorted(config.tasks.items()):
-        if not task.deps:
-            console.print(f"  [green]{name}[/]")
-        else:
-            dep_str = " → ".join(task.deps)
-            console.print(f"  [green]{name}[/] [dim]← {dep_str}[/]")
-            # Show transitive deps
-            visited = set()
-            _print_transitive_deps(config, task.deps, visited, depth=2)
-
-
-def _print_transitive_deps(config, deps: list, visited: set, depth: int) -> None:
-    """Recursively print transitive dependencies."""
-    for dep_name in deps:
-        if dep_name in visited:
-            continue
-        visited.add(dep_name)
-        dep_task = config.tasks.get(dep_name)
-        if dep_task and dep_task.deps:
-            indent = "  " * depth
-            sub_deps = " → ".join(dep_task.deps)
-            console.print(f"{indent}[dim]└─ {dep_name} ← {sub_deps}[/]")
-            _print_transitive_deps(config, dep_task.deps, visited, depth + 1)
 
 
 @main.command(name="import")

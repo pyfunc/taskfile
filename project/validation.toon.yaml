@@ -1,15 +1,12 @@
-# vallm batch | 408f | 159✓ 11⚠ 4✗ | 2026-03-29
+# vallm batch | 429f | 174✓ 10⚠ 1✗ | 2026-04-17
 
 SUMMARY:
-  scanned: 408  passed: 159 (39.0%)  warnings: 11  errors: 4  unsupported: 245
+  scanned: 429  passed: 174 (40.6%)  warnings: 10  errors: 1  unsupported: 254
 
-WARNINGS[11]{path,score}:
+WARNINGS[10]{path,score}:
   src/taskfile/cli/interactive/wizards.py,0.98
     issues[1]{rule,severity,message,line}:
       complexity.maintainability,warning,Low maintainability index: 18.8 (threshold: 20),
-  src/taskfile/cli/main.py,0.98
-    issues[1]{rule,severity,message,line}:
-      complexity.maintainability,warning,Low maintainability index: 16.5 (threshold: 20),
   src/taskfile/runner/core.py,0.98
     issues[1]{rule,severity,message,line}:
       complexity.maintainability,warning,Low maintainability index: 19.0 (threshold: 20),
@@ -38,35 +35,14 @@ WARNINGS[11]{path,score}:
     issues[1]{rule,severity,message,line}:
       complexity.cyclomatic,warning,test_generate_container_unit has cyclomatic complexity 16 (max: 15),121
 
-ERRORS[4]{path,score}:
-  TODO/__init__.py,0.57
-    issues[12]{rule,severity,message,line}:
-      python.import.resolvable,error,Module 'models' not found,18
-      python.import.resolvable,error,Module 'ssh' not found,28
-      python.import.resolvable,error,Module 'dns' not found,29
-      python.import.resolvable,error,Module 'firewall' not found,30
-      python.import.resolvable,error,Module 'containers' not found,31
-      python.import.resolvable,error,Module 'systemd' not found,32
-      python.import.resolvable,error,Module 'tls' not found,33
-      python.import.resolvable,error,Module 'deploy' not found,34
-      python.import.resolvable,error,Module 'classify' not found,35
-      python.import.resolvable,error,Module 'dns' not found,38
-      python.import.resolvable,error,Module 'firewall' not found,39
-      python.import.resolvable,error,Module 'systemd' not found,40
-  TODO/dns.py,0.86
-    issues[2]{rule,severity,message,line}:
-      python.import.resolvable,error,Module 'models' not found,17
-      python.import.resolvable,error,Module 'ssh' not found,18
-  src/taskfile/ssh.py,0.95
+ERRORS[1]{path,score}:
+  TODO/dns.py,0.93
     issues[1]{rule,severity,message,line}:
-      python.import.resolvable,error,Module 'paramiko' not found,36
-  src/taskfile/cli/api_cmd.py,0.97
-    issues[1]{rule,severity,message,line}:
-      python.import.resolvable,error,Module 'uvicorn' not found,49
+      python.import.relative.resolvable,error,Relative import 'ssh' not found,18
 
 UNSUPPORTED[5]{bucket,count}:
-  *.md,71
+  *.md,72
   *.txt,1
   *.yml,67
-  *.example,55
-  other,51
+  *.example,58
+  other,56

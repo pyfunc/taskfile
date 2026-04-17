@@ -1,5 +1,27 @@
 ## [Unreleased]
 
+## [0.3.88] - 2026-04-17
+
+### Docs
+- Update README.md
+- Update TODO.md
+- Update docs/README.md
+- Update project/README.md
+- Update project/context.md
+
+### Other
+- Update examples/enhanced-error-reporting/.env.local
+- Update examples/enhanced-error-reporting/.env.local.example
+- Update examples/enhanced-error-reporting/.env.prod.example
+- Update examples/enhanced-error-reporting/.env.staging
+- Update examples/enhanced-error-reporting/.env.staging.example
+- Update examples/mega-saas-v2/.env.staging
+- Update examples/mega-saas/.env.prod-asia
+- Update examples/mega-saas/.env.prod-eu
+- Update examples/mega-saas/.env.prod-us
+- Update project/analysis.toon
+- ... and 20 more files
+
 ## [0.3.87] - 2026-03-29
 
 ### Docs

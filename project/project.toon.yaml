@@ -1,10 +1,10 @@
-# taskfile | 822 func | 88f | 33029L | python | 2026-03-29
+# taskfile | 825 func | 100f | 33255L | python | 2026-04-17
 
 HEALTH:
   CC̄=4.2  critical=44 (limit:10)  dup=4  cycles=0
 
 ALERTS[20]:
-  !!! high_fan_out     _register_run_routes = 23 (limit:10)
+  !!! high_fan_out     register_run_routes = 23 (limit:10)
   !!! high_fan_out     prod = 21 (limit:10)
   !!! high_fan_out     bump = 20 (limit:10)
   !!  high_fan_out     RegistryClient._install_from_github = 18 (limit:10)
@@ -15,26 +15,26 @@ ALERTS[20]:
   !!  high_fan_out     auth_setup = 16 (limit:10)
   !!  high_fan_out     explain = 16 (limit:10)
 
-MODULES[105] (top by size):
-  M[src/taskfile/api/app.py] 722L C:0 F:15 CC↑14 D:1 (python)
-  M[src/taskfile/cli/main.py] 705L C:0 F:25 CC↑14 D:3 (python)
-  M[src/taskfile/diagnostics/checks.py] 692L C:0 F:24 CC↑11 D:4 (python)
+MODULES[118] (top by size):
   M[src/taskfile/cli/interactive/wizards.py] 663L C:1 F:26 CC↑13 D:0 (python)
   M[src/taskfile/runner/commands.py] 588L C:0 F:29 CC↑11 D:1 (python)
   M[src/taskfile/cli/interactive/menu.py] 552L C:0 F:9 CC↑8 D:0 (python)
+  M[src/taskfile/diagnostics/checks.py] 493L C:0 F:16 CC↑10 D:1 (python)
   M[src/taskfile/deploy_utils.py] 492L C:2 F:18 CC↑6 D:4 (python)
   M[src/taskfile/runner/core.py] 486L C:2 F:34 CC↑8 D:0 (python)
   M[src/taskfile/deploy_recipes.py] 484L C:0 F:17 CC↑5 D:1 (python)
   M[src/taskfile/fleet.py] 483L C:5 F:16 CC↑10 D:0 (python)
+  M[src/taskfile/cli/main.py] 467L C:0 F:14 CC↑14 D:3 (python)
   M[src/taskfile/health.py] 458L C:2 F:10 CC↑11 D:2 (python)
   M[src/taskfile/cli/setup.py] 448L C:1 F:15 CC↑10 D:0 (python)
   M[src/taskfile/importer.py] 442L C:0 F:20 CC↑12 D:1 (python)
   M[src/taskfile/webui/dashboard.py] 424L C:0 F:1 CC↑1 D:1 (python)
   M[src/taskfile/runner/explainer.py] 415L C:4 F:16 CC↑13 D:1 (python)
-  LANGS: python:104/shell:1
+  M[src/taskfile/cli/e2e_cmd.py] 415L C:1 F:18 CC↑10 D:0 (python)
+  LANGS: python:117/shell:1
 
 HOTSPOTS[10]:
-  ★ _register_run_routes fan=23  // Register task execution endpoint.
+  ★ register_run_routes fan=23  // Register task execution endpoint.
   ★ prod fan=21  // **Interactive production server setup** — SSH, podman, .env.
 
 All-in-one interac
@@ -46,14 +46,12 @@ Updates VERSION file and optional
 
 Validates infrastructure-as-code a
 
-REFACTOR[9]:
-  [1] H/H Split god module src/taskfile/api/app.py (722L, 0 classes)
-  [2] H/H Split god module src/taskfile/cli/main.py (705L, 0 classes)
-  [3] H/H Split god module src/taskfile/cli/interactive/wizards.py (663L, 1 classes)
-  [4] H/H Split god module src/taskfile/diagnostics/checks.py (692L, 0 classes)
-  [5] H/H Split god module src/taskfile/runner/commands.py (588L, 0 classes)
+REFACTOR[6]:
+  [1] H/H Split god module src/taskfile/cli/interactive/wizards.py (663L, 1 classes)
+  [2] H/H Split god module src/taskfile/runner/commands.py (588L, 0 classes)
+  [3] H/H Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)
+  [4] M/M Reduce register_run_routes fan-out (currently 23)
+  [5] M/M Reduce prod fan-out (currently 21)
 
 EVOLUTION:
-  2026-03-06 CC̄=4.5 crit=57 29857L // Automated analysis
-  2026-03-07 CC̄=4.2 crit=46 32867L // Automated analysis
-  2026-03-29 CC̄=4.2 crit=44 33029L // Automated analysis
+  2026-04-17 CC̄=4.2 crit=44 33255L // Automated analysis
