@@ -286,9 +286,14 @@ def parse_gitlab_ci(content: str) -> dict:
     return taskfile
 
 
+def _import_via_parser(parser_fn, content: str) -> str:
+    """Generic importer: parse content with given parser, then dump to YAML."""
+    return _dump_taskfile(parser_fn(content))
+
+
 def _import_gitlab_ci(content: str) -> str:
     """Convert .gitlab-ci.yml to Taskfile.yml."""
-    return _dump_taskfile(parse_gitlab_ci(content))
+    return _import_via_parser(parse_gitlab_ci, content)
 
 
 # ─── Makefile ────────────────────────────────────────────────────────────
@@ -310,8 +315,13 @@ def parse_makefile(content: str) -> dict:
     # Extract targets
     # Match: target: [deps]
     #            command lines (tab-indented)
+    # NOTE: ``[ \t]*`` — horizontal whitespace only. Using ``\s*`` here lets
+    # the regex consume the newline + tab of the first recipe line and pull
+    # the first command into the ``deps`` capture, dropping it from ``cmds``.
+    # ``(?!=)`` — reject ``VAR := value`` / ``VAR ?= value`` variable
+    # assignments which otherwise collide with the target pattern.
     target_re = re.compile(
-        r"^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*([^\n]*)\n((?:\t[^\n]+\n?)*)",
+        r"^([a-zA-Z_][a-zA-Z0-9_-]*)[ \t]*:(?!=)[ \t]*([^\n]*)\n((?:\t[^\n]+\n?)*)",
         re.MULTILINE,
     )
 
@@ -347,7 +357,7 @@ def parse_makefile(content: str) -> dict:
 
 def _import_makefile(content: str) -> str:
     """Convert Makefile to Taskfile.yml."""
-    return _dump_taskfile(parse_makefile(content))
+    return _import_via_parser(parse_makefile, content)
 
 
 # ─── Shell Script ────────────────────────────────────────────────────────

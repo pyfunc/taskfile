@@ -1,27 +1,27 @@
-# redup/duplication | 12 groups | 123f 23374L | 2026-04-17
+# redup/duplication | 9 groups | 136f 25582L | 2026-04-17
 
 SUMMARY:
-  files_scanned: 123
-  total_lines:   23374
-  dup_groups:    12
-  dup_fragments: 31
-  saved_lines:   189
-  scan_ms:       5250
+  files_scanned: 136
+  total_lines:   25582
+  dup_groups:    9
+  dup_fragments: 24
+  saved_lines:   181
+  scan_ms:       5299
 
 HOTSPOTS[7] (files with most duplication):
   examples/mega-saas/scripts/report.py  dup=64L  groups=1  frags=1  (0.3%)
   examples/mega-saas-v2/scripts/report.py  dup=64L  groups=1  frags=1  (0.3%)
+  src/taskfile/cli/workspace_cmd.py  dup=64L  groups=2  frags=3  (0.3%)
   src/taskfile/cli/quadlet.py  dup=28L  groups=1  frags=1  (0.1%)
-  src/taskfile/runner/ssh.py  dup=27L  groups=2  frags=6  (0.1%)
   src/taskfile/notifications.py  dup=21L  groups=1  frags=2  (0.1%)
   src/taskfile/cli/interactive/menu.py  dup=20L  groups=1  frags=1  (0.1%)
-  src/taskfile/parser.py  dup=20L  groups=1  frags=2  (0.1%)
+  src/taskfile/cli/fleet.py  dup=14L  groups=1  frags=1  (0.1%)
 
-DUPLICATES[12] (ranked by impact):
+DUPLICATES[9] (ranked by impact):
   [862479f3e75e71fe] ! EXAC  generate_report  L=64 N=2 saved=64 sim=1.00
       examples/mega-saas/scripts/report.py:8-71  (generate_report)
       examples/mega-saas-v2/scripts/report.py:8-71  (generate_report)
-  [aaae754bdb04529d] ! STRU  api  L=8 N=7 saved=48 sim=1.00
+  [aaae754bdb04529d] ! STRU  api  L=8 N=8 saved=56 sim=1.00
       src/taskfile/cli/api_cmd.py:16-23  (api)
       src/taskfile/cli/auth.py:144-152  (auth)
       src/taskfile/cli/cache_cmds.py:15-27  (cache)
@@ -29,106 +29,77 @@ DUPLICATES[12] (ranked by impact):
       src/taskfile/cli/fleet.py:250-263  (fleet)
       src/taskfile/cli/registry_cmds.py:19-32  (pkg)
       src/taskfile/cli/version.py:28-37  (version)
+      src/taskfile/cli/workspace_cmd.py:81-96  (workspace)
+  [f0c6531e3653a933]   STRU  workspace_tasks  L=24 N=2 saved=24 sim=1.00
+      src/taskfile/cli/workspace_cmd.py:171-194  (workspace_tasks)
+      src/taskfile/cli/workspace_cmd.py:203-226  (workspace_workflows)
   [206a4c173320ed3c]   STRU  setup  L=20 N=2 saved=20 sim=1.00
       src/taskfile/cli/interactive/menu.py:18-37  (setup)
       src/taskfile/cli/quadlet.py:9-36  (quadlet)
-  [2d13cdbaf2f4b3d8]   STRU  strip_local_prefix  L=6 N=3 saved=12 sim=1.00
-      src/taskfile/runner/ssh.py:18-23  (strip_local_prefix)
-      src/taskfile/runner/ssh.py:55-60  (strip_push_prefix)
-      src/taskfile/runner/ssh.py:68-73  (strip_pull_prefix)
-  [45dcf142a9447292]   STRU  _validate_task_env_filter  L=10 N=2 saved=10 sim=1.00
-      src/taskfile/parser.py:244-253  (_validate_task_env_filter)
-      src/taskfile/parser.py:256-265  (_validate_task_platform_filter)
-  [b1e60044978d4576]   STRU  generate_network_unit  L=7 N=2 saved=7 sim=1.00
-      src/taskfile/quadlet.py:238-244  (generate_network_unit)
-      src/taskfile/quadlet.py:247-252  (generate_volume_unit)
-  [e1909830f631eb17]   EXAC  _md  L=6 N=2 saved=6 sim=1.00
-      src/taskfile/runner/commands.py:36-41  (_md)
-      src/taskfile/runner/failure.py:33-38  (_md)
-  [90125dea5f4636ef]   STRU  is_local_command  L=3 N=3 saved=6 sim=1.00
-      src/taskfile/runner/ssh.py:13-15  (is_local_command)
-      src/taskfile/runner/ssh.py:50-52  (is_push_command)
-      src/taskfile/runner/ssh.py:63-65  (is_pull_command)
   [d3b1e44e10d9c074]   STRU  _notify_macos  L=5 N=2 saved=5 sim=1.00
       src/taskfile/notifications.py:49-53  (_notify_macos)
       src/taskfile/notifications.py:76-91  (_notify_windows)
-  [67084eb307f0fcfa]   STRU  check_ports  L=4 N=2 saved=4 sim=1.00
-      src/taskfile/diagnostics/checks.py:156-159  (check_ports)
-      src/taskfile/diagnostics/checks.py:290-293  (check_ssh_keys)
-  [66dd6548aeffa58c]   STRU  check_ssh_connectivity  L=4 N=2 saved=4 sim=1.00
-      src/taskfile/diagnostics/checks.py:296-299  (check_ssh_connectivity)
-      src/taskfile/diagnostics/checks.py:302-305  (check_remote_health)
-  [7bc5ba5bbfebdf89]   STRU  _import_gitlab_ci  L=3 N=2 saved=3 sim=1.00
-      src/taskfile/importer.py:289-291  (_import_gitlab_ci)
-      src/taskfile/importer.py:348-350  (_import_makefile)
+  [82d41d3c6f913987]   STRU  check_ports  L=3 N=2 saved=3 sim=1.00
+      src/taskfile/diagnostics/checks.py:156-158  (check_ports)
+      src/taskfile/diagnostics/checks.py:289-291  (check_ssh_keys)
+  [39ac9726e2a76869]   STRU  check_ssh_connectivity  L=3 N=2 saved=3 sim=1.00
+      src/taskfile/diagnostics/checks.py:302-304  (check_ssh_connectivity)
+      src/taskfile/diagnostics/checks.py:307-309  (check_remote_health)
+  [b7ae77230bef684c]   STRU  _import_gitlab_ci  L=3 N=2 saved=3 sim=1.00
+      src/taskfile/importer.py:294-296  (_import_gitlab_ci)
+      src/taskfile/importer.py:358-360  (_import_makefile)
+  [9222e864f5a6f6df]   STRU  _validate_task_env_filter  L=3 N=2 saved=3 sim=1.00
+      src/taskfile/parser.py:265-267  (_validate_task_env_filter)
+      src/taskfile/parser.py:270-272  (_validate_task_platform_filter)
 
-REFACTOR[12] (ranked by priority):
+REFACTOR[9] (ranked by priority):
   [1] ◐ extract_module     → examples/utils/generate_report.py
       WHY: 2 occurrences of 64-line block across 2 files — saves 64 lines
       FILES: examples/mega-saas-v2/scripts/report.py, examples/mega-saas/scripts/report.py
   [2] ○ extract_function   → src/taskfile/cli/utils/api.py
-      WHY: 7 occurrences of 8-line block across 7 files — saves 48 lines
-      FILES: src/taskfile/cli/api_cmd.py, src/taskfile/cli/auth.py, src/taskfile/cli/cache_cmds.py, src/taskfile/cli/ci.py, src/taskfile/cli/fleet.py +2 more
-  [3] ○ extract_function   → src/taskfile/cli/utils/setup.py
+      WHY: 8 occurrences of 8-line block across 8 files — saves 56 lines
+      FILES: src/taskfile/cli/api_cmd.py, src/taskfile/cli/auth.py, src/taskfile/cli/cache_cmds.py, src/taskfile/cli/ci.py, src/taskfile/cli/fleet.py +3 more
+  [3] ○ extract_function   → src/taskfile/cli/utils/workspace_tasks.py
+      WHY: 2 occurrences of 24-line block across 1 files — saves 24 lines
+      FILES: src/taskfile/cli/workspace_cmd.py
+  [4] ○ extract_function   → src/taskfile/cli/utils/setup.py
       WHY: 2 occurrences of 20-line block across 2 files — saves 20 lines
       FILES: src/taskfile/cli/interactive/menu.py, src/taskfile/cli/quadlet.py
-  [4] ○ extract_function   → src/taskfile/runner/utils/strip_local_prefix.py
-      WHY: 3 occurrences of 6-line block across 1 files — saves 12 lines
-      FILES: src/taskfile/runner/ssh.py
-  [5] ○ extract_function   → src/taskfile/utils/_validate_task_env_filter.py
-      WHY: 2 occurrences of 10-line block across 1 files — saves 10 lines
-      FILES: src/taskfile/parser.py
-  [6] ○ extract_function   → src/taskfile/utils/generate_network_unit.py
-      WHY: 2 occurrences of 7-line block across 1 files — saves 7 lines
-      FILES: src/taskfile/quadlet.py
-  [7] ○ extract_function   → src/taskfile/runner/utils/_md.py
-      WHY: 2 occurrences of 6-line block across 2 files — saves 6 lines
-      FILES: src/taskfile/runner/commands.py, src/taskfile/runner/failure.py
-  [8] ○ extract_function   → src/taskfile/runner/utils/is_local_command.py
-      WHY: 3 occurrences of 3-line block across 1 files — saves 6 lines
-      FILES: src/taskfile/runner/ssh.py
-  [9] ○ extract_function   → src/taskfile/utils/_notify_macos.py
+  [5] ○ extract_function   → src/taskfile/utils/_notify_macos.py
       WHY: 2 occurrences of 5-line block across 1 files — saves 5 lines
       FILES: src/taskfile/notifications.py
-  [10] ○ extract_function   → src/taskfile/diagnostics/utils/check_ports.py
-      WHY: 2 occurrences of 4-line block across 1 files — saves 4 lines
+  [6] ○ extract_function   → src/taskfile/diagnostics/utils/check_ports.py
+      WHY: 2 occurrences of 3-line block across 1 files — saves 3 lines
       FILES: src/taskfile/diagnostics/checks.py
-  [11] ○ extract_function   → src/taskfile/diagnostics/utils/check_ssh_connectivity.py
-      WHY: 2 occurrences of 4-line block across 1 files — saves 4 lines
+  [7] ○ extract_function   → src/taskfile/diagnostics/utils/check_ssh_connectivity.py
+      WHY: 2 occurrences of 3-line block across 1 files — saves 3 lines
       FILES: src/taskfile/diagnostics/checks.py
-  [12] ○ extract_function   → src/taskfile/utils/_import_gitlab_ci.py
+  [8] ○ extract_function   → src/taskfile/utils/_import_gitlab_ci.py
       WHY: 2 occurrences of 3-line block across 1 files — saves 3 lines
       FILES: src/taskfile/importer.py
+  [9] ○ extract_function   → src/taskfile/utils/_validate_task_env_filter.py
+      WHY: 2 occurrences of 3-line block across 1 files — saves 3 lines
+      FILES: src/taskfile/parser.py
 
-QUICK_WINS[7] (low risk, high savings — do first):
-  [2] extract_function   saved=48L  → src/taskfile/cli/utils/api.py
-      FILES: api_cmd.py, auth.py, cache_cmds.py +4
-  [3] extract_function   saved=20L  → src/taskfile/cli/utils/setup.py
+QUICK_WINS[3] (low risk, high savings — do first):
+  [2] extract_function   saved=56L  → src/taskfile/cli/utils/api.py
+      FILES: api_cmd.py, auth.py, cache_cmds.py +5
+  [3] extract_function   saved=24L  → src/taskfile/cli/utils/workspace_tasks.py
+      FILES: workspace_cmd.py
+  [4] extract_function   saved=20L  → src/taskfile/cli/utils/setup.py
       FILES: menu.py, quadlet.py
-  [4] extract_function   saved=12L  → src/taskfile/runner/utils/strip_local_prefix.py
-      FILES: ssh.py
-  [5] extract_function   saved=10L  → src/taskfile/utils/_validate_task_env_filter.py
-      FILES: parser.py
-  [6] extract_function   saved=7L  → src/taskfile/utils/generate_network_unit.py
-      FILES: quadlet.py
-  [7] extract_function   saved=6L  → src/taskfile/runner/utils/_md.py
-      FILES: commands.py, failure.py
-  [8] extract_function   saved=6L  → src/taskfile/runner/utils/is_local_command.py
-      FILES: ssh.py
 
-EFFORT_ESTIMATE (total ≈ 7.4h):
+EFFORT_ESTIMATE (total ≈ 7.1h):
   hard   generate_report                     saved=64L  ~192min
-  hard   api                                 saved=48L  ~96min
+  hard   api                                 saved=56L  ~112min
+  medium workspace_tasks                     saved=24L  ~48min
   medium setup                               saved=20L  ~40min
-  easy   strip_local_prefix                  saved=12L  ~24min
-  easy   _validate_task_env_filter           saved=10L  ~20min
-  easy   generate_network_unit               saved=7L  ~14min
-  easy   _md                                 saved=6L  ~12min
-  easy   is_local_command                    saved=6L  ~12min
   easy   _notify_macos                       saved=5L  ~10min
-  easy   check_ports                         saved=4L  ~8min
-  ... +2 more (~14min)
+  easy   check_ports                         saved=3L  ~6min
+  easy   check_ssh_connectivity              saved=3L  ~6min
+  easy   _import_gitlab_ci                   saved=3L  ~6min
+  easy   _validate_task_env_filter           saved=3L  ~6min
 
 METRICS-TARGET:
-  dup_groups:  12 → 0
-  saved_lines: 189 lines recoverable
+  dup_groups:  9 → 0
+  saved_lines: 181 lines recoverable

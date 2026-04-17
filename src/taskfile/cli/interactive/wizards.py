@@ -594,9 +594,12 @@ def _apply_init_extras(choices: dict) -> None:
     "minimal", "web", "podman", "codereview", "full", "saas",
     "multiplatform", "publish", "kubernetes", "terraform", "iot"
 ]), default=None, help="Project template")
+@click.option("--from-doql", "from_doql", type=click.Path(exists=True, dir_okay=False),
+              default=None,
+              help="Generate Taskfile.yml from a .doql.css spec instead of a template")
 @click.option("--force", is_flag=True, help="Overwrite existing files")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive setup with prompts")
-def init(template, force, interactive):
+def init(template, from_doql, force, interactive):
     """**✨ Create a new Taskfile.yml** with interactive setup.
 
 ## Templates
@@ -640,7 +643,25 @@ taskfile init -i --force
         if not Confirm.ask("Continue anyway?", default=False):
             sys.exit(1)
 
-    # Interactive mode
+    # ── Branch 1: convert from a .doql.css spec ────────────────────
+    if from_doql:
+        from taskfile.scaffold.from_doql import generate_from_doql
+        try:
+            content = generate_from_doql(from_doql)
+        except Exception as exc:  # noqa: BLE001 — report and abort cleanly
+            console.print(f"[red]❌ Failed to parse {from_doql}: {exc}[/]")
+            sys.exit(1)
+        outpath.write_text(content)
+        console.print(f"[green]✓ Created Taskfile.yml (from: {from_doql})[/]")
+        choices = {"env_config": {}, "create_gitignore": False, "init_git": False}
+        _apply_init_extras(choices)
+        console.print("\n[bold green]✨ Project initialized from doql spec! 🚀[/]")
+        console.print("\n[dim]Next steps:[/]")
+        console.print("  taskfile doctor     — Check setup")
+        console.print("  taskfile list       — See available tasks")
+        return
+
+    # ── Branch 2: interactive / template-driven generation ─────────
     if interactive or template is None:
         choices = _collect_init_choices()
         template = choices["template"]

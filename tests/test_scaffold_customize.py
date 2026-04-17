@@ -136,14 +136,112 @@ def test_customise_detects_dockerfile_only(tmp_path: Path) -> None:
     assert tmp_path.name in cmd
 
 
-def test_customise_hints_at_existing_makefile(tmp_path: Path) -> None:
-    _write(tmp_path, "Makefile", "build:\n\techo hi\n")
+def test_customise_imports_existing_makefile_targets(tmp_path: Path) -> None:
+    """Unique Makefile targets must be merged into the generated tasks so
+    running ``taskfile init --template minimal`` produces a true superset
+    of the existing automation.
+    """
+    _write(tmp_path, "Makefile", (
+        "release:\n"
+        "\tgit tag v1.0\n"
+        "\tgit push --tags\n"
+        "\n"
+        "docs:\n"
+        "\tmkdocs build\n"
+    ))
     _write(tmp_path, "pyproject.toml", '[project]\nname="x"\nversion="0.1.0"\n')
+
     data = _customise(tmp_path)
     tasks = data["tasks"]
-    assert "import-makefile-hint" in tasks
-    desc = tasks["import-makefile-hint"]["desc"].lower()
-    assert "makefile" in desc and "import" in desc
+
+    # Makefile-only targets imported.
+    assert "release" in tasks
+    assert tasks["release"]["cmds"] == ["git tag v1.0", "git push --tags"]
+    assert "[imported from Makefile]" in tasks["release"]["desc"]
+
+    assert "docs" in tasks
+    assert tasks["docs"]["cmds"] == ["mkdocs build"]
+
+
+def test_customise_prefers_detected_python_tasks_over_makefile_duplicates(tmp_path: Path) -> None:
+    """If the Makefile also defines ``test`` / ``build``, the project-aware
+    Python commands win so ``taskfile run test`` does ``pytest -q`` instead
+    of shelling back into ``make test``.
+    """
+    _write(tmp_path, "Makefile", "test:\n\tmake-test-command\n")
+    _write(tmp_path, "pyproject.toml", (
+        '[project]\nname="x"\nversion="0.1.0"\n'
+        '[project.optional-dependencies]\ndev=["pytest"]\n'
+    ))
+
+    data = _customise(tmp_path)
+    assert "pytest -q" in data["tasks"]["test"]["cmds"]
+    assert "make-test-command" not in data["tasks"]["test"]["cmds"]
+
+
+def test_customise_tolerates_broken_makefile(tmp_path: Path) -> None:
+    """A malformed Makefile must never crash ``init``."""
+    _write(tmp_path, "Makefile", "\x00not a makefile\x00")
+    _write(tmp_path, "pyproject.toml", '[project]\nname="x"\nversion="0.1.0"\n')
+    # Should not raise
+    data = _customise(tmp_path)
+    assert "tasks" in data
+
+
+def test_customise_merges_workflows_from_app_doql_css(tmp_path: Path) -> None:
+    """When ``app.doql.css`` is present, its workflows must appear as
+    tasks in the Taskfile so the two formats stay in sync.
+    """
+    _write(tmp_path, "pyproject.toml", '[project]\nname="x"\nversion="0.1.0"\n')
+    _write(tmp_path, "app.doql.css", (
+        'app { name: "x"; version: "0.1.0"; }\n'
+        'workflow[name="deploy"] {\n'
+        '  step-1: run cmd=ansible-playbook deploy.yml;\n'
+        '}\n'
+        'workflow[name="release"] {\n'
+        '  step-1: depend target=test;\n'
+        '  step-2: run cmd=twine upload dist/*;\n'
+        '}\n'
+    ))
+
+    data = _customise(tmp_path)
+    tasks = data["tasks"]
+
+    # Workflows unique to doql are added
+    assert "deploy" in tasks
+    assert tasks["deploy"]["cmds"] == ["ansible-playbook deploy.yml"]
+    assert "release" in tasks
+    assert tasks["release"]["deps"] == ["test"]
+    assert tasks["release"]["cmds"] == ["twine upload dist/*"]
+
+
+def test_customise_doql_does_not_clobber_detected_tasks(tmp_path: Path) -> None:
+    """Language-specific detected tasks must win over the generic
+    ``[from doql]`` stubs so we don't regress e.g. ``pytest -q`` to a
+    shell echo.
+    """
+    _write(tmp_path, "pyproject.toml", (
+        '[project]\nname="x"\nversion="0.1.0"\n'
+        '[project.optional-dependencies]\ndev=["pytest"]\n'
+    ))
+    _write(tmp_path, "app.doql.css", (
+        'workflow[name="test"] {\n'
+        '  step-1: run cmd=doql-provided-test-cmd;\n'
+        '}\n'
+    ))
+    data = _customise(tmp_path)
+    test_cmds = data["tasks"]["test"]["cmds"]
+    assert test_cmds == ["pytest -q"], (
+        "project-aware Python detection must take precedence over doql workflow"
+    )
+
+
+def test_customise_tolerates_broken_doql_spec(tmp_path: Path) -> None:
+    _write(tmp_path, "pyproject.toml", '[project]\nname="x"\nversion="0.1.0"\n')
+    _write(tmp_path, "app.doql.css", "garbage {{{ not-css")
+    # Should not raise
+    data = _customise(tmp_path)
+    assert "tasks" in data
 
 
 def test_customise_combines_python_and_compose(tmp_path: Path) -> None:

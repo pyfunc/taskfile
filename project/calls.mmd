@@ -3,463 +3,486 @@ flowchart LR
         TODO__check_all["check_all"]
     end
     subgraph TODO__dns
-        TODO__dns__check_systemd_resolved["check_systemd_resolved"]
         TODO__dns__check_host_dns["check_host_dns"]
+        TODO__dns__check_systemd_resolved["check_systemd_resolved"]
     end
     subgraph examples__script_extraction
-        examples__script_extraction__scripts__provision__main["main"]
-        examples__script_extraction__scripts__release__main["main"]
         examples__script_extraction__scripts__provision__ssh_run["ssh_run"]
+        examples__script_extraction__scripts__release__main["main"]
         examples__script_extraction__scripts__release__run["run"]
+        examples__script_extraction__scripts__provision__main["main"]
     end
     subgraph src__taskfile
-        src__taskfile__compose__ComposeFile____init__["__init__"]
-        src__taskfile__runner__commands___has_variable["_has_variable"]
-        src__taskfile__health__print_health_report["print_health_report"]
-        src__taskfile__runner__failure___md["_md"]
-        src__taskfile__runner__failure___find_task_line["_find_task_line"]
-        src__taskfile__scaffold__generate_taskfile["generate_taskfile"]
-        src__taskfile__diagnostics__checks_infra__check_container_dns["check_container_dns"]
-        src__taskfile__quadlet__generate_container_unit["generate_container_unit"]
-        src__taskfile__importer__parse_gitlab_ci["parse_gitlab_ci"]
-        src__taskfile__importer___import_shell_script["_import_shell_script"]
-        src__taskfile__runner__functions__run_inline_python["run_inline_python"]
-        src__taskfile__diagnostics__checks_ports___find_free_port_near["_find_free_port_near"]
-        src__taskfile__diagnostics__checks_ports___load_compose_services["_load_compose_services"]
-        src__taskfile__runner__failure___get_tip_for_failure["_get_tip_for_failure"]
-        src__taskfile__importer___import_dockerfile["_import_dockerfile"]
-        src__taskfile__converters__export_file["export_file"]
-        src__taskfile__diagnostics__fixes___mark_fixed["_mark_fixed"]
-        src__taskfile__cli__deploy___select_deploy_strategy["_select_deploy_strategy"]
-        src__taskfile__ssh__has_paramiko["has_paramiko"]
-        src__taskfile__compose__resolve_dict["resolve_dict"]
-        src__taskfile__converters__detect_format["detect_format"]
-        src__taskfile__diagnostics__report__get_report_dict["get_report_dict"]
-        src__taskfile__runner__core__TaskfileRunner___execute_commands["_execute_commands"]
-        src__taskfile__diagnostics__checks___check_script_files["_check_script_files"]
-        src__taskfile__cli__deploy___execute_deploy_strategy["_execute_deploy_strategy"]
-        src__taskfile__diagnostics__report___print_summary["_print_summary"]
-        src__taskfile__quadlet__generate_volume_unit["generate_volume_unit"]
-        src__taskfile__deploy_recipes___compose_deploy["_compose_deploy"]
-        src__taskfile__quadlet___build_container_networks["_build_container_networks"]
-        src__taskfile__parser___validate_circular_dependencies["_validate_circular_dependencie"]
-        src__taskfile__runner__commands___run_with_retries["_run_with_retries"]
-        src__taskfile__deploy_utils__ssh_exec["ssh_exec"]
-        src__taskfile__deploy_utils__setup_ssh_key["setup_ssh_key"]
-        src__taskfile__cli__quadlet__quadlet_upload["quadlet_upload"]
-        src__taskfile__runner__explainer___cmd_type_icon["_cmd_type_icon"]
-        src__taskfile__runner__core__TaskfileRunner___print_run_summary["_print_run_summary"]
-        src__taskfile__cli__release___step_deploy_web["_step_deploy_web"]
-        src__taskfile__deploy_recipes___systemd_ops_tasks["_systemd_ops_tasks"]
-        src__taskfile__diagnostics__ProjectDiagnostics__llm_repair["llm_repair"]
-        src__taskfile__runner__commands___render_output["_render_output"]
-        src__taskfile__diagnostics__ProjectDiagnostics__auto_fix["auto_fix"]
-        src__taskfile__runner__classifier__classify_command["classify_command"]
-        src__taskfile__fleet___select_targets["_select_targets"]
-        src__taskfile__cli__auth___ensure_gitignore["_ensure_gitignore"]
-        src__taskfile__runner__classifier___is_shell_construct["_is_shell_construct"]
-        src__taskfile__diagnostics__fixes___fix_copy_env_example["_fix_copy_env_example"]
-        src__taskfile__quadlet___parse_memory_limit["_parse_memory_limit"]
-        src__taskfile__health__run_health_checks["run_health_checks"]
-        src__taskfile__importer___build_gl_task["_build_gl_task"]
-        src__taskfile__cli__cache_cmds__cache_clear["cache_clear"]
-        src__taskfile__quadlet___build_unit_section["_build_unit_section"]
-        src__taskfile__runner__failure___format_failure_header["_format_failure_header"]
-        src__taskfile__graph__print_dependency_list["print_dependency_list"]
-        src__taskfile__runner__ssh__wrap_ssh["wrap_ssh"]
-        src__taskfile__cli__release___resolve_release_config["_resolve_release_config"]
-        src__taskfile__runner__ssh__is_local_command["is_local_command"]
-        src__taskfile__diagnostics__checks_env__check_unresolved_variables["check_unresolved_variables"]
-        src__taskfile__importer___convert_gh_job_to_task["_convert_gh_job_to_task"]
-        src__taskfile__cli__docker_cmds__docker_stop_all_cmd["docker_stop_all_cmd"]
-        src__taskfile__cli__fleet___ssh_check["_ssh_check"]
-        src__taskfile__cigen__preview_ci["preview_ci"]
-        src__taskfile__deploy_recipes___backup_task["_backup_task"]
-        src__taskfile__deploy_recipes__expand_deploy_recipe["expand_deploy_recipe"]
-        src__taskfile__runner__failure___format_next_steps["_format_next_steps"]
-        src__taskfile__runner__commands___expand_globs_in_command["_expand_globs_in_command"]
-        src__taskfile__cli__setup___parse_ports["_parse_ports"]
-        src__taskfile__diagnostics__checks_registry__check_registry_access["check_registry_access"]
-        src__taskfile__deploy_utils__deploy_container_remote["deploy_container_remote"]
-        src__taskfile__quadlet__generate_resolv_conf["generate_resolv_conf"]
-        src__taskfile__fleet__check_device_status["check_device_status"]
-        src__taskfile__runner__core__TaskfileRunner___print_task_header["_print_task_header"]
-        src__taskfile__runner__resolver__TaskResolver__get_dependency_order["get_dependency_order"]
-        src__taskfile__quadlet___build_service_section["_build_service_section"]
-        src__taskfile__cli__release___show_release_plan["_show_release_plan"]
-        src__taskfile__diagnostics__ProjectDiagnostics___load_config["_load_config"]
-        src__taskfile__diagnostics__checks___check_circular_deps["_check_circular_deps"]
-        src__taskfile__cli__version__show["show"]
-        src__taskfile__cli__setup___validate_ssh_key["_validate_ssh_key"]
-        src__taskfile__runner__commands___check_file_arg["_check_file_arg"]
-        src__taskfile__runner__failure___source_ref["_source_ref"]
-        src__taskfile__cli__explain_cmd___collect_requirements["_collect_requirements"]
-        src__taskfile__parser__validate_taskfile["validate_taskfile"]
-        src__taskfile__runner__commands___strip_cmd_prefix["_strip_cmd_prefix"]
-        src__taskfile__diagnostics__checks_placeholders___load_env_file_vars["_load_env_file_vars"]
-        src__taskfile__models__config__TaskfileConfig___parse_pipeline["_parse_pipeline"]
-        src__taskfile__cli__auth___write_env_var["_write_env_var"]
-        src__taskfile__cli__deploy___print_deploy_header["_print_deploy_header"]
-        src__taskfile__runner__core__TaskfileRunner___run_embedded_ssh["_run_embedded_ssh"]
-        src__taskfile__cli__release___step_deploy_landing["_step_deploy_landing"]
-        src__taskfile__runner__explainer__print_teach_report["print_teach_report"]
-        src__taskfile__diagnostics__fixop_adapter__adapt_issues["adapt_issues"]
-        src__taskfile__runner__explainer__TaskExplainer__explain["explain"]
-        src__taskfile__deploy_utils__get_remote_logs["get_remote_logs"]
-        src__taskfile__diagnostics__report__print_report_json["print_report_json"]
-        src__taskfile__cli__main___check_unknown_tasks["_check_unknown_tasks"]
-        src__taskfile__converters__GitLabCIConverter__import_gitlab_ci["import_gitlab_ci"]
-        src__taskfile__deploy_utils__check_remote_podman["check_remote_podman"]
-        src__taskfile__cli__validate_cmd__check_env_files_status["check_env_files_status"]
-        src__taskfile__diagnostics__checks___check_tasks_and_deps["_check_tasks_and_deps"]
-        src__taskfile__cli__ci__ci_list["ci_list"]
-        src__taskfile__notifications___notify_macos["_notify_macos"]
-        src__taskfile__cli__fleet___parse_device_metrics["_parse_device_metrics"]
-        src__taskfile__fleet__deploy_to_group["deploy_to_group"]
-        src__taskfile__runner__core__TaskfileRunner___wrap_ssh["_wrap_ssh"]
-        src__taskfile__importer___dump_taskfile["_dump_taskfile"]
-        src__taskfile__converters__GitHubActionsConverter__export_workflow["export_workflow"]
-        src__taskfile__diagnostics__llm_repair___extract_missing_binary["_extract_missing_binary"]
-        src__taskfile__runner__core__TaskfileRunner___run_function["_run_function"]
-        src__taskfile__cli__validate_cmd__check_compose_services["check_compose_services"]
-        src__taskfile__runner__explainer___print_teach_alt_env["_print_teach_alt_env"]
-        src__taskfile__diagnostics__checks_registry___collect_image_vars_from_config["_collect_image_vars_from_confi"]
-        src__taskfile__diagnostics__checks_placeholders___check_env_placeholders["_check_env_placeholders"]
-        src__taskfile__deploy_recipes___compose_ops_tasks["_compose_ops_tasks"]
-        src__taskfile__health__check_http_endpoint["check_http_endpoint"]
-        src__taskfile__diagnostics__checks_ports__check_ports["check_ports"]
-        src__taskfile__cli__docker_cmds___docker_ps["_docker_ps"]
-        src__taskfile__cli__deploy___discover_compose_ports["_discover_compose_ports"]
-        src__taskfile__cli__release___resolve_domain["_resolve_domain"]
-        src__taskfile__diagnostics__report___print_layer_issues["_print_layer_issues"]
-        src__taskfile__cache__TaskCache__get_stats["get_stats"]
-        src__taskfile__cli__explain_cmd___print_explain_steps["_print_explain_steps"]
-        src__taskfile__diagnostics__checks_placeholders__check_placeholder_values["check_placeholder_values"]
-        src__taskfile__graph__detect_cycles["detect_cycles"]
-        src__taskfile__cli__ci__ci_run["ci_run"]
-        src__taskfile__deploy_utils__stop_container_remote["stop_container_remote"]
-        src__taskfile__cli__setup___deploy_application["_deploy_application"]
-        src__taskfile__cli__deploy___discover_compose_images["_discover_compose_images"]
-        src__taskfile__cli__release___run_command["_run_command"]
-        src__taskfile__diagnostics__report___print_layered_report["_print_layered_report"]
-        src__taskfile__runner__ssh__strip_pull_prefix["strip_pull_prefix"]
-        src__taskfile__runner__core__TaskfileRunner___validate_pre_run["_validate_pre_run"]
-        src__taskfile__ssh___get_connection["_get_connection"]
-        src__taskfile__cli__release___step_upload_releases["_step_upload_releases"]
-        src__taskfile__quadlet___parse_port["_parse_port"]
-        src__taskfile__diagnostics__report___severity_icon["_severity_icon"]
-        src__taskfile__runner__commands___show_success_tip["_show_success_tip"]
-        src__taskfile__deploy_recipes___post_deploy_health_cmds["_post_deploy_health_cmds"]
-        src__taskfile__diagnostics__checks__check_taskfile["check_taskfile"]
-        src__taskfile__diagnostics__checks__check_dependent_files["check_dependent_files"]
-        src__taskfile__converters__DockerComposeConverter__export_docker_compose["export_docker_compose"]
-        src__taskfile__models__config__TaskfileConfig___expand_deploy_section["_expand_deploy_section"]
-        src__taskfile__runner__explainer___print_teach_deps["_print_teach_deps"]
-        src__taskfile__cli__quadlet___get_upload_files["_get_upload_files"]
-        src__taskfile__cli__docker_cmds__docker_ps_cmd["docker_ps_cmd"]
-        src__taskfile__cli__release___confirm_release["_confirm_release"]
-        src__taskfile__runner__ssh__wrap_scp_push["wrap_scp_push"]
-        src__taskfile__cli__quadlet___run_upload_commands["_run_upload_commands"]
-        src__taskfile__quadlet___resolve_env_in_port["_resolve_env_in_port"]
-        src__taskfile__compose__resolve_variables["resolve_variables"]
-        src__taskfile__runner__core__TaskfileRunner___run_tasks_plain["_run_tasks_plain"]
-        src__taskfile__diagnostics__checks_tasks__check_task_commands["check_task_commands"]
-        src__taskfile__cli__release___get_current_tag["_get_current_tag"]
-        src__taskfile__cli__fleet___check_disk["_check_disk"]
-        src__taskfile__cli__explain_cmd___print_explain_header["_print_explain_header"]
-        src__taskfile__quadlet___generate_container_files["_generate_container_files"]
-        src__taskfile__health___from_fixop_result["_from_fixop_result"]
-        src__taskfile__diagnostics__fixes___upsert_env_value["_upsert_env_value"]
-        src__taskfile__cli__cache_cmds__cache_show["cache_show"]
-        src__taskfile__quadlet___build_container_env["_build_container_env"]
-        src__taskfile__diagnostics__fixes__apply_fixes["apply_fixes"]
-        src__taskfile__parser___validate_tasks_exist["_validate_tasks_exist"]
-        src__taskfile__runner__ssh__is_remote_command["is_remote_command"]
-        src__taskfile__diagnostics__checks_tasks___extract_binary["_extract_binary"]
-        src__taskfile__fleet___deploy_canary["_deploy_canary"]
-        src__taskfile__diagnostics__checks_registry___is_image_var["_is_image_var"]
-        src__taskfile__diagnostics__checks_registry___group_by_registry["_group_by_registry"]
-        src__taskfile__cli__version___update_taskfile_version["_update_taskfile_version"]
-        src__taskfile__runner__ssh__is_push_command["is_push_command"]
-        src__taskfile__fleet___ping_device["_ping_device"]
-        src__taskfile__cli__health__health_cmd["health_cmd"]
-        src__taskfile__diagnostics__checks_ports___is_port_free["_is_port_free"]
-        src__taskfile__runner__failure___get_tip_for_command["_get_tip_for_command"]
-        src__taskfile__cli__fleet___check_single_device["_check_single_device"]
-        src__taskfile__importer___import_gitlab_ci["_import_gitlab_ci"]
-        src__taskfile__importer___import_github_actions["_import_github_actions"]
-        src__taskfile__cli__completion__get_platform_names["get_platform_names"]
-        src__taskfile__health___unhealthy_result["_unhealthy_result"]
-        src__taskfile__diagnostics__checks_env___resolve_env_fields["_resolve_env_fields"]
-        src__taskfile__converters__import_file["import_file"]
-        src__taskfile__cli__deploy___deploy_remote_compose["_deploy_remote_compose"]
-        src__taskfile__models__config__TaskfileConfig___expand_hosts["_expand_hosts"]
-        src__taskfile__runner__commands___dispatch_special_prefix["_dispatch_special_prefix"]
-        src__taskfile__runner__commands___handle_remote["_handle_remote"]
-        src__taskfile__runner__commands___md["_md"]
-        src__taskfile__deploy_recipes___ops_tasks["_ops_tasks"]
-        src__taskfile__runner__failure___handle_failure["_handle_failure"]
-        src__taskfile__importer__parse_github_actions["parse_github_actions"]
-        src__taskfile__parser___parse_include_entry["_parse_include_entry"]
-        src__taskfile__cache__get_project_hash["get_project_hash"]
-        src__taskfile__cli__diagnostics__validate_before_run["validate_before_run"]
-        src__taskfile__cli__release__rollback["rollback"]
-        src__taskfile__diagnostics__checks_infra__check_ufw_forward_policy["check_ufw_forward_policy"]
-        src__taskfile__models__pipeline__PipelineConfig__from_dict["from_dict"]
-        src__taskfile__runner__ssh__is_pull_command["is_pull_command"]
-        src__taskfile__cli__auth___check_tool["_check_tool"]
-        src__taskfile__importer__import_file["import_file"]
-        src__taskfile__cli__docker_cmds__docker_stop_port_cmd["docker_stop_port_cmd"]
-        src__taskfile__cli__release___step_build_desktop["_step_build_desktop"]
-        src__taskfile__cli__setup___test_ssh_connection["_test_ssh_connection"]
-        src__taskfile__importer___extract_gh_steps_as_commands["_extract_gh_steps_as_commands"]
-        src__taskfile__models__config___normalize_host_keys["_normalize_host_keys"]
-        src__taskfile__graph__export_to_dot["export_to_dot"]
-        src__taskfile__cli__group_strategies__run_env_group["run_env_group"]
-        src__taskfile__runner__commands___validate_all_commands["_validate_all_commands"]
-        src__taskfile__runner__ssh__strip_remote_prefix["strip_remote_prefix"]
-        src__taskfile__quadlet___generate_volume_files["_generate_volume_files"]
-        src__taskfile__cli__deploy___quadlet_step1_generate["_quadlet_step1_generate"]
-        src__taskfile__diagnostics__checks_ports___check_service_ports["_check_service_ports"]
-        src__taskfile__landing__build_landing_page["build_landing_page"]
-        src__taskfile__cli__validate_cmd___print_transitive_deps["_print_transitive_deps"]
-        src__taskfile__diagnostics__checks_ssh__check_ssh_connectivity["check_ssh_connectivity"]
-        src__taskfile__parser__find_taskfile["find_taskfile"]
-        src__taskfile__runner__core__TaskfileRunner___execute_script["_execute_script"]
-        src__taskfile__cli__validate_cmd__check_script_files_status["check_script_files_status"]
-        src__taskfile__runner__commands___render_step_header["_render_step_header"]
-        src__taskfile__diagnostics__llm_repair__classify_runtime_error["classify_runtime_error"]
-        src__taskfile__cli__version___is_valid_version["_is_valid_version"]
-        src__taskfile__ssh___ssh_exec_subprocess["_ssh_exec_subprocess"]
-        src__taskfile__importer___extract_gl_job_deps["_extract_gl_job_deps"]
-        src__taskfile__cli__release__release["release"]
-        src__taskfile__cli__ci__ci_generate["ci_generate"]
-        src__taskfile__parser___resolve_includes["_resolve_includes"]
-        src__taskfile__models__config___expand_single_host["_expand_single_host"]
-        src__taskfile__cirunner__PipelineRunner___resolve_stages["_resolve_stages"]
-        src__taskfile__runner__commands__execute_script["execute_script"]
-        src__taskfile__diagnostics__checks_placeholders___should_skip_placeholder["_should_skip_placeholder"]
-        src__taskfile__diagnostics__checks_env___check_env_file_vars["_check_env_file_vars"]
-        src__taskfile__cli__docker_cmds___container_publishes_port["_container_publishes_port"]
-        src__taskfile__deploy_utils__get_remote_status["get_remote_status"]
-        src__taskfile__deploy_recipes___graceful_restart_cmds["_graceful_restart_cmds"]
-        src__taskfile__health__health_check_all["health_check_all"]
-        src__taskfile__notifications___notify_windows["_notify_windows"]
-        src__taskfile__runner__classifier__has_glob_pattern["has_glob_pattern"]
-        src__taskfile__cli__fleet___check_ram["_check_ram"]
-        src__taskfile__diagnostics__checks_env___load_dotenv_vars["_load_dotenv_vars"]
-        src__taskfile__cli__setup___execute_setup_steps["_execute_setup_steps"]
-        src__taskfile__diagnostics__checks_registry___build_unreachable_registry_issue["_build_unreachable_registry_is"]
-        src__taskfile__quadlet___parse_cpus_limit["_parse_cpus_limit"]
-        src__taskfile__runner__failure___run_error_presenter["_run_error_presenter"]
-        src__taskfile__diagnostics__report___build_summary_parts["_build_summary_parts"]
-        src__taskfile__cli__deploy___run["_run"]
-        src__taskfile__deploy_recipes___health_tasks["_health_tasks"]
-        src__taskfile__quadlet___build_install_section["_build_install_section"]
-        src__taskfile__runner__error_presenter__ErrorPresenter__present["present"]
-        src__taskfile__parser__load_taskfile["load_taskfile"]
-        src__taskfile__diagnostics__fixes___fix_run_command["_fix_run_command"]
-        src__taskfile__cli__deploy___resolve_deploy_config["_resolve_deploy_config"]
-        src__taskfile__runner__ssh__run_embedded_ssh["run_embedded_ssh"]
-        src__taskfile__cli__version___increment_version["_increment_version"]
-        src__taskfile__diagnostics__fixes___fix_init_git["_fix_init_git"]
-        src__taskfile__cli__ci__ci_targets["ci_targets"]
-        src__taskfile__cigen__list_targets["list_targets"]
-        src__taskfile__notifications___notify_linux["_notify_linux"]
-        src__taskfile__parser___merge_include_sections["_merge_include_sections"]
-        src__taskfile__converters__NpmScriptsConverter__import_package_json["import_package_json"]
-        src__taskfile__cli__diagnostics___map_new_to_old_category["_map_new_to_old_category"]
-        src__taskfile__diagnostics__fixes___fix_missing_variable["_fix_missing_variable"]
-        src__taskfile__cli__deploy___quadlet_step4_restart_and_cleanup["_quadlet_step4_restart_and_cle"]
-        src__taskfile__cli__setup__setup["setup"]
-        src__taskfile__cli__deploy___deploy_quadlet["_deploy_quadlet"]
-        src__taskfile__api__app__create_app["create_app"]
-        src__taskfile__runner__core__TaskfileRunner___is_remote_command["_is_remote_command"]
-        src__taskfile__runner__explainer___print_teach_current_env["_print_teach_current_env"]
-        src__taskfile__cli__setup___provision_vps["_provision_vps"]
-        src__taskfile__importer___detect_type["_detect_type"]
-        src__taskfile__cli__fleet___safe_ssh["_safe_ssh"]
-        src__taskfile__diagnostics__ProjectDiagnostics__check_ssh_connectivity["check_ssh_connectivity"]
-        src__taskfile__diagnostics__report___fix_tag["_fix_tag"]
-        src__taskfile__fleet__FleetConfig__from_dict["from_dict"]
-        src__taskfile__converters__GitHubActionsConverter__import_workflow["import_workflow"]
-        src__taskfile__importer___build_gl_pipeline["_build_gl_pipeline"]
-        src__taskfile__cli__version__set["set"]
-        src__taskfile__diagnostics__report___group_issues_by_layer["_group_issues_by_layer"]
-        src__taskfile__deploy_recipes___ssh_push_deploy["_ssh_push_deploy"]
-        src__taskfile__cli__fleet___ping["_ping"]
-        src__taskfile__runner__explainer___print_teach_prefix_info["_print_teach_prefix_info"]
-        src__taskfile__runner__resolver__TaskResolver__from_path["from_path"]
-        src__taskfile__deploy_utils__check_remote_disk["check_remote_disk"]
-        src__taskfile__deploy_utils__transfer_image_via_ssh["transfer_image_via_ssh"]
-        src__taskfile__runner__commands___handle_local["_handle_local"]
-        src__taskfile__runner__commands___skip_msg["_skip_msg"]
-        src__taskfile__cli__registry_cmds__pkg_uninstall["pkg_uninstall"]
-        src__taskfile__fleet___deploy_rolling["_deploy_rolling"]
-        src__taskfile__fleet___deploy_parallel["_deploy_parallel"]
-        src__taskfile__cli__auth__auth_verify["auth_verify"]
-        src__taskfile__cli__validate_cmd__check_common_files["check_common_files"]
-        src__taskfile__cli__deploy___deploy_ssh_push["_deploy_ssh_push"]
-        src__taskfile__runner__ssh__strip_local_prefix["strip_local_prefix"]
-        src__taskfile__scaffold___load_template["_load_template"]
-        src__taskfile__importer___extract_gl_job_commands["_extract_gl_job_commands"]
-        src__taskfile__runner__ssh__strip_push_prefix["strip_push_prefix"]
-        src__taskfile__cli__setup___validate_ip["_validate_ip"]
-        src__taskfile__cli__import_export__export_cmd["export_cmd"]
-        src__taskfile__diagnostics__fixes___fix_create_taskfile["_fix_create_taskfile"]
-        src__taskfile__diagnostics__report___get_summary_hints["_get_summary_hints"]
-        src__taskfile__diagnostics__checks_ports___resolve_port_conflict["_resolve_port_conflict"]
-        src__taskfile__quadlet__compose_to_quadlet["compose_to_quadlet"]
-        src__taskfile__cli__setup___build_config_from_args["_build_config_from_args"]
-        src__taskfile__deploy_recipes___deploy_task["_deploy_task"]
-        src__taskfile__quadlet___build_container_labels["_build_container_labels"]
-        src__taskfile__diagnostics__checks_registry___collect_image_vars_from_compose["_collect_image_vars_from_compo"]
-        src__taskfile__cli__fleet___check_temperature["_check_temperature"]
-        src__taskfile__cli__docker_cmds___docker_stop["_docker_stop"]
-        src__taskfile__diagnostics__checks_ports___is_docker_process["_is_docker_process"]
-        src__taskfile__cli__completion__get_environment_names["get_environment_names"]
-        src__taskfile__fleet__deploy_to_device["deploy_to_device"]
-        src__taskfile__diagnostics__checks__check_examples["check_examples"]
-        src__taskfile__quadlet___build_container_section["_build_container_section"]
-        src__taskfile__parser___scan_subdirectories["_scan_subdirectories"]
-        src__taskfile__quadlet___collect_named_volumes["_collect_named_volumes"]
-        src__taskfile__cli__fleet___load_config_or_exit["_load_config_or_exit"]
-        src__taskfile__addons__expand_addons["expand_addons"]
-        src__taskfile__cli__completion__get_task_names["get_task_names"]
-        src__taskfile__runner__commands___check_glob_pattern["_check_glob_pattern"]
-        src__taskfile__quadlet__generate_network_unit["generate_network_unit"]
-        src__taskfile__cli__validate_cmd__validate_dependent_files["validate_dependent_files"]
-        src__taskfile__runner__commands___pre_validate_files["_pre_validate_files"]
-        src__taskfile__diagnostics__checks_deploy__check_deploy_artifacts["check_deploy_artifacts"]
-        src__taskfile__runner__commands___run_local["_run_local"]
-        src__taskfile__quadlet___generate_network_file["_generate_network_file"]
-        src__taskfile__cli__auth__auth_setup["auth_setup"]
-        src__taskfile__runner__functions___exec_function_python["_exec_function_python"]
-        src__taskfile__cli__quadlet___get_upload_env["_get_upload_env"]
-        src__taskfile__deploy_utils__install_remote_podman["install_remote_podman"]
-        src__taskfile__runner__commands___handle_pull["_handle_pull"]
-        src__taskfile__runner__explainer__TaskExplainer___analyze_command["_analyze_command"]
-        src__taskfile__cli__deploy___deploy_local_compose["_deploy_local_compose"]
-        src__taskfile__cli__deploy___ssh["_ssh"]
-        src__taskfile__graph__build_dependency_graph["build_dependency_graph"]
-        src__taskfile__diagnostics__checks_ports___build_port_conflict_issue["_build_port_conflict_issue"]
-        src__taskfile__parser___load_include_file["_load_include_file"]
-        src__taskfile__fleet___ssh_cmd["_ssh_cmd"]
-        src__taskfile__cli__ci__ci_preview["ci_preview"]
-        src__taskfile__diagnostics__checks_registry___collect_image_vars_from_envs["_collect_image_vars_from_envs"]
-        src__taskfile__cli__version__bump["bump"]
-        src__taskfile__cli__group_strategies___group_rolling["_group_rolling"]
-        src__taskfile__deploy_recipes___rollback_tasks["_rollback_tasks"]
-        src__taskfile__diagnostics__fixes___fix_rename_port["_fix_rename_port"]
-        src__taskfile__diagnostics__llm_repair__ask_llm_for_fix["ask_llm_for_fix"]
-        src__taskfile__runner__failure___match_transfer_tip["_match_transfer_tip"]
-        src__taskfile__cli__setup___is_vps_ready["_is_vps_ready"]
-        src__taskfile__diagnostics__ProjectDiagnostics__validate_taskfile_variables["validate_taskfile_variables"]
-        src__taskfile__health___check_ssh_service_legacy["_check_ssh_service_legacy"]
-        src__taskfile__models__config__TaskfileConfig___expand_addons_section["_expand_addons_section"]
-        src__taskfile__runner__commands___validate_command_files["_validate_command_files"]
-        src__taskfile__converters__MakefileConverter__import_makefile["import_makefile"]
-        src__taskfile__importer___extract_gh_job_deps["_extract_gh_job_deps"]
-        src__taskfile__diagnostics__checks_ports___who_uses_port["_who_uses_port"]
-        src__taskfile__runner__ssh__wrap_scp_pull["wrap_scp_pull"]
-        src__taskfile__runner__failure___classify_exit_code["_classify_exit_code"]
-        src__taskfile__compose__load_env_file["load_env_file"]
-        src__taskfile__graph___add_deps_to_tree["_add_deps_to_tree"]
-        src__taskfile__runner__explainer___print_remote_alt_env["_print_remote_alt_env"]
-        src__taskfile__cli__deploy__deploy_cmd["deploy_cmd"]
-        src__taskfile__cli__api_cmd__api_openapi["api_openapi"]
-        src__taskfile__parser__scan_nearby_taskfiles["scan_nearby_taskfiles"]
-        src__taskfile__diagnostics__checks_registry___check_registry_reachable["_check_registry_reachable"]
-        src__taskfile__converters__MakefileConverter__export_makefile["export_makefile"]
-        src__taskfile__quadlet___build_container_volumes["_build_container_volumes"]
-        src__taskfile__runner__core__TaskfileRunner___print_run_header["_print_run_header"]
-        src__taskfile__importer___detect_type_from_yaml_content["_detect_type_from_yaml_content"]
-        src__taskfile__runner__commands___is_flag_or_special["_is_flag_or_special"]
-        src__taskfile__quadlet___build_container_podman_args["_build_container_podman_args"]
-        src__taskfile__deploy_utils__list_remote_images["list_remote_images"]
-        src__taskfile__runner__explainer___print_local_alt_env["_print_local_alt_env"]
-        src__taskfile__health__check_ssh_service["check_ssh_service"]
-        src__taskfile__diagnostics__checks_placeholders___extract_fields_to_check["_extract_fields_to_check"]
-        src__taskfile__runner__commands__execute_commands["execute_commands"]
-        src__taskfile__fleet__load_fleet["load_fleet"]
-        src__taskfile__runner__functions___python_cmd["_python_cmd"]
-        src__taskfile__runner__commands___execute_script_step["_execute_script_step"]
-        src__taskfile__ssh___pool_key["_pool_key"]
-        src__taskfile__cli__release___get_previous_tag["_get_previous_tag"]
-        src__taskfile__runner__classifier__should_expand_globs["should_expand_globs"]
-        src__taskfile__deploy_recipes___quadlet_deploy["_quadlet_deploy"]
         src__taskfile__runner__commands___handle_push["_handle_push"]
-        src__taskfile__cli__explain_cmd__explain["explain"]
-        src__taskfile__diagnostics__fixes__apply_single_fix["apply_single_fix"]
-        src__taskfile__runner__core__TaskfileRunner___run_inline_python["_run_inline_python"]
-        src__taskfile__cli__click_compat__confirm["confirm"]
-        src__taskfile__quadlet___build_container_ports["_build_container_ports"]
-        src__taskfile__deploy_utils__test_ssh_connection["test_ssh_connection"]
-        src__taskfile__importer__parse_makefile["parse_makefile"]
-        src__taskfile__runner__functions__run_function["run_function"]
-        src__taskfile__diagnostics__checks_registry___extract_registry_host["_extract_registry_host"]
-        src__taskfile__deploy_utils__transfer_images_via_ssh["transfer_images_via_ssh"]
-        src__taskfile__converters__NpmScriptsConverter__export_package_json["export_package_json"]
-        src__taskfile__cli__setup___provision_ssh_key["_provision_ssh_key"]
-        src__taskfile__cli__deploy___quadlet_step3_reload_and_pull["_quadlet_step3_reload_and_pull"]
-        src__taskfile__runner__commands__run_command["run_command"]
-        src__taskfile__runner__explainer__print_explain_report["print_explain_report"]
-        src__taskfile__diagnostics__llm_repair___classify_runtime_error_legacy["_classify_runtime_error_legacy"]
-        src__taskfile__diagnostics__checks_ssh__check_remote_health["check_remote_health"]
-        src__taskfile__deploy_utils__check_remote_info["check_remote_info"]
-        src__taskfile__diagnostics__checks_ports___parse_compose_host_port["_parse_compose_host_port"]
-        src__taskfile__cli__validate_cmd__print_dependency_tree["print_dependency_tree"]
-        src__taskfile__diagnostics__checks__validate_before_run["validate_before_run"]
-        src__taskfile__notifications__notify_task_complete["notify_task_complete"]
-        src__taskfile__cli__version___update_pyproject_version["_update_pyproject_version"]
-        src__taskfile__cli__explain_cmd___print_explain_variables["_print_explain_variables"]
-        src__taskfile__runner__failure___find_cmd_line["_find_cmd_line"]
-        src__taskfile__runner__commands___run_subprocess["_run_subprocess"]
-        src__taskfile__cli__version___get_version_from_git["_get_version_from_git"]
-        src__taskfile__fleet___parse_status_output["_parse_status_output"]
-        src__taskfile__diagnostics__report__print_report["print_report"]
-        src__taskfile__runner__commands___execute_cmd_step["_execute_cmd_step"]
-        src__taskfile__ssh__ssh_exec["ssh_exec"]
-        src__taskfile__importer___import_makefile["_import_makefile"]
-        src__taskfile__models__config__TaskfileConfig__from_dict["from_dict"]
-        src__taskfile__parser___scan_dir_for_taskfiles["_scan_dir_for_taskfiles"]
         src__taskfile__importer___slugify["_slugify"]
-        src__taskfile__runner__core__TaskfileRunner___strip_remote_prefix["_strip_remote_prefix"]
-        src__taskfile__diagnostics__checks___check_env_files["_check_env_files"]
-        src__taskfile__runner__resolver__TaskResolver___load_dotenv["_load_dotenv"]
-        src__taskfile__diagnostics__fixop_adapter__adapt_issue["adapt_issue"]
-        src__taskfile__diagnostics__fixop_adapter__fixop_category_to_tag["fixop_category_to_tag"]
-        src__taskfile__health___check_http_endpoint_legacy["_check_http_endpoint_legacy"]
-        src__taskfile__diagnostics__checks_env___collect_required_vars["_collect_required_vars"]
-        src__taskfile__diagnostics__checks_placeholders___check_env_file_for_target["_check_env_file_for_target"]
-        src__taskfile__runner__commands___check_literal_path["_check_literal_path"]
-        src__taskfile__graph__print_task_tree["print_task_tree"]
-        src__taskfile__cli__deploy___quadlet_step2_upload["_quadlet_step2_upload"]
-        src__taskfile__diagnostics__report___print_flat_report["_print_flat_report"]
-        src__taskfile__cli__release___step_health_check["_step_health_check"]
-        src__taskfile__cli__docker_cmds___containers_using_port["_containers_using_port"]
+        src__taskfile__scaffold__customize___detect_makefile["_detect_makefile"]
+        src__taskfile__converters__NpmScriptsConverter__import_package_json["import_package_json"]
+        src__taskfile__cli__completion__get_platform_names["get_platform_names"]
+        src__taskfile__importer___detect_type["_detect_type"]
+        src__taskfile__quadlet___build_container_env["_build_container_env"]
+        src__taskfile__deploy_utils__check_remote_disk["check_remote_disk"]
+        src__taskfile__diagnostics__llm_repair___classify_runtime_error_legacy["_classify_runtime_error_legacy"]
+        src__taskfile__scaffold__customize___detect_node["_detect_node"]
+        src__taskfile__workspace___analyze_project["_analyze_project"]
+        src__taskfile__scaffold__from_doql___extract_props["_extract_props"]
+        src__taskfile__runner__resolver__TaskResolver__get_dependency_order["get_dependency_order"]
+        src__taskfile__diagnostics__checks_ports___build_port_conflict_issue["_build_port_conflict_issue"]
+        src__taskfile__runner__commands___run_local["_run_local"]
+        src__taskfile__cli__docker_cmds__docker_stop_port_cmd["docker_stop_port_cmd"]
+        src__taskfile__importer__parse_github_actions["parse_github_actions"]
+        src__taskfile__parser__validate_taskfile["validate_taskfile"]
+        src__taskfile__diagnostics__checks_env__check_unresolved_variables["check_unresolved_variables"]
         src__taskfile__cli__auth___read_env_file["_read_env_file"]
-        src__taskfile__runner__core__TaskfileRunner____init__["__init__"]
+        src__taskfile__converters__export_file["export_file"]
+        src__taskfile__cli__release___step_deploy_landing["_step_deploy_landing"]
+        src__taskfile__diagnostics__checks__check_ports["check_ports"]
+        src__taskfile__models__config___normalize_host_keys["_normalize_host_keys"]
+        src__taskfile__cli__setup___provision_ssh_key["_provision_ssh_key"]
+        src__taskfile__cli__docker_cmds__docker_stop_all_cmd["docker_stop_all_cmd"]
+        src__taskfile__diagnostics__report___print_summary["_print_summary"]
+        src__taskfile__runner__commands___check_file_arg["_check_file_arg"]
+        src__taskfile__runner__explainer__print_teach_report["print_teach_report"]
+        src__taskfile__cli__fleet___check_single_device["_check_single_device"]
+        src__taskfile__diagnostics__llm_repair___extract_missing_binary["_extract_missing_binary"]
+        src__taskfile__quadlet___resolve_env_in_port["_resolve_env_in_port"]
+        src__taskfile__runner__core__TaskfileRunner___run_inline_python["_run_inline_python"]
+        src__taskfile__cli__registry_cmds__pkg_uninstall["pkg_uninstall"]
+        src__taskfile__deploy_recipes___quadlet_deploy["_quadlet_deploy"]
+        src__taskfile__runner__commands___validate_command_files["_validate_command_files"]
+        src__taskfile__diagnostics__checks___check_tasks_and_deps["_check_tasks_and_deps"]
+        src__taskfile__cli__validate_cmd___print_transitive_deps["_print_transitive_deps"]
+        src__taskfile__importer___convert_gh_job_to_task["_convert_gh_job_to_task"]
+        src__taskfile__cli__quadlet__quadlet_upload["quadlet_upload"]
+        src__taskfile__cli__deploy___deploy_remote_compose["_deploy_remote_compose"]
+        src__taskfile__ssh___ssh_exec_subprocess["_ssh_exec_subprocess"]
+        src__taskfile__diagnostics__checks__validate_before_run["validate_before_run"]
+        src__taskfile__parser___validate_task_platform_filter["_validate_task_platform_filter"]
+        src__taskfile__cli__docker_cmds___containers_using_port["_containers_using_port"]
+        src__taskfile__runner__commands___handle_remote["_handle_remote"]
+        src__taskfile__runner__explainer___print_local_alt_env["_print_local_alt_env"]
+        src__taskfile__cli__workspace_cmd__workspace_deploy["workspace_deploy"]
+        src__taskfile__diagnostics__report___print_layered_report["_print_layered_report"]
+        src__taskfile__runner__classifier___is_shell_construct["_is_shell_construct"]
+        src__taskfile__cli__ci__ci_generate["ci_generate"]
+        src__taskfile__health__run_health_checks["run_health_checks"]
+        src__taskfile__quadlet___parse_port["_parse_port"]
+        src__taskfile__cli__setup___validate_ssh_key["_validate_ssh_key"]
+        src__taskfile__fleet___parse_status_output["_parse_status_output"]
+        src__taskfile__cache__TaskCache__get_stats["get_stats"]
+        src__taskfile__diagnostics__checks_tasks__check_task_commands["check_task_commands"]
+        src__taskfile__diagnostics__checks_ports___is_port_free["_is_port_free"]
+        src__taskfile__health__print_health_report["print_health_report"]
+        src__taskfile__scaffold__from_doql___parse_doql_css["_parse_doql_css"]
+        src__taskfile__graph___add_deps_to_tree["_add_deps_to_tree"]
+        src__taskfile__diagnostics__checks_ports___is_docker_process["_is_docker_process"]
+        src__taskfile__diagnostics__fixes___upsert_env_value["_upsert_env_value"]
+        src__taskfile__converters__GitHubActionsConverter__import_workflow["import_workflow"]
+        src__taskfile__diagnostics__checks___delegate_check["_delegate_check"]
+        src__taskfile__scaffold__from_doql__generate_from_doql["generate_from_doql"]
+        src__taskfile__importer___extract_gh_steps_as_commands["_extract_gh_steps_as_commands"]
+        src__taskfile__scaffold__customize___import_doql_workflows["_import_doql_workflows"]
+        src__taskfile__fleet__load_fleet["load_fleet"]
+        src__taskfile__runner__classifier__classify_command["classify_command"]
+        src__taskfile__parser___validate_task_filter["_validate_task_filter"]
+        src__taskfile__parser___resolve_includes["_resolve_includes"]
+        src__taskfile__deploy_utils__transfer_image_via_ssh["transfer_image_via_ssh"]
+        src__taskfile__cli__deploy___deploy_local_compose["_deploy_local_compose"]
+        src__taskfile__diagnostics__checks__check_dependent_files["check_dependent_files"]
+        src__taskfile__cli__release__release["release"]
+        src__taskfile__cli__version___increment_version["_increment_version"]
+        src__taskfile__cli__setup___build_config_from_args["_build_config_from_args"]
+        src__taskfile__cli__auth___write_env_var["_write_env_var"]
+        src__taskfile__deploy_utils__install_remote_podman["install_remote_podman"]
+        src__taskfile__diagnostics__checks_registry___extract_registry_host["_extract_registry_host"]
+        src__taskfile__cli__fleet__fleet_status_cmd["fleet_status_cmd"]
+        src__taskfile__fleet___ping_device["_ping_device"]
+        src__taskfile__compose__ComposeFile____init__["__init__"]
+        src__taskfile__runner__core__TaskfileRunner___run_tasks_plain["_run_tasks_plain"]
+        src__taskfile__models__config__TaskfileConfig___expand_addons_section["_expand_addons_section"]
+        src__taskfile__diagnostics__ProjectDiagnostics__auto_fix["auto_fix"]
+        src__taskfile__cli__ci__ci_list["ci_list"]
+        src__taskfile__runner__functions___exec_function_python["_exec_function_python"]
+        src__taskfile__runner__core__TaskfileRunner___execute_commands["_execute_commands"]
+        src__taskfile__cli__workspace_cmd__workspace_status["workspace_status"]
+        src__taskfile__scaffold__customize___safe_load["_safe_load"]
+        src__taskfile__cigen__preview_ci["preview_ci"]
+        src__taskfile__deploy_utils__setup_ssh_key["setup_ssh_key"]
+        src__taskfile__cli__validate_cmd__check_script_files_status["check_script_files_status"]
+        src__taskfile__fleet___deploy_rolling["_deploy_rolling"]
+        src__taskfile__cli__explain_cmd__explain["explain"]
+        src__taskfile__cli__version___update_pyproject_version["_update_pyproject_version"]
+        src__taskfile__converters__NpmScriptsConverter__export_package_json["export_package_json"]
+        src__taskfile__cli__deploy___discover_compose_images["_discover_compose_images"]
+        src__taskfile__runner__commands___run_subprocess["_run_subprocess"]
+        src__taskfile__models__config__TaskfileConfig___parse_pipeline["_parse_pipeline"]
+        src__taskfile__diagnostics__fixes___fix_init_git["_fix_init_git"]
+        src__taskfile__scaffold__from_doql___build_description["_build_description"]
+        src__taskfile__importer___build_gl_task["_build_gl_task"]
+        src__taskfile__deploy_utils__get_remote_status["get_remote_status"]
+        src__taskfile__quadlet___build_container_labels["_build_container_labels"]
+        src__taskfile__deploy_recipes___rollback_tasks["_rollback_tasks"]
+        src__taskfile__cli__workspace_cmd__workspace_fix["workspace_fix"]
+        src__taskfile__parser___validate_task_env_filter["_validate_task_env_filter"]
+        src__taskfile__cli__fleet___check_podman["_check_podman"]
+        src__taskfile__importer___extract_gh_job_deps["_extract_gh_job_deps"]
+        src__taskfile__cli__validate_cmd__check_env_files_status["check_env_files_status"]
+        src__taskfile__runner__failure___find_cmd_line["_find_cmd_line"]
+        src__taskfile__runner__core__TaskfileRunner___run_function["_run_function"]
+        src__taskfile__cli__release___step_upload_releases["_step_upload_releases"]
+        src__taskfile__cli__deploy___ssh["_ssh"]
+        src__taskfile__cli__setup___validate_ip["_validate_ip"]
+        src__taskfile__runner__explainer___print_teach_deps["_print_teach_deps"]
+        src__taskfile__cli__setup___test_ssh_connection["_test_ssh_connection"]
+        src__taskfile__diagnostics__checks_placeholders___extract_fields_to_check["_extract_fields_to_check"]
+        src__taskfile__cli__release___get_previous_tag["_get_previous_tag"]
+        src__taskfile__cli__explain_cmd___print_explain_steps["_print_explain_steps"]
+        src__taskfile__fleet___ssh_cmd["_ssh_cmd"]
+        src__taskfile__deploy_recipes___ops_tasks["_ops_tasks"]
+        src__taskfile__diagnostics__checks_ports___parse_compose_host_port["_parse_compose_host_port"]
+        src__taskfile__addons__expand_addons["expand_addons"]
+        src__taskfile__graph__export_to_dot["export_to_dot"]
+        src__taskfile__importer__parse_makefile["parse_makefile"]
+        src__taskfile__diagnostics__fixes__apply_single_fix["apply_single_fix"]
+        src__taskfile__health___from_fixop_result["_from_fixop_result"]
+        src__taskfile__diagnostics__checks_registry___group_by_registry["_group_by_registry"]
+        src__taskfile__cli__docker_cmds___container_publishes_port["_container_publishes_port"]
+        src__taskfile__workspace__filter_projects["filter_projects"]
+        src__taskfile__runner__commands__run_command["run_command"]
+        src__taskfile__cirunner__PipelineRunner___resolve_stages["_resolve_stages"]
+        src__taskfile__deploy_utils__stop_container_remote["stop_container_remote"]
+        src__taskfile__runner__core__TaskfileRunner___execute_script["_execute_script"]
+        src__taskfile__cli__main___check_unknown_tasks["_check_unknown_tasks"]
+        src__taskfile__deploy_utils__test_ssh_connection["test_ssh_connection"]
+        src__taskfile__quadlet___generate_container_files["_generate_container_files"]
+        src__taskfile__runner__commands___show_success_tip["_show_success_tip"]
+        src__taskfile__fleet__check_device_status["check_device_status"]
+        src__taskfile__cli__click_compat__confirm["confirm"]
+        src__taskfile__importer___import_shell_script["_import_shell_script"]
+        src__taskfile__cli__docker_cmds__docker_ps_cmd["docker_ps_cmd"]
+        src__taskfile__scaffold__from_doql___classify_step["_classify_step"]
+        src__taskfile__runner__resolver__TaskResolver__from_path["from_path"]
+        src__taskfile__runner__commands___handle_local["_handle_local"]
+        src__taskfile__workspace__parse_taskfile_task_commands["parse_taskfile_task_commands"]
+        src__taskfile__diagnostics__ProjectDiagnostics___load_config["_load_config"]
+        src__taskfile__cli__setup___provision_vps["_provision_vps"]
+        src__taskfile__runner__explainer___print_teach_prefix_info["_print_teach_prefix_info"]
+        src__taskfile__importer___build_gl_pipeline["_build_gl_pipeline"]
+        src__taskfile__diagnostics__llm_repair__classify_runtime_error["classify_runtime_error"]
+        src__taskfile__runner__commands___strip_cmd_prefix["_strip_cmd_prefix"]
+        src__taskfile__ssh___get_connection["_get_connection"]
+        src__taskfile__runner__ssh__run_embedded_ssh["run_embedded_ssh"]
+        src__taskfile__quadlet___parse_memory_limit["_parse_memory_limit"]
+        src__taskfile__importer___detect_type_from_yaml_content["_detect_type_from_yaml_content"]
+        src__taskfile__quadlet___build_container_ports["_build_container_ports"]
+        src__taskfile__deploy_recipes___compose_deploy["_compose_deploy"]
+        src__taskfile__compose__load_env_file["load_env_file"]
+        src__taskfile__diagnostics__fixes___mark_fixed["_mark_fixed"]
+        src__taskfile__workspace___parse_doql_workflows["_parse_doql_workflows"]
+        src__taskfile__runner__commands___execute_script_step["_execute_script_step"]
+        src__taskfile__scaffold__from_doql___extract_workflow_steps["_extract_workflow_steps"]
+        src__taskfile__fleet___select_targets["_select_targets"]
+        src__taskfile__diagnostics__checks_ports__check_ports["check_ports"]
+        src__taskfile__graph__print_task_tree["print_task_tree"]
+        src__taskfile__diagnostics__report___severity_icon["_severity_icon"]
+        src__taskfile__scaffold__generate_taskfile["generate_taskfile"]
+        src__taskfile__cli__version___update_taskfile_version["_update_taskfile_version"]
+        src__taskfile__cli__health__health_cmd["health_cmd"]
+        src__taskfile__diagnostics__checks_placeholders___check_env_placeholders["_check_env_placeholders"]
+        src__taskfile__cli__diagnostics__validate_before_run["validate_before_run"]
+        src__taskfile__compose__resolve_variables["resolve_variables"]
+        src__taskfile__quadlet___generate_volume_files["_generate_volume_files"]
+        src__taskfile__runner__ssh__wrap_scp_push["wrap_scp_push"]
+        src__taskfile__parser___scan_dir_for_taskfiles["_scan_dir_for_taskfiles"]
+        src__taskfile__cli__completion__get_task_names["get_task_names"]
+        src__taskfile__health___check_http_endpoint_legacy["_check_http_endpoint_legacy"]
+        src__taskfile__cli__deploy___discover_compose_ports["_discover_compose_ports"]
+        src__taskfile__deploy_utils__list_remote_images["list_remote_images"]
+        src__taskfile__runner__failure___run_error_presenter["_run_error_presenter"]
+        src__taskfile__quadlet__compose_to_quadlet["compose_to_quadlet"]
+        src__taskfile__diagnostics__checks_ports___find_free_port_near["_find_free_port_near"]
+        src__taskfile__converters__detect_format["detect_format"]
+        src__taskfile__diagnostics__checks_env___collect_required_vars["_collect_required_vars"]
+        src__taskfile__diagnostics__checks___check_circular_deps["_check_circular_deps"]
+        src__taskfile__fleet___deploy_parallel["_deploy_parallel"]
+        src__taskfile__cli__fleet__fleet_repair_cmd["fleet_repair_cmd"]
+        src__taskfile__cli__setup__setup["setup"]
+        src__taskfile__cli__release__rollback["rollback"]
+        src__taskfile__diagnostics__checks_ports___load_compose_services["_load_compose_services"]
+        src__taskfile__ssh__has_paramiko["has_paramiko"]
+        src__taskfile__diagnostics__checks_registry___collect_image_vars_from_compose["_collect_image_vars_from_compo"]
+        src__taskfile__quadlet___generate_network_file["_generate_network_file"]
+        src__taskfile__diagnostics__fixes___fix_create_taskfile["_fix_create_taskfile"]
+        src__taskfile__cli__deploy___deploy_ssh_push["_deploy_ssh_push"]
+        src__taskfile__deploy_recipes___backup_task["_backup_task"]
+        src__taskfile__runner__classifier__should_expand_globs["should_expand_globs"]
+        src__taskfile__runner__failure___source_ref["_source_ref"]
+        src__taskfile__runner__commands___pre_validate_files["_pre_validate_files"]
+        src__taskfile__scaffold___load_template["_load_template"]
+        src__taskfile__fleet__deploy_to_group["deploy_to_group"]
+        src__taskfile__cli__group_strategies__run_env_group["run_env_group"]
+        src__taskfile__fleet__deploy_to_device["deploy_to_device"]
+        src__taskfile__parser___scan_subdirectories["_scan_subdirectories"]
+        src__taskfile__runner__commands___validate_all_commands["_validate_all_commands"]
+        src__taskfile__health__check_http_endpoint["check_http_endpoint"]
+        src__taskfile__cli__workspace_cmd___load_projects["_load_projects"]
+        src__taskfile__diagnostics__report__print_report_json["print_report_json"]
+        src__taskfile__runner__commands___check_glob_pattern["_check_glob_pattern"]
+        src__taskfile__cli__group_strategies___group_rolling["_group_rolling"]
+        src__taskfile__converters__MakefileConverter__import_makefile["import_makefile"]
+        src__taskfile__cli__auth__auth_setup["auth_setup"]
+        src__taskfile__scaffold__customize___import_makefile_tasks["_import_makefile_tasks"]
+        src__taskfile__cli__fleet___check_ntp["_check_ntp"]
+        src__taskfile__quadlet___collect_named_volumes["_collect_named_volumes"]
+        src__taskfile__deploy_utils__ssh_exec["ssh_exec"]
+        src__taskfile__quadlet___parse_cpus_limit["_parse_cpus_limit"]
+        src__taskfile__runner__commands___skip_msg["_skip_msg"]
+        src__taskfile__runner__explainer___print_teach_alt_env["_print_teach_alt_env"]
+        src__taskfile__deploy_utils__deploy_container_remote["deploy_container_remote"]
+        src__taskfile__diagnostics__fixes___fix_run_command["_fix_run_command"]
+        src__taskfile__runner__failure___format_next_steps["_format_next_steps"]
+        src__taskfile__scaffold__from_doql___build_environments["_build_environments"]
+        src__taskfile__deploy_utils__get_remote_logs["get_remote_logs"]
+        src__taskfile__deploy_utils__transfer_images_via_ssh["transfer_images_via_ssh"]
+        src__taskfile__runner__core__TaskfileRunner___validate_pre_run["_validate_pre_run"]
+        src__taskfile__runner__commands___has_variable["_has_variable"]
+        src__taskfile__scaffold__customize___detect_dockerfile["_detect_dockerfile"]
         src__taskfile__landing__generate_landing_page["generate_landing_page"]
+        src__taskfile__diagnostics__fixop_adapter__adapt_issues["adapt_issues"]
+        src__taskfile__cli__cache_cmds__cache_clear["cache_clear"]
+        src__taskfile__runner__failure___get_tip_for_failure["_get_tip_for_failure"]
+        src__taskfile__runner__commands___check_literal_path["_check_literal_path"]
+        src__taskfile__cli__setup___execute_setup_steps["_execute_setup_steps"]
+        src__taskfile__cache__get_project_hash["get_project_hash"]
+        src__taskfile__cli__version___is_valid_version["_is_valid_version"]
+        src__taskfile__runner__commands___handle_pull["_handle_pull"]
+        src__taskfile__diagnostics__checks_infra__check_container_dns["check_container_dns"]
+        src__taskfile__workspace___remove_import_makefile_hint["_remove_import_makefile_hint"]
+        src__taskfile__cli__fleet__fleet_list_cmd["fleet_list_cmd"]
+        src__taskfile__diagnostics__checks_placeholders___check_env_file_for_target["_check_env_file_for_target"]
+        src__taskfile__diagnostics__fixes__apply_fixes["apply_fixes"]
+        src__taskfile__diagnostics__checks_env___check_env_file_vars["_check_env_file_vars"]
+        src__taskfile__quadlet___build_service_section["_build_service_section"]
+        src__taskfile__cli__completion__get_environment_names["get_environment_names"]
+        src__taskfile__cli__deploy___run["_run"]
+        src__taskfile__diagnostics__checks_env___resolve_env_fields["_resolve_env_fields"]
+        src__taskfile__scaffold__customize___safe_dump["_safe_dump"]
+        src__taskfile__diagnostics__checks_registry__check_registry_access["check_registry_access"]
+        src__taskfile__cli__auth__auth_verify["auth_verify"]
+        src__taskfile__converters__MakefileConverter__export_makefile["export_makefile"]
+        src__taskfile__runner__failure___get_tip_for_command["_get_tip_for_command"]
+        src__taskfile__cli__setup___deploy_application["_deploy_application"]
+        src__taskfile__importer___import_via_parser["_import_via_parser"]
+        src__taskfile__diagnostics__checks__check_ssh_connectivity["check_ssh_connectivity"]
+        src__taskfile__importer___import_github_actions["_import_github_actions"]
+        src__taskfile__scaffold__customize___detect_python["_detect_python"]
+        src__taskfile__runner__commands___is_flag_or_special["_is_flag_or_special"]
+        src__taskfile__workspace___parse_taskfile_tasks["_parse_taskfile_tasks"]
+        src__taskfile__runner__commands___run_with_retries["_run_with_retries"]
+        src__taskfile__cli__workspace_cmd__workspace_run["workspace_run"]
+        src__taskfile__runner__core__TaskfileRunner___run_embedded_ssh["_run_embedded_ssh"]
+        src__taskfile__runner__ssh__wrap_ssh["wrap_ssh"]
+        src__taskfile__importer__import_file["import_file"]
+        src__taskfile__cli__setup___is_vps_ready["_is_vps_ready"]
+        src__taskfile__diagnostics__checks_placeholders__check_placeholder_values["check_placeholder_values"]
+        src__taskfile__cli__fleet___ssh_check["_ssh_check"]
+        src__taskfile__cli__workspace_cmd__workspace_analyze["workspace_analyze"]
+        src__taskfile__diagnostics__report__get_report_dict["get_report_dict"]
+        src__taskfile__ssh___pool_key["_pool_key"]
+        src__taskfile__cli__fleet___check_disk["_check_disk"]
+        src__taskfile__diagnostics__ProjectDiagnostics__check_ssh_connectivity["check_ssh_connectivity"]
+        src__taskfile__deploy_recipes__expand_deploy_recipe["expand_deploy_recipe"]
+        src__taskfile__cli__fleet___get_remote_envs["_get_remote_envs"]
+        src__taskfile__converters__GitLabCIConverter__import_gitlab_ci["import_gitlab_ci"]
+        src__taskfile__parser__scan_nearby_taskfiles["scan_nearby_taskfiles"]
+        src__taskfile__diagnostics__report___get_summary_hints["_get_summary_hints"]
+        src__taskfile__diagnostics__checks___check_script_files["_check_script_files"]
+        src__taskfile__cli__release___get_current_tag["_get_current_tag"]
+        src__taskfile__deploy_recipes___post_deploy_health_cmds["_post_deploy_health_cmds"]
+        src__taskfile__importer___import_gitlab_ci["_import_gitlab_ci"]
+        src__taskfile__quadlet___build_container_networks["_build_container_networks"]
+        src__taskfile__models__config__TaskfileConfig___expand_deploy_section["_expand_deploy_section"]
+        src__taskfile__scaffold__customize__customise_minimal["customise_minimal"]
+        src__taskfile__workspace__discover_projects["discover_projects"]
+        src__taskfile__cli__fleet___check_temperature["_check_temperature"]
+        src__taskfile__cli__release___step_deploy_web["_step_deploy_web"]
+        src__taskfile__cli__release___resolve_release_config["_resolve_release_config"]
         src__taskfile__diagnostics__checks___check_ssh_key_for_env["_check_ssh_key_for_env"]
+        src__taskfile__runner__explainer__print_explain_report["print_explain_report"]
+        src__taskfile__workspace___is_project_folder["_is_project_folder"]
+        src__taskfile__quadlet__generate_resolv_conf["generate_resolv_conf"]
+        src__taskfile__cli__ci__ci_targets["ci_targets"]
+        src__taskfile__runner__functions___python_cmd["_python_cmd"]
+        src__taskfile__scaffold__from_doql___unquote["_unquote"]
+        src__taskfile__diagnostics__checks_registry___is_image_var["_is_image_var"]
+        src__taskfile__cli__release___confirm_release["_confirm_release"]
+        src__taskfile__diagnostics__checks_ssh__check_ssh_connectivity["check_ssh_connectivity"]
+        src__taskfile__api__app__create_app["create_app"]
+        src__taskfile__diagnostics__checks___check_env_files["_check_env_files"]
+        src__taskfile__cli__explain_cmd___collect_requirements["_collect_requirements"]
+        src__taskfile__quadlet__generate_volume_unit["generate_volume_unit"]
+        src__taskfile__parser___validate_tasks_exist["_validate_tasks_exist"]
+        src__taskfile__cli__workspace_cmd__workspace_doctor["workspace_doctor"]
+        src__taskfile__diagnostics__fixop_adapter__adapt_issue["adapt_issue"]
+        src__taskfile__runner__ssh__wrap_scp_pull["wrap_scp_pull"]
+        src__taskfile__cli__workspace_cmd__workspace_workflows["workspace_workflows"]
+        src__taskfile__cli__auth___check_tool["_check_tool"]
+        src__taskfile__parser___validate_circular_dependencies["_validate_circular_dependencie"]
+        src__taskfile__quadlet___build_container_section["_build_container_section"]
+        src__taskfile__diagnostics__checks_ports___check_service_ports["_check_service_ports"]
+        src__taskfile__deploy_utils__check_remote_podman["check_remote_podman"]
+        src__taskfile__graph__print_dependency_list["print_dependency_list"]
+        src__taskfile__importer___extract_gl_job_commands["_extract_gl_job_commands"]
+        src__taskfile__models__pipeline__PipelineConfig__from_dict["from_dict"]
+        src__taskfile__health___check_ssh_service_legacy["_check_ssh_service_legacy"]
+        src__taskfile__diagnostics__llm_repair__ask_llm_for_fix["ask_llm_for_fix"]
+        src__taskfile__cli__fleet___ping["_ping"]
+        src__taskfile__diagnostics__fixop_adapter__fixop_category_to_tag["fixop_category_to_tag"]
+        src__taskfile__parser__load_taskfile["load_taskfile"]
+        src__taskfile__parser___merge_include_sections["_merge_include_sections"]
+        src__taskfile__runner__commands__execute_script["execute_script"]
+        src__taskfile__cli__setup___parse_ports["_parse_ports"]
+        src__taskfile__workspace___fix_doql_workflows["_fix_doql_workflows"]
+        src__taskfile__scaffold__from_doql___build_tasks["_build_tasks"]
+        src__taskfile__cli__fleet___apply_repair_fixes["_apply_repair_fixes"]
+        src__taskfile__quadlet__generate_network_unit["generate_network_unit"]
+        src__taskfile__diagnostics__checks_deploy__check_deploy_artifacts["check_deploy_artifacts"]
+        src__taskfile__deploy_recipes___systemd_ops_tasks["_systemd_ops_tasks"]
+        src__taskfile__diagnostics__report___build_summary_parts["_build_summary_parts"]
+        src__taskfile__cli__release___step_health_check["_step_health_check"]
+        src__taskfile__runner__explainer___cmd_type_icon["_cmd_type_icon"]
+        src__taskfile__diagnostics__report___group_issues_by_layer["_group_issues_by_layer"]
+        src__taskfile__converters__GitHubActionsConverter__export_workflow["export_workflow"]
+        src__taskfile__runner__functions__run_function["run_function"]
+        src__taskfile__diagnostics__checks_registry___collect_image_vars_from_config["_collect_image_vars_from_confi"]
+        src__taskfile__cli__release___step_build_desktop["_step_build_desktop"]
+        src__taskfile__runner__resolver__TaskResolver___load_dotenv["_load_dotenv"]
+        src__taskfile__cli__workspace_cmd__workspace_tasks["workspace_tasks"]
+        src__taskfile__quadlet___generate_quadlet_unit["_generate_quadlet_unit"]
+        src__taskfile__parser___parse_include_entry["_parse_include_entry"]
+        src__taskfile__diagnostics__checks__check_taskfile["check_taskfile"]
+        src__taskfile__quadlet___build_unit_section["_build_unit_section"]
+        src__taskfile__cli__api_cmd__api_openapi["api_openapi"]
+        src__taskfile__deploy_recipes___graceful_restart_cmds["_graceful_restart_cmds"]
+        src__taskfile__runner__failure___find_task_line["_find_task_line"]
+        src__taskfile__quadlet___build_container_podman_args["_build_container_podman_args"]
+        src__taskfile__diagnostics__report___fix_tag["_fix_tag"]
+        src__taskfile__notifications__notify_task_complete["notify_task_complete"]
+        src__taskfile__runner__core__TaskfileRunner____init__["__init__"]
+        src__taskfile__runner__failure___format_failure_header["_format_failure_header"]
+        src__taskfile__diagnostics__fixes___fix_rename_port["_fix_rename_port"]
+        src__taskfile__compose__resolve_dict["resolve_dict"]
+        src__taskfile__cli__quadlet___get_upload_files["_get_upload_files"]
+        src__taskfile__ssh__ssh_exec["ssh_exec"]
+        src__taskfile__converters__DockerComposeConverter__export_docker_compose["export_docker_compose"]
+        src__taskfile__diagnostics__fixes___fix_missing_variable["_fix_missing_variable"]
+        src__taskfile__runner__commands__execute_commands["execute_commands"]
+        src__taskfile__diagnostics__checks_env___load_dotenv_vars["_load_dotenv_vars"]
+        src__taskfile__cli__validate_cmd__validate_dependent_files["validate_dependent_files"]
+        src__taskfile__cli__fleet___safe_ssh["_safe_ssh"]
+        src__taskfile__diagnostics__checks_registry___check_registry_reachable["_check_registry_reachable"]
+        src__taskfile__runner__classifier__has_glob_pattern["has_glob_pattern"]
+        src__taskfile__cli__fleet___load_config_or_exit["_load_config_or_exit"]
+        src__taskfile__notifications___notify_windows["_notify_windows"]
+        src__taskfile__diagnostics__checks_ports___resolve_port_conflict["_resolve_port_conflict"]
+        src__taskfile__cli__version___get_version_from_git["_get_version_from_git"]
+        src__taskfile__cli__release___resolve_domain["_resolve_domain"]
+        src__taskfile__importer__parse_gitlab_ci["parse_gitlab_ci"]
+        src__taskfile__cli__release___show_release_plan["_show_release_plan"]
+        src__taskfile__deploy_recipes___compose_ops_tasks["_compose_ops_tasks"]
+        src__taskfile__diagnostics__checks_infra__check_ufw_forward_policy["check_ufw_forward_policy"]
+        src__taskfile__fleet___deploy_canary["_deploy_canary"]
+        src__taskfile__importer___import_dockerfile["_import_dockerfile"]
+        src__taskfile__diagnostics__checks_ports___who_uses_port["_who_uses_port"]
+        src__taskfile__models__config__TaskfileConfig__from_dict["from_dict"]
+        src__taskfile__diagnostics__report__print_report["print_report"]
+        src__taskfile__diagnostics__checks_placeholders___should_skip_placeholder["_should_skip_placeholder"]
+        src__taskfile__runner__explainer__TaskExplainer__explain["explain"]
+        src__taskfile__runner__core__TaskfileRunner___print_task_header["_print_task_header"]
+        src__taskfile__runner__commands___execute_cmd_step["_execute_cmd_step"]
+        src__taskfile__diagnostics__checks__check_remote_health["check_remote_health"]
+        src__taskfile__runner__commands___expand_globs_in_command["_expand_globs_in_command"]
+        src__taskfile__health___unhealthy_result["_unhealthy_result"]
+        src__taskfile__runner__failure___match_transfer_tip["_match_transfer_tip"]
+        src__taskfile__health__check_ssh_service["check_ssh_service"]
+        src__taskfile__cli__auth___ensure_gitignore["_ensure_gitignore"]
+        src__taskfile__landing__build_landing_page["build_landing_page"]
+        src__taskfile__deploy_utils__check_remote_info["check_remote_info"]
+        src__taskfile__quadlet___build_container_volumes["_build_container_volumes"]
+        src__taskfile__deploy_recipes___ssh_push_deploy["_ssh_push_deploy"]
+        src__taskfile__cli__version__bump["bump"]
+        src__taskfile__runner__explainer___print_remote_alt_env["_print_remote_alt_env"]
+        src__taskfile__runner__utils__markdown__render_codeblock["render_codeblock"]
+        src__taskfile__diagnostics__checks_tasks___extract_binary["_extract_binary"]
+        src__taskfile__deploy_recipes___health_tasks["_health_tasks"]
+        src__taskfile__diagnostics__checks_ssh__check_remote_health["check_remote_health"]
+        src__taskfile__runner__core__TaskfileRunner___wrap_ssh["_wrap_ssh"]
+        src__taskfile__diagnostics__ProjectDiagnostics__validate_taskfile_variables["validate_taskfile_variables"]
+        src__taskfile__notifications___notify_macos["_notify_macos"]
+        src__taskfile__runner__core__TaskfileRunner___print_run_summary["_print_run_summary"]
+        src__taskfile__diagnostics__report___print_flat_report["_print_flat_report"]
+        src__taskfile__diagnostics__checks__check_ssh_keys["check_ssh_keys"]
+        src__taskfile__diagnostics__checks_registry___build_unreachable_registry_issue["_build_unreachable_registry_is"]
+        src__taskfile__health__health_check_all["health_check_all"]
+        src__taskfile__scaffold__customize___detect_compose["_detect_compose"]
+        src__taskfile__runner__functions__run_inline_python["run_inline_python"]
+        src__taskfile__runner__explainer___print_teach_current_env["_print_teach_current_env"]
+        src__taskfile__cli__quadlet___get_upload_env["_get_upload_env"]
+        src__taskfile__workspace__run_task_in_projects["run_task_in_projects"]
+        src__taskfile__graph__build_dependency_graph["build_dependency_graph"]
+        src__taskfile__graph__detect_cycles["detect_cycles"]
+        src__taskfile__models__config___expand_single_host["_expand_single_host"]
+        src__taskfile__cli__cache_cmds__cache_show["cache_show"]
+        src__taskfile__cli__docker_cmds___docker_ps["_docker_ps"]
+        src__taskfile__parser__find_taskfile["find_taskfile"]
+        src__taskfile__runner__commands___dispatch_special_prefix["_dispatch_special_prefix"]
+        src__taskfile__cli__quadlet___run_upload_commands["_run_upload_commands"]
+        src__taskfile__workspace__run_in_project["run_in_project"]
+        src__taskfile__cli__version__set["set"]
+        src__taskfile__parser___load_include_file["_load_include_file"]
+        src__taskfile__diagnostics__report___print_layer_issues["_print_layer_issues"]
+        src__taskfile__cli__diagnostics___map_new_to_old_category["_map_new_to_old_category"]
+        src__taskfile__deploy_recipes___deploy_task["_deploy_task"]
+        src__taskfile__cli__explain_cmd___print_explain_variables["_print_explain_variables"]
+        src__taskfile__notifications___notify_linux["_notify_linux"]
+        src__taskfile__cli__docker_cmds___docker_stop["_docker_stop"]
+        src__taskfile__cli__fleet___check_ram["_check_ram"]
+        src__taskfile__cli__release___run_command["_run_command"]
+        src__taskfile__cli__version__show["show"]
+        src__taskfile__runner__commands___render_output["_render_output"]
+        src__taskfile__runner__commands___render_step_header["_render_step_header"]
+        src__taskfile__fleet__FleetConfig__from_dict["from_dict"]
+        src__taskfile__models__config__TaskfileConfig___expand_hosts["_expand_hosts"]
+        src__taskfile__runner__failure___handle_failure["_handle_failure"]
+        src__taskfile__converters__import_file["import_file"]
+        src__taskfile__cigen__list_targets["list_targets"]
+        src__taskfile__importer___extract_gl_job_deps["_extract_gl_job_deps"]
+        src__taskfile__quadlet___build_install_section["_build_install_section"]
+        src__taskfile__diagnostics__fixes___fix_copy_env_example["_fix_copy_env_example"]
+        src__taskfile__importer___import_makefile["_import_makefile"]
+        src__taskfile__diagnostics__checks_placeholders___load_env_file_vars["_load_env_file_vars"]
+        src__taskfile__workspace__fix_project["fix_project"]
+        src__taskfile__cli__fleet___parse_device_metrics["_parse_device_metrics"]
+        src__taskfile__cli__validate_cmd__check_common_files["check_common_files"]
+        src__taskfile__diagnostics__ProjectDiagnostics__llm_repair["llm_repair"]
+        src__taskfile__cli__ci__ci_preview["ci_preview"]
+        src__taskfile__quadlet__generate_container_unit["generate_container_unit"]
+        src__taskfile__diagnostics__checks_registry___collect_image_vars_from_envs["_collect_image_vars_from_envs"]
+        src__taskfile__cli__explain_cmd___print_explain_header["_print_explain_header"]
+        src__taskfile__importer___dump_taskfile["_dump_taskfile"]
+        src__taskfile__cli__workspace_cmd__workspace_validate["workspace_validate"]
+        src__taskfile__runner__error_presenter__ErrorPresenter__present["present"]
+        src__taskfile__cli__validate_cmd__print_dependency_tree["print_dependency_tree"]
+        src__taskfile__diagnostics__checks__check_examples["check_examples"]
+        src__taskfile__cli__import_export__export_cmd["export_cmd"]
+        src__taskfile__cli__ci__ci_run["ci_run"]
+        src__taskfile__runner__failure___classify_exit_code["_classify_exit_code"]
+        src__taskfile__cli__validate_cmd__check_compose_services["check_compose_services"]
     end
     examples__script_extraction__scripts__release__main --> examples__script_extraction__scripts__release__run
     examples__script_extraction__scripts__provision__main --> examples__script_extraction__scripts__provision__ssh_run
     TODO__check_all --> src__taskfile__diagnostics__ProjectDiagnostics__check_ssh_connectivity
     TODO__check_all --> TODO__dns__check_host_dns
     TODO__check_all --> TODO__dns__check_systemd_resolved
-    src__taskfile__converters__MakefileConverter__import_makefile --> src__taskfile__importer__parse_makefile
-    src__taskfile__converters__GitHubActionsConverter__import_workflow --> src__taskfile__importer__parse_github_actions
-    src__taskfile__converters__GitLabCIConverter__import_gitlab_ci --> src__taskfile__importer__parse_gitlab_ci
-    src__taskfile__converters__import_file --> src__taskfile__converters__detect_format
-    src__taskfile__converters__import_file --> src__taskfile__converters__MakefileConverter__import_makefile
-    src__taskfile__converters__import_file --> src__taskfile__converters__GitHubActionsConverter__import_workflow
-    src__taskfile__converters__import_file --> src__taskfile__converters__GitLabCIConverter__import_gitlab_ci
-    src__taskfile__converters__import_file --> src__taskfile__converters__NpmScriptsConverter__import_package_json
-    src__taskfile__converters__export_file --> src__taskfile__converters__MakefileConverter__export_makefile
-    src__taskfile__converters__export_file --> src__taskfile__converters__GitHubActionsConverter__export_workflow
-    src__taskfile__converters__export_file --> src__taskfile__converters__NpmScriptsConverter__export_package_json
-    src__taskfile__converters__export_file --> src__taskfile__converters__DockerComposeConverter__export_docker_compose
     src__taskfile__deploy_recipes___deploy_task --> src__taskfile__deploy_recipes___compose_deploy
     src__taskfile__deploy_recipes___deploy_task --> src__taskfile__deploy_recipes___quadlet_deploy
     src__taskfile__deploy_recipes___deploy_task --> src__taskfile__deploy_recipes___ssh_push_deploy
@@ -492,13 +515,24 @@ flowchart LR
     src__taskfile__importer___build_gl_task --> src__taskfile__importer___extract_gl_job_deps
     src__taskfile__importer__parse_gitlab_ci --> src__taskfile__importer___build_gl_pipeline
     src__taskfile__importer__parse_gitlab_ci --> src__taskfile__importer___build_gl_task
-    src__taskfile__importer___import_gitlab_ci --> src__taskfile__importer___dump_taskfile
-    src__taskfile__importer___import_gitlab_ci --> src__taskfile__importer__parse_gitlab_ci
-    src__taskfile__importer___import_makefile --> src__taskfile__importer___dump_taskfile
-    src__taskfile__importer___import_makefile --> src__taskfile__importer__parse_makefile
+    src__taskfile__importer___import_via_parser --> src__taskfile__importer___dump_taskfile
+    src__taskfile__importer___import_gitlab_ci --> src__taskfile__importer___import_via_parser
+    src__taskfile__importer___import_makefile --> src__taskfile__importer___import_via_parser
     src__taskfile__importer___import_shell_script --> src__taskfile__importer___dump_taskfile
     src__taskfile__importer___import_dockerfile --> src__taskfile__importer___dump_taskfile
     src__taskfile__importer___import_dockerfile --> src__taskfile__importer___slugify
+    src__taskfile__converters__MakefileConverter__import_makefile --> src__taskfile__importer__parse_makefile
+    src__taskfile__converters__GitHubActionsConverter__import_workflow --> src__taskfile__importer__parse_github_actions
+    src__taskfile__converters__GitLabCIConverter__import_gitlab_ci --> src__taskfile__importer__parse_gitlab_ci
+    src__taskfile__converters__import_file --> src__taskfile__converters__detect_format
+    src__taskfile__converters__import_file --> src__taskfile__converters__MakefileConverter__import_makefile
+    src__taskfile__converters__import_file --> src__taskfile__converters__GitHubActionsConverter__import_workflow
+    src__taskfile__converters__import_file --> src__taskfile__converters__GitLabCIConverter__import_gitlab_ci
+    src__taskfile__converters__import_file --> src__taskfile__converters__NpmScriptsConverter__import_package_json
+    src__taskfile__converters__export_file --> src__taskfile__converters__MakefileConverter__export_makefile
+    src__taskfile__converters__export_file --> src__taskfile__converters__GitHubActionsConverter__export_workflow
+    src__taskfile__converters__export_file --> src__taskfile__converters__NpmScriptsConverter__export_package_json
+    src__taskfile__converters__export_file --> src__taskfile__converters__DockerComposeConverter__export_docker_compose
     src__taskfile__landing__build_landing_page --> src__taskfile__landing__generate_landing_page
     src__taskfile__graph__detect_cycles --> src__taskfile__cli__version__set
     src__taskfile__graph__print_task_tree --> src__taskfile__graph__build_dependency_graph
@@ -516,10 +550,33 @@ flowchart LR
     src__taskfile__health__run_health_checks --> src__taskfile__health__check_ssh_service
     src__taskfile__health__health_check_all --> src__taskfile__health__run_health_checks
     src__taskfile__health__health_check_all --> src__taskfile__health__print_health_report
+    src__taskfile__workspace___analyze_project --> src__taskfile__workspace___parse_taskfile_tasks
+    src__taskfile__workspace___analyze_project --> src__taskfile__workspace___parse_doql_workflows
+    src__taskfile__workspace__discover_projects --> src__taskfile__workspace___is_project_folder
+    src__taskfile__workspace__run_task_in_projects --> src__taskfile__workspace__run_in_project
+    src__taskfile__workspace___fix_doql_workflows --> src__taskfile__cli__version__set
+    src__taskfile__workspace__fix_project --> src__taskfile__workspace___remove_import_makefile_hint
+    src__taskfile__workspace__fix_project --> src__taskfile__workspace__parse_taskfile_task_commands
+    src__taskfile__workspace__fix_project --> src__taskfile__workspace___analyze_project
+    src__taskfile__workspace__fix_project --> src__taskfile__workspace___fix_doql_workflows
     src__taskfile__compose__resolve_dict --> src__taskfile__compose__resolve_variables
     src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__resolve_dict
     src__taskfile__compose__ComposeFile____init__ --> src__taskfile__compose__load_env_file
     src__taskfile__cirunner__PipelineRunner___resolve_stages --> src__taskfile__cli__version__set
+    src__taskfile__deploy_utils__setup_ssh_key --> src__taskfile__deploy_utils__test_ssh_connection
+    src__taskfile__deploy_utils__check_remote_podman --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__check_remote_disk --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__list_remote_images --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_podman
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_disk
+    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__list_remote_images
+    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
+    src__taskfile__deploy_utils__transfer_images_via_ssh --> src__taskfile__deploy_utils__transfer_image_via_ssh
+    src__taskfile__deploy_utils__deploy_container_remote --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__stop_container_remote --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__get_remote_logs --> src__taskfile__deploy_utils__ssh_exec
+    src__taskfile__deploy_utils__get_remote_status --> src__taskfile__deploy_utils__ssh_exec
     src__taskfile__fleet__load_fleet --> src__taskfile__fleet__FleetConfig__from_dict
     src__taskfile__fleet__check_device_status --> src__taskfile__fleet___ping_device
     src__taskfile__fleet__check_device_status --> src__taskfile__fleet___ssh_cmd
@@ -531,6 +588,12 @@ flowchart LR
     src__taskfile__fleet__deploy_to_group --> src__taskfile__fleet___deploy_canary
     src__taskfile__fleet___deploy_rolling --> src__taskfile__fleet__deploy_to_device
     src__taskfile__fleet___deploy_canary --> src__taskfile__fleet__deploy_to_device
+    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_macos
+    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_linux
+    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_windows
+    src__taskfile__ssh___get_connection --> src__taskfile__ssh___pool_key
+    src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___ssh_exec_subprocess
+    src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___get_connection
     src__taskfile__parser___scan_subdirectories --> src__taskfile__parser___scan_dir_for_taskfiles
     src__taskfile__parser__scan_nearby_taskfiles --> src__taskfile__parser___scan_dir_for_taskfiles
     src__taskfile__parser__scan_nearby_taskfiles --> src__taskfile__parser___scan_subdirectories
@@ -541,51 +604,20 @@ flowchart LR
     src__taskfile__parser__load_taskfile --> src__taskfile__parser___resolve_includes
     src__taskfile__parser__load_taskfile --> src__taskfile__models__config__TaskfileConfig__from_dict
     src__taskfile__parser__load_taskfile --> src__taskfile__parser__find_taskfile
+    src__taskfile__parser___validate_task_env_filter --> src__taskfile__parser___validate_task_filter
+    src__taskfile__parser___validate_task_platform_filter --> src__taskfile__parser___validate_task_filter
     src__taskfile__parser___validate_circular_dependencies --> src__taskfile__cli__version__set
     src__taskfile__parser__validate_taskfile --> src__taskfile__parser___validate_tasks_exist
-    src__taskfile__ssh___get_connection --> src__taskfile__ssh___pool_key
-    src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___ssh_exec_subprocess
-    src__taskfile__ssh__ssh_exec --> src__taskfile__ssh___get_connection
-    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_macos
-    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_linux
-    src__taskfile__notifications__notify_task_complete --> src__taskfile__notifications___notify_windows
-    src__taskfile__cache__TaskCache__get_stats --> src__taskfile__cli__version__set
-    src__taskfile__cache__get_project_hash --> src__taskfile__parser__find_taskfile
     src__taskfile__scaffold__generate_taskfile --> src__taskfile__scaffold___load_template
-    src__taskfile__diagnostics__llm_repair__classify_runtime_error --> src__taskfile__diagnostics__llm_repair___classify_runtime_error_legacy
-    src__taskfile__diagnostics__llm_repair__classify_runtime_error --> src__taskfile__diagnostics__fixop_adapter__adapt_issue
-    src__taskfile__diagnostics__llm_repair___classify_runtime_error_legacy --> src__taskfile__diagnostics__llm_repair___extract_missing_binary
-    src__taskfile__diagnostics__checks_placeholders___load_env_file_vars --> src__taskfile__cli__version__set
-    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__cli__version__set
-    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__diagnostics__checks_placeholders___extract_fields_to_check
-    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__diagnostics__checks_placeholders___load_env_file_vars
-    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__diagnostics__checks_placeholders___should_skip_placeholder
-    src__taskfile__diagnostics__checks_placeholders__check_placeholder_values --> src__taskfile__diagnostics__checks_placeholders___check_env_placeholders
-    src__taskfile__diagnostics__fixop_adapter__adapt_issues --> src__taskfile__diagnostics__fixop_adapter__adapt_issue
-    src__taskfile__diagnostics__checks_infra__check_ufw_forward_policy --> src__taskfile__diagnostics__fixop_adapter__adapt_issues
-    src__taskfile__diagnostics__checks_infra__check_container_dns --> src__taskfile__diagnostics__fixop_adapter__adapt_issues
-    src__taskfile__diagnostics__checks_registry___collect_image_vars_from_config --> src__taskfile__diagnostics__checks_registry___is_image_var
-    src__taskfile__diagnostics__checks_registry___collect_image_vars_from_envs --> src__taskfile__diagnostics__checks_registry___is_image_var
-    src__taskfile__diagnostics__checks_registry___group_by_registry --> src__taskfile__diagnostics__checks_registry___extract_registry_host
-    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___group_by_registry
-    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___collect_image_vars_from_config
-    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___collect_image_vars_from_envs
-    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___collect_image_vars_from_compose
-    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___build_unreachable_registry_issue
-    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___check_registry_reachable
-    src__taskfile__diagnostics__checks_ports__check_ports --> src__taskfile__diagnostics__checks_ports___load_compose_services
-    src__taskfile__diagnostics__checks_ports__check_ports --> src__taskfile__compose__load_env_file
-    src__taskfile__diagnostics__checks_ports__check_ports --> src__taskfile__diagnostics__checks_ports___check_service_ports
-    src__taskfile__diagnostics__checks_ports___check_service_ports --> src__taskfile__diagnostics__checks_ports___resolve_port_conflict
-    src__taskfile__diagnostics__checks_ports___check_service_ports --> src__taskfile__diagnostics__checks_ports___build_port_conflict_issue
-    src__taskfile__diagnostics__checks_ports___build_port_conflict_issue --> src__taskfile__diagnostics__checks_ports___who_uses_port
-    src__taskfile__diagnostics__checks_ports___build_port_conflict_issue --> src__taskfile__diagnostics__checks_ports___is_docker_process
-    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__diagnostics__checks_ports___parse_compose_host_port
-    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__compose__resolve_variables
-    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__diagnostics__checks_ports___is_port_free
-    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__diagnostics__checks_ports___find_free_port_near
-    src__taskfile__diagnostics__checks_ports___find_free_port_near --> src__taskfile__diagnostics__checks_ports___is_port_free
-    src__taskfile__diagnostics__checks_deploy__check_deploy_artifacts --> src__taskfile__cli__version__set
+    src__taskfile__scaffold__customize__customise_minimal --> src__taskfile__scaffold__customize___safe_load
+    src__taskfile__scaffold__customize__customise_minimal --> src__taskfile__scaffold__customize___detect_python
+    src__taskfile__scaffold__customize__customise_minimal --> src__taskfile__scaffold__customize___detect_node
+    src__taskfile__scaffold__customize__customise_minimal --> src__taskfile__scaffold__customize___detect_compose
+    src__taskfile__scaffold__customize__customise_minimal --> src__taskfile__scaffold__customize___detect_dockerfile
+    src__taskfile__scaffold__customize__customise_minimal --> src__taskfile__scaffold__customize___detect_makefile
+    src__taskfile__scaffold__customize__customise_minimal --> src__taskfile__scaffold__customize___safe_dump
+    src__taskfile__scaffold__customize___import_doql_workflows --> src__taskfile__scaffold__from_doql__generate_from_doql
+    src__taskfile__scaffold__customize___import_makefile_tasks --> src__taskfile__importer__parse_makefile
     src__taskfile__quadlet___build_container_ports --> src__taskfile__quadlet___parse_port
     src__taskfile__quadlet___build_container_ports --> src__taskfile__quadlet___resolve_env_in_port
     src__taskfile__quadlet___build_container_podman_args --> src__taskfile__quadlet___parse_memory_limit
@@ -600,6 +632,8 @@ flowchart LR
     src__taskfile__quadlet__generate_container_unit --> src__taskfile__quadlet___build_container_section
     src__taskfile__quadlet__generate_container_unit --> src__taskfile__quadlet___build_service_section
     src__taskfile__quadlet__generate_container_unit --> src__taskfile__quadlet___build_install_section
+    src__taskfile__quadlet__generate_network_unit --> src__taskfile__quadlet___generate_quadlet_unit
+    src__taskfile__quadlet__generate_volume_unit --> src__taskfile__quadlet___generate_quadlet_unit
     src__taskfile__quadlet___collect_named_volumes --> src__taskfile__cli__version__set
     src__taskfile__quadlet___generate_network_file --> src__taskfile__quadlet__generate_network_unit
     src__taskfile__quadlet___generate_container_files --> src__taskfile__cli__version__set
@@ -610,13 +644,55 @@ flowchart LR
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_network_file
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet___generate_volume_files
     src__taskfile__quadlet__compose_to_quadlet --> src__taskfile__quadlet__generate_resolv_conf
+    src__taskfile__scaffold__from_doql__generate_from_doql --> src__taskfile__scaffold__from_doql___parse_doql_css
+    src__taskfile__scaffold__from_doql__generate_from_doql --> src__taskfile__scaffold__from_doql___build_description
+    src__taskfile__scaffold__from_doql__generate_from_doql --> src__taskfile__scaffold__from_doql___build_environments
+    src__taskfile__scaffold__from_doql__generate_from_doql --> src__taskfile__scaffold__from_doql___build_tasks
+    src__taskfile__scaffold__from_doql___parse_doql_css --> src__taskfile__scaffold__from_doql___extract_props
+    src__taskfile__scaffold__from_doql___parse_doql_css --> src__taskfile__scaffold__from_doql___unquote
+    src__taskfile__scaffold__from_doql___extract_workflow_steps --> src__taskfile__scaffold__from_doql___classify_step
+    src__taskfile__scaffold__from_doql___build_environments --> src__taskfile__scaffold__from_doql___unquote
+    src__taskfile__scaffold__from_doql___build_tasks --> src__taskfile__scaffold__from_doql___unquote
+    src__taskfile__diagnostics__fixop_adapter__adapt_issues --> src__taskfile__diagnostics__fixop_adapter__adapt_issue
+    src__taskfile__diagnostics__checks_placeholders___load_env_file_vars --> src__taskfile__cli__version__set
+    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__cli__version__set
+    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__diagnostics__checks_placeholders___extract_fields_to_check
+    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__diagnostics__checks_placeholders___load_env_file_vars
+    src__taskfile__diagnostics__checks_placeholders___check_env_placeholders --> src__taskfile__diagnostics__checks_placeholders___should_skip_placeholder
+    src__taskfile__diagnostics__checks_placeholders__check_placeholder_values --> src__taskfile__diagnostics__checks_placeholders___check_env_placeholders
+    src__taskfile__diagnostics__checks_infra__check_ufw_forward_policy --> src__taskfile__diagnostics__fixop_adapter__adapt_issues
+    src__taskfile__diagnostics__checks_infra__check_container_dns --> src__taskfile__diagnostics__fixop_adapter__adapt_issues
+    src__taskfile__diagnostics__checks_registry___collect_image_vars_from_config --> src__taskfile__diagnostics__checks_registry___is_image_var
+    src__taskfile__diagnostics__checks_registry___collect_image_vars_from_envs --> src__taskfile__diagnostics__checks_registry___is_image_var
+    src__taskfile__diagnostics__checks_registry___group_by_registry --> src__taskfile__diagnostics__checks_registry___extract_registry_host
+    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___group_by_registry
+    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___collect_image_vars_from_config
+    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___collect_image_vars_from_envs
+    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___collect_image_vars_from_compose
+    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___build_unreachable_registry_issue
+    src__taskfile__diagnostics__checks_registry__check_registry_access --> src__taskfile__diagnostics__checks_registry___check_registry_reachable
+    src__taskfile__cache__TaskCache__get_stats --> src__taskfile__cli__version__set
+    src__taskfile__cache__get_project_hash --> src__taskfile__parser__find_taskfile
+    src__taskfile__diagnostics__checks_deploy__check_deploy_artifacts --> src__taskfile__cli__version__set
+    src__taskfile__diagnostics__checks_ports__check_ports --> src__taskfile__diagnostics__checks_ports___load_compose_services
+    src__taskfile__diagnostics__checks_ports__check_ports --> src__taskfile__compose__load_env_file
+    src__taskfile__diagnostics__checks_ports__check_ports --> src__taskfile__diagnostics__checks_ports___check_service_ports
+    src__taskfile__diagnostics__checks_ports___check_service_ports --> src__taskfile__diagnostics__checks_ports___resolve_port_conflict
+    src__taskfile__diagnostics__checks_ports___check_service_ports --> src__taskfile__diagnostics__checks_ports___build_port_conflict_issue
+    src__taskfile__diagnostics__checks_ports___build_port_conflict_issue --> src__taskfile__diagnostics__checks_ports___who_uses_port
+    src__taskfile__diagnostics__checks_ports___build_port_conflict_issue --> src__taskfile__diagnostics__checks_ports___is_docker_process
+    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__diagnostics__checks_ports___parse_compose_host_port
+    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__compose__resolve_variables
+    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__diagnostics__checks_ports___is_port_free
+    src__taskfile__diagnostics__checks_ports___resolve_port_conflict --> src__taskfile__diagnostics__checks_ports___find_free_port_near
+    src__taskfile__diagnostics__checks_ports___find_free_port_near --> src__taskfile__diagnostics__checks_ports___is_port_free
+    src__taskfile__diagnostics__checks_tasks__check_task_commands --> src__taskfile__diagnostics__checks_tasks___extract_binary
+    src__taskfile__diagnostics__checks_tasks__check_task_commands --> src__taskfile__diagnostics__checks_env___load_dotenv_vars
     src__taskfile__diagnostics__ProjectDiagnostics___load_config --> src__taskfile__parser__find_taskfile
     src__taskfile__diagnostics__ProjectDiagnostics___load_config --> src__taskfile__parser__load_taskfile
     src__taskfile__diagnostics__ProjectDiagnostics__validate_taskfile_variables --> src__taskfile__diagnostics__checks_env__check_unresolved_variables
     src__taskfile__diagnostics__ProjectDiagnostics__auto_fix --> src__taskfile__diagnostics__fixes__apply_fixes
     src__taskfile__diagnostics__ProjectDiagnostics__llm_repair --> src__taskfile__diagnostics__llm_repair__ask_llm_for_fix
-    src__taskfile__diagnostics__checks_tasks__check_task_commands --> src__taskfile__diagnostics__checks_tasks___extract_binary
-    src__taskfile__diagnostics__checks_tasks__check_task_commands --> src__taskfile__diagnostics__checks_env___load_dotenv_vars
     src__taskfile__diagnostics__fixes__apply_fixes --> src__taskfile__diagnostics__fixes__apply_single_fix
     src__taskfile__diagnostics__fixes__apply_single_fix --> src__taskfile__diagnostics__fixes___fix_copy_env_example
     src__taskfile__diagnostics__fixes__apply_single_fix --> src__taskfile__diagnostics__fixes___fix_create_taskfile
@@ -638,10 +714,14 @@ flowchart LR
     src__taskfile__diagnostics__checks_env__check_unresolved_variables --> src__taskfile__diagnostics__checks_env___check_env_file_vars
     src__taskfile__diagnostics__checks__check_taskfile --> src__taskfile__parser__find_taskfile
     src__taskfile__diagnostics__checks__check_taskfile --> src__taskfile__parser__load_taskfile
+    src__taskfile__diagnostics__checks__check_ports --> src__taskfile__diagnostics__checks___delegate_check
     src__taskfile__diagnostics__checks___check_circular_deps --> src__taskfile__parser__validate_taskfile
     src__taskfile__diagnostics__checks__check_dependent_files --> src__taskfile__diagnostics__checks___check_circular_deps
     src__taskfile__diagnostics__checks__check_dependent_files --> src__taskfile__diagnostics__checks___check_script_files
     src__taskfile__diagnostics__checks__check_dependent_files --> src__taskfile__diagnostics__checks___check_env_files
+    src__taskfile__diagnostics__checks__check_ssh_keys --> src__taskfile__diagnostics__checks___delegate_check
+    src__taskfile__diagnostics__checks__check_ssh_connectivity --> src__taskfile__diagnostics__checks___delegate_check
+    src__taskfile__diagnostics__checks__check_remote_health --> src__taskfile__diagnostics__checks___delegate_check
     src__taskfile__diagnostics__checks__check_examples --> src__taskfile__parser__load_taskfile
     src__taskfile__diagnostics__checks__validate_before_run --> src__taskfile__diagnostics__checks_placeholders___check_env_file_for_target
     src__taskfile__diagnostics__checks__validate_before_run --> src__taskfile__diagnostics__checks___check_tasks_and_deps
@@ -661,10 +741,13 @@ flowchart LR
     src__taskfile__diagnostics__report___print_flat_report --> src__taskfile__diagnostics__report___severity_icon
     src__taskfile__diagnostics__report___print_flat_report --> src__taskfile__diagnostics__report___fix_tag
     src__taskfile__diagnostics__report__print_report_json --> src__taskfile__diagnostics__report__get_report_dict
+    src__taskfile__runner__error_presenter__ErrorPresenter__present --> src__taskfile__diagnostics__llm_repair__classify_runtime_error
+    src__taskfile__diagnostics__llm_repair__classify_runtime_error --> src__taskfile__diagnostics__llm_repair___classify_runtime_error_legacy
+    src__taskfile__diagnostics__llm_repair__classify_runtime_error --> src__taskfile__diagnostics__fixop_adapter__adapt_issue
+    src__taskfile__diagnostics__llm_repair___classify_runtime_error_legacy --> src__taskfile__diagnostics__llm_repair___extract_missing_binary
     src__taskfile__runner__functions__run_function --> src__taskfile__runner__functions___exec_function_python
     src__taskfile__runner__functions___exec_function_python --> src__taskfile__runner__functions___python_cmd
     src__taskfile__runner__functions__run_inline_python --> src__taskfile__runner__functions___python_cmd
-    src__taskfile__runner__error_presenter__ErrorPresenter__present --> src__taskfile__diagnostics__llm_repair__classify_runtime_error
     src__taskfile__runner__failure___classify_exit_code --> src__taskfile__diagnostics__fixop_adapter__fixop_category_to_tag
     src__taskfile__runner__failure___get_tip_for_failure --> src__taskfile__runner__failure___match_transfer_tip
     src__taskfile__runner__failure___handle_failure --> src__taskfile__runner__failure___classify_exit_code
@@ -672,14 +755,10 @@ flowchart LR
     src__taskfile__runner__failure___handle_failure --> src__taskfile__runner__failure___run_error_presenter
     src__taskfile__runner__failure___handle_failure --> src__taskfile__runner__failure___get_tip_for_failure
     src__taskfile__runner__failure___handle_failure --> src__taskfile__runner__failure___format_next_steps
-    src__taskfile__runner__failure___handle_failure --> src__taskfile__runner__failure___md
     src__taskfile__runner__failure___format_failure_header --> src__taskfile__runner__failure___source_ref
-    src__taskfile__runner__failure___format_failure_header --> src__taskfile__runner__failure___md
     src__taskfile__runner__failure___format_failure_header --> src__taskfile__runner__failure___find_cmd_line
-    src__taskfile__runner__failure___format_next_steps --> src__taskfile__runner__failure___md
     src__taskfile__runner__commands___render_step_header --> src__taskfile__runner__failure___find_cmd_line
     src__taskfile__runner__commands___render_step_header --> src__taskfile__runner__failure___source_ref
-    src__taskfile__runner__commands___render_step_header --> src__taskfile__runner__commands___md
     src__taskfile__runner__commands___check_file_arg --> src__taskfile__runner__commands___check_literal_path
     src__taskfile__runner__commands___check_file_arg --> src__taskfile__runner__commands___is_flag_or_special
     src__taskfile__runner__commands___check_file_arg --> src__taskfile__runner__commands___has_variable
@@ -689,27 +768,20 @@ flowchart LR
     src__taskfile__runner__commands___validate_all_commands --> src__taskfile__runner__commands___validate_command_files
     src__taskfile__runner__commands___handle_local --> src__taskfile__runner__commands___run_local
     src__taskfile__runner__commands___handle_local --> src__taskfile__runner__commands___skip_msg
-    src__taskfile__runner__commands___handle_local --> src__taskfile__runner__ssh__strip_local_prefix
-    src__taskfile__runner__commands___handle_remote --> src__taskfile__runner__ssh__strip_remote_prefix
     src__taskfile__runner__commands___handle_remote --> src__taskfile__runner__commands___run_local
     src__taskfile__runner__commands___handle_remote --> src__taskfile__runner__commands___skip_msg
     src__taskfile__runner__commands___handle_remote --> src__taskfile__runner__ssh__run_embedded_ssh
     src__taskfile__runner__commands___handle_remote --> src__taskfile__runner__ssh__wrap_ssh
     src__taskfile__runner__commands___handle_push --> src__taskfile__runner__ssh__wrap_scp_push
-    src__taskfile__runner__commands___handle_push --> src__taskfile__runner__ssh__strip_push_prefix
     src__taskfile__runner__commands___handle_push --> src__taskfile__runner__commands___run_local
     src__taskfile__runner__commands___handle_push --> src__taskfile__runner__commands___skip_msg
     src__taskfile__runner__commands___handle_pull --> src__taskfile__runner__ssh__wrap_scp_pull
-    src__taskfile__runner__commands___handle_pull --> src__taskfile__runner__ssh__strip_pull_prefix
     src__taskfile__runner__commands___handle_pull --> src__taskfile__runner__commands___run_local
     src__taskfile__runner__commands___handle_pull --> src__taskfile__runner__commands___skip_msg
-    src__taskfile__runner__commands___dispatch_special_prefix --> src__taskfile__runner__ssh__is_local_command
-    src__taskfile__runner__commands___dispatch_special_prefix --> src__taskfile__runner__ssh__is_remote_command
-    src__taskfile__runner__commands___dispatch_special_prefix --> src__taskfile__runner__ssh__is_push_command
-    src__taskfile__runner__commands___dispatch_special_prefix --> src__taskfile__runner__ssh__is_pull_command
     src__taskfile__runner__commands___dispatch_special_prefix --> src__taskfile__runner__functions__run_function
     src__taskfile__runner__commands___dispatch_special_prefix --> src__taskfile__runner__functions__run_inline_python
     src__taskfile__runner__commands___dispatch_special_prefix --> src__taskfile__runner__commands___handle_local
+    src__taskfile__runner__commands___render_output --> src__taskfile__runner__utils__markdown__render_codeblock
     src__taskfile__runner__commands___run_subprocess --> src__taskfile__runner__commands___render_output
     src__taskfile__runner__commands___run_local --> src__taskfile__runner__commands___run_subprocess
     src__taskfile__runner__commands__run_command --> src__taskfile__runner__commands___dispatch_special_prefix
@@ -721,26 +793,27 @@ flowchart LR
     src__taskfile__runner__commands___execute_script_step --> src__taskfile__runner__commands___run_with_retries
     src__taskfile__runner__commands___execute_script_step --> src__taskfile__runner__failure___handle_failure
     src__taskfile__runner__commands___execute_script_step --> src__taskfile__runner__failure___source_ref
-    src__taskfile__runner__commands___execute_script_step --> src__taskfile__runner__commands___md
     src__taskfile__runner__commands___execute_script_step --> src__taskfile__runner__failure___find_task_line
     src__taskfile__runner__commands___execute_script_step --> src__taskfile__runner__commands__execute_script
     src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands___render_step_header
     src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands___validate_command_files
     src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands___run_with_retries
     src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__failure___handle_failure
-    src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands___md
     src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__failure___get_tip_for_command
     src__taskfile__runner__commands___execute_cmd_step --> src__taskfile__runner__commands__run_command
     src__taskfile__runner__commands___pre_validate_files --> src__taskfile__runner__commands___validate_all_commands
-    src__taskfile__runner__commands___pre_validate_files --> src__taskfile__runner__commands___md
     src__taskfile__runner__commands___show_success_tip --> src__taskfile__runner__failure___get_tip_for_command
-    src__taskfile__runner__commands___show_success_tip --> src__taskfile__runner__commands___md
     src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___pre_validate_files
     src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___show_success_tip
     src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___execute_script_step
     src__taskfile__runner__commands__execute_commands --> src__taskfile__runner__commands___execute_cmd_step
+    src__taskfile__runner__classifier__classify_command --> src__taskfile__runner__classifier___is_shell_construct
+    src__taskfile__runner__classifier__should_expand_globs --> src__taskfile__runner__classifier__classify_command
+    src__taskfile__runner__resolver__TaskResolver__from_path --> src__taskfile__parser__load_taskfile
+    src__taskfile__runner__resolver__TaskResolver___load_dotenv --> src__taskfile__compose__load_env_file
+    src__taskfile__runner__resolver__TaskResolver__get_dependency_order --> src__taskfile__cli__version__set
+    src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__deploy_utils__ssh_exec
     src__taskfile__runner__explainer__TaskExplainer__explain --> src__taskfile__cli__version__set
-    src__taskfile__runner__explainer__TaskExplainer___analyze_command --> src__taskfile__runner__ssh__is_local_command
     src__taskfile__runner__explainer__print_explain_report --> src__taskfile__runner__explainer___cmd_type_icon
     src__taskfile__runner__explainer___print_teach_alt_env --> src__taskfile__runner__explainer___print_remote_alt_env
     src__taskfile__runner__explainer___print_teach_alt_env --> src__taskfile__runner__explainer___print_local_alt_env
@@ -748,28 +821,9 @@ flowchart LR
     src__taskfile__runner__explainer__print_teach_report --> src__taskfile__runner__explainer___print_teach_prefix_info
     src__taskfile__runner__explainer__print_teach_report --> src__taskfile__runner__explainer___print_teach_current_env
     src__taskfile__runner__explainer__print_teach_report --> src__taskfile__runner__explainer___print_teach_alt_env
-    src__taskfile__deploy_utils__setup_ssh_key --> src__taskfile__deploy_utils__test_ssh_connection
-    src__taskfile__deploy_utils__check_remote_podman --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__check_remote_disk --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__list_remote_images --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_podman
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__check_remote_disk
-    src__taskfile__deploy_utils__check_remote_info --> src__taskfile__deploy_utils__list_remote_images
-    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__install_remote_podman --> src__taskfile__deploy_utils__check_remote_podman
-    src__taskfile__deploy_utils__transfer_images_via_ssh --> src__taskfile__deploy_utils__transfer_image_via_ssh
-    src__taskfile__deploy_utils__deploy_container_remote --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__stop_container_remote --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__get_remote_logs --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__deploy_utils__get_remote_status --> src__taskfile__deploy_utils__ssh_exec
-    src__taskfile__runner__resolver__TaskResolver__from_path --> src__taskfile__parser__load_taskfile
-    src__taskfile__runner__resolver__TaskResolver___load_dotenv --> src__taskfile__compose__load_env_file
-    src__taskfile__runner__resolver__TaskResolver__get_dependency_order --> src__taskfile__cli__version__set
     src__taskfile__runner__core__TaskfileRunner____init__ --> src__taskfile__cli__version__set
     src__taskfile__runner__core__TaskfileRunner____init__ --> src__taskfile__parser__load_taskfile
     src__taskfile__runner__core__TaskfileRunner____init__ --> src__taskfile__ssh__has_paramiko
-    src__taskfile__runner__core__TaskfileRunner___is_remote_command --> src__taskfile__runner__ssh__is_remote_command
-    src__taskfile__runner__core__TaskfileRunner___strip_remote_prefix --> src__taskfile__runner__ssh__strip_remote_prefix
     src__taskfile__runner__core__TaskfileRunner___wrap_ssh --> src__taskfile__runner__ssh__wrap_ssh
     src__taskfile__runner__core__TaskfileRunner___run_embedded_ssh --> src__taskfile__runner__ssh__run_embedded_ssh
     src__taskfile__runner__core__TaskfileRunner___run_function --> src__taskfile__runner__functions__run_function
@@ -779,28 +833,17 @@ flowchart LR
     src__taskfile__runner__core__TaskfileRunner___print_task_header --> src__taskfile__runner__failure___find_task_line
     src__taskfile__runner__core__TaskfileRunner___print_task_header --> src__taskfile__runner__failure___source_ref
     src__taskfile__runner__core__TaskfileRunner___run_tasks_plain --> src__taskfile__notifications__notify_task_complete
-    src__taskfile__runner__core__TaskfileRunner___print_run_header --> src__taskfile__runner__failure___md
     src__taskfile__runner__core__TaskfileRunner___validate_pre_run --> src__taskfile__parser__validate_taskfile
     src__taskfile__runner__core__TaskfileRunner___validate_pre_run --> src__taskfile__diagnostics__checks__validate_before_run
-    src__taskfile__runner__core__TaskfileRunner___validate_pre_run --> src__taskfile__runner__failure___md
-    src__taskfile__runner__core__TaskfileRunner___print_run_summary --> src__taskfile__runner__failure___md
     src__taskfile__runner__core__TaskfileRunner___print_run_summary --> src__taskfile__notifications__notify_task_complete
-    src__taskfile__runner__ssh__wrap_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
-    src__taskfile__runner__ssh__wrap_scp_push --> src__taskfile__runner__ssh__strip_push_prefix
-    src__taskfile__runner__ssh__wrap_scp_pull --> src__taskfile__runner__ssh__strip_pull_prefix
-    src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__runner__ssh__strip_remote_prefix
-    src__taskfile__runner__ssh__run_embedded_ssh --> src__taskfile__ssh__ssh_exec
     src__taskfile__models__config___expand_single_host --> src__taskfile__models__config___normalize_host_keys
     src__taskfile__models__config__TaskfileConfig___expand_addons_section --> src__taskfile__addons__expand_addons
     src__taskfile__models__config__TaskfileConfig___expand_deploy_section --> src__taskfile__deploy_recipes__expand_deploy_recipe
     src__taskfile__models__config__TaskfileConfig___expand_hosts --> src__taskfile__models__config___normalize_host_keys
     src__taskfile__models__config__TaskfileConfig___expand_hosts --> src__taskfile__models__config___expand_single_host
     src__taskfile__models__config__TaskfileConfig___parse_pipeline --> src__taskfile__models__pipeline__PipelineConfig__from_dict
-    src__taskfile__runner__classifier__classify_command --> src__taskfile__runner__classifier___is_shell_construct
-    src__taskfile__runner__classifier__should_expand_globs --> src__taskfile__runner__classifier__classify_command
     src__taskfile__cli__group_strategies__run_env_group --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__group_strategies__run_env_group --> src__taskfile__cli__group_strategies___group_rolling
-    src__taskfile__cli__registry_cmds__pkg_uninstall --> src__taskfile__cli__click_compat__confirm
     src__taskfile__cli__version__bump --> src__taskfile__cli__version___increment_version
     src__taskfile__cli__version__bump --> src__taskfile__cli__version___update_taskfile_version
     src__taskfile__cli__version__show --> src__taskfile__parser__find_taskfile
@@ -808,7 +851,26 @@ flowchart LR
     src__taskfile__cli__version__set --> src__taskfile__cli__version___update_taskfile_version
     src__taskfile__cli__version__set --> src__taskfile__cli__version___update_pyproject_version
     src__taskfile__cli__version__set --> src__taskfile__cli__version___is_valid_version
-    src__taskfile__cli__diagnostics__validate_before_run --> src__taskfile__cli__diagnostics___map_new_to_old_category
+    src__taskfile__cli__registry_cmds__pkg_uninstall --> src__taskfile__cli__click_compat__confirm
+    src__taskfile__cli__auth___write_env_var --> src__taskfile__cli__auth___read_env_file
+    src__taskfile__cli__auth__auth_setup --> src__taskfile__cli__auth___ensure_gitignore
+    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___read_env_file
+    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___check_tool
+    src__taskfile__cli__explain_cmd___print_explain_header --> src__taskfile__cli__explain_cmd___collect_requirements
+    src__taskfile__cli__explain_cmd__explain --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__main___check_unknown_tasks
+    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__explain_cmd___print_explain_header
+    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__explain_cmd___print_explain_steps
+    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__explain_cmd___print_explain_variables
+    src__taskfile__cli__import_export__export_cmd --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__import_export__export_cmd --> src__taskfile__converters__export_file
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_env
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_files
+    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___run_upload_commands
+    src__taskfile__cli__health__health_cmd --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__health__health_cmd --> src__taskfile__health__run_health_checks
+    src__taskfile__cli__health__health_cmd --> src__taskfile__health__print_health_report
     src__taskfile__cli__docker_cmds___containers_using_port --> src__taskfile__cli__docker_cmds___docker_ps
     src__taskfile__cli__docker_cmds___containers_using_port --> src__taskfile__cli__docker_cmds___container_publishes_port
     src__taskfile__cli__docker_cmds__docker_ps_cmd --> src__taskfile__cli__docker_cmds___docker_ps
@@ -818,37 +880,27 @@ flowchart LR
     src__taskfile__cli__docker_cmds__docker_stop_all_cmd --> src__taskfile__cli__docker_cmds___docker_ps
     src__taskfile__cli__docker_cmds__docker_stop_all_cmd --> src__taskfile__cli__docker_cmds___docker_stop
     src__taskfile__cli__docker_cmds__docker_stop_all_cmd --> src__taskfile__cli__click_compat__confirm
-    src__taskfile__cli__auth___write_env_var --> src__taskfile__cli__auth___read_env_file
-    src__taskfile__cli__auth__auth_setup --> src__taskfile__cli__auth___ensure_gitignore
-    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___read_env_file
-    src__taskfile__cli__auth__auth_verify --> src__taskfile__cli__auth___check_tool
-    src__taskfile__cli__health__health_cmd --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__health__health_cmd --> src__taskfile__health__run_health_checks
-    src__taskfile__cli__health__health_cmd --> src__taskfile__health__print_health_report
-    src__taskfile__cli__explain_cmd___print_explain_header --> src__taskfile__cli__explain_cmd___collect_requirements
-    src__taskfile__cli__explain_cmd__explain --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__main___check_unknown_tasks
-    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__explain_cmd___print_explain_header
-    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__explain_cmd___print_explain_steps
-    src__taskfile__cli__explain_cmd__explain --> src__taskfile__cli__explain_cmd___print_explain_variables
-    src__taskfile__cli__import_export__export_cmd --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__import_export__export_cmd --> src__taskfile__converters__export_file
-    src__taskfile__cli__cache_cmds__cache_show --> src__taskfile__cache__get_project_hash
-    src__taskfile__cli__cache_cmds__cache_clear --> src__taskfile__cache__get_project_hash
-    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_env
-    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___get_upload_files
-    src__taskfile__cli__quadlet__quadlet_upload --> src__taskfile__cli__quadlet___run_upload_commands
+    src__taskfile__cli__workspace_cmd___load_projects --> src__taskfile__workspace__discover_projects
+    src__taskfile__cli__workspace_cmd___load_projects --> src__taskfile__workspace__filter_projects
+    src__taskfile__cli__workspace_cmd__workspace_tasks --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_workflows --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_run --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_doctor --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_validate --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_status --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_deploy --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_fix --> src__taskfile__cli__workspace_cmd___load_projects
+    src__taskfile__cli__workspace_cmd__workspace_fix --> src__taskfile__workspace__fix_project
+    src__taskfile__cli__workspace_cmd__workspace_analyze --> src__taskfile__cli__workspace_cmd___load_projects
     src__taskfile__cli__ci__ci_generate --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_run --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_list --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_preview --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__ci__ci_preview --> src__taskfile__cigen__preview_ci
     src__taskfile__cli__ci__ci_targets --> src__taskfile__cigen__list_targets
+    src__taskfile__cli__cache_cmds__cache_show --> src__taskfile__cache__get_project_hash
+    src__taskfile__cli__cache_cmds__cache_clear --> src__taskfile__cache__get_project_hash
     src__taskfile__cli__api_cmd__api_openapi --> src__taskfile__api__app__create_app
-    src__taskfile__cli__completion__get_task_names --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__completion__get_environment_names --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__completion__get_platform_names --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__release___resolve_release_config --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__release___resolve_release_config --> src__taskfile__cli__release___get_current_tag
     src__taskfile__cli__release___confirm_release --> src__taskfile__cli__click_compat__confirm
@@ -865,6 +917,10 @@ flowchart LR
     src__taskfile__cli__release__rollback --> src__taskfile__cli__release___run_command
     src__taskfile__cli__release__rollback --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__release__rollback --> src__taskfile__cli__release___get_previous_tag
+    src__taskfile__cli__diagnostics__validate_before_run --> src__taskfile__cli__diagnostics___map_new_to_old_category
+    src__taskfile__cli__completion__get_task_names --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__completion__get_environment_names --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__completion__get_platform_names --> src__taskfile__parser__load_taskfile
     src__taskfile__cli__setup___build_config_from_args --> src__taskfile__cli__setup___validate_ip
     src__taskfile__cli__setup___build_config_from_args --> src__taskfile__cli__setup___validate_ssh_key
     src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___provision_ssh_key
@@ -873,6 +929,23 @@ flowchart LR
     src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___deploy_application
     src__taskfile__cli__setup___execute_setup_steps --> src__taskfile__cli__setup___provision_vps
     src__taskfile__cli__setup__setup --> src__taskfile__cli__setup___parse_ports
+    src__taskfile__cli__fleet___load_config_or_exit --> src__taskfile__parser__load_taskfile
+    src__taskfile__cli__fleet___safe_ssh --> src__taskfile__cli__fleet___ssh_check
+    src__taskfile__cli__fleet___check_single_device --> src__taskfile__cli__fleet___ping
+    src__taskfile__cli__fleet___check_single_device --> src__taskfile__cli__fleet___ssh_check
+    src__taskfile__cli__fleet___check_single_device --> src__taskfile__cli__fleet___parse_device_metrics
+    src__taskfile__cli__fleet___check_disk --> src__taskfile__cli__fleet___safe_ssh
+    src__taskfile__cli__fleet___check_ram --> src__taskfile__cli__fleet___safe_ssh
+    src__taskfile__cli__fleet___check_temperature --> src__taskfile__cli__fleet___safe_ssh
+    src__taskfile__cli__fleet___check_podman --> src__taskfile__cli__fleet___safe_ssh
+    src__taskfile__cli__fleet___check_ntp --> src__taskfile__cli__fleet___safe_ssh
+    src__taskfile__cli__fleet___apply_repair_fixes --> src__taskfile__cli__click_compat__confirm
+    src__taskfile__cli__fleet___apply_repair_fixes --> src__taskfile__cli__fleet___safe_ssh
+    src__taskfile__cli__fleet__fleet_status_cmd --> src__taskfile__cli__fleet___load_config_or_exit
+    src__taskfile__cli__fleet__fleet_status_cmd --> src__taskfile__cli__fleet___get_remote_envs
+    src__taskfile__cli__fleet__fleet_repair_cmd --> src__taskfile__cli__fleet___load_config_or_exit
+    src__taskfile__cli__fleet__fleet_repair_cmd --> src__taskfile__cli__fleet___apply_repair_fixes
+    src__taskfile__cli__fleet__fleet_list_cmd --> src__taskfile__cli__fleet___load_config_or_exit
     src__taskfile__cli__validate_cmd__validate_dependent_files --> src__taskfile__cli__validate_cmd__check_script_files_status
     src__taskfile__cli__validate_cmd__validate_dependent_files --> src__taskfile__cli__validate_cmd__check_env_files_status
     src__taskfile__cli__validate_cmd__validate_dependent_files --> src__taskfile__cli__validate_cmd__check_compose_services
@@ -885,29 +958,3 @@ flowchart LR
     src__taskfile__cli__deploy___deploy_ssh_push --> src__taskfile__cli__deploy___run
     src__taskfile__cli__deploy___deploy_ssh_push --> src__taskfile__cli__deploy___discover_compose_ports
     src__taskfile__cli__deploy___deploy_remote_compose --> src__taskfile__cli__deploy___ssh
-    src__taskfile__cli__deploy___quadlet_step1_generate --> src__taskfile__quadlet__compose_to_quadlet
-    src__taskfile__cli__deploy___quadlet_step2_upload --> src__taskfile__cli__deploy___ssh
-    src__taskfile__cli__deploy___quadlet_step2_upload --> src__taskfile__cli__deploy___run
-    src__taskfile__cli__deploy___quadlet_step3_reload_and_pull --> src__taskfile__cli__deploy___ssh
-    src__taskfile__cli__deploy___quadlet_step4_restart_and_cleanup --> src__taskfile__cli__deploy___ssh
-    src__taskfile__cli__deploy___deploy_quadlet --> src__taskfile__cli__deploy___quadlet_step1_generate
-    src__taskfile__cli__deploy___deploy_quadlet --> src__taskfile__cli__deploy___quadlet_step2_upload
-    src__taskfile__cli__deploy___deploy_quadlet --> src__taskfile__cli__deploy___quadlet_step3_reload_and_pull
-    src__taskfile__cli__deploy___deploy_quadlet --> src__taskfile__cli__deploy___quadlet_step4_restart_and_cleanup
-    src__taskfile__cli__deploy___resolve_deploy_config --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__deploy___execute_deploy_strategy --> src__taskfile__cli__deploy___deploy_local_compose
-    src__taskfile__cli__deploy___execute_deploy_strategy --> src__taskfile__cli__deploy___deploy_remote_compose
-    src__taskfile__cli__deploy___execute_deploy_strategy --> src__taskfile__cli__deploy___deploy_ssh_push
-    src__taskfile__cli__deploy___execute_deploy_strategy --> src__taskfile__cli__deploy___deploy_quadlet
-    src__taskfile__cli__deploy__deploy_cmd --> src__taskfile__cli__deploy___resolve_deploy_config
-    src__taskfile__cli__deploy__deploy_cmd --> src__taskfile__cli__deploy___print_deploy_header
-    src__taskfile__cli__deploy__deploy_cmd --> src__taskfile__cli__deploy___select_deploy_strategy
-    src__taskfile__cli__deploy__deploy_cmd --> src__taskfile__cli__deploy___execute_deploy_strategy
-    src__taskfile__cli__fleet___load_config_or_exit --> src__taskfile__parser__load_taskfile
-    src__taskfile__cli__fleet___safe_ssh --> src__taskfile__cli__fleet___ssh_check
-    src__taskfile__cli__fleet___check_single_device --> src__taskfile__cli__fleet___ping
-    src__taskfile__cli__fleet___check_single_device --> src__taskfile__cli__fleet___ssh_check
-    src__taskfile__cli__fleet___check_single_device --> src__taskfile__cli__fleet___parse_device_metrics
-    src__taskfile__cli__fleet___check_disk --> src__taskfile__cli__fleet___safe_ssh
-    src__taskfile__cli__fleet___check_ram --> src__taskfile__cli__fleet___safe_ssh
-    src__taskfile__cli__fleet___check_temperature --> src__taskfile__cli__fleet___safe_ssh

@@ -1133,6 +1133,7 @@ class TestRegressionVarResolution:
             assert "${" not in issue["message"], f"Unresolved var: {issue['message']}"
 
 
+@pytest.mark.slow
 class TestRegressionEnvFlag:
     """Regression: --env flag must be respected by doctor --remote."""
 
@@ -1218,6 +1219,7 @@ class TestRegressionEnvFlag:
         assert "not remote" in result.output
 
 
+@pytest.mark.slow
 class TestRegressionSSHErrorMessages:
     """Regression: SSH error messages must be informative, not empty."""
 

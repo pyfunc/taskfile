@@ -15,5 +15,6 @@ import taskfile.cli.version  # version management (bump, show, set)
 import taskfile.cli.docker_cmds  # docker management (stop, compose down, ports)
 import taskfile.cli.api_cmd  # REST API server (serve, openapi)
 import taskfile.cli.e2e_cmd  # e2e testing (services + IaC)
+import taskfile.cli.workspace_cmd  # workspace - multi-project group operations
 
 __all__ = ["main"]

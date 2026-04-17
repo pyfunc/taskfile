@@ -36,6 +36,7 @@ Write your deploy logic once in `Taskfile.yml`, run it from your terminal, GitLa
 - [Multi-Environment Deploy](#multi-environment-deploy)
 - [Multi-Platform Deploy](#multi-platform-deploy)
 - [Environment Groups & Fleet Management](#environment-groups--fleet-management)
+- [Workspace (multi-project operations)](#workspace-multi-project-operations)
 - [Parallel Tasks & Error Handling](#parallel-tasks--error-handling)
 - [Registry Authentication](#registry-authentication)
 - [Multi-Registry Publishing](#multi-registry-publishing)
@@ -47,6 +48,7 @@ Write your deploy logic once in `Taskfile.yml`, run it from your terminal, GitLa
 - [Diagnostics & Validation](#diagnostics--validation)
 - [Examples](#examples)
 - [Development](#development)
+- [Test Performance](#test-performance)
 - [Troubleshooting & Debugging](#troubleshooting--debugging)
 
 ---
@@ -866,6 +868,81 @@ taskfile fleet repair kiosk-lobby --auto-fix
 
 ---
 
+## Workspace (multi-project operations)
+
+`taskfile workspace` discovers all projects under a given path (with a depth
+limit) and runs group operations on them: list, run, doctor, validate, deploy,
+fix, analyze.
+
+Use it when you keep many small repositories in one folder (e.g.
+`~/github/semcod/`, `~/github/oqlos/`) and want one command to list them,
+lint them all, find missing tasks, or deploy the Docker-enabled ones.
+
+### Quick examples
+
+```bash
+# List every project under a folder (direct + 1 level nested)
+taskfile workspace list --root ~/github/semcod --depth 2
+
+# Which projects have a `test` task?
+taskfile workspace list --root ~/github/semcod --has-task test
+
+# Frequency table — tasks shared across projects
+taskfile workspace tasks --root ~/github/semcod
+
+# Run lint in every project that has it (dry-run first)
+taskfile workspace run lint --root ~/github/semcod --dry-run
+taskfile workspace run lint --root ~/github/semcod
+
+# Run doctor across all projects
+taskfile workspace doctor --root ~/github/semcod
+
+# Validate manifests (Taskfile.yml + app.doql.css)
+taskfile workspace validate --root ~/github/semcod
+
+# Generate CSV analysis report
+taskfile workspace analyze --root ~/github/semcod -o semcod_analysis.csv
+
+# Fix manifest errors (empty workflows, orphan workflows, …)
+taskfile workspace fix --root ~/github/semcod --dry-run
+taskfile workspace fix --root ~/github/semcod
+
+# Group deploy (docker compose up -d in each Docker project)
+taskfile workspace deploy --root ~/github/semcod --dry-run
+```
+
+### Also: `doql workspace` for `.doql.css` manifests
+
+The sister project [doql](https://github.com/softreck/doql) exposes the same
+workspace commands focused on `app.doql.css` manifests (workflows, entities,
+databases, interfaces):
+
+```bash
+doql workspace list     --root ~/github/oqlos
+doql workspace analyze  --root ~/github/oqlos -o oqlos_report.csv
+doql workspace validate --root ~/github/oqlos
+doql workspace fix      --root ~/github/oqlos      # delegates to taskfile.workspace
+doql workspace run build --root ~/github/oqlos     # runs `doql build` per project
+```
+
+`doql workspace` reuses `taskfile.workspace` when available (for `fix`), and
+falls back to a minimal pure-Python implementation for `list`/`analyze`/`validate`/`run`.
+
+### Full documentation
+
+See [docs/WORKSPACE.md](docs/WORKSPACE.md) for:
+
+- All commands and options (taskfile side)
+- Python API (`taskfile.workspace` module)
+- Project discovery rules (markers, exclusions, depth)
+- How `fix` heals manifests and how `analyze` outputs CSV
+- Filtering recipes (regex name, has-task, has-workflow, docker-only, taskfile-only)
+
+For the `doql` side of the workspace story, see
+[doql README → doql workspace](https://github.com/softreck/doql#doql-workspace--operacje-na-wielu-projektach).
+
+---
+
 ## Parallel Tasks & Error Handling
 
 ### Parallel Dependencies
@@ -1585,6 +1662,34 @@ taskfile -vv run <task>
 # Dry run to see commands without executing
 taskfile --dry-run run <task>
 ```
+
+---
+
+## Test Performance
+
+The test suite includes both unit tests and integration tests. To speed up development, slow integration tests are marked with `@pytest.mark.slow` and can be skipped.
+
+```bash
+# Run all tests (includes slow e2e SSH tests ~24s)
+pytest
+
+# Run only fast tests (skip slow integration tests ~15s)
+pytest -m "not slow"
+
+# Run only slow/integration tests
+pytest -m slow
+
+# Run with coverage
+pytest --cov=taskfile -m "not slow"
+```
+
+### Test Performance Summary
+
+- **Full suite**: ~24s (876 tests including e2e SSH tests)
+- **Fast tests only**: ~15s (skips slow SSH integration tests)
+- **Slow tests**: e2e SSH connectivity tests (5+ seconds each)
+
+The slow tests are primarily SSH connectivity tests that attempt real SSH connections to validate error handling. These can be skipped during normal development.
 
 ---
 

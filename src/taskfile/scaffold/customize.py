@@ -253,15 +253,81 @@ def customise_minimal(content: str, project_root: Path) -> str:
     if not tasks:
         tasks = data.get("tasks", {}) or {}
 
-    # Hint about an existing Makefile — the user almost certainly wants to
-    # ``taskfile import Makefile`` rather than overwrite their workflows.
+    # Merge existing Makefile targets into the generated tasks. Detected
+    # language-specific tasks (install/test/…) take precedence — the
+    # Makefile may still define unique targets like ``release`` or
+    # ``docs`` which we want to preserve.
     if has_makefile:
-        tasks.setdefault("import-makefile-hint", {
-            "desc": "Existing Makefile detected — run: taskfile import Makefile",
-            "cmds": [
-                "echo 'Run: taskfile import Makefile to import existing targets.'",
-            ],
-        })
+        for mk_name, mk_task in _import_makefile_tasks(project_root / "Makefile").items():
+            tasks.setdefault(mk_name, mk_task)
+
+    # Merge workflows from ``app.doql.css`` when present. This closes the
+    # sync loop: if the user ran ``doql adopt`` earlier, every workflow
+    # from the spec survives into the Taskfile without overwriting tasks
+    # that the project-aware detectors already emitted with richer
+    # commands.
+    doql_spec = project_root / "app.doql.css"
+    if doql_spec.exists():
+        for name, task in _import_doql_workflows(doql_spec).items():
+            tasks.setdefault(name, task)
 
     data["tasks"] = tasks
     return _safe_dump(data)
+
+
+def _import_doql_workflows(doql_path: Path) -> dict[str, dict[str, Any]]:
+    """Re-use the :mod:`.from_doql` parser to lift workflows into tasks.
+
+    We only want the ``tasks`` mapping; ``environments`` / ``name`` are
+    already populated by the template + project detectors and must not be
+    overwritten here.
+    """
+    try:
+        from taskfile.scaffold.from_doql import generate_from_doql
+        import yaml
+    except Exception:  # pragma: no cover — import guard
+        return {}
+    try:
+        data = yaml.safe_load(generate_from_doql(doql_path)) or {}
+    except Exception:
+        return {}
+    raw_tasks = data.get("tasks") or {}
+    if not isinstance(raw_tasks, dict):
+        return {}
+    return {
+        name: task for name, task in raw_tasks.items()
+        if isinstance(task, dict) and name != "noop"
+    }
+
+
+def _import_makefile_tasks(makefile_path: Path) -> dict[str, dict[str, Any]]:
+    """Run the shared Makefile importer and return ``{task_name: task}``.
+
+    Failures are swallowed — ``init`` must never crash because the user has
+    an unparseable Makefile.
+    """
+    try:
+        from taskfile.importer import parse_makefile
+    except Exception:  # pragma: no cover — import guard
+        return {}
+    try:
+        content = makefile_path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    try:
+        parsed = parse_makefile(content)
+    except Exception:
+        return {}
+    raw_tasks = parsed.get("tasks") or {}
+    # Mark the provenance so users can tell generated vs. imported commands
+    # apart in the emitted Taskfile.yml.
+    result: dict[str, dict[str, Any]] = {}
+    for name, task in raw_tasks.items():
+        if not isinstance(task, dict):
+            continue
+        task = dict(task)  # shallow copy; don't mutate parser output
+        desc = task.get("desc")
+        if not desc or desc.startswith("Make target:"):
+            task["desc"] = f"[imported from Makefile] {name}"
+        result[name] = task
+    return result
