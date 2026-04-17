@@ -1,0 +1,86 @@
+version: "1"
+name: iac-cdk-aws
+description: "AWS CDK — define cloud infrastructure in Python/TypeScript, deploy stacks"
+
+variables:
+  PROJECT: my-cdk-app
+  AWS_REGION: eu-west-1
+  AWS_ACCOUNT: "${AWS_ACCOUNT_ID}"
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      CDK_ENV: dev
+      CDK_STAGE: Dev
+  staging:
+    env_file: .env.staging
+    variables:
+      CDK_ENV: staging
+      CDK_STAGE: Staging
+  prod:
+    env_file: .env.prod
+    variables:
+      CDK_ENV: prod
+      CDK_STAGE: Prod
+
+tasks:
+  install:
+    desc: Install CDK dependencies
+    cmds:
+      - pip install -r requirements.txt
+      - npm install -g aws-cdk
+
+  synth:
+    desc: Synthesize CloudFormation templates
+    cmds:
+      - cdk synth
+
+  diff:
+    desc: Show diff between deployed and local stacks
+    cmds:
+      - cdk diff --all
+
+  deploy:
+    desc: Deploy all stacks to current environment
+    deps: [synth]
+    cmds:
+      - cdk deploy --all --require-approval never --context env=${CDK_ENV}
+
+  deploy-stack:
+    desc: Deploy single stack (--var STACK=MyStack)
+    cmds:
+      - cdk deploy ${STACK} --require-approval never --context env=${CDK_ENV}
+
+  destroy:
+    desc: Destroy all stacks
+    cmds:
+      - cdk destroy --all --force --context env=${CDK_ENV}
+
+  bootstrap:
+    desc: Bootstrap CDK in AWS account/region (first-time setup)
+    cmds:
+      - cdk bootstrap aws://${AWS_ACCOUNT}/${AWS_REGION}
+
+  list:
+    desc: List all synthesized stacks
+    cmds:
+      - cdk list --all
+
+  doctor:
+    desc: Verify CDK and AWS credentials
+    cmds:
+      - cdk doctor
+      - aws sts get-caller-identity
+
+  test:
+    desc: Run CDK unit tests
+    cmds:
+      - pytest tests/ -v
+
+  lint:
+    desc: Lint CDK code
+    ignore_errors: true
+    cmds:
+      - ruff check .
+      - mypy .

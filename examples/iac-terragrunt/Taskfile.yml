@@ -1,0 +1,79 @@
+version: "1"
+name: iac-terragrunt
+description: "Terragrunt — DRY Terraform wrapper with multi-account, multi-region support"
+
+variables:
+  PROJECT: my-infra
+  AWS_REGION: eu-west-1
+  TG_DIR: infrastructure
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      TG_ENV: dev
+  staging:
+    env_file: .env.staging
+    variables:
+      TG_ENV: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      TG_ENV: prod
+
+tasks:
+  tg-init:
+    desc: Run terragrunt init for current environment
+    dir: ${TG_DIR}/${TG_ENV}
+    cmds:
+      - terragrunt run-all init
+
+  tg-plan:
+    desc: Plan all modules for current environment
+    dir: ${TG_DIR}/${TG_ENV}
+    deps: [tg-init]
+    cmds:
+      - terragrunt run-all plan
+
+  tg-apply:
+    desc: Apply all modules for current environment
+    dir: ${TG_DIR}/${TG_ENV}
+    deps: [tg-plan]
+    cmds:
+      - terragrunt run-all apply --terragrunt-non-interactive
+
+  tg-destroy:
+    desc: Destroy all modules for current environment
+    dir: ${TG_DIR}/${TG_ENV}
+    cmds:
+      - terragrunt run-all destroy --terragrunt-non-interactive
+
+  tg-validate:
+    desc: Validate all Terragrunt configs
+    dir: ${TG_DIR}/${TG_ENV}
+    cmds:
+      - terragrunt run-all validate
+
+  tg-output:
+    desc: Show outputs for all modules
+    dir: ${TG_DIR}/${TG_ENV}
+    cmds:
+      - terragrunt run-all output
+
+  tg-graph:
+    desc: Show dependency graph
+    dir: ${TG_DIR}/${TG_ENV}
+    cmds:
+      - terragrunt graph-dependencies
+
+  lint:
+    desc: Lint Terraform configs (fmt check)
+    ignore_errors: true
+    cmds:
+      - terraform fmt -check -recursive ${TG_DIR}/
+
+  clean:
+    desc: Remove .terraform and cache dirs
+    cmds:
+      - find ${TG_DIR} -name ".terraform" -type d -exec rm -rf {} + 2>/dev/null || true
+      - find ${TG_DIR} -name ".terragrunt-cache" -type d -exec rm -rf {} + 2>/dev/null || true

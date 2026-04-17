@@ -6,6 +6,8 @@ variables:
   APP: myapp
   SRC: src/
   TESTS: tests/
+  MODEL: gemini-2.5-pro
+  GEMINI_FLAGS: --yolo
 
 environments:
   local:

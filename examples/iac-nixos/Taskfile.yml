@@ -1,0 +1,78 @@
+version: "1"
+name: iac-nixos
+description: "NixOS — declarative system config, remote deploy via nixos-rebuild, flakes"
+
+variables:
+  HOSTNAME: my-nixos-host
+  NIX_CONFIG: nixos/
+  FLAKE: ".#${HOSTNAME}"
+
+environments:
+  local:
+    variables:
+      DEPLOY_TARGET: localhost
+  staging:
+    env_file: .env.staging
+    variables:
+      DEPLOY_TARGET: "${STAGING_HOST}"
+  prod:
+    env_file: .env.prod
+    variables:
+      DEPLOY_TARGET: "${PROD_HOST}"
+
+tasks:
+  build:
+    desc: Build NixOS system closure (without switching)
+    cmds:
+      - nix build .#nixosConfigurations.${HOSTNAME}.config.system.build.toplevel
+
+  switch:
+    desc: Rebuild and switch to new NixOS config locally
+    cmds:
+      - nixos-rebuild switch --flake ${FLAKE}
+
+  test:
+    desc: Test config (temporary, reverts on reboot)
+    cmds:
+      - nixos-rebuild test --flake ${FLAKE}
+
+  boot:
+    desc: Set config as next boot target
+    cmds:
+      - nixos-rebuild boot --flake ${FLAKE}
+
+  remote-deploy:
+    desc: Deploy NixOS config to remote host
+    cmds:
+      - nixos-rebuild switch --flake ${FLAKE} --target-host ${DEPLOY_TARGET} --use-remote-sudo
+
+  check:
+    desc: Evaluate flake for errors
+    cmds:
+      - nix flake check
+
+  update:
+    desc: Update flake inputs (lock file)
+    cmds:
+      - nix flake update
+
+  show:
+    desc: Show flake outputs
+    cmds:
+      - nix flake show
+
+  fmt:
+    desc: Format Nix files with nixfmt
+    ignore_errors: true
+    cmds:
+      - nixfmt ${NIX_CONFIG}
+
+  gc:
+    desc: Garbage-collect old generations
+    cmds:
+      - nix-collect-garbage --delete-older-than 30d
+
+  rollback:
+    desc: Rollback to previous system generation
+    cmds:
+      - nixos-rebuild switch --rollback

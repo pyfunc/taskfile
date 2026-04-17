@@ -6,35 +6,21 @@ from rich.console import Console
 
 from taskfile.models import Task
 from taskfile.ssh import ssh_exec
+from taskfile.runner.utils.prefix import has_prefix, strip_prefix, has_any_prefix, strip_any_prefix
 
 console = Console()
 
+# Prefix detection helpers
+is_local_command = lambda cmd: has_prefix(cmd, "@local")
+is_remote_command = lambda cmd: has_any_prefix(cmd, ["@remote", "@ssh"])
+is_push_command = lambda cmd: has_prefix(cmd, "@push")
+is_pull_command = lambda cmd: has_prefix(cmd, "@pull")
 
-def is_local_command(cmd: str) -> bool:
-    """Detect if command is prefixed with @local."""
-    return cmd.strip().startswith("@local ")
-
-
-def strip_local_prefix(cmd: str) -> str:
-    """Remove @local prefix from command."""
-    stripped = cmd.strip()
-    if stripped.startswith("@local "):
-        return stripped[len("@local "):]
-    return stripped
-
-
-def is_remote_command(cmd: str) -> bool:
-    """Detect if command is prefixed with @remote or @ssh."""
-    return cmd.strip().startswith("@remote ") or cmd.strip().startswith("@ssh ")
-
-
-def strip_remote_prefix(cmd: str) -> str:
-    """Remove @remote/@ssh prefix from command."""
-    stripped = cmd.strip()
-    for prefix in ("@remote ", "@ssh "):
-        if stripped.startswith(prefix):
-            return stripped[len(prefix):]
-    return stripped
+# Prefix stripping helpers
+strip_local_prefix = lambda cmd: strip_prefix(cmd, "@local")
+strip_remote_prefix = lambda cmd: strip_any_prefix(cmd, ["@remote", "@ssh"])
+strip_push_prefix = lambda cmd: strip_prefix(cmd, "@push")
+strip_pull_prefix = lambda cmd: strip_prefix(cmd, "@pull")
 
 
 def wrap_ssh(cmd: str, env) -> str:
@@ -45,32 +31,6 @@ def wrap_ssh(cmd: str, env) -> str:
     # Escape single quotes in command
     escaped = remote_cmd.replace("'", "'\\''")
     return f"ssh {opts} {target} '{escaped}'"
-
-
-def is_push_command(cmd: str) -> bool:
-    """Detect if command is prefixed with @push."""
-    return cmd.strip().startswith("@push ")
-
-
-def strip_push_prefix(cmd: str) -> str:
-    """Remove @push prefix from command."""
-    stripped = cmd.strip()
-    if stripped.startswith("@push "):
-        return stripped[len("@push "):]
-    return stripped
-
-
-def is_pull_command(cmd: str) -> bool:
-    """Detect if command is prefixed with @pull."""
-    return cmd.strip().startswith("@pull ")
-
-
-def strip_pull_prefix(cmd: str) -> str:
-    """Remove @pull prefix from command."""
-    stripped = cmd.strip()
-    if stripped.startswith("@pull "):
-        return stripped[len("@pull "):]
-    return stripped
 
 
 def wrap_scp_push(cmd: str, env) -> str:

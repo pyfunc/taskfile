@@ -650,6 +650,18 @@ taskfile init -i --force
     # Generate Taskfile
     from taskfile.scaffold import generate_taskfile
     content = generate_taskfile(template)
+
+    # Project-aware customisation — only for the minimal template, since the
+    # other templates are already opinionated about their stack.
+    if template == "minimal":
+        try:
+            from taskfile.scaffold.customize import customise_minimal
+            content = customise_minimal(content, Path.cwd())
+        except Exception as exc:  # noqa: BLE001 — never block init on detection
+            console.print(
+                f"[yellow]⚠ Project detection failed ({exc}); writing generic template.[/]"
+            )
+
     outpath.write_text(content)
     console.print(f"[green]✓ Created Taskfile.yml (template: {template})[/]")
 

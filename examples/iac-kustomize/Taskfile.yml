@@ -1,0 +1,71 @@
+version: "1"
+name: iac-kustomize
+description: "Kustomize — overlay-based Kubernetes config management, multi-env patches"
+
+variables:
+  APP_NAME: myapp
+  REGISTRY: ghcr.io/myorg
+  TAG: latest
+  KUSTOMIZE_DIR: kustomize
+
+environments:
+  local:
+    variables:
+      OVERLAY: overlays/local
+  staging:
+    env_file: .env.staging
+    variables:
+      OVERLAY: overlays/staging
+  prod:
+    env_file: .env.prod
+    variables:
+      OVERLAY: overlays/prod
+
+tasks:
+  build:
+    desc: Render final Kubernetes manifests for current overlay
+    cmds:
+      - kustomize build ${KUSTOMIZE_DIR}/${OVERLAY}
+
+  diff:
+    desc: Show diff between manifests and live cluster
+    cmds:
+      - kustomize build ${KUSTOMIZE_DIR}/${OVERLAY} | kubectl diff -f -
+
+  apply:
+    desc: Apply manifests to cluster
+    cmds:
+      - kustomize build ${KUSTOMIZE_DIR}/${OVERLAY} | kubectl apply -f -
+
+  delete:
+    desc: Delete resources from cluster
+    cmds:
+      - kustomize build ${KUSTOMIZE_DIR}/${OVERLAY} | kubectl delete -f -
+
+  set-image:
+    desc: Update image tag in kustomization (--var TAG=v1.0)
+    dir: ${KUSTOMIZE_DIR}/${OVERLAY}
+    cmds:
+      - kustomize edit set image ${REGISTRY}/${APP_NAME}:${TAG}
+
+  validate:
+    desc: Validate rendered manifests with kubeval
+    ignore_errors: true
+    cmds:
+      - kustomize build ${KUSTOMIZE_DIR}/${OVERLAY} | kubeval --strict
+
+  lint:
+    desc: Lint with kube-linter
+    ignore_errors: true
+    cmds:
+      - kube-linter lint ${KUSTOMIZE_DIR}/${OVERLAY}
+
+  status:
+    desc: Show rollout status for all deployments
+    cmds:
+      - kubectl rollout status deployment -l app=${APP_NAME}
+
+  rollback:
+    desc: Rollback last deployment
+    cmds:
+      - kubectl rollout undo deployment -l app=${APP_NAME}

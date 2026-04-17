@@ -6,6 +6,7 @@ variables:
   APP: myapp
   SRC: src/
   TESTS: tests/
+  COPILOT_FLAGS: --target shell
 
 environments:
   local:

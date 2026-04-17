@@ -6,13 +6,13 @@ HEALTH[0]: ok
 REFACTOR[0]: none needed
 
 PIPELINES[331]:
-  [1] Src [main]: main → run
+  [1] Src [main]: main
       PURITY: 100% pure
   [2] Src [generate_report]: generate_report
       PURITY: 100% pure
-  [3] Src [main]: main → ssh_run
+  [3] Src [main]: main → run
       PURITY: 100% pure
-  [4] Src [main]: main
+  [4] Src [main]: main → ssh_run
       PURITY: 100% pure
   [5] Src [main]: main
       PURITY: 100% pure

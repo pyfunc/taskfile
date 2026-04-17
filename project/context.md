@@ -88,14 +88,14 @@
 - **Classes**: 2
 - **File**: `config.py`
 
+### src.taskfile.cli.release
+- **Functions**: 15
+- **File**: `release.py`
+
 ### src.taskfile.cli.setup
 - **Functions**: 15
 - **Classes**: 1
 - **File**: `setup.py`
-
-### src.taskfile.cli.release
-- **Functions**: 15
-- **File**: `release.py`
 
 ### src.taskfile.registry
 - **Functions**: 14
@@ -177,16 +177,16 @@ Validates infrastructure-as-code and tests running services.
 | Layer | What is tested |
 - **Calls**: main.command, click.option, click.option, click.option, click.option, ctx.ensure_object, console.print, console.print
 
+### src.taskfile.models.config.TaskfileConfig._parse_tasks
+> Parse all task definitions.
+- **Calls**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance, Task, isinstance, task_data.get
+
 ### src.taskfile.cli.auth.auth_setup
 > Interactive registry authentication setup.
 
 Guides you through obtaining API tokens for each registry
 and saves them to .env (automatically gitignored
 - **Calls**: auth.command, click.option, console.print, Path, enumerate, src.taskfile.cli.auth._ensure_gitignore, console.print, console.print
-
-### src.taskfile.models.config.TaskfileConfig._parse_tasks
-> Parse all task definitions.
-- **Calls**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance, Task, isinstance, task_data.get
 
 ### src.taskfile.cli.fleet.fleet_repair_cmd
 > Diagnose and repair a remote device.
@@ -237,6 +237,10 @@ Supported targets:
     makefile        — GNU M
 - **Calls**: main.command, click.argument, click.option, click.option, click.option, click.option, Path, defaults.get
 
+### src.taskfile.models.config.TaskfileConfig.from_dict
+> Parse raw YAML dict into TaskfileConfig.
+- **Calls**: cls._apply_environment_defaults, cls._expand_hosts_section, cls._expand_addons_section, cls._expand_deploy_section, cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups
+
 ### src.taskfile.cli.registry_cmds.pkg_install
 > Install a package from the registry.
 
@@ -244,10 +248,6 @@ Package names can be:
     - GitHub repo: user/repo or github:user/repo
     - Direct URL: https://example.com/tas
 - **Calls**: pkg.command, click.argument, click.option, click.option, click.option, click.option, RegistryClient, console.print
-
-### src.taskfile.models.config.TaskfileConfig.from_dict
-> Parse raw YAML dict into TaskfileConfig.
-- **Calls**: cls._apply_environment_defaults, cls._expand_hosts_section, cls._expand_addons_section, cls._expand_deploy_section, cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups
 
 ### src.taskfile.models.pipeline.PipelineConfig.from_dict
 - **Calls**: cls, data.get, isinstance, str, data.get, data.get, data.get, data.get
@@ -393,9 +393,9 @@ bump [src.taskfile.cli.version]
 e2e_cmd [src.taskfile.cli.e2e_cmd]
 ```
 
-### Flow 10: auth_setup
+### Flow 10: _parse_tasks
 ```
-auth_setup [src.taskfile.cli.auth]
+_parse_tasks [src.taskfile.models.config.TaskfileConfig]
 ```
 
 ## Key Classes
@@ -514,15 +514,15 @@ The pipeline is just an ordered list of st
 
 Key functions that process and transform data:
 
-### src.taskfile.deploy_recipes._validate_task
-> Generate the validate-deploy gate task.
-
 ### src.taskfile.converters.detect_format
 > Detect file format from path.
 
 Reuses the shared filename→type map from ``taskfile.importer`` for
 Ma
 - **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
+
+### src.taskfile.deploy_recipes._validate_task
+> Generate the validate-deploy gate task.
 
 ### src.taskfile.registry.RegistryClient._parse_package_name
 > Parse package name and return (source, name).
@@ -554,6 +554,10 @@ Handles formats like:
 - "8080:80" (host:container)
 - "127.0.0.
 - **Output to**: isinstance, port_mapping.split, isinstance, int, int
+
+### src.taskfile.fleet._parse_status_output
+> Parse pipe-delimited SSH output into DeviceStatus fields.
+- **Output to**: None.split, None.isdigit, None.isdigit, int, None.isdigit
 
 ### src.taskfile.parser._parse_include_entry
 > Parse a single include entry into (path, prefix). Returns None if invalid.
@@ -592,10 +596,6 @@ Handles formats like:
 ### src.taskfile.parser.validate_taskfile
 > Validate a TaskfileConfig and return list of warnings.
 - **Output to**: warnings.extend, config.tasks.items, warnings.extend, warnings.extend, src.taskfile.parser._validate_tasks_exist
-
-### src.taskfile.fleet._parse_status_output
-> Parse pipe-delimited SSH output into DeviceStatus fields.
-- **Output to**: None.split, None.isdigit, None.isdigit, int, None.isdigit
 
 ### src.taskfile.ssh._ssh_exec_subprocess
 > Fallback: execute via subprocess `ssh` command.
@@ -715,9 +715,9 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.api.routes_metadata.register_metadata_routes` - 28 calls
 - `src.taskfile.cli.import_export.import_cmd` - 27 calls
 - `src.taskfile.cli.import_export.export_cmd` - 27 calls
+- `src.taskfile.models.config.TaskfileConfig.from_dict` - 26 calls
 - `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
 - `src.taskfile.cli.version.set` - 26 calls
-- `src.taskfile.models.config.TaskfileConfig.from_dict` - 26 calls
 - `src.taskfile.models.pipeline.PipelineConfig.from_dict` - 25 calls
 - `src.taskfile.cli.main.validate` - 25 calls
 - `src.taskfile.diagnostics.checks_ssh.check_remote_health` - 24 calls

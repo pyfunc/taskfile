@@ -1,0 +1,71 @@
+version: "1"
+name: iac-crossplane
+description: "Crossplane — cloud-native control plane, provision cloud resources via CRDs"
+
+variables:
+  APP_NAME: myapp
+  CROSSPLANE_NS: crossplane-system
+  PROVIDER: provider-aws
+  AWS_REGION: eu-west-1
+
+environments:
+  local:
+    variables:
+      CLUSTER: kind-local
+  staging:
+    env_file: .env.staging
+    variables:
+      CLUSTER: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      CLUSTER: prod
+
+addons:
+  - helm:
+      release: crossplane
+      chart: crossplane-stable/crossplane
+      namespace: ${CROSSPLANE_NS}
+      values_file: crossplane/values.yml
+
+tasks:
+  provider-install:
+    desc: Install Crossplane provider (AWS/GCP/Azure)
+    cmds:
+      - kubectl apply -f crossplane/providers/${PROVIDER}.yml
+
+  provider-status:
+    desc: Check provider health
+    cmds:
+      - kubectl get providers --all-namespaces
+
+  claim-apply:
+    desc: Apply composite resource claim (--var CLAIM=claims/rds.yml)
+    cmds:
+      - kubectl apply -f ${CLAIM}
+
+  claim-delete:
+    desc: Delete composite resource claim (--var CLAIM=claims/rds.yml)
+    cmds:
+      - kubectl delete -f ${CLAIM}
+
+  managed-list:
+    desc: List all managed resources
+    cmds:
+      - kubectl get managed --all-namespaces
+
+  composition-validate:
+    desc: Validate Crossplane compositions
+    cmds:
+      - kubectl apply --dry-run=server -f crossplane/compositions/
+
+  xrd-list:
+    desc: List all CompositeResourceDefinitions
+    cmds:
+      - kubectl get xrd --all-namespaces
+
+  status:
+    desc: Show health of all Crossplane resources
+    silent: true
+    cmds:
+      - kubectl get crossplane --all-namespaces

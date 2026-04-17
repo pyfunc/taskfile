@@ -1,0 +1,58 @@
+version: "1"
+name: iac-opentofu
+description: "OpenTofu (open-source Terraform fork) — plan/apply/destroy with workspace support"
+
+variables:
+  PROJECT: my-infra
+  TF_DIR: tofu
+  TF_STATE_BUCKET: myorg-tofu-state
+  AWS_REGION: eu-west-1
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      TF_WORKSPACE: dev
+  staging:
+    env_file: .env.staging
+    variables:
+      TF_WORKSPACE: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      TF_WORKSPACE: prod
+
+# ── OpenTofu tasks (reuse terraform addon, tofu is a drop-in replacement) ──
+addons:
+  - terraform:
+      tf_dir: ${TF_DIR}
+      state_bucket: ${TF_STATE_BUCKET}
+      project: ${PROJECT}
+      workspace_var: ${TF_WORKSPACE}
+      region_var: ${AWS_REGION}
+
+# ── OpenTofu overrides (use `tofu` binary instead of `terraform`) ──────────
+tasks:
+  tf-init:
+    desc: Initialize OpenTofu backend + providers
+    dir: ${TF_DIR}
+    cmds:
+      - >-
+        tofu init
+        -backend-config="bucket=${TF_STATE_BUCKET}"
+        -backend-config="key=${PROJECT}/${TF_WORKSPACE}/tofu.tfstate"
+        -backend-config="region=${AWS_REGION}"
+
+  tf-plan:
+    desc: Generate OpenTofu execution plan
+    dir: ${TF_DIR}
+    deps: [tf-workspace]
+    cmds:
+      - tofu plan -out=tofuplan
+
+  tf-apply:
+    desc: Apply infrastructure changes
+    dir: ${TF_DIR}
+    deps: [tf-plan]
+    cmds:
+      - tofu apply tofuplan

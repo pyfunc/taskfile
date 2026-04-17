@@ -1,0 +1,91 @@
+version: "1"
+name: iac-vagrant
+description: "Vagrant — reproducible development VMs, provisioning with shell/Ansible"
+
+variables:
+  APP_NAME: myapp
+  VAGRANT_DIR: vagrant
+  BOX: ubuntu/jammy64
+  VM_NAME: dev-vm
+
+environments:
+  local:
+    variables:
+      VAGRANT_PROVIDER: virtualbox
+  staging:
+    variables:
+      VAGRANT_PROVIDER: vmware_desktop
+      VM_NAME: staging-vm
+
+tasks:
+  up:
+    desc: Create and provision VM
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant up --provider=${VAGRANT_PROVIDER:-virtualbox}
+
+  provision:
+    desc: Re-run provisioners on running VM
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant provision
+
+  ssh:
+    desc: SSH into VM
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant ssh ${VM_NAME}
+
+  status:
+    desc: Show VM status
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant status
+
+  reload:
+    desc: Restart VM and re-provision
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant reload --provision
+
+  suspend:
+    desc: Suspend VM (save state)
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant suspend
+
+  resume:
+    desc: Resume suspended VM
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant resume
+
+  halt:
+    desc: Power off VM gracefully
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant halt
+
+  destroy:
+    desc: Destroy VM and free resources
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant destroy --force
+
+  validate:
+    desc: Validate Vagrantfile syntax
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant validate
+
+  snapshot-save:
+    desc: Save VM snapshot (--var SNAP=clean-state)
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant snapshot save ${SNAP:-baseline}
+
+  snapshot-restore:
+    desc: Restore VM snapshot (--var SNAP=clean-state)
+    dir: ${VAGRANT_DIR}
+    cmds:
+      - vagrant snapshot restore ${SNAP:-baseline}

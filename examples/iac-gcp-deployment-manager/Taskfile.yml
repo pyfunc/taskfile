@@ -1,0 +1,75 @@
+version: "1"
+name: iac-gcp-deployment-manager
+description: "GCP Deployment Manager — deploy Google Cloud resources via YAML/Jinja2 templates"
+
+variables:
+  PROJECT: my-gcp-project
+  GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+  GCP_REGION: europe-west1
+  DEPLOYMENT_NAME: my-deployment
+  TEMPLATE: deployments/config.yml
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      DEPLOYMENT_NAME: my-deployment-dev
+  staging:
+    env_file: .env.staging
+    variables:
+      DEPLOYMENT_NAME: my-deployment-staging
+  prod:
+    env_file: .env.prod
+    variables:
+      DEPLOYMENT_NAME: my-deployment-prod
+
+tasks:
+  auth:
+    desc: Authenticate with Google Cloud
+    cmds:
+      - gcloud auth login
+      - gcloud config set project ${GCP_PROJECT_ID}
+
+  validate:
+    desc: Validate deployment config
+    cmds:
+      - gcloud deployment-manager deployments create ${DEPLOYMENT_NAME} --config ${TEMPLATE} --preview
+
+  preview:
+    desc: Preview changes (create preview deployment)
+    cmds:
+      - gcloud deployment-manager deployments update ${DEPLOYMENT_NAME} --config ${TEMPLATE} --preview
+
+  deploy:
+    desc: Create or update deployment
+    cmds:
+      - >-
+        gcloud deployment-manager deployments create ${DEPLOYMENT_NAME}
+        --config ${TEMPLATE}
+        --project ${GCP_PROJECT_ID}
+
+  update:
+    desc: Update existing deployment
+    cmds:
+      - gcloud deployment-manager deployments update ${DEPLOYMENT_NAME} --config ${TEMPLATE}
+
+  status:
+    desc: Show deployment status
+    silent: true
+    cmds:
+      - gcloud deployment-manager deployments describe ${DEPLOYMENT_NAME}
+
+  resources:
+    desc: List all resources in deployment
+    cmds:
+      - gcloud deployment-manager resources list --deployment ${DEPLOYMENT_NAME}
+
+  destroy:
+    desc: Delete deployment and all resources
+    cmds:
+      - gcloud deployment-manager deployments delete ${DEPLOYMENT_NAME} --delete-policy DELETE
+
+  cancel-preview:
+    desc: Cancel preview and restore previous state
+    cmds:
+      - gcloud deployment-manager deployments cancel-preview ${DEPLOYMENT_NAME}

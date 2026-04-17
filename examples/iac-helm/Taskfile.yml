@@ -1,0 +1,49 @@
+version: "1"
+name: iac-helm
+description: "Helm Kubernetes deployment — lint, template, diff, upgrade, rollback"
+
+variables:
+  APP_NAME: myapp
+  RELEASE: myapp
+  NAMESPACE: default
+  REGISTRY: ghcr.io/myorg
+  TAG: latest
+
+environments:
+  local:
+    variables:
+      NAMESPACE: dev
+      TAG: dev
+  staging:
+    env_file: .env.staging
+    variables:
+      NAMESPACE: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      NAMESPACE: prod
+
+# ── Helm tasks generated from addon ──────────────────
+addons:
+  - helm:
+      release: ${RELEASE}
+      chart: ./charts/${APP_NAME}
+      namespace: ${NAMESPACE}
+      registry: ${REGISTRY}
+      values_file: values.yml
+      extra_values:
+        - values-${ENV:-local}.yml
+
+# ── Project-specific tasks ────────────────────────────
+tasks:
+  ci:
+    desc: CI pipeline — lint + template render
+    stage: validate
+    deps: [helm-lint, helm-template]
+    cmds:
+      - echo "Helm CI passed"
+
+  deploy:
+    desc: Deploy to current environment
+    cmds:
+      - taskfile helm-upgrade

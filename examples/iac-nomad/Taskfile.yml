@@ -1,0 +1,77 @@
+version: "1"
+name: iac-nomad
+description: "HashiCorp Nomad — workload orchestrator, deploy jobs, scale, rolling updates"
+
+variables:
+  APP_NAME: myapp
+  NOMAD_ADDR: "${NOMAD_ADDR:-http://localhost:4646}"
+  NOMAD_TOKEN: "${NOMAD_TOKEN}"
+  JOB_FILE: nomad/${APP_NAME}.hcl
+
+environments:
+  local:
+    variables:
+      NOMAD_ADDR: http://localhost:4646
+  staging:
+    env_file: .env.staging
+    variables:
+      NOMAD_ADDR: "${NOMAD_STAGING_ADDR}"
+  prod:
+    env_file: .env.prod
+    variables:
+      NOMAD_ADDR: "${NOMAD_PROD_ADDR}"
+
+tasks:
+  validate:
+    desc: Validate Nomad job file
+    cmds:
+      - nomad job validate ${JOB_FILE}
+
+  plan:
+    desc: Dry-run job plan (show changes)
+    deps: [validate]
+    cmds:
+      - nomad job plan ${JOB_FILE}
+
+  run:
+    desc: Submit/update job
+    deps: [validate]
+    cmds:
+      - nomad job run ${JOB_FILE}
+
+  status:
+    desc: Show job status
+    silent: true
+    cmds:
+      - nomad job status ${APP_NAME}
+
+  alloc-logs:
+    desc: Follow allocation logs
+    cmds:
+      - nomad alloc logs -f $(nomad job status ${APP_NAME} | grep running | awk '{print $1}' | head -1)
+
+  scale:
+    desc: Scale job count (--var COUNT=3)
+    cmds:
+      - nomad job scale ${APP_NAME} ${COUNT:-1}
+
+  stop:
+    desc: Stop job
+    cmds:
+      - nomad job stop ${APP_NAME}
+
+  purge:
+    desc: Stop and purge job
+    cmds:
+      - nomad job stop --purge ${APP_NAME}
+
+  server-status:
+    desc: Show Nomad cluster status
+    cmds:
+      - nomad server members
+      - nomad node status
+
+  lint:
+    desc: Lint job files with nomad fmt
+    cmds:
+      - nomad fmt -check nomad/

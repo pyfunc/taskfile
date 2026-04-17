@@ -241,28 +241,35 @@ def _validate_task_dependencies(config: TaskfileConfig, task_name: str, task) ->
     return warnings
 
 
-def _validate_task_env_filter(config: TaskfileConfig, task_name: str, task) -> list[str]:
-    """Check that all environment references in filters exist."""
+def _validate_task_filter(
+    config: TaskfileConfig,
+    task_name: str,
+    task,
+    filter_attr: str,
+    config_attr: str,
+    filter_name: str,
+) -> list[str]:
+    """Generic validator: check that all references in a task filter exist in config."""
     warnings = []
-    if task.env_filter:
-        for env in task.env_filter:
-            if env not in config.environments:
+    items = getattr(task, filter_attr, None)
+    valid_items = getattr(config, config_attr, {})
+    if items:
+        for item in items:
+            if item not in valid_items:
                 warnings.append(
-                    f"Task '{task_name}' references unknown environment '{env}'"
+                    f"Task '{task_name}' references unknown {filter_name} '{item}'"
                 )
     return warnings
+
+
+def _validate_task_env_filter(config: TaskfileConfig, task_name: str, task) -> list[str]:
+    """Check that all environment references in filters exist."""
+    return _validate_task_filter(config, task_name, task, "env_filter", "environments", "environment")
 
 
 def _validate_task_platform_filter(config: TaskfileConfig, task_name: str, task) -> list[str]:
     """Check that all platform references in filters exist."""
-    warnings = []
-    if task.platform_filter:
-        for plat in task.platform_filter:
-            if plat not in config.platforms:
-                warnings.append(
-                    f"Task '{task_name}' references unknown platform '{plat}'"
-                )
-    return warnings
+    return _validate_task_filter(config, task_name, task, "platform_filter", "platforms", "platform")
 
 
 def _validate_task_script_files(config: TaskfileConfig, task_name: str, task) -> list[str]:

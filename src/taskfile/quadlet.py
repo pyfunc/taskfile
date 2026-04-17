@@ -235,21 +235,25 @@ def generate_container_unit(
     return "\\n".join(lines_unit + lines_container + lines_service + lines_install) + "\\n"
 
 
+def _generate_quadlet_unit(section: str, name: str, extra_props: str = "") -> str:
+    """Generate a Quadlet unit file with given section and properties."""
+    name_field = f"{section}Name"
+    props = f"{name_field}={name}\n"
+    if extra_props:
+        props += extra_props
+    return f"""\
+[{section}]
+{props}"""
+
+
 def generate_network_unit(network_name: str) -> str:
     """Generate a .network Quadlet unit file."""
-    return f"""\
-[Network]
-NetworkName={network_name}
-Driver=bridge
-"""
+    return _generate_quadlet_unit("Network", network_name, "Driver=bridge\n")
 
 
 def generate_volume_unit(volume_name: str) -> str:
     """Generate a .volume Quadlet unit file."""
-    return f"""\
-[Volume]
-VolumeName={volume_name}
-"""
+    return _generate_quadlet_unit("Volume", volume_name)
 
 
 def _collect_named_volumes(service: ServiceConfig) -> set[str]:

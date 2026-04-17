@@ -149,7 +149,7 @@ Content outside the markers is preserved when regenerating. Enable this with `sy
 
 ```
 taskfile/
-├── project    ├── run-multiplatform    ├── run-codereview    ├── run-all    ├── run-minimal    ├── run-saas-app            ├── health            ├── health            ├── deploy            ├── deploy            ├── health-check            ├── ci-pipeline            ├── release            ├── migrate            ├── report            ├── health            ├── report            ├── ci-generate            ├── validate-deploy            ├── report            ├── report            ├── provision            ├── cli        ├── fixop/├── TODO/    ├── dns        ├── converters        ├── deploy_recipes        ├── watch        ├── registry        ├── importer    ├── taskfile/        ├── provisioner        ├── landing        ├── graph        ├── __main__        ├── health        ├── compose        ├── cirunner        ├── fleet        ├── parser        ├── ssh        ├── notifications        ├── cache        ├── scaffold/            ├── web            ├── minimal            ├── publish            ├── full            ├── podman            ├── multiplatform            ├── codereview            ├── llm_repair            ├── checks_placeholders            ├── fixop_adapter            ├── checks_infra            ├── checks_registry            ├── checks_ports            ├── checks_deploy        ├── diagnostics/        ├── quadlet            ├── fixes            ├── checks_tasks            ├── models            ├── checks_env            ├── checks            ├── checks_ssh            ├── report    ├── models            ├── functions        ├── runner/            ├── error_presenter            ├── classifier            ├── failure            ├── commands            ├── resolver            ├── explainer            ├── ssh        ├── models/            ├── core        ├── deploy_utils            ├── config            ├── pipeline            ├── environment            ├── registry_cmds            ├── group_strategies            ├── version            ├── docker_cmds        ├── cli/            ├── diagnostics            ├── task            ├── auth            ├── health            ├── import_export            ├── explain_cmd            ├── ci            ├── quadlet            ├── cache_cmds            ├── api_cmd            ├── completion            ├── release            ├── setup            ├── deploy            ├── validate_cmd            ├── fleet            ├── click_compat            ├── main            ├── interactive/            ├── info_cmd            ├── base            ├── e2e_cmd        ├── cigen/            ├── drone                ├── menu            ├── makefile            ├── gitlab            ├── jenkins            ├── gitea            ├── dashboard        ├── webui/            ├── server            ├── github            ├── monitoring                ├── wizards            ├── fixop_addon        ├── addons/            ├── redis_addon            ├── postgres            ├── routes_health        ├── api/            ├── routes_run            ├── routes_doctor            ├── routes_helpers            ├── routes_taskfile            ├── routes_metadata            ├── routes_tasks            ├── handlers            ├── app            ├── models```
+├── project    ├── run-multiplatform    ├── run-codereview    ├── run-all    ├── run-minimal    ├── run-saas-app            ├── health            ├── health            ├── deploy            ├── deploy            ├── health-check            ├── ci-pipeline            ├── migrate            ├── release            ├── report            ├── health            ├── report            ├── ci-generate            ├── report            ├── report            ├── validate-deploy            ├── provision            ├── cli        ├── fixop/├── TODO/    ├── dns        ├── converters        ├── deploy_recipes        ├── watch        ├── importer        ├── registry    ├── taskfile/        ├── landing        ├── provisioner        ├── graph        ├── __main__        ├── health        ├── compose        ├── cirunner        ├── parser        ├── fleet        ├── ssh        ├── notifications        ├── cache        ├── scaffold/            ├── web            ├── minimal            ├── publish            ├── full            ├── podman            ├── multiplatform            ├── codereview            ├── llm_repair            ├── checks_placeholders            ├── fixop_adapter            ├── checks_infra            ├── checks_registry            ├── checks_ports            ├── checks_deploy        ├── quadlet        ├── diagnostics/            ├── checks_tasks            ├── models            ├── fixes            ├── checks_env            ├── checks            ├── report            ├── checks_ssh            ├── error_presenter    ├── models        ├── runner/            ├── functions            ├── failure            ├── classifier            ├── commands            ├── resolver            ├── ssh            ├── explainer        ├── models/            ├── core            ├── task        ├── deploy_utils            ├── pipeline            ├── registry_cmds            ├── environment            ├── version            ├── group_strategies            ├── docker_cmds        ├── cli/            ├── diagnostics            ├── auth            ├── explain_cmd            ├── import_export            ├── health            ├── quadlet            ├── cache_cmds            ├── ci            ├── config            ├── api_cmd            ├── completion            ├── setup            ├── release            ├── deploy            ├── validate_cmd            ├── fleet            ├── main            ├── click_compat            ├── info_cmd            ├── interactive/            ├── base            ├── e2e_cmd        ├── cigen/            ├── drone                ├── menu            ├── gitlab            ├── makefile            ├── gitea            ├── dashboard            ├── jenkins        ├── webui/                ├── wizards            ├── server            ├── github            ├── monitoring            ├── fixop_addon        ├── addons/            ├── redis_addon            ├── routes_health            ├── postgres        ├── api/            ├── routes_run            ├── routes_doctor            ├── routes_taskfile            ├── routes_helpers            ├── routes_metadata            ├── routes_tasks            ├── handlers            ├── app            ├── models```
 
 ## API Overview
 
@@ -172,27 +172,27 @@ taskfile/
 - **`PipelineError`** — Raised when a pipeline stage fails.
 - **`PipelineRunner`** — Runs CI/CD pipeline stages locally using TaskfileRunner.
 - **`StageResult`** — Result of running a single pipeline stage.
+- **`TaskfileNotFoundError`** — Raised when no Taskfile is found in the search path.
+- **`TaskfileParseError`** — Raised when Taskfile cannot be parsed.
 - **`FleetApp`** — Container application definition for fleet devices.
 - **`DeviceGroup`** — Group of devices sharing update strategy.
 - **`Device`** — A single managed device in the fleet.
 - **`FleetConfig`** — Parsed fleet.yml configuration.
 - **`DeviceStatus`** — Status information for a single device.
-- **`TaskfileNotFoundError`** — Raised when no Taskfile is found in the search path.
-- **`TaskfileParseError`** — Raised when Taskfile cannot be parsed.
 - **`TaskCache`** — Manages caching of task outputs based on input file hashes.
-- **`ProjectDiagnostics`** — Facade composing checks + fixes + report — backward compatible API.
 - **`ServiceConfig`** — Type definition for a docker-compose service configuration.
+- **`ProjectDiagnostics`** — Facade composing checks + fixes + report — backward compatible API.
 - **`IssueCategory`** — Classification of diagnostic issues — helps users identify root cause.
 - **`FixStrategy`** — How an issue can be resolved.
 - **`Issue`** — Single diagnostic issue with category, severity, fix strategy, and context.
 - **`DoctorReport`** — Aggregated report from a full doctor run.
+- **`ErrorPresenter`** — Formats runtime errors with context, diagnosis, and fix suggestions.
 - **`Severity`** — —
 - **`Category`** — —
 - **`FixStrategy`** — —
 - **`Issue`** — A detected infrastructure problem.
 - **`FixResult`** — Result of applying a fix.
 - **`HostContext`** — SSH connection context for remote operations.
-- **`ErrorPresenter`** — Formats runtime errors with context, diagnosis, and fix suggestions.
 - **`CommandType`** — Classification of a command string for routing to the correct pipeline.
 - **`TaskResolver`** — Pure-logic task resolver: variable expansion, filtering, dependency ordering.
 - **`StepIssue`** — A potential problem detected in a step.
@@ -201,10 +201,10 @@ taskfile/
 - **`TaskExplainer`** — Analyzes execution plan and explains what will happen.
 - **`TaskRunError`** — Raised when a task command fails.
 - **`TaskfileRunner`** — Executes tasks from a Taskfile configuration.
+- **`Function`** — Embedded function callable from tasks via @fn prefix.
+- **`Task`** — Single task definition.
 - **`SSHResult`** — Result of an SSH operation.
 - **`RemoteInfo`** — Information about the remote host.
-- **`ComposeConfig`** — Compose-based deployment configuration.
-- **`TaskfileConfig`** — Parsed Taskfile configuration.
 - **`PipelineStage`** — A stage in the CI/CD pipeline.
 - **`PipelineConfig`** — CI/CD pipeline configuration.
 - **`Environment`** — Deployment environment configuration.
@@ -213,8 +213,8 @@ taskfile/
 - **`DockerContainer`** — —
 - **`IssueCategory`** — Old 4-category system — kept for backward compatibility.
 - **`DiagnosticIssue`** — Old-style diagnostic issue — kept for backward compatibility.
-- **`Function`** — Embedded function callable from tasks via @fn prefix.
-- **`Task`** — Single task definition.
+- **`ComposeConfig`** — Compose-based deployment configuration.
+- **`TaskfileConfig`** — Parsed Taskfile configuration.
 - **`SetupConfig`** — Configuration collected during setup process.
 - **`DeployStrategy`** — Pure data class representing selected deploy strategy.
 - **`Abort`** — Exception to signal that the application should exit.
@@ -223,10 +223,10 @@ taskfile/
 - **`CITarget`** — Base class for CI/CD target generators.
 - **`E2EResult`** — Single e2e test result.
 - **`DroneCITarget`** — —
-- **`MakefileTarget`** — —
 - **`GitLabCITarget`** — —
-- **`JenkinsTarget`** — —
+- **`MakefileTarget`** — —
 - **`GiteaActionsTarget`** — —
+- **`JenkinsTarget`** — —
 - **`WebUIServer`** — Web UI server for taskfile.
 - **`GitHubActionsTarget`** — —
 - **`TaskfileHandler`** — HTTP request handler for taskfile web UI.
@@ -258,12 +258,12 @@ taskfile/
 - `test_app()` — —
 - `deploy_staging()` — —
 - `health_check()` — —
+- `main()` — —
 - `run(cmd, check)` — Run shell command, print it, return exit code.
 - `main()` — —
-- `main()` — —
-- `generate_report()` — Build a deployment report from environment variables.
 - `generate_report()` — Build a deployment report from environment variables.
 - `main()` — —
+- `generate_report()` — Build a deployment report from environment variables.
 - `main()` — —
 - `ssh_run(host, user, cmd, check)` — Run a command on remote host via SSH.
 - `main()` — —
@@ -280,16 +280,16 @@ taskfile/
 - `export_file(config, target_type)` — Export Taskfile to another format.
 - `expand_deploy_recipe(deploy_section, variables)` — Convert a deploy: section into a dict of task definitions.
 - `watch_tasks(task_names, watch_paths, runner, debounce_ms)` — Watch files and run tasks on changes.
-- `include_installed_tasks(taskfile_config)` — Include tasks from installed packages into taskfile config.
 - `import_file(source_path, source_type)` — Import a file and return Taskfile.yml content as string.
 - `parse_github_actions(content, filename)` — Parse GitHub Actions workflow YAML into a Taskfile dict.
 - `parse_gitlab_ci(content)` — Parse .gitlab-ci.yml into a Taskfile dict.
 - `parse_makefile(content)` — Parse Makefile into a Taskfile dict.
-- `provision_vps(ip, ssh_key, ssh_user, domain)` — Convenience function for one-shot VPS provisioning.
+- `include_installed_tasks(taskfile_config)` — Include tasks from installed packages into taskfile config.
 - `generate_landing_page(app_name, tag, domain, release_date)` — Generate landing page HTML with download links.
 - `build_landing_page(output_dir, app_name, tag, domain)` — Build and save landing page to output directory.
 - `create_landing_nginx_config(domain, landing_dir, releases_dir)` — Generate nginx configuration for serving landing page and releases.
 - `create_landing_compose_service(domain, landing_port, traefik_enabled)` — Create docker-compose service definition for landing page.
+- `provision_vps(ip, ssh_key, ssh_user, domain)` — Convenience function for one-shot VPS provisioning.
 - `build_dependency_graph(config)` — Build a dependency graph from task configuration.
 - `detect_cycles(graph)` — Detect cycles in dependency graph.
 - `print_task_tree(config, root_task)` — Print task dependencies as a tree.
@@ -304,6 +304,10 @@ taskfile/
 - `load_env_file(path)` — Parse a .env file into a dict.
 - `resolve_variables(text, variables)` — Resolve ${VAR}, ${VAR:-default}, and $VAR in a string.
 - `resolve_dict(data, variables)` — Recursively resolve variables in a nested dict/list structure.
+- `scan_nearby_taskfiles(start_dir)` — Scan for Taskfiles in nearby directories.
+- `find_taskfile(start_dir)` — Find Taskfile.yml by walking up the directory tree.
+- `load_taskfile(path)` — Load and parse a Taskfile.
+- `validate_taskfile(config)` — Validate a TaskfileConfig and return list of warnings.
 - `load_fleet(path)` — Load fleet.yml from the given path or search current directory.
 - `save_fleet(config, path)` — Save FleetConfig back to fleet.yml.
 - `check_device_status(config, device)` — Check the status of a single device via SSH.
@@ -312,10 +316,6 @@ taskfile/
 - `deploy_to_device(config, device, app_name, tag)` — Deploy a single app to a single device.
 - `deploy_to_group(config, group_name, device_name, app_name)` — Deploy app to a group of devices using the group's update strategy.
 - `add_device(config, name, host, group)` — Add a new device to the fleet config.
-- `scan_nearby_taskfiles(start_dir)` — Scan for Taskfiles in nearby directories.
-- `find_taskfile(start_dir)` — Find Taskfile.yml by walking up the directory tree.
-- `load_taskfile(path)` — Load and parse a Taskfile.
-- `validate_taskfile(config)` — Validate a TaskfileConfig and return list of warnings.
 - `has_paramiko()` — Check if paramiko is available.
 - `close_all()` — Close all pooled connections.
 - `ssh_exec(env, command, timeout)` — Execute a command on remote host via embedded SSH (paramiko).
@@ -341,9 +341,9 @@ taskfile/
 - `generate_volume_unit(volume_name)` — Generate a .volume Quadlet unit file.
 - `generate_resolv_conf(output_dir)` — Generate a resolv.conf with public DNS servers for Podman containers.
 - `compose_to_quadlet(compose, output_dir, network_name, auto_update)` — Convert all services in a ComposeFile to Quadlet unit files.
+- `check_task_commands(config)` — Check if commands in tasks reference existing binaries.
 - `apply_fixes(issues, interactive)` — Apply all fixable issues. Returns count of fixed issues.
 - `apply_single_fix(issue, interactive)` — Apply a single fix. Returns True if fixed.
-- `check_task_commands(config)` — Check if commands in tasks reference existing binaries.
 - `check_env_files()` — Check local .env files for common problems.
 - `check_unresolved_variables(config)` — Find ${VAR} references without values — most common problem from TEST_REPORT.
 - `check_preflight()` — Check if required/common tools are available on the system.
@@ -357,13 +357,13 @@ taskfile/
 - `check_git()` — Check if in git repo.
 - `check_examples(examples_dir)` — Validate all example directories. Returns list of result dicts.
 - `validate_before_run(config, env_name, task_names)` — Quick pre-run validation — returns issues that would cause task failure.
-- `check_ssh_keys()` — Check SSH keys exist.
-- `check_ssh_connectivity(config)` — Check SSH connectivity — delegates to fixop.
-- `check_remote_health(config)` — Check remote host health — DNS, firewall, containers, disk, memory.
 - `print_report(issues, categorized, show_teach)` — Print diagnostic report to console.
 - `print_report_json(issues)` — Print report as JSON for CI pipelines.
 - `get_report_dict(issues)` — Return structured report dict.
 - `format_summary(report)` — Format a one-line summary string.
+- `check_ssh_keys()` — Check SSH keys exist.
+- `check_ssh_connectivity(config)` — Check SSH connectivity — delegates to fixop.
+- `check_remote_health(config)` — Check remote host health — DNS, firewall, containers, disk, memory.
 - `run_function(runner, cmd, task)` — Execute an embedded function defined in the functions section.
 - `run_inline_python(runner, cmd, task)` — Execute inline Python code.
 - `classify_command(cmd)` — Classify a command string to determine its processing pipeline.
@@ -372,8 +372,6 @@ taskfile/
 - `run_command(runner, cmd, task)` — Execute a single command, locally or via SSH.
 - `execute_script(runner, task, task_name)` — Execute an external script file referenced by task.script.
 - `execute_commands(runner, task, task_name, start)` — Execute all commands in a task. Returns False if any failed (and not ignored).
-- `print_explain_report(report, task_names, env_name)` — Print the --explain report to console.
-- `print_teach_report(report, task_names, env_name, config)` — Print the --teach educational report.
 - `is_local_command(cmd)` — Detect if command is prefixed with @local.
 - `strip_local_prefix(cmd)` — Remove @local prefix from command.
 - `is_remote_command(cmd)` — Detect if command is prefixed with @remote or @ssh.
@@ -386,6 +384,8 @@ taskfile/
 - `wrap_scp_push(cmd, env)` — Build scp command: local files → remote destination.
 - `wrap_scp_pull(cmd, env)` — Build scp command: remote files → local destination.
 - `run_embedded_ssh(runner, cmd, task)` — Execute remote command via embedded SSH (paramiko).
+- `print_explain_report(report, task_names, env_name)` — Print the --explain report to console.
+- `print_teach_report(report, task_names, env_name, config)` — Print the --teach educational report.
 - `load_env_file(path)` — Load a .env file into a dict. Skips comments and empty lines.
 - `update_env_var(key, value, env_file)` — Update or append a variable in an .env file.
 - `remove_env_var(key, env_file)` — Remove a variable from an .env file.
@@ -410,11 +410,11 @@ taskfile/
 - `pkg_list(all)` — List installed packages.
 - `pkg_uninstall(package_name, yes)` — Uninstall a package.
 - `pkg_info(package_name)` — Show information about a package.
-- `run_env_group(taskfile_path, env_group, task_names, platform_name)` — Run tasks across all environments in a group using the group's strategy.
 - `version()` — Version management commands.
 - `bump(ctx, part, dry_run, force)` — Bump version number (patch, minor, or major).
 - `show(ctx)` — Show current project version.
 - `set(ctx, new_version, dry_run, force)` — Set specific version number.
+- `run_env_group(taskfile_path, env_group, task_names, platform_name)` — Run tasks across all environments in a group using the group's strategy.
 - `docker_group()` — 🐳 Docker helpers - inspect and stop containers, compose down, port management.
 - `docker_ps_cmd()` — Show running docker containers (id, name, ports).
 - `docker_stop_port_cmd(port, assume_yes)` — Stop all containers that publish the given host TCP port.
@@ -424,23 +424,23 @@ taskfile/
 - `auth()` — Registry authentication management.
 - `auth_setup(registry)` — Interactive registry authentication setup.
 - `auth_verify()` — Test all configured registry credentials.
-- `health_cmd(ctx, domain, ssh_host, ssh_user)` — Check health of deployed services.
+- `explain(ctx, task_name)` — **Explain what a task will do** — full execution plan without running.
 - `import_cmd(source, source_type, output_path, force)` — 📥 Import from Makefile, GitHub Actions, GitLab CI, npm scripts, etc.
 - `export_cmd(ctx, target_type, output_path, workflow_name)` — 📤 Export Taskfile to other formats.
 - `detect()` — 🔍 Detect build configuration files in current directory.
-- `explain(ctx, task_name)` — **Explain what a task will do** — full execution plan without running.
-- `ci()` — Generate CI/CD configs and run pipelines locally.
-- `ci_generate(ctx, targets, gen_all, output_dir)` — Generate CI/CD config files from Taskfile.yml pipeline section.
-- `ci_run(ctx, stages, skip_stages, stop_at)` — Run CI/CD pipeline stages locally.
-- `ci_list(ctx)` — List pipeline stages defined in Taskfile.yml.
-- `ci_preview(ctx, target)` — Preview generated CI/CD config without writing files.
-- `ci_targets()` — List available CI/CD generation targets.
+- `health_cmd(ctx, domain, ssh_host, ssh_user)` — Check health of deployed services.
 - `quadlet()` — **Generate and manage Podman Quadlet files** from docker-compose.yml.
 - `quadlet_generate(ctx, compose_path, env_file, output_dir)` — **Generate Quadlet .container files** from docker-compose.yml.
 - `quadlet_upload(ctx, quadlet_dir)` — Upload generated Quadlet files to remote server via SSH.
 - `cache()` — 💾 Cache management - view, clear, or disable task caching.
 - `cache_show()` — Show cache statistics and entries.
 - `cache_clear(task_name, clear_all)` — Clear cache entries.
+- `ci()` — Generate CI/CD configs and run pipelines locally.
+- `ci_generate(ctx, targets, gen_all, output_dir)` — Generate CI/CD config files from Taskfile.yml pipeline section.
+- `ci_run(ctx, stages, skip_stages, stop_at)` — Run CI/CD pipeline stages locally.
+- `ci_list(ctx)` — List pipeline stages defined in Taskfile.yml.
+- `ci_preview(ctx, target)` — Preview generated CI/CD config without writing files.
+- `ci_targets()` — List available CI/CD generation targets.
 - `api()` — Manage the Taskfile REST API server.
 - `api_serve(ctx, host, port, auto_reload)` — Start the Taskfile REST API server (FastAPI + Uvicorn).
 - `api_openapi(ctx, output_path)` — Print or save the OpenAPI specification (JSON).
@@ -448,9 +448,9 @@ taskfile/
 - `get_environment_names(ctx, param, incomplete)` — Shell completion for environment names.
 - `get_platform_names(ctx, param, incomplete)` — Shell completion for platform names.
 - `generate_completion_script(shell)` — Generate shell completion script for taskfile.
+- `setup(ip, ssh_key, user, domain)` — One-command VPS setup: SSH key → provision → deploy.
 - `release(ctx, tag_version, skip_desktop, skip_landing)` — Full release — build all, deploy all, update landing.
 - `rollback(ctx, target_tag, domain, dry_run)` — Rollback to previous version.
-- `setup(ip, ssh_key, user, domain)` — One-command VPS setup: SSH key → provision → deploy.
 - `deploy_cmd(ctx, compose_override)` — Full deploy pipeline: build → push → generate Quadlet → upload → restart.
 - `check_script_files_status(config, taskfile_dir)` — Check script files and print status. Returns True if all found.
 - `check_env_files_status(config, taskfile_dir)` — Check env files and print status. Returns True if all found.
@@ -462,15 +462,15 @@ taskfile/
 - `fleet_status_cmd(ctx, group)` — Show status of all remote environments (SSH-based health check).
 - `fleet_repair_cmd(ctx, env_name, auto_fix)` — Diagnose and repair a remote device.
 - `fleet_list_cmd(ctx)` — List all remote environments and environment groups.
-- `confirm(text, default, abort, prompt_suffix)` — Prompt for confirmation (yes/no question).
-- `prompt(text, default, type, value_proc)` — Prompt for user input.
-- `version_option(version, prog_name, message, help)` — Add a --version option to the command.
 - `parse_var(ctx, param, value)` — Parse --var KEY=VALUE pairs into a dict.
 - `main(ctx, taskfile_path, env_name, env_group)` — **taskfile** — Universal task runner with multi-environment deploy.
 - `run(ctx, tasks, run_tags, explain)` — **Run one or more tasks** defined in Taskfile.yml.
 - `list_tasks(ctx)` — **List available tasks and environments** from Taskfile.yml.
 - `validate(ctx, check_files, show_deps)` — **Validate the Taskfile** without running anything.
 - `import_cmd(source, source_type, output_path, force)` — Import CI/CD config, Makefile, or script INTO Taskfile.yml.
+- `confirm(text, default, abort, prompt_suffix)` — Prompt for confirmation (yes/no question).
+- `prompt(text, default, type, value_proc)` — Prompt for user input.
+- `version_option(version, prog_name, message, help)` — Add a --version option to the command.
 - `info(ctx, task_name)` — Show detailed info about a specific task.
 - `register_target(name)` — —
 - `e2e_cmd(ctx, check_only, url, port_web)` — **🧪 End-to-end tests** for services and IaC.
@@ -488,15 +488,15 @@ taskfile/
 - `clean(level, assume_yes)` — **🧹 Clean project artifacts**.
 - `push(images, host, user, runtime)` — **📦 Push Docker images to remote server** via SSH.
 - `get_dashboard_html()` — Return the full dashboard HTML page.
-- `serve_dashboard(port, open_browser)` — Start the web dashboard.
-- `generate_tasks(config)` — Generate monitoring tasks from addon config.
 - `doctor(fix, verbose, report, check_examples_flag)` — **🔧 Diagnose project** — 5-layer self-healing diagnostics.
 - `init(template, force, interactive)` — **✨ Create a new Taskfile.yml** with interactive setup.
+- `serve_dashboard(port, open_browser)` — Start the web dashboard.
+- `generate_tasks(config)` — Generate monitoring tasks from addon config.
 - `generate_tasks(config)` — Generate fixop tasks from addon config.
 - `expand_addons(addons_section)` — Expand addons: list into a dict of raw task definitions.
 - `generate_tasks(config)` — Generate Redis management tasks from addon config.
-- `generate_tasks(config)` — Generate PostgreSQL management tasks from addon config.
 - `register_health_routes(app)` — Register health check endpoint.
+- `generate_tasks(config)` — Generate PostgreSQL management tasks from addon config.
 - `register_run_routes(app)` — Register task execution endpoint.
 - `register_doctor_routes(app)` — Register /doctor diagnostics endpoint.
 - `register_taskfile_routes(app)` — Register taskfile info, validate, variables, and schema endpoints.

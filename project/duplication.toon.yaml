@@ -6,7 +6,7 @@ SUMMARY:
   dup_groups:    12
   dup_fragments: 31
   saved_lines:   189
-  scan_ms:       5241
+  scan_ms:       5250
 
 HOTSPOTS[7] (files with most duplication):
   examples/mega-saas/scripts/report.py  dup=64L  groups=1  frags=1  (0.3%)

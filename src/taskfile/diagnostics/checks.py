@@ -155,8 +155,7 @@ def check_taskfile() -> list[Issue]:
 
 def check_ports() -> list[Issue]:
     """Check docker-compose port conflicts and suggest .env fixes."""
-    from taskfile.diagnostics.checks_ports import check_ports as _check_ports
-    return _check_ports()
+    return _delegate_check("checks_ports", "check_ports")
 
 
 def _check_script_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Issue]:
@@ -289,20 +288,25 @@ def check_docker() -> list[Issue]:
 
 def check_ssh_keys() -> list[Issue]:
     """Check SSH keys exist."""
-    from taskfile.diagnostics.checks_ssh import check_ssh_keys as _check_ssh_keys
-    return _check_ssh_keys()
+    return _delegate_check("checks_ssh", "check_ssh_keys")
+
+
+def _delegate_check(module: str, func: str, *args) -> list[Issue]:
+    """Generic delegation helper for checks that simply import and call another function."""
+    import importlib
+    mod = importlib.import_module(f"taskfile.diagnostics.{module}")
+    fn = getattr(mod, func)
+    return fn(*args)
 
 
 def check_ssh_connectivity(config: "TaskfileConfig") -> list[Issue]:
     """Check SSH connectivity — distinguish: missing key vs refused vs auth fail."""
-    from taskfile.diagnostics.checks_ssh import check_ssh_connectivity as _check
-    return _check(config)
+    return _delegate_check("checks_ssh", "check_ssh_connectivity", config)
 
 
 def check_remote_health(config: "TaskfileConfig") -> list[Issue]:
     """Check remote host health — podman, disk space, container status."""
-    from taskfile.diagnostics.checks_ssh import check_remote_health as _check
-    return _check(config)
+    return _delegate_check("checks_ssh", "check_remote_health", config)
 
 
 def check_git() -> list[Issue]:

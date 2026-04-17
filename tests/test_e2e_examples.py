@@ -339,12 +339,23 @@ class TestExamplesCrossCutting:
     """Cross-cutting E2E tests across all examples."""
 
     ALL_EXAMPLES = [
+        # Core examples
         "ci-generation", "ci-pipeline", "cloud-aws", "codereview.pl",
         "edge-iot", "fleet-rpi", "fullstack-deploy", "functions-embed",
-        "iac-terraform", "import-cicd", "include-split", "kubernetes-deploy",
+        "import-cicd", "include-split", "kubernetes-deploy",
         "minimal", "monorepo-microservices", "multi-artifact", "multiplatform",
         "publish-cargo", "publish-docker", "publish-github", "publish-npm",
         "publish-pypi", "quadlet-podman", "saas-app", "script-extraction",
+        "mega-saas", "mega-saas-v2",
+        # AI tool examples
+        "ai-aider", "ai-claude-code", "ai-codex", "ai-copilot",
+        "ai-cursor", "ai-gemini-cli", "ai-windsurf",
+        # IaC examples
+        "iac-ansible", "iac-argocd", "iac-bicep", "iac-cdk-aws", "iac-cdktf",
+        "iac-cloudformation", "iac-crossplane", "iac-docker-compose", "iac-fluxcd",
+        "iac-gcp-deployment-manager", "iac-helm", "iac-kustomize", "iac-nixos",
+        "iac-nomad", "iac-opentofu", "iac-packer", "iac-pulumi",
+        "iac-serverless", "iac-terraform", "iac-terragrunt", "iac-vagrant",
     ]
 
     def test_all_examples_load_successfully(self):
@@ -1092,3 +1103,167 @@ class TestCLITagsFlag:
         assert result.exit_code == 0
         assert "Retries" in result.output
         assert "Timeout" in result.output
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# IAC Addon Examples Tests
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestIaCAddonExamples:
+    """E2E tests for IaC examples using the addon system for boilerplate reduction."""
+
+    def test_ansible_addon_generates_tasks(self):
+        """iac-ansible: addon generates all expected task names."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-ansible" / "Taskfile.yml")
+        expected = {"ansible-ping", "ansible-provision", "ansible-deploy",
+                    "ansible-rollback", "ansible-check", "ansible-lint",
+                    "ansible-facts", "ansible-inventory", "ansible-vault-edit"}
+        for t in expected:
+            assert t in config.tasks, f"iac-ansible missing task: {t}"
+
+    def test_ansible_addon_environments(self):
+        """iac-ansible: has local/staging/prod environments."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-ansible" / "Taskfile.yml")
+        assert "local" in config.environments
+        assert "staging" in config.environments
+        assert "prod" in config.environments
+
+    def test_helm_addon_generates_tasks(self):
+        """iac-helm: addon generates all helm-* tasks."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-helm" / "Taskfile.yml")
+        expected = {"helm-lint", "helm-template", "helm-upgrade", "helm-rollback",
+                    "helm-status", "helm-install", "helm-uninstall", "helm-test",
+                    "helm-package", "helm-diff"}
+        for t in expected:
+            assert t in config.tasks, f"iac-helm missing task: {t}"
+
+    def test_helm_addon_plus_custom_tasks(self):
+        """iac-helm: addon tasks + custom tasks coexist."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-helm" / "Taskfile.yml")
+        assert "ci" in config.tasks
+        assert "deploy" in config.tasks
+
+    def test_opentofu_uses_terraform_addon(self):
+        """iac-opentofu: uses terraform addon as base, overrides with tofu binary."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-opentofu" / "Taskfile.yml")
+        assert "tf-init" in config.tasks
+        assert "tf-plan" in config.tasks
+        assert "tf-apply" in config.tasks
+        # Custom override tasks
+        tf_init = config.tasks["tf-init"]
+        assert any("tofu" in cmd for cmd in tf_init.commands)
+
+    def test_argocd_uses_helm_addon(self):
+        """iac-argocd: uses helm addon to manage ArgoCD itself + argocd CLI tasks."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-argocd" / "Taskfile.yml")
+        assert "helm-upgrade" in config.tasks
+        assert "sync" in config.tasks
+        assert "rollback" in config.tasks
+        assert "diff" in config.tasks
+
+    def test_crossplane_uses_helm_addon(self):
+        """iac-crossplane: uses helm addon to deploy crossplane + custom resource tasks."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-crossplane" / "Taskfile.yml")
+        assert "helm-upgrade" in config.tasks
+        assert "provider-install" in config.tasks
+        assert "managed-list" in config.tasks
+
+    def test_terragrunt_has_tg_tasks(self):
+        """iac-terragrunt: tg-* tasks cover full lifecycle."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-terragrunt" / "Taskfile.yml")
+        for t in ("tg-init", "tg-plan", "tg-apply", "tg-destroy", "tg-validate", "tg-output"):
+            assert t in config.tasks, f"iac-terragrunt missing: {t}"
+
+    def test_pulumi_has_stacks(self):
+        """iac-pulumi: stack-based environments with preview/up/destroy."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-pulumi" / "Taskfile.yml")
+        for t in ("preview", "up", "destroy", "stack-output", "refresh", "rollback" if "rollback" in config.tasks else "refresh"):
+            assert t in config.tasks, f"iac-pulumi missing: {t}"
+
+    def test_vagrant_has_lifecycle_tasks(self):
+        """iac-vagrant: full VM lifecycle tasks."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-vagrant" / "Taskfile.yml")
+        for t in ("up", "halt", "destroy", "ssh", "provision", "reload"):
+            assert t in config.tasks, f"iac-vagrant missing: {t}"
+
+    def test_packer_has_build_tasks(self):
+        """iac-packer: init/validate/build lifecycle."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-packer" / "Taskfile.yml")
+        for t in ("init", "validate", "build", "build-all", "lint"):
+            assert t in config.tasks, f"iac-packer missing: {t}"
+
+    def test_serverless_has_deploy_tasks(self):
+        """iac-serverless: full serverless deploy lifecycle."""
+        config = load_taskfile(EXAMPLES_DIR / "iac-serverless" / "Taskfile.yml")
+        for t in ("deploy", "remove", "logs", "invoke", "invoke-local"):
+            assert t in config.tasks, f"iac-serverless missing: {t}"
+
+    def test_all_iac_examples_validate(self):
+        """All IaC examples pass taskfile validate."""
+        iac_examples = [
+            "iac-ansible", "iac-argocd", "iac-bicep", "iac-cdk-aws", "iac-cdktf",
+            "iac-cloudformation", "iac-crossplane", "iac-docker-compose", "iac-fluxcd",
+            "iac-gcp-deployment-manager", "iac-helm", "iac-kustomize", "iac-nixos",
+            "iac-nomad", "iac-opentofu", "iac-packer", "iac-pulumi",
+            "iac-serverless", "iac-terraform", "iac-terragrunt", "iac-vagrant",
+        ]
+        runner = CliRunner()
+        for name in iac_examples:
+            result = runner.invoke(main, ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "validate"])
+            assert result.exit_code == 0, f"{name} validate failed: {result.output}"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# AI Tool Examples Tests
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestAIToolExamples:
+    """E2E tests for AI-assisted development workflow examples."""
+
+    AI_EXAMPLES = [
+        "ai-aider", "ai-claude-code", "ai-codex",
+        "ai-copilot", "ai-cursor", "ai-gemini-cli", "ai-windsurf",
+    ]
+
+    def test_all_ai_examples_load(self):
+        """All AI examples parse successfully."""
+        for name in self.AI_EXAMPLES:
+            config = load_taskfile(EXAMPLES_DIR / name / "Taskfile.yml")
+            assert config.name == name, f"{name}: name mismatch"
+            assert len(config.tasks) > 0, f"{name}: no tasks"
+
+    def test_all_ai_examples_have_ai_tool_variable(self):
+        """All AI examples define either a MODEL or tool-specific flag variable."""
+        ai_vars = {"MODEL", "CLAUDE_FLAGS", "CODEX_FLAGS", "COPILOT_FLAGS", "GEMINI_FLAGS"}
+        for name in self.AI_EXAMPLES:
+            config = load_taskfile(EXAMPLES_DIR / name / "Taskfile.yml")
+            has_ai_var = bool(ai_vars & set(config.variables.keys()))
+            assert has_ai_var, f"{name}: missing MODEL or tool-specific variable, got: {list(config.variables.keys())}"
+
+    def test_all_ai_examples_have_code_quality_task(self):
+        """All AI examples have review, check, lint, or test tasks."""
+        quality_keywords = ("review", "check", "lint", "test", "doctor", "analyze")
+        for name in self.AI_EXAMPLES:
+            config = load_taskfile(EXAMPLES_DIR / name / "Taskfile.yml")
+            quality_tasks = [t for t in config.tasks if any(kw in t for kw in quality_keywords)]
+            assert len(quality_tasks) > 0, f"{name}: no code quality tasks (review/check/lint/test)"
+
+    def test_aider_has_aider_commands(self):
+        """ai-aider: all tasks use aider CLI."""
+        config = load_taskfile(EXAMPLES_DIR / "ai-aider" / "Taskfile.yml")
+        aider_tasks = [t for t, task in config.tasks.items()
+                       if any("aider" in cmd for cmd in task.commands)]
+        assert len(aider_tasks) >= 5, "Expected at least 5 tasks using aider"
+
+    def test_aider_has_tdd_workflow(self):
+        """ai-aider: TDD cycle task exists."""
+        config = load_taskfile(EXAMPLES_DIR / "ai-aider" / "Taskfile.yml")
+        assert "tdd" in config.tasks
+
+    def test_ai_examples_cli_list(self):
+        """All AI examples work with taskfile list."""
+        runner = CliRunner()
+        for name in self.AI_EXAMPLES:
+            result = runner.invoke(main, ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "list"])
+            assert result.exit_code == 0, f"{name} list failed: {result.output}"
+            assert "Tasks:" in result.output

@@ -12,12 +12,6 @@ from pathlib import Path
 
 from rich.console import Console
 
-try:
-    from clickmd import MarkdownRenderer
-    _HAS_CLICKMD = True
-except ImportError:
-    _HAS_CLICKMD = False
-
 from taskfile.models import Task
 from taskfile.runner.ssh import (
     is_remote_command, is_local_command, strip_local_prefix, strip_remote_prefix,
@@ -27,18 +21,14 @@ from taskfile.runner.ssh import (
 )
 from taskfile.runner.functions import run_function, run_inline_python
 from taskfile.runner.classifier import classify_command, CommandType, should_expand_globs, has_glob_pattern
+from taskfile.runner.utils.markdown import render_md as _md, _HAS_CLICKMD, render_codeblock
+
+try:
+    from clickmd import MarkdownRenderer
+except ImportError:
+    pass
 
 console = Console()
-
-
-# ─── Markdown rendering helpers ──────────────────────────────────────────────
-
-def _md(text: str) -> None:
-    """Render markdown text via clickmd (falls back to plain print)."""
-    if _HAS_CLICKMD:
-        MarkdownRenderer(use_colors=True).render_markdown_with_fences(text)
-    else:
-        print(text)
 
 
 # ─── Source location tracing (delegated to failure.py) ───────────────────────
@@ -340,10 +330,7 @@ def _render_output(output: str, task: Task) -> None:
     """Render command output as a markdown codeblock using clickmd."""
     if not output or not output.strip() or task.silent:
         return
-    if _HAS_CLICKMD:
-        MarkdownRenderer(use_colors=True).codeblock("log", output.rstrip())
-    else:
-        print(output.rstrip())
+    render_codeblock("log", output.rstrip())
 
 
 def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") -> int:

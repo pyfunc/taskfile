@@ -10,29 +10,23 @@ environments:
     container_runtime: docker
     compose_command: docker compose
 
-  prod:
-    ssh_host: your-server.example.com
-    ssh_user: deploy
-    container_runtime: podman
-
 tasks:
   build:
     desc: Build the application
     cmds:
-      - ${COMPOSE} build
+      - echo "Configure 'build' for ${APP_NAME}"
 
-  deploy:
-    desc: Deploy to target environment
-    deps: [build]
+  test:
+    desc: Run tests
     cmds:
-      - ${COMPOSE} up -d
+      - echo "Configure 'test' for ${APP_NAME}"
 
-  logs:
-    desc: View application logs
+  run:
+    desc: Run the application locally
     cmds:
-      - ${COMPOSE} logs -f
+      - echo "Configure 'run' for ${APP_NAME}"
 
-  status:
-    desc: Show running services
+  clean:
+    desc: Remove build artefacts
     cmds:
-      - ${COMPOSE} ps
+      - echo "Configure 'clean' for ${APP_NAME}"

@@ -1,0 +1,82 @@
+version: "1"
+name: iac-argocd
+description: "ArgoCD GitOps — sync applications, manage repos, rollback, diff"
+
+variables:
+  APP_NAME: myapp
+  ARGOCD_SERVER: argocd.example.com
+  ARGOCD_NAMESPACE: argocd
+  GIT_REPO: https://github.com/myorg/myapp
+  GIT_BRANCH: main
+
+environments:
+  local:
+    variables:
+      ARGOCD_SERVER: localhost:8080
+  staging:
+    env_file: .env.staging
+    variables:
+      APP_NAME: myapp-staging
+  prod:
+    env_file: .env.prod
+
+# ── Helm tasks for managing ArgoCD chart itself ────────
+addons:
+  - helm:
+      release: argocd
+      chart: argo/argo-cd
+      namespace: ${ARGOCD_NAMESPACE}
+      values_file: argocd/values.yml
+
+tasks:
+  app-create:
+    desc: Register application in ArgoCD
+    cmds:
+      - >-
+        argocd app create ${APP_NAME}
+        --repo ${GIT_REPO}
+        --path deploy/
+        --dest-server https://kubernetes.default.svc
+        --dest-namespace ${NAMESPACE:-default}
+        --sync-policy automated
+
+  sync:
+    desc: Trigger manual sync for application
+    cmds:
+      - argocd app sync ${APP_NAME} --server ${ARGOCD_SERVER}
+
+  status:
+    desc: Show application sync status
+    silent: true
+    cmds:
+      - argocd app get ${APP_NAME} --server ${ARGOCD_SERVER}
+
+  diff:
+    desc: Show diff between Git and live state
+    cmds:
+      - argocd app diff ${APP_NAME} --server ${ARGOCD_SERVER}
+
+  rollback:
+    desc: Rollback to previous revision (--var REVISION=N)
+    cmds:
+      - argocd app rollback ${APP_NAME} ${REVISION:-1} --server ${ARGOCD_SERVER}
+
+  wait:
+    desc: Wait for application to be healthy
+    cmds:
+      - argocd app wait ${APP_NAME} --health --server ${ARGOCD_SERVER}
+
+  logs:
+    desc: Stream application logs
+    cmds:
+      - argocd app logs ${APP_NAME} --server ${ARGOCD_SERVER}
+
+  app-list:
+    desc: List all ArgoCD applications
+    cmds:
+      - argocd app list --server ${ARGOCD_SERVER}
+
+  repo-add:
+    desc: Add Git repository to ArgoCD
+    cmds:
+      - argocd repo add ${GIT_REPO} --server ${ARGOCD_SERVER}

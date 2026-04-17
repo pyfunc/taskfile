@@ -1,0 +1,80 @@
+version: "1"
+name: iac-serverless
+description: "Serverless Framework — deploy AWS Lambda/GCP Functions/Azure Functions"
+
+variables:
+  APP_NAME: myapp
+  AWS_REGION: eu-west-1
+  SLS_DIR: "."
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      SLS_STAGE: dev
+  staging:
+    env_file: .env.staging
+    variables:
+      SLS_STAGE: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      SLS_STAGE: prod
+
+tasks:
+  install:
+    desc: Install Serverless Framework and plugins
+    cmds:
+      - npm install -g serverless
+      - npm install
+
+  package:
+    desc: Package functions without deploying
+    cmds:
+      - serverless package --stage ${SLS_STAGE}
+
+  deploy:
+    desc: Deploy all functions to AWS
+    deps: [package]
+    cmds:
+      - serverless deploy --stage ${SLS_STAGE} --region ${AWS_REGION}
+
+  deploy-function:
+    desc: Deploy single function (--var FN=myFunction)
+    cmds:
+      - serverless deploy function --function ${FN} --stage ${SLS_STAGE}
+
+  invoke:
+    desc: Invoke function remotely (--var FN=myFunction)
+    cmds:
+      - serverless invoke --function ${FN} --stage ${SLS_STAGE}
+
+  invoke-local:
+    desc: Invoke function locally (--var FN=myFunction)
+    cmds:
+      - serverless invoke local --function ${FN} --stage ${SLS_STAGE}
+
+  logs:
+    desc: Stream function logs (--var FN=myFunction)
+    cmds:
+      - serverless logs --function ${FN} --stage ${SLS_STAGE} --tail
+
+  info:
+    desc: Show deployed service info
+    cmds:
+      - serverless info --stage ${SLS_STAGE}
+
+  remove:
+    desc: Remove deployed service
+    cmds:
+      - serverless remove --stage ${SLS_STAGE}
+
+  offline:
+    desc: Run functions locally via serverless-offline
+    cmds:
+      - serverless offline --stage dev
+
+  lint:
+    desc: Validate serverless.yml
+    cmds:
+      - serverless print --stage ${SLS_STAGE} > /dev/null && echo "Config valid"

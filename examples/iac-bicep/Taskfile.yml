@@ -1,0 +1,84 @@
+version: "1"
+name: iac-bicep
+description: "Azure Bicep — ARM template language, deploy to Azure resource groups"
+
+variables:
+  PROJECT: my-bicep-app
+  RESOURCE_GROUP: my-rg
+  LOCATION: westeurope
+  TEMPLATE: bicep/main.bicep
+  PARAMS: bicep/parameters.json
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      RESOURCE_GROUP: my-rg-dev
+      BICEP_ENV: dev
+  staging:
+    env_file: .env.staging
+    variables:
+      RESOURCE_GROUP: my-rg-staging
+      BICEP_ENV: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      RESOURCE_GROUP: my-rg-prod
+      BICEP_ENV: prod
+
+tasks:
+  login:
+    desc: Login to Azure CLI
+    cmds:
+      - az login
+
+  rg-create:
+    desc: Create resource group if it does not exist
+    cmds:
+      - az group create --name ${RESOURCE_GROUP} --location ${LOCATION}
+
+  build:
+    desc: Build Bicep → ARM JSON (validate only)
+    cmds:
+      - az bicep build --file ${TEMPLATE}
+
+  what-if:
+    desc: Preview changes before deploying
+    cmds:
+      - >-
+        az deployment group what-if
+        --resource-group ${RESOURCE_GROUP}
+        --template-file ${TEMPLATE}
+        --parameters @${PARAMS} environment=${BICEP_ENV}
+
+  deploy:
+    desc: Deploy Bicep template to resource group
+    deps: [build]
+    cmds:
+      - >-
+        az deployment group create
+        --resource-group ${RESOURCE_GROUP}
+        --template-file ${TEMPLATE}
+        --parameters @${PARAMS} environment=${BICEP_ENV}
+        --mode Incremental
+
+  outputs:
+    desc: Show deployment outputs
+    cmds:
+      - az deployment group show --resource-group ${RESOURCE_GROUP} --name ${PROJECT} --query properties.outputs
+
+  destroy:
+    desc: Delete resource group and all resources
+    cmds:
+      - az group delete --name ${RESOURCE_GROUP} --yes --no-wait
+
+  lint:
+    desc: Lint Bicep files
+    ignore_errors: true
+    cmds:
+      - az bicep lint --file ${TEMPLATE}
+
+  status:
+    desc: Show all resources in resource group
+    cmds:
+      - az resource list --resource-group ${RESOURCE_GROUP} --output table

@@ -1,0 +1,76 @@
+version: "1"
+name: iac-fluxcd
+description: "FluxCD GitOps — bootstrap, reconcile, suspend/resume, check drift"
+
+variables:
+  GIT_REPO: ssh://git@github.com/myorg/myapp-fleet
+  GIT_BRANCH: main
+  FLUX_NAMESPACE: flux-system
+  CLUSTER_NAME: my-cluster
+
+environments:
+  local:
+    variables:
+      CLUSTER_NAME: kind-local
+  staging:
+    env_file: .env.staging
+    variables:
+      CLUSTER_NAME: staging-cluster
+  prod:
+    env_file: .env.prod
+    variables:
+      CLUSTER_NAME: prod-cluster
+
+tasks:
+  bootstrap:
+    desc: Bootstrap FluxCD into cluster from Git repo
+    cmds:
+      - >-
+        flux bootstrap github
+        --owner=${GITHUB_ORG}
+        --repository=${GITHUB_REPO}
+        --branch=${GIT_BRANCH}
+        --path=clusters/${CLUSTER_NAME}
+        --personal
+
+  check:
+    desc: Check FluxCD prerequisites and cluster connectivity
+    cmds:
+      - flux check --pre
+
+  status:
+    desc: Show status of all Flux resources
+    silent: true
+    cmds:
+      - flux get all --namespace ${FLUX_NAMESPACE}
+
+  reconcile:
+    desc: Trigger immediate reconciliation
+    cmds:
+      - flux reconcile source git flux-system --namespace ${FLUX_NAMESPACE}
+      - flux reconcile kustomization flux-system --namespace ${FLUX_NAMESPACE}
+
+  suspend:
+    desc: Suspend Flux reconciliation (--var NAME=myapp)
+    cmds:
+      - flux suspend kustomization ${NAME:-flux-system} --namespace ${FLUX_NAMESPACE}
+
+  resume:
+    desc: Resume Flux reconciliation (--var NAME=myapp)
+    cmds:
+      - flux resume kustomization ${NAME:-flux-system} --namespace ${FLUX_NAMESPACE}
+
+  diff:
+    desc: Show diff between Git and cluster state
+    cmds:
+      - flux diff kustomization flux-system --namespace ${FLUX_NAMESPACE}
+
+  logs:
+    desc: Stream Flux controller logs
+    cmds:
+      - flux logs --all-namespaces --follow
+
+  uninstall:
+    desc: Remove FluxCD from cluster (keep Git repo)
+    cmds:
+      - flux uninstall --namespace ${FLUX_NAMESPACE}

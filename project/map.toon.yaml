@@ -640,6 +640,10 @@ D:
   src/taskfile/diagnostics/__init__.py:
     e: ProjectDiagnostics
     ProjectDiagnostics: __init__(0),_add_issue(4),_add_issues(1),_load_config(0),check_preflight(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_placeholder_values(0),check_ports(0),check_docker(0),check_registry_access(0),check_ssh_keys(0),check_ssh_connectivity(0),check_dependent_files(0),check_git(0),check_task_commands(0),check_remote_health(0),check_deploy_artifacts(0),check_ufw_forward_policy(0),check_container_dns(0),run_all_checks(0),auto_fix(0),llm_repair(1),print_report(2),print_report_json(0),get_report_dict(0),check_examples(0),generate_env_example(2)  # Facade composing checks + fixes + report — backward compatib...
+  src/taskfile/diagnostics/checks_tasks.py:
+    e: check_task_commands,_extract_binary
+    check_task_commands(config)
+    _extract_binary(cmd)
   src/taskfile/diagnostics/fixes.py:
     e: apply_fixes,apply_single_fix,_fix_copy_env_example,_fix_create_taskfile,_fix_init_git,_fix_rename_port,_fix_missing_variable,_fix_run_command,_mark_fixed,_upsert_env_value
     apply_fixes(issues;interactive)
@@ -652,10 +656,6 @@ D:
     _fix_run_command(issue;interactive)
     _mark_fixed(issue)
     _upsert_env_value(env_path;key;value)
-  src/taskfile/diagnostics/checks_tasks.py:
-    e: check_task_commands,_extract_binary
-    check_task_commands(config)
-    _extract_binary(cmd)
   src/taskfile/models/config.py:
     e: ComposeConfig,TaskfileConfig,_normalize_host_keys,_expand_single_host
     ComposeConfig:  # Compose-based deployment configuration...
@@ -751,6 +751,12 @@ Composes:
     close_all()
     ssh_exec(env;command;timeout)
     _ssh_exec_subprocess(env;command)
+  src/taskfile/diagnostics/models.py:
+    e: IssueCategory,FixStrategy,Issue,DoctorReport
+    IssueCategory(str,Enum):  # Classification of diagnostic issues — helps users identify r...
+    FixStrategy(str,Enum):  # How an issue can be resolved...
+    Issue: as_dict(0)  # Single diagnostic issue with category, severity, fix strateg...
+    DoctorReport: classify(0),as_dict(0)  # Aggregated report from a full doctor run...
   src/taskfile/runner/classifier.py:
     e: CommandType,classify_command,_is_shell_construct,should_expand_globs,has_glob_pattern
     CommandType(str,Enum):  # Classification of a command string for routing to the correc...
@@ -758,12 +764,6 @@ Composes:
     _is_shell_construct(stripped)
     should_expand_globs(cmd)
     has_glob_pattern(cmd)
-  src/taskfile/diagnostics/models.py:
-    e: IssueCategory,FixStrategy,Issue,DoctorReport
-    IssueCategory(str,Enum):  # Classification of diagnostic issues — helps users identify r...
-    FixStrategy(str,Enum):  # How an issue can be resolved...
-    Issue: as_dict(0)  # Single diagnostic issue with category, severity, fix strateg...
-    DoctorReport: classify(0),as_dict(0)  # Aggregated report from a full doctor run...
   src/taskfile/models/environment.py:
     e: Environment,Platform,EnvironmentGroup
     Environment: resolve_variables(2)  # Deployment environment configuration...
@@ -791,9 +791,6 @@ Composes:
     _find_free_port_near(start;span)
     _who_uses_port(port)
     _is_docker_process(process_name)
-  src/taskfile/runner/resolver.py:
-    e: TaskResolver
-    TaskResolver: __init__(4),from_path(4),_load_dotenv(0),_resolve_environment(0),_resolve_env_fields(1),_resolve_platform(0),_resolve_variables(0),expand_variables(1),get_task(1),available_task_names(0),should_skip_task(2),get_dependency_order(2),env_is_defined(0),platform_is_defined(0)  # Pure-logic task resolver: variable expansion, filtering, dep...
   src/taskfile/deploy_utils.py:
     e: SSHResult,RemoteInfo,load_env_file,update_env_var,remove_env_var,test_ssh_connection,ssh_exec,setup_ssh_key,check_remote_podman,check_remote_disk,list_remote_images,check_remote_info,install_remote_podman,transfer_image_via_ssh,transfer_images_via_ssh,deploy_container_remote,stop_container_remote,get_remote_logs,get_remote_status,clean_project
     SSHResult(NamedTuple):  # Result of an SSH operation...
@@ -816,6 +813,9 @@ Composes:
     get_remote_logs(host;container_name;user;port;runtime;tail)
     get_remote_status(host;container_names;user;port;runtime)
     clean_project(level;project_dir)
+  src/taskfile/runner/resolver.py:
+    e: TaskResolver
+    TaskResolver: __init__(4),from_path(4),_load_dotenv(0),_resolve_environment(0),_resolve_env_fields(1),_resolve_platform(0),_resolve_variables(0),expand_variables(1),get_task(1),available_task_names(0),should_skip_task(2),get_dependency_order(2),env_is_defined(0),platform_is_defined(0)  # Pure-logic task resolver: variable expansion, filtering, dep...
   src/taskfile/models/task.py:
     e: Function,Task,_normalize_commands
     Function:  # Embedded function callable from tasks via @fn prefix...

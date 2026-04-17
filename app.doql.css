@@ -1,0 +1,102 @@
+app {
+  name: "taskfile";
+  version: "0.3.88";
+}
+
+entity[name="RunTaskRequest"] {
+
+}
+
+entity[name="ValidateRequest"] {
+
+}
+
+entity[name="TaskInfo"] {
+
+}
+
+entity[name="EnvironmentInfo"] {
+
+}
+
+entity[name="EnvironmentGroupInfo"] {
+
+}
+
+entity[name="PlatformInfo"] {
+
+}
+
+entity[name="FunctionInfo"] {
+
+}
+
+entity[name="PipelineStageInfo"] {
+
+}
+
+entity[name="TaskfileInfo"] {
+
+}
+
+entity[name="ValidationResult"] {
+
+}
+
+entity[name="CommandOutput"] {
+
+}
+
+entity[name="TaskRunResult"] {
+
+}
+
+entity[name="RunResult"] {
+
+}
+
+entity[name="HealthResponse"] {
+
+}
+
+entity[name="DoctorIssueInfo"] {
+
+}
+
+entity[name="DoctorRequest"] {
+
+}
+
+entity[name="DoctorResponse"] {
+
+}
+
+entity[name="ErrorResponse"] {
+
+}
+
+interface[type="api"] {
+  type: rest;
+  framework: fastapi;
+}
+
+interface[type="cli"] {
+  framework: click;
+}
+interface[type="cli"] page[name="taskfile"] {
+
+}
+
+deploy {
+  target: makefile;
+}
+
+environment[name="local"] {
+  runtime: makefile;
+  env_file: ".env";
+}
+
+environment[name="prod"] {
+  runtime: makefile;
+  env_file: ".env.prod";
+}

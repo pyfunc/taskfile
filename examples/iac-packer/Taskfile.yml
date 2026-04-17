@@ -1,0 +1,77 @@
+version: "1"
+name: iac-packer
+description: "HashiCorp Packer — build immutable machine images (AMI, Docker, QEMU, GCP)"
+
+variables:
+  PROJECT: my-packer-build
+  PACKER_DIR: packer
+  TEMPLATE: packer/build.pkr.hcl
+  AWS_REGION: eu-west-1
+  IMAGE_NAME: myapp-base
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      PACKER_BUILD: amazon-ebs.dev
+  staging:
+    env_file: .env.staging
+    variables:
+      PACKER_BUILD: amazon-ebs.staging
+  prod:
+    env_file: .env.prod
+    variables:
+      PACKER_BUILD: amazon-ebs.prod
+
+tasks:
+  init:
+    desc: Install required Packer plugins
+    dir: ${PACKER_DIR}
+    cmds:
+      - packer init ${TEMPLATE}
+
+  validate:
+    desc: Validate Packer template
+    dir: ${PACKER_DIR}
+    deps: [init]
+    cmds:
+      - packer validate ${TEMPLATE}
+
+  fmt:
+    desc: Format Packer templates
+    dir: ${PACKER_DIR}
+    cmds:
+      - packer fmt -check ${TEMPLATE}
+
+  build:
+    desc: Build machine image
+    dir: ${PACKER_DIR}
+    deps: [validate]
+    cmds:
+      - packer build -only=${PACKER_BUILD} ${TEMPLATE}
+
+  build-all:
+    desc: Build all image targets
+    dir: ${PACKER_DIR}
+    deps: [validate]
+    cmds:
+      - packer build ${TEMPLATE}
+
+  inspect:
+    desc: Show Packer build targets and variables
+    dir: ${PACKER_DIR}
+    cmds:
+      - packer inspect ${TEMPLATE}
+
+  lint:
+    desc: Lint Packer templates (fmt + validate)
+    ignore_errors: true
+    cmds:
+      - packer fmt -check ${PACKER_DIR}/
+      - packer validate ${TEMPLATE}
+
+  clean:
+    desc: Remove local build artifacts
+    cmds:
+      - rm -rf ${PACKER_DIR}/output-*/
+      - rm -rf ${PACKER_DIR}/packer_cache/

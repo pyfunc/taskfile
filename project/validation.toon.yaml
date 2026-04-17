@@ -1,7 +1,7 @@
-# vallm batch | 429f | 174✓ 10⚠ 1✗ | 2026-04-17
+# vallm batch | 421f | 174✓ 10⚠ 1✗ | 2026-04-17
 
 SUMMARY:
-  scanned: 429  passed: 174 (40.6%)  warnings: 10  errors: 1  unsupported: 254
+  scanned: 421  passed: 174 (41.3%)  warnings: 10  errors: 1  unsupported: 246
 
 WARNINGS[10]{path,score}:
   src/taskfile/cli/interactive/wizards.py,0.98
@@ -44,5 +44,5 @@ UNSUPPORTED[5]{bucket,count}:
   *.md,72
   *.txt,1
   *.yml,67
-  *.example,58
-  other,56
+  *.example,55
+  other,51

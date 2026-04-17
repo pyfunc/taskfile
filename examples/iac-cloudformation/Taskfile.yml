@@ -1,0 +1,92 @@
+version: "1"
+name: iac-cloudformation
+description: "AWS CloudFormation — stack deploy, validate, change sets, drift detection"
+
+variables:
+  PROJECT: my-cfn-app
+  STACK_NAME: my-app-stack
+  TEMPLATE: cloudformation/template.yml
+  S3_BUCKET: myorg-cfn-templates
+  AWS_REGION: eu-west-1
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      STACK_NAME: my-app-stack-dev
+      CFN_ENV: dev
+  staging:
+    env_file: .env.staging
+    variables:
+      STACK_NAME: my-app-stack-staging
+      CFN_ENV: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      STACK_NAME: my-app-stack-prod
+      CFN_ENV: prod
+
+tasks:
+  validate:
+    desc: Validate CloudFormation template
+    cmds:
+      - aws cloudformation validate-template --template-body file://${TEMPLATE}
+
+  lint:
+    desc: Lint template with cfn-lint
+    ignore_errors: true
+    cmds:
+      - cfn-lint ${TEMPLATE}
+
+  package:
+    desc: Package template + upload to S3
+    cmds:
+      - >-
+        aws cloudformation package
+        --template-file ${TEMPLATE}
+        --s3-bucket ${S3_BUCKET}
+        --output-template-file cloudformation/packaged.yml
+
+  deploy:
+    desc: Deploy or update stack
+    deps: [validate, package]
+    cmds:
+      - >-
+        aws cloudformation deploy
+        --template-file cloudformation/packaged.yml
+        --stack-name ${STACK_NAME}
+        --parameter-overrides Environment=${CFN_ENV}
+        --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+        --region ${AWS_REGION}
+
+  status:
+    desc: Show stack status
+    silent: true
+    cmds:
+      - aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query "Stacks[0].StackStatus"
+
+  outputs:
+    desc: Show stack outputs
+    cmds:
+      - aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query "Stacks[0].Outputs"
+
+  drift:
+    desc: Detect stack drift
+    cmds:
+      - aws cloudformation detect-stack-drift --stack-name ${STACK_NAME}
+
+  changeset:
+    desc: Create change set (--var CHANGE=my-change)
+    cmds:
+      - >-
+        aws cloudformation create-change-set
+        --stack-name ${STACK_NAME}
+        --change-set-name ${CHANGE:-preview}
+        --template-body file://${TEMPLATE}
+        --capabilities CAPABILITY_IAM
+
+  destroy:
+    desc: Delete CloudFormation stack
+    cmds:
+      - aws cloudformation delete-stack --stack-name ${STACK_NAME}
+      - aws cloudformation wait stack-delete-complete --stack-name ${STACK_NAME}

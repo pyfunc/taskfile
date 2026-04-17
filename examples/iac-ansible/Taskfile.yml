@@ -1,0 +1,36 @@
+version: "1"
+name: iac-ansible
+description: "Ansible configuration management — provision, deploy, rollback via playbooks"
+
+variables:
+  PROJECT: myapp
+  ANSIBLE_INVENTORY: inventory/hosts.yml
+  ANSIBLE_SSH_KEY: ~/.ssh/id_ed25519
+
+environments:
+  local:
+    env_file: .env.local
+  staging:
+    env_file: .env.staging
+    variables:
+      ANSIBLE_INVENTORY: inventory/staging.yml
+  prod:
+    env_file: .env.prod
+    variables:
+      ANSIBLE_INVENTORY: inventory/prod.yml
+
+# ── Ansible tasks generated from addon ───────────────
+addons:
+  - ansible:
+      playbook_dir: ansible
+      inventory: ${ANSIBLE_INVENTORY}
+      ssh_key: ${ANSIBLE_SSH_KEY}
+
+# ── Project-specific overrides ────────────────────────
+tasks:
+  ci-check:
+    desc: Run lint + check mode in CI
+    stage: validate
+    deps: [ansible-lint, ansible-check]
+    cmds:
+      - echo "Ansible CI check passed"

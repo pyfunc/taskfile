@@ -1,0 +1,79 @@
+version: "1"
+name: iac-docker-compose
+description: "Docker Compose — local and staging multi-service orchestration with profiles"
+
+variables:
+  APP_NAME: myapp
+  COMPOSE_FILE: docker-compose.yml
+  REGISTRY: ghcr.io/myorg
+  TAG: latest
+
+environments:
+  local:
+    container_runtime: docker
+    compose_command: docker compose
+    compose_file: docker-compose.yml
+
+  staging:
+    container_runtime: docker
+    compose_command: docker compose
+    compose_file: docker-compose.staging.yml
+    env_file: .env.staging
+
+compose:
+  file: ${COMPOSE_FILE}
+  override_files:
+    - docker-compose.override.yml
+  network: myapp-net
+
+tasks:
+  up:
+    desc: Start all services
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} up -d --build
+
+  down:
+    desc: Stop all services
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} down
+
+  logs:
+    desc: Follow logs (--var SVC=api)
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} logs -f ${SVC:-}
+
+  ps:
+    desc: Show running services
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} ps
+
+  exec:
+    desc: Exec into service (--var SVC=api CMD=bash)
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} exec ${SVC:-api} ${CMD:-bash}
+
+  build:
+    desc: Build all images
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} build
+
+  pull:
+    desc: Pull latest images
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} pull
+
+  restart:
+    desc: Restart service (--var SVC=api)
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} restart ${SVC:-}
+
+  scale:
+    desc: Scale service (--var SVC=worker COUNT=3)
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} scale ${SVC:-worker}=${COUNT:-2}
+
+  prune:
+    desc: Remove stopped containers, networks, volumes
+    cmds:
+      - docker compose -f ${COMPOSE_FILE} down --volumes --remove-orphans
+      - docker image prune -f

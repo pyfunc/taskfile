@@ -6,6 +6,7 @@ variables:
   APP: myapp
   SRC: src/
   TESTS: tests/
+  MODEL: claude-sonnet-4-20250514
 
 environments:
   local:

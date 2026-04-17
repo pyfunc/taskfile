@@ -1,0 +1,77 @@
+version: "1"
+name: iac-cdktf
+description: "CDK for Terraform — define Terraform in Python/TypeScript, multi-stack deploy"
+
+variables:
+  PROJECT: my-cdktf-app
+  AWS_REGION: eu-west-1
+
+environments:
+  dev:
+    env_file: .env.dev
+    variables:
+      CDKTF_ENV: dev
+  staging:
+    env_file: .env.staging
+    variables:
+      CDKTF_ENV: staging
+  prod:
+    env_file: .env.prod
+    variables:
+      CDKTF_ENV: prod
+
+tasks:
+  install:
+    desc: Install CDKTF dependencies
+    cmds:
+      - pip install -r requirements.txt
+      - npm install -g cdktf-cli
+
+  get:
+    desc: Download provider schemas
+    cmds:
+      - cdktf get
+
+  synth:
+    desc: Synthesize Terraform configs from code
+    deps: [get]
+    cmds:
+      - cdktf synth
+
+  diff:
+    desc: Show planned changes
+    deps: [synth]
+    cmds:
+      - cdktf diff --stack ${CDKTF_ENV}
+
+  deploy:
+    desc: Deploy all stacks
+    deps: [synth]
+    cmds:
+      - cdktf deploy --stack ${CDKTF_ENV} --auto-approve
+
+  destroy:
+    desc: Destroy all stacks
+    cmds:
+      - cdktf destroy --stack ${CDKTF_ENV} --auto-approve
+
+  list:
+    desc: List all stacks
+    cmds:
+      - cdktf list
+
+  test:
+    desc: Run CDKTF unit tests
+    cmds:
+      - pytest tests/ -v
+
+  lint:
+    desc: Lint CDKTF code
+    ignore_errors: true
+    cmds:
+      - ruff check .
+
+  clean:
+    desc: Remove generated Terraform configs
+    cmds:
+      - rm -rf cdktf.out/

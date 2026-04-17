@@ -12,12 +12,7 @@ from rich.console import Console
 
 from taskfile.models import Task
 from taskfile.diagnostics.fixop_adapter import HAS_FIXOP as _HAS_FIXOP_CLASSIFY, fixop_category_to_tag
-
-try:
-    from clickmd import MarkdownRenderer
-    _HAS_CLICKMD = True
-except ImportError:
-    _HAS_CLICKMD = False
+from taskfile.runner.utils.markdown import render_md as _md
 
 try:
     from fixop.classify import classify_error as _fixop_classify_error
@@ -26,16 +21,6 @@ except ImportError:
     pass
 
 console = Console()
-
-
-# ─── Markdown rendering ──────────────────────────────────────────────────────
-
-def _md(text: str) -> None:
-    """Render markdown text via clickmd (falls back to plain print)."""
-    if _HAS_CLICKMD:
-        MarkdownRenderer(use_colors=True).render_markdown_with_fences(text)
-    else:
-        print(text)
 
 
 # ─── Source location tracing ─────────────────────────────────────────────────
