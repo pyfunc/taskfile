@@ -86,6 +86,24 @@ taskfile setup hosts             # Configure deployment hosts
 | `pkg list` | List installed | `taskfile pkg list` |
 | `pkg uninstall` | Remove package | `taskfile pkg uninstall tasks` |
 
+### Workspace (multi-project)
+
+Operate on many local projects under a given path. See
+[WORKSPACE.md](WORKSPACE.md) for the full reference.
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `workspace list` | List projects with filters | `taskfile workspace list -r ~/github/semcod` |
+| `workspace status` | Overview table per project | `taskfile workspace status -r ~/github/semcod` |
+| `workspace tasks` | Task frequency across projects | `taskfile workspace tasks -r ~/github/semcod` |
+| `workspace analyze` | Full metrics + issues + recs (CSV) | `taskfile workspace analyze -r ~/github/semcod -o report.csv` |
+| `workspace compare` | Peer-benchmark across 1..N roots | `taskfile workspace compare -r semcod -r oqlos -o report.csv` |
+| `workspace validate` | Manifest validation | `taskfile workspace validate -r ~/github/semcod` |
+| `workspace fix` | Auto-fix manifest errors | `taskfile workspace fix -r ~/github/semcod` |
+| `workspace run` | Run a task in every project | `taskfile workspace run lint -r ~/github/semcod` |
+| `workspace doctor` | Run doctor in every project | `taskfile workspace doctor -r ~/github/semcod` |
+| `workspace deploy` | Group docker compose up -d | `taskfile workspace deploy -r ~/github/semcod` |
+
 ### Web UI
 
 ```bash

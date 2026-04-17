@@ -572,6 +572,198 @@ def analyze_project(project: Project) -> dict:
     }
 
 
+def compare_projects(projects: list[Project], common_threshold: float = 0.5) -> list[dict]:
+    """Compare projects against each other (peer benchmarking).
+
+    For each project, compute:
+    - Tasks missing from this project that are "common" (present in >= threshold of peers)
+    - Workflows missing from this project that are "common"
+    - DOQL entity/database/interface counts vs median
+    - Sync issues between Taskfile and doql
+    - Improvement suggestions based on comparison
+
+    Args:
+        projects: List of Project objects to compare.
+        common_threshold: Fraction of projects required to consider a task/workflow "common"
+                          (default 0.5 = present in at least half of projects).
+
+    Returns:
+        List of dicts, one per project, with comparison metrics.
+    """
+    if not projects:
+        return []
+
+    from collections import Counter
+    from statistics import median
+
+    # Collect task/workflow frequencies
+    task_freq: Counter[str] = Counter()
+    workflow_freq: Counter[str] = Counter()
+    for p in projects:
+        for task in p.taskfile_tasks:
+            task_freq[task] += 1
+        for wf in p.doql_workflows:
+            workflow_freq[wf] += 1
+
+    threshold_count = max(2, int(len(projects) * common_threshold))
+    common_tasks = {t for t, c in task_freq.items() if c >= threshold_count}
+    common_workflows = {w for w, c in workflow_freq.items() if c >= threshold_count}
+
+    # Compute medians for context
+    task_counts = [len(p.taskfile_tasks) for p in projects]
+    workflow_counts = [len(p.doql_workflows) for p in projects]
+    median_tasks = int(median(task_counts)) if task_counts else 0
+    median_workflows = int(median(workflow_counts)) if workflow_counts else 0
+
+    results = []
+    for project in projects:
+        # Missing common tasks/workflows
+        project_tasks = set(project.taskfile_tasks)
+        project_workflows = set(project.doql_workflows)
+        # Exclude 'import-makefile-hint' if the project has no Makefile —
+        # the hint task is meaningless without one (it only echoes a tip
+        # to run `taskfile import Makefile`).
+        has_makefile = (project.path / 'Makefile').exists()
+        mkhint_exclude: set[str] = set() if has_makefile else {'import-makefile-hint'}
+        missing_common_tasks = sorted(
+            (common_tasks - project_tasks) - mkhint_exclude
+        )
+        missing_common_workflows = sorted(
+            (common_workflows - project_workflows) - mkhint_exclude
+        )
+
+        # Sync issues
+        missing_in_doql = sorted(
+            project_tasks - project_workflows - {'import-makefile-hint'}
+        )
+        orphan_workflows = sorted(project_workflows - project_tasks)
+
+        # DOQL structural info
+        doql_entities: list[str] = []
+        doql_databases: list[str] = []
+        doql_interfaces: list[str] = []
+        doql_has_app = False
+        doql_has_deploy = False
+        empty_workflows: list[str] = []
+
+        doql_path = project.path / 'app.doql.css'
+        if doql_path.exists():
+            try:
+                content = doql_path.read_text()
+                doql_entities = re.findall(r'entity\[name="([^"]+)"\]', content)
+                doql_databases = re.findall(r'database\[name="([^"]+)"\]', content)
+                doql_interfaces = re.findall(r'interface\[type="([^"]+)"\]', content)
+                doql_has_app = 'app {' in content
+                doql_has_deploy = 'deploy {' in content
+                for wf_m in re.finditer(
+                    r'workflow\[name="([^"]+)"\]\s*\{([^}]*)\}',
+                    content, re.DOTALL,
+                ):
+                    if 'step-1:' not in wf_m.group(2) and 'step-' not in wf_m.group(2):
+                        empty_workflows.append(wf_m.group(1))
+            except OSError:
+                pass
+
+        # Taskfile structural info
+        taskfile_has_pipeline = False
+        taskfile_has_docker = False
+        taskfile_has_environments = False
+        taskfile_path = project.path / 'Taskfile.yml'
+        if taskfile_path.exists():
+            try:
+                tf_content = taskfile_path.read_text()
+                taskfile_has_pipeline = 'pipeline:' in tf_content
+                taskfile_has_docker = 'docker' in tf_content.lower()
+                taskfile_has_environments = 'environments:' in tf_content
+            except OSError:
+                pass
+
+        # Build issues & recommendations
+        issues: list[str] = []
+        recommendations: list[str] = []
+
+        if not project.has_taskfile:
+            issues.append("No Taskfile.yml")
+        elif len(project.taskfile_tasks) < max(3, median_tasks // 3):
+            issues.append(
+                f"Few tasks ({len(project.taskfile_tasks)} vs median {median_tasks})"
+            )
+
+        if not project.has_doql:
+            issues.append("No app.doql.css")
+        elif not doql_has_app:
+            issues.append("Missing app { } section")
+
+        if empty_workflows:
+            issues.append(f"{len(empty_workflows)} empty workflow(s)")
+
+        if orphan_workflows:
+            issues.append(f"{len(orphan_workflows)} orphan workflow(s)")
+
+        if missing_in_doql:
+            issues.append(
+                f"{len(missing_in_doql)} task(s) not mirrored in doql"
+            )
+
+        if missing_common_tasks:
+            recommendations.append(
+                f"Add common tasks: {', '.join(missing_common_tasks[:5])}"
+                + ('…' if len(missing_common_tasks) > 5 else '')
+            )
+
+        if missing_common_workflows:
+            recommendations.append(
+                f"Add common workflows: {', '.join(missing_common_workflows[:5])}"
+                + ('…' if len(missing_common_workflows) > 5 else '')
+            )
+
+        if taskfile_has_docker and 'health' not in project.taskfile_tasks:
+            recommendations.append("Add 'health' task for Docker services")
+
+        if len(project.taskfile_tasks) > 10 and not taskfile_has_pipeline:
+            recommendations.append("Add 'pipeline:' section for CI/CD")
+
+        if doql_entities and not doql_databases:
+            recommendations.append("Add database { } section for entities")
+
+        if not doql_has_deploy and (taskfile_has_docker or 'deploy' in project.taskfile_tasks):
+            recommendations.append("Add deploy { } section in doql")
+
+        results.append({
+            'path': str(project.path),
+            'name': project.name,
+            # Taskfile metrics
+            'taskfile_tasks': len(project.taskfile_tasks),
+            'taskfile_has_pipeline': taskfile_has_pipeline,
+            'taskfile_has_docker': taskfile_has_docker,
+            'taskfile_has_environments': taskfile_has_environments,
+            # Doql metrics
+            'doql_workflows': len(project.doql_workflows),
+            'doql_entities': len(doql_entities),
+            'doql_databases': len(doql_databases),
+            'doql_interfaces': len(doql_interfaces),
+            'doql_has_app': doql_has_app,
+            'doql_has_deploy': doql_has_deploy,
+            # Peer comparison
+            'median_tasks': median_tasks,
+            'median_workflows': median_workflows,
+            'tasks_vs_median': len(project.taskfile_tasks) - median_tasks,
+            'workflows_vs_median': len(project.doql_workflows) - median_workflows,
+            # Sync / errors
+            'empty_workflows': empty_workflows,
+            'orphan_workflows': orphan_workflows,
+            'tasks_missing_in_doql': missing_in_doql,
+            'missing_common_tasks': missing_common_tasks,
+            'missing_common_workflows': missing_common_workflows,
+            # Summary
+            'issues': issues,
+            'recommendations': recommendations,
+            'has_git': project.has_git,
+        })
+
+    return results
+
+
 def validate_project(project: Project) -> list[str]:
     """Run lightweight validation checks on a project. Returns list of issues."""
     issues = []

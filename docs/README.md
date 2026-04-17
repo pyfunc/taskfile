@@ -1,7 +1,7 @@
 <!-- code2docs:start --># taskfile
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.9-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-895-green)
-> **895** functions | **99** classes | **152** files | CC̄ = 4.3
+> **923** functions | **93** classes | **125** files | CC̄ = 4.3
 
 > Auto-generated project documentation from source code analysis.
 

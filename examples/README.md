@@ -12,8 +12,9 @@ Kompletne przykłady użycia Taskfile dla różnych scenariuszy.
 | [saas-app/](saas-app/) | ⭐⭐ | local/staging/prod, pipeline | SaaS z wieloma env |
 | [multiplatform/](multiplatform/) | ⭐⭐⭐ | Web + Desktop, walidacja, CI/CD gen | Aplikacje multi-platform |
 | [codereview.pl/](codereview.pl/) | ⭐⭐⭐⭐ | Full CI/CD, 6 platform, Quadlet | Real-world produkcyjne |
+| [workspace/](workspace/) | ⭐⭐ | `taskfile workspace` — operacje na wielu projektach (list, compare, fix, run) | Monorepo / folder z wieloma sibling-projektami |
 
-### Publikacja (jeden rejestr)
+### Publikacja
 
 | Przykład | Rejestr | Język | Artefakt |
 |----------|---------|-------|----------|
@@ -22,6 +23,8 @@ Kompletne przykłady użycia Taskfile dla różnych scenariuszy.
 | [publish-cargo/](publish-cargo/) | crates.io | Rust | crate |
 | [publish-docker/](publish-docker/) | GHCR + Docker Hub | dowolny | Docker image (multi-arch) |
 | [publish-github/](publish-github/) | GitHub Releases | Go (przykład) | binaries + checksums |
+| [publish-desktop/](publish-desktop/) | AppImage / .deb / .dmg / .msi | Electron / Tauri | desktop package |
+| [publish-mobile/](publish-mobile/) | App Store + Google Play | React Native / Flutter | mobile app |
 
 ### Patterns & Import
 
@@ -38,7 +41,43 @@ Kompletne przykłady użycia Taskfile dla różnych scenariuszy.
 | Przykład | Złożoność | Cechy | Kiedy użyć |
 |----------|-----------|-------|------------|
 | [fleet-rpi/](fleet-rpi/) | ⭐⭐⭐⭐ | 6 RPi, 3 grupy, rolling/canary | Flota IoT/kiosków |
+| [edge-iot/](edge-iot/) | ⭐⭐⭐ | IoT gateways, 3 strategie grupowe | Edge computing |
 | [multi-artifact/](multi-artifact/) | ⭐⭐⭐⭐⭐ | Python+Rust+Node+Docker → 5 rejestrów | Monorepo multi-język |
+| [monorepo-microservices/](monorepo-microservices/) | ⭐⭐⭐⭐ | platforms, condition, dir, stage | Monorepo mikroserwisów |
+| [fullstack-deploy/](fullstack-deploy/) | ⭐⭐⭐⭐⭐ | **Wszystkie komendy CLI** | Showcase pełnej funkcjonalności |
+| [mega-saas/](mega-saas/) | ⭐⭐⭐⭐⭐ | Duży SaaS z pipeline + environments | Złożony projekt SaaS |
+| [mega-saas-v2/](mega-saas-v2/) | ⭐⭐⭐⭐ | hosts:, deploy:, smart defaults—70% mniej YAML | SaaS wersja v2 |
+| [enhanced-error-reporting/](enhanced-error-reporting/) | ⭐⭐ | --teach, --explain, diagnostyka błędów | Nauka i debugging |
+
+### 🏗️ IaC — Infrastructure as Code (23 narzędzi)
+
+| Przykład | Narzędzie | Kategoria |
+|----------|-----------|-----------|
+| [iac-terraform/](iac-terraform/) | Terraform | Provisioning |
+| [iac-opentofu/](iac-opentofu/) | OpenTofu | Provisioning (open-source) |
+| [iac-terragrunt/](iac-terragrunt/) | Terragrunt | Terraform wrapper |
+| [iac-pulumi/](iac-pulumi/) | Pulumi | Provisioning (TS/Python/Go) |
+| [iac-ansible/](iac-ansible/) | Ansible | Configuration mgmt |
+| [iac-cloudformation/](iac-cloudformation/) | CloudFormation | AWS native IaC |
+| [iac-cdk-aws/](iac-cdk-aws/) | AWS CDK | AWS CDK (TypeScript) |
+| [iac-cdktf/](iac-cdktf/) | CDK for Terraform | CDK + Terraform |
+| [iac-bicep/](iac-bicep/) | Bicep | Azure native IaC |
+| [iac-helm/](iac-helm/) | Helm | Kubernetes packages |
+| [iac-kustomize/](iac-kustomize/) | Kustomize | Kubernetes overlays |
+| [iac-argocd/](iac-argocd/) | ArgoCD | GitOps (K8s) |
+| [iac-fluxcd/](iac-fluxcd/) | FluxCD | GitOps (K8s) |
+| [iac-crossplane/](iac-crossplane/) | Crossplane | K8s-native IaC |
+| [iac-nomad/](iac-nomad/) | Nomad | HashiCorp orchestrator |
+| [iac-serverless/](iac-serverless/) | Serverless Framework | FaaS (Lambda) |
+| [iac-packer/](iac-packer/) | Packer | Image builds |
+| [iac-vagrant/](iac-vagrant/) | Vagrant | VM management |
+| [iac-nixos/](iac-nixos/) | NixOS | Declarative OS config |
+| [iac-docker-compose/](iac-docker-compose/) | Docker Compose | Container orchestration |
+| [iac-gcp-deployment-manager/](iac-gcp-deployment-manager/) | GCP Deployment Manager | GCP native IaC |
+| [cloud-aws/](cloud-aws/) | AWS (Lambda+ECS+S3) | Multi-service cloud |
+| [kubernetes-deploy/](kubernetes-deploy/) | Kubernetes + Helm | Multi-cluster K8s |
+| [quadlet-podman/](quadlet-podman/) | Podman Quadlet | Rootless containers → systemd |
+| [ci-pipeline/](ci-pipeline/) | taskfile CI | Pipeline → 6 platform configs |
 
 ### 🤖 AI Tools — integracja z narzędziami AI
 
@@ -296,6 +335,8 @@ examples/
 ├── saas-app/                 # ⭐⭐ multi-env (local/staging/prod)
 ├── multiplatform/            # ⭐⭐⭐ web+desktop × local+prod
 ├── codereview.pl/            # ⭐⭐⭐⭐ full production project
+├── workspace/                # ⭐⭐ multi-project operations
+├── enhanced-error-reporting/ # ⭐⭐ --teach, --explain
 │
 │  ─── Publishing ───────────────────────────
 ├── publish-pypi/             # 📦 Python → PyPI
@@ -303,27 +344,53 @@ examples/
 ├── publish-cargo/            # 📦 Rust → crates.io
 ├── publish-docker/           # 🐳 Docker → GHCR + Docker Hub
 ├── publish-github/           # 🏷️ Go binaries → GitHub Releases
+├── publish-desktop/          # 🖥️ Electron/Tauri → AppImage/deb/dmg/msi
+├── publish-mobile/           # 📱 React Native/Flutter → stores
 ├── multi-artifact/           # 🏭 Python+Rust+Node+Docker monorepo
 │
 │  ─── Fleet & IoT ──────────────────────────
 ├── fleet-rpi/                # 🤖 RPi fleet, environment_defaults
 ├── edge-iot/                 # 📡 IoT gateways, all 3 group strategies
 │
-│  ─── Infrastructure & Cloud ───────────────
-├── ci-pipeline/              # 🔄 pipeline section, ci generate/run
-├── kubernetes-deploy/        # ☸️  Helm + multi-cluster K8s
+│  ─── Infrastructure & Cloud (23) ──────────
 ├── iac-terraform/            # 🏗️ Terraform multi-env IaC
+├── iac-opentofu/             # 🏗️ OpenTofu (open-source Terraform)
+├── iac-terragrunt/           # 🏗️ Terragrunt multi-module
+├── iac-pulumi/               # 🏗️ Pulumi (TS/Python/Go)
+├── iac-ansible/              # 🏗️ Ansible playbooks
+├── iac-cloudformation/       # ☁️  AWS CloudFormation
+├── iac-cdk-aws/              # ☁️  AWS CDK
+├── iac-cdktf/                # 🏗️ CDK for Terraform
+├── iac-bicep/                # ☁️  Azure Bicep
+├── iac-helm/                 # ☸️  Helm charts
+├── iac-kustomize/            # ☸️  Kustomize overlays
+├── iac-argocd/               # 🔄 ArgoCD GitOps
+├── iac-fluxcd/               # 🔄 FluxCD GitOps
+├── iac-crossplane/           # ☸️  Crossplane K8s-native IaC
+├── iac-nomad/                # 🏗️ HashiCorp Nomad
+├── iac-serverless/           # ⚡ Serverless Framework
+├── iac-packer/               # 🏗️ Packer image builds
+├── iac-vagrant/              # 🏗️ Vagrant VMs
+├── iac-nixos/                # 🐧 NixOS declarative config
+├── iac-docker-compose/       # 🐳 Docker Compose multi-env
+├── iac-gcp-deployment-manager/ # ☁️  GCP Deployment Manager
 ├── cloud-aws/                # ☁️  AWS: Lambda + ECS + S3
+├── kubernetes-deploy/        # ☸️  Helm + multi-cluster K8s
 ├── quadlet-podman/           # 🐧 Podman Quadlet → systemd
+├── ci-pipeline/              # 🔄 pipeline section, ci generate/run
 │
 │  ─── Patterns & Import ──────────────────────
 ├── script-extraction/        # 📝 Taskfile → shell/Python scripts
 ├── ci-generation/            # 🔄 pipeline → 6 CI platforms
 ├── include-split/            # 📦 include: import from other YAML files
+├── functions-embed/          # 🔧 @fn/@python embedded functions
+├── import-cicd/              # 🔄 import from CI/CD configs
 │
 │  ─── Advanced ─────────────────────────────
 ├── monorepo-microservices/   # 🔧 platforms, condition, dir, stage
 ├── fullstack-deploy/         # 🎯 ALL CLI commands showcase
+├── mega-saas/                # 🏭 Large SaaS with full pipeline
+├── mega-saas-v2/             # 🏭 SaaS v2 — 70% less YAML
 │
 │  ─── AI Tools ────────────────────────────
 ├── ai-aider/                 # 🤖 Aider — TDD, review, lint-fix
@@ -332,12 +399,7 @@ examples/
 ├── ai-copilot/               # 🤖 GitHub Copilot — explain, suggest, PR
 ├── ai-cursor/                # 🤖 Cursor — rules, composer, workflows
 ├── ai-windsurf/              # 🤖 Windsurf — rules, Cascade workflows
-├── ai-gemini-cli/            # 🤖 Gemini CLI — multimodal, piped review
-│
-├── Taskfile.softreck.yml
-├── .github-actions-deploy.yml
-├── .gitlab-ci.yml
-└── .gitea-actions-deploy.yml
+└── ai-gemini-cli/            # 🤖 Gemini CLI — multimodal, piped review
 ```
 
 ## Feature Coverage Matrix

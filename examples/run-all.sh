@@ -63,6 +63,12 @@ else
     ((FAILED++))
 fi
 
+if run_example "workspace" "workspace/run.sh"; then
+    ((PASSED++))
+else
+    ((FAILED++))
+fi
+
 # Summary
 echo ""
 echo "═══════════════════════════════════════════════════════════════"

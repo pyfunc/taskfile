@@ -19,6 +19,7 @@ from taskfile.workspace import (
     CommandResult,
     Project,
     analyze_project,
+    compare_projects,
     discover_projects,
     filter_projects,
     fix_project,
@@ -654,4 +655,138 @@ def workspace_analyze(root, depth, output):
         f"\n[bold]{len(analyses)} projects · "
         f"[red]{total_issues} issues[/] · "
         f"[yellow]{total_recs} recommendations[/]"
+    )
+
+
+# ─── workspace compare ───────────────────────────────
+
+
+@workspace.command(name="compare")
+@click.option("--root", "-r", multiple=True, required=True,
+              help="Base path(s) to scan (repeat for multiple)")
+@click.option("--depth", "-d", default=2, type=int, help="Max scan depth")
+@click.option("--output", "-o", default=None,
+              help="Write CSV to file (recommended for full data)")
+@click.option("--threshold", default=0.5, type=float,
+              help="Fraction of peers required for a task/workflow to be 'common' (0.0-1.0)")
+def workspace_compare(root, depth, output, threshold):
+    """Compare projects across one or many roots with peer-benchmarking.
+
+    \b
+    Identifies:
+    - Tasks/workflows missing from this project that are common in peers
+    - Sync issues between Taskfile.yml and app.doql.css
+    - Structural gaps (no database for entities, no deploy section, etc.)
+    - How this project ranks vs peer median
+
+    \b
+    Examples:
+        taskfile workspace compare -r ~/github/semcod -r ~/github/oqlos
+        taskfile workspace compare -r ~/github/semcod -o report.csv
+        taskfile workspace compare -r ~/github/semcod --threshold 0.7
+    """
+    import csv
+
+    # Gather projects from all provided roots
+    all_projects: list[Project] = []
+    for r in root:
+        root_path = Path(r).expanduser().resolve()
+        if not root_path.exists():
+            console.print(f"[red]Error:[/] Path not found: {root_path}")
+            sys.exit(1)
+        projs = discover_projects(root_path, max_depth=depth)
+        all_projects.extend(projs)
+
+    if not all_projects:
+        console.print("[yellow]No projects found in any root[/]")
+        return
+
+    reports = compare_projects(all_projects, common_threshold=threshold)
+
+    if output:
+        # Flatten list columns
+        fieldnames = [
+            'path', 'name',
+            'taskfile_tasks', 'taskfile_has_pipeline', 'taskfile_has_docker',
+            'taskfile_has_environments',
+            'doql_workflows', 'doql_entities', 'doql_databases', 'doql_interfaces',
+            'doql_has_app', 'doql_has_deploy',
+            'median_tasks', 'median_workflows',
+            'tasks_vs_median', 'workflows_vs_median',
+            'empty_workflows', 'orphan_workflows',
+            'tasks_missing_in_doql', 'missing_common_tasks', 'missing_common_workflows',
+            'issues', 'recommendations', 'has_git',
+        ]
+        with open(output, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for r in reports:
+                row = dict(r)
+                for key in (
+                    'empty_workflows', 'orphan_workflows',
+                    'tasks_missing_in_doql',
+                    'missing_common_tasks', 'missing_common_workflows',
+                    'issues', 'recommendations',
+                ):
+                    row[key] = ' | '.join(row[key])
+                writer.writerow(row)
+        console.print(
+            f"[green]Wrote CSV:[/] {output}  ({len(reports)} rows, {len(fieldnames)} columns)"
+        )
+        # Print a short top-line summary table after export
+        _print_compare_summary(reports)
+        return
+
+    _print_compare_summary(reports)
+
+
+def _print_compare_summary(reports: list[dict]) -> None:
+    """Print compact comparison summary to stdout."""
+    if not reports:
+        return
+
+    med_tasks = reports[0]['median_tasks']
+    med_wfs = reports[0]['median_workflows']
+
+    table = Table(
+        title=f"Comparison — {len(reports)} projects (median tasks={med_tasks}, workflows={med_wfs})",
+        box=box.ROUNDED,
+    )
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Project", style="green")
+    table.add_column("T", justify="right")
+    table.add_column("ΔT", justify="right", style="dim")
+    table.add_column("W", justify="right")
+    table.add_column("ΔW", justify="right", style="dim")
+    table.add_column("Issues", style="red")
+    table.add_column("Top recommendation", style="yellow")
+
+    total_issues = 0
+    total_recs = 0
+    for i, r in enumerate(reports, 1):
+        total_issues += len(r['issues'])
+        total_recs += len(r['recommendations'])
+        issues_str = '; '.join(r['issues']) if r['issues'] else '—'
+        rec_str = r['recommendations'][0] if r['recommendations'] else '—'
+        if len(issues_str) > 36:
+            issues_str = issues_str[:33] + '...'
+        if len(rec_str) > 48:
+            rec_str = rec_str[:45] + '...'
+        dt = r['tasks_vs_median']
+        dw = r['workflows_vs_median']
+        dt_str = f"+{dt}" if dt > 0 else str(dt)
+        dw_str = f"+{dw}" if dw > 0 else str(dw)
+        table.add_row(
+            str(i), r['name'],
+            str(r['taskfile_tasks']), dt_str,
+            str(r['doql_workflows']), dw_str,
+            issues_str, rec_str,
+        )
+
+    console.print(table)
+    console.print(
+        f"\n[bold]{len(reports)} projects · "
+        f"[red]{total_issues} issues[/] · "
+        f"[yellow]{total_recs} recommendations[/]  "
+        f"[dim](use -o file.csv for full data)[/]"
     )

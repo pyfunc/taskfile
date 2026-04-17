@@ -1,0 +1,19 @@
+app {
+  name: "gamma";
+  version: "0.1.0";
+}
+
+workflow[name="install"] {
+  trigger: "manual";
+  step-1: run cmd=echo "gamma: install";
+}
+
+workflow[name="test"] {
+  trigger: "manual";
+  step-1: run cmd=echo "gamma: test";
+}
+
+workflow[name="legacy-release"] {
+  trigger: "manual";
+  step-1: run cmd=echo "gamma: legacy-release";
+}

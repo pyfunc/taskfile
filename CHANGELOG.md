@@ -1,5 +1,59 @@
 ## [Unreleased]
 
+### Fixed
+- `workspace compare`: do not flag `import-makefile-hint` as a missing
+  common task/workflow in projects without a `Makefile` — the hint is
+  meaningless there (it only echoes a tip to run `taskfile import Makefile`).
+  Eliminates false-positive recommendations in mixed-project workspaces.
+
+### Added — `taskfile workspace` (multi-project group operations)
+- New module `taskfile.workspace` providing discovery, filtering, and group
+  operations across many local projects under a given path.
+- New CLI command tree `taskfile workspace`:
+  - `list` — list matching projects with filters (`--has-task`,
+    `--has-workflow`, `--taskfile-only`, `--doql-only`, `--docker-only`,
+    `--name REGEX`).
+  - `status` — one-row-per-project overview (git, Taskfile, doql, Docker).
+  - `tasks` / `workflows` — frequency tables across projects.
+  - `validate` — report manifest issues (empty workflows, missing `app{}`, …).
+  - `analyze [-o FILE.csv]` — full metrics + issues + recommendations.
+  - `compare -r ROOT [-r ROOT …] [-o FILE.csv]` — peer-benchmarked
+    comparison across multiple roots (missing common tasks/workflows,
+    sync issues, median delta).
+  - `fix [--dry-run]` — repair manifests (remove `import-makefile-hint`
+    when no Makefile, fill empty workflows, drop orphans, add missing
+    workflows from Taskfile tasks).
+  - `run TASK [--dry-run --fail-fast --name REGEX]` — run a task in every
+    project that has it.
+  - `doctor` — run `taskfile doctor` in every project.
+  - `deploy` — group `taskfile up` / `docker compose up -d`.
+- Python API: `discover_projects`, `filter_projects`, `validate_project`,
+  `analyze_project`, `compare_projects`, `fix_project`, `run_in_project`,
+  `run_task_in_projects`, `Project`, `CommandResult`, `FixResult`.
+- Respects `--depth N` (default 2) and a fixed exclusion list
+  (`venv`, `.venv`, `node_modules`, `dist`, `build`, hidden dirs, …).
+- New docs: `docs/WORKSPACE.md` with full command reference, Python API
+  reference, and CSV column spec for `compare`.
+
+### Added — `doql workspace` (companion command)
+- The sister project `doql` now exposes an equivalent `workspace` command
+  focused on `app.doql.css` manifests. Core commands
+  (`list`/`analyze`/`validate`/`run`) work without external dependencies;
+  `fix` delegates to `taskfile.workspace` when `taskfile` is installed.
+- Analysis columns surface DOQL-specific data: workflows, entities,
+  databases, interfaces.
+
+### Docs
+- `README.md` + `docs/WORKSPACE.md`: new "Workspace" section + Python API
+  examples + full CSV column reference.
+- `docs/WORKSPACE.md`: sibling command note for `doql workspace`.
+
+### Removed
+- Dropped ad-hoc scripts `analyze_projects.py`, `fix_projects.py`,
+  `update_projects.py`, and the generated `projects_analysis.csv` —
+  functionality now lives in `taskfile.workspace` and `taskfile workspace`
+  CLI.
+
 ## [0.3.88] - 2026-04-17
 
 ### Docs

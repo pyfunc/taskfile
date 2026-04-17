@@ -47,6 +47,7 @@ taskfile workspace --help
 | `workflows`                | Frequency table: doql workflows across projects |
 | `validate`                 | Report manifest issues per project |
 | `analyze` / `analyze -o X` | Full metrics + issues + recs, table or CSV |
+| `compare` / `compare -o X` | Peer-benchmarked comparison across one or more roots |
 | `fix`                      | Apply manifest fixes (empty workflows, orphans, missing) |
 | `run <task>`               | Run a task in every project that has it |
 | `doctor`                   | Run `taskfile doctor` in every project |
@@ -135,6 +136,46 @@ CSV columns: `path`, `name`, `taskfile_tasks`, `taskfile_has_pipeline`,
 `taskfile_has_docker`, `taskfile_has_environments`, `doql_workflows`,
 `doql_has_deploy`, `has_git`, `issues`, `recommendations`.
 
+### Peer-benchmarked comparison (multi-root)
+
+When you keep projects in multiple folders, compare them all in one CSV with
+peer-benchmarking (which common tasks/workflows are *you* missing?):
+
+```bash
+# Compact summary to stdout
+taskfile workspace compare -r ~/github/semcod -r ~/github/oqlos
+
+# Full CSV report (recommended)
+taskfile workspace compare -r ~/github/semcod -r ~/github/oqlos \
+  -o ~/github/projects_report.csv
+
+# Stricter "common" definition — task must be present in 70%+ of peers
+taskfile workspace compare -r ~/github/semcod --threshold 0.7 -o report.csv
+```
+
+CSV columns:
+
+| Column | Meaning |
+|--------|---------|
+| `path`, `name` | Absolute path and folder name |
+| `taskfile_tasks`, `doql_workflows` | Count of tasks / workflows |
+| `taskfile_has_pipeline`, `taskfile_has_docker`, `taskfile_has_environments` | Taskfile structural flags |
+| `doql_entities`, `doql_databases`, `doql_interfaces` | DOQL structural counts |
+| `doql_has_app`, `doql_has_deploy` | DOQL structural flags |
+| `median_tasks`, `median_workflows` | Peer median across all projects |
+| `tasks_vs_median`, `workflows_vs_median` | How this project compares to median (+/-) |
+| `empty_workflows` | Workflows declared but with no `step-1` |
+| `orphan_workflows` | doql workflows with no matching Taskfile task |
+| `tasks_missing_in_doql` | Tasks in Taskfile but no workflow |
+| `missing_common_tasks` | Tasks present in most peers but missing here |
+| `missing_common_workflows` | Workflows present in most peers but missing here |
+| `issues` | Human-readable list of problems |
+| `recommendations` | Prioritized list of improvements |
+
+This CSV is the intended single source of truth for "what should I fix across
+all my projects". Load it into a spreadsheet, sort by issues count, and work
+through it top-down.
+
 ### Batch-fix manifest errors
 
 ```bash
@@ -201,6 +242,7 @@ Top-level API exports:
 - `filter_projects(projects, **filters)` — filter by task/workflow/etc.
 - `validate_project(project)` — list of issues (strings)
 - `analyze_project(project)` — dict of metrics + issues + recommendations
+- `compare_projects(projects, common_threshold=0.5)` — list of dicts with peer-benchmark metrics
 - `fix_project(project)` — apply fixes, return `FixResult`
 - `run_in_project(project, command, timeout, capture)` — run a shell command
 - `run_task_in_projects(projects, task_name, timeout)` — convenience wrapper

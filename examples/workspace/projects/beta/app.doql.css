@@ -1,0 +1,14 @@
+app {
+  name: "beta";
+  version: "0.1.0";
+}
+
+workflow[name="install"] {
+  trigger: "manual";
+  step-1: run cmd=echo "beta: install";
+}
+
+workflow[name="test"] {
+  trigger: "manual";
+  step-1: run cmd=echo "beta: test";
+}

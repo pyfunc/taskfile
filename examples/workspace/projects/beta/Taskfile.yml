@@ -1,0 +1,13 @@
+version: '1'
+name: beta
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+    - echo "beta: install"
+
+  test:
+    desc: Run tests
+    cmds:
+    - echo "beta: test"

@@ -1,9 +1,27 @@
-# vallm batch | 421f | 174✓ 10⚠ 1✗ | 2026-04-17
+# vallm batch | 459f | 190✓ 14⚠ 1✗ | 2026-04-17
 
 SUMMARY:
-  scanned: 421  passed: 174 (41.3%)  warnings: 10  errors: 1  unsupported: 246
+  scanned: 459  passed: 190 (41.4%)  warnings: 14  errors: 1  unsupported: 268
 
-WARNINGS[10]{path,score}:
+WARNINGS[14]{path,score}:
+  src/taskfile/workspace.py,0.93
+    issues[5]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,filter_projects has cyclomatic complexity 20 (max: 15),176
+      complexity.cyclomatic,warning,analyze_project has cyclomatic complexity 16 (max: 15),498
+      complexity.maintainability,warning,Low maintainability index: 16.7 (threshold: 20),
+      complexity.lizard_cc,warning,filter_projects: CC=20 exceeds limit 15,176
+      complexity.lizard_cc,warning,analyze_project: CC=16 exceeds limit 15,498
+  src/taskfile/addons/terraform.py,0.97
+    issues[1]{rule,severity,message,line}:
+      complexity.lizard_length,warning,generate_tasks: 120 lines exceeds limit 100,11
+  src/taskfile/cli/workspace_cmd.py,0.97
+    issues[2]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,workspace_list has cyclomatic complexity 16 (max: 15),113
+      complexity.lizard_cc,warning,workspace_list: CC=16 exceeds limit 15,113
+  src/taskfile/scaffold/customize.py,0.97
+    issues[2]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,customise_minimal has cyclomatic complexity 20 (max: 15),209
+      complexity.lizard_cc,warning,customise_minimal: CC=20 exceeds limit 15,209
   src/taskfile/cli/interactive/wizards.py,0.98
     issues[1]{rule,severity,message,line}:
       complexity.maintainability,warning,Low maintainability index: 18.8 (threshold: 20),
@@ -41,8 +59,8 @@ ERRORS[1]{path,score}:
       python.import.relative.resolvable,error,Relative import 'ssh' not found,18
 
 UNSUPPORTED[5]{bucket,count}:
-  *.md,72
+  *.md,73
   *.txt,1
-  *.yml,67
+  *.yml,87
   *.example,55
-  other,51
+  other,52

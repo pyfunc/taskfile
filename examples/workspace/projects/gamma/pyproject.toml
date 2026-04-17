@@ -1,0 +1,4 @@
+[project]
+name = "gamma"
+version = "0.1.0"
+description = "Demo project gamma — has sync issues (tasks without workflows)"

@@ -5,6 +5,8 @@
 #   taskfile run deploy --teach   → learn about @local/@remote behavior
 
 version: "2"
+name: enhanced-error-reporting
+description: Demonstrates enhanced error reporting & teach mode
 
 variables:
   APP_NAME: myapp

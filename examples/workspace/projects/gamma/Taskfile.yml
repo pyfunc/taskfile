@@ -1,0 +1,28 @@
+version: '1'
+name: gamma
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+    - echo "gamma: install"
+
+  test:
+    desc: Run tests
+    cmds:
+    - echo "gamma: test"
+
+  lint:
+    desc: Lint
+    cmds:
+    - echo "gamma: lint"
+
+  build:
+    desc: Build
+    cmds:
+    - echo "gamma: build"
+
+  deploy:
+    desc: Deploy (no matching workflow in doql — sync issue!)
+    cmds:
+    - echo "gamma: deploy"

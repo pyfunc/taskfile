@@ -550,6 +550,99 @@ taskfile pkg uninstall deploy-utils
 taskfile pkg info deploy-utils
 ```
 
+### `taskfile workspace`
+
+Group operations across many local projects under a given path.
+See [WORKSPACE.md](WORKSPACE.md) for the full reference.
+
+#### `taskfile workspace list`
+
+```bash
+# List projects with filters
+taskfile workspace list --root ~/github/semcod --depth 2
+taskfile workspace list --root ~/github/semcod --has-task test
+taskfile workspace list --root ~/github/semcod --docker-only --tasks
+```
+
+#### `taskfile workspace status`
+
+```bash
+# One-row-per-project overview (git, TF, doql, Docker, counts)
+taskfile workspace status --root ~/github/semcod
+```
+
+#### `taskfile workspace tasks` / `workspace workflows`
+
+```bash
+# Frequency tables of tasks / doql workflows across projects
+taskfile workspace tasks --root ~/github/semcod
+taskfile workspace workflows --root ~/github/semcod
+```
+
+#### `taskfile workspace validate`
+
+```bash
+taskfile workspace validate --root ~/github/semcod
+taskfile workspace validate --root ~/github/semcod --strict   # exit 1 on issues
+```
+
+#### `taskfile workspace analyze`
+
+```bash
+taskfile workspace analyze --root ~/github/semcod              # stdout table
+taskfile workspace analyze --root ~/github/semcod -o out.csv   # CSV export
+```
+
+#### `taskfile workspace compare`
+
+Peer-benchmarked comparison across one or more roots. Accepts `--root / -r`
+multiple times.
+
+```bash
+# Stdout summary
+taskfile workspace compare -r ~/github/semcod -r ~/github/oqlos
+
+# Full CSV (24 columns including missing_common_tasks, median deltas, etc.)
+taskfile workspace compare -r ~/github/semcod -r ~/github/oqlos -o report.csv
+
+# Stricter "common" threshold (task must appear in ≥70% of peers)
+taskfile workspace compare -r ~/github/semcod --threshold 0.7 -o report.csv
+```
+
+#### `taskfile workspace fix`
+
+```bash
+# Preview
+taskfile workspace fix --root ~/github/semcod --dry-run
+
+# Apply (empty workflow fill, orphan drop, missing workflow add)
+taskfile workspace fix --root ~/github/semcod
+```
+
+#### `taskfile workspace run`
+
+```bash
+# Run a task in every project that has it
+taskfile workspace run lint --root ~/github/semcod --dry-run
+taskfile workspace run test --root ~/github/semcod --fail-fast
+taskfile workspace run build --root ~/github/semcod --name '^a'
+```
+
+#### `taskfile workspace doctor`
+
+```bash
+taskfile workspace doctor --root ~/github/semcod
+taskfile workspace doctor --root ~/github/semcod -v     # verbose
+```
+
+#### `taskfile workspace deploy`
+
+```bash
+# Runs `taskfile up` or `docker compose up -d` in every Docker project
+taskfile workspace deploy --root ~/github/semcod --dry-run
+taskfile workspace deploy --root ~/github/semcod
+```
+
 ---
 
 ## Command Prefixes in Tasks

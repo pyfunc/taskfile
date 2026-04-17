@@ -903,6 +903,11 @@ taskfile workspace validate --root ~/github/semcod
 # Generate CSV analysis report
 taskfile workspace analyze --root ~/github/semcod -o semcod_analysis.csv
 
+# Peer-benchmarked comparison across MULTIPLE roots (missing common tasks,
+# sync issues, median comparison) — CSV is the intended source of truth
+taskfile workspace compare -r ~/github/semcod -r ~/github/oqlos \
+  -o ~/github/projects_report.csv
+
 # Fix manifest errors (empty workflows, orphan workflows, …)
 taskfile workspace fix --root ~/github/semcod --dry-run
 taskfile workspace fix --root ~/github/semcod
@@ -1254,7 +1259,7 @@ my-project/
 
 ---
 
-## Examples (24 total)
+## Examples (56 total)
 
 ### Getting Started
 
@@ -1264,6 +1269,8 @@ my-project/
 | [saas-app](examples/saas-app/) | ⭐⭐ | local/staging/prod with pipeline |
 | [multiplatform](examples/multiplatform/) | ⭐⭐⭐ | Web + Desktop, CI/CD generation |
 | [codereview.pl](examples/codereview.pl/) | ⭐⭐⭐⭐ | 6 CI platforms, Quadlet, docker-compose |
+| [workspace](examples/workspace/) | ⭐⭐ | `taskfile workspace` — multi-project operations |
+| [enhanced-error-reporting](examples/enhanced-error-reporting/) | ⭐⭐ | `--teach`, `--explain`, error diagnostics |
 
 ### Publishing
 
@@ -1274,6 +1281,8 @@ my-project/
 | [publish-cargo](examples/publish-cargo/) | crates.io | Rust |
 | [publish-docker](examples/publish-docker/) | GHCR + Docker Hub | any (multi-arch) |
 | [publish-github](examples/publish-github/) | GitHub Releases | Go (binaries + checksums) |
+| [publish-desktop](examples/publish-desktop/) | AppImage / .deb / .dmg / .msi | Electron / Tauri |
+| [publish-mobile](examples/publish-mobile/) | App Store + Google Play | React Native / Flutter |
 | [multi-artifact](examples/multi-artifact/) | 5 registries | Python + Rust + Node.js + Docker |
 
 ### Fleet & IoT
@@ -1283,15 +1292,35 @@ my-project/
 | [fleet-rpi](examples/fleet-rpi/) | 6 RPi, `hosts:` shorthand, rolling/canary groups |
 | [edge-iot](examples/edge-iot/) | IoT gateways, `hosts:`, `ssh_port: 2200`, all 3 group strategies, `condition` |
 
-### Infrastructure & Cloud
+### Infrastructure & Cloud (IaC)
 
 | Example | Features |
 |---------|----------|
 | [ci-pipeline](examples/ci-pipeline/) | `pipeline` section, `stage` field, `taskfile ci generate/run/preview`, `condition`, `silent` |
 | [kubernetes-deploy](examples/kubernetes-deploy/) | Helm, multi-cluster (staging + prod-eu + prod-us), canary groups |
-| [iac-terraform](examples/iac-terraform/) | `dir` (working_dir), `env_file`, Terraform plan/apply/destroy, `condition` |
-| [cloud-aws](examples/cloud-aws/) | Lambda + ECS + S3, multi-region, `env_file`, `environment_groups` |
-| [quadlet-podman](examples/quadlet-podman/) | `service_manager: quadlet`, `compose` section, `ssh_port: 2222`, `taskfile deploy/setup` |
+| [iac-terraform](examples/iac-terraform/) | Terraform plan/apply/destroy, `dir`, `env_file`, `condition` |
+| [iac-opentofu](examples/iac-opentofu/) | OpenTofu (open-source Terraform fork) |
+| [iac-terragrunt](examples/iac-terragrunt/) | Terragrunt multi-module IaC |
+| [iac-pulumi](examples/iac-pulumi/) | Pulumi IaC (TypeScript/Python/Go) |
+| [iac-ansible](examples/iac-ansible/) | Ansible playbook integration |
+| [iac-cloudformation](examples/iac-cloudformation/) | AWS CloudFormation stacks |
+| [iac-cdk-aws](examples/iac-aws-cdk/) | AWS CDK (Cloud Development Kit) |
+| [iac-cdktf](examples/iac-cdktf/) | CDK for Terraform |
+| [iac-bicep](examples/iac-bicep/) | Azure Bicep deployments |
+| [iac-helm](examples/iac-helm/) | Helm chart management |
+| [iac-kustomize](examples/iac-kustomize/) | Kustomize overlays |
+| [iac-argocd](examples/iac-argocd/) | ArgoCD GitOps |
+| [iac-fluxcd](examples/iac-fluxcd/) | FluxCD GitOps |
+| [iac-crossplane](examples/iac-crossplane/) | Crossplane Kubernetes-native IaC |
+| [iac-nomad](examples/iac-nomad/) | HashiCorp Nomad jobs |
+| [iac-serverless](examples/iac-serverless/) | Serverless Framework (AWS Lambda) |
+| [iac-packer](examples/iac-packer/) | Packer image builds |
+| [iac-vagrant](examples/iac-vagrant/) | Vagrant VM management |
+| [iac-nixos](examples/iac-nixos/) | NixOS declarative config |
+| [iac-docker-compose](examples/iac-docker-compose/) | Docker Compose multi-env |
+| [iac-gcp-deployment-manager](examples/iac-gcp-deployment-manager/) | GCP Deployment Manager |
+| [cloud-aws](examples/cloud-aws/) | Lambda + ECS + S3, multi-region, `environment_groups` |
+| [quadlet-podman](examples/quadlet-podman/) | `service_manager: quadlet`, Podman → systemd |
 
 ### Patterns & Import
 
@@ -1309,7 +1338,20 @@ my-project/
 |---------|----------|
 | [monorepo-microservices](examples/monorepo-microservices/) | `platforms`, `build_cmd`/`deploy_cmd`, `condition`, `dir`, `stage`, `platform` filter |
 | [fullstack-deploy](examples/fullstack-deploy/) | **ALL CLI commands**: deploy, setup, release, init, validate, info, ci, --dry-run |
+| [mega-saas](examples/mega-saas/) | Large SaaS with full pipeline, environments, groups |
 | [mega-saas-v2](examples/mega-saas-v2/) | `hosts:`, `deploy:`, `addons:`, smart defaults — **70% less YAML** vs mega-saas |
+
+### 🤖 AI Tools
+
+| Example | Tool |
+|---------|------|
+| [ai-aider](examples/ai-aider/) | Aider — TDD, review, lint-fix |
+| [ai-claude-code](examples/ai-claude-code/) | Claude Code — piped review, refactor |
+| [ai-codex](examples/ai-codex/) | OpenAI Codex — autonomous, sandbox |
+| [ai-copilot](examples/ai-copilot/) | GitHub Copilot — explain, suggest, PR |
+| [ai-cursor](examples/ai-cursor/) | Cursor — rules, Composer, workflows |
+| [ai-windsurf](examples/ai-windsurf/) | Windsurf — rules, Cascade workflows |
+| [ai-gemini-cli](examples/ai-gemini-cli/) | Gemini CLI — multimodal, piped review |
 
 ```bash
 # CI pipeline — generate + run locally
@@ -1626,7 +1668,7 @@ taskfile/
 │   ├── scaffold/          # Template generation
 │   └── cigen/             # CI/CD generators
 ├── tests/                  # Test suite
-├── examples/               # Example configurations (24 examples)
+├── examples/               # Example configurations (56 examples)
 ├── docs/                   # Documentation
 └── Taskfile.yml           # Project's own tasks
 ```
@@ -1685,7 +1727,7 @@ pytest --cov=taskfile -m "not slow"
 
 ### Test Performance Summary
 
-- **Full suite**: ~24s (876 tests including e2e SSH tests)
+- **Full suite**: ~22s (918 tests including e2e SSH tests)
 - **Fast tests only**: ~15s (skips slow SSH integration tests)
 - **Slow tests**: e2e SSH connectivity tests (5+ seconds each)
 

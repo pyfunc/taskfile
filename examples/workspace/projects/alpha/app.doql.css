@@ -1,0 +1,24 @@
+app {
+  name: "alpha";
+  version: "0.1.0";
+}
+
+workflow[name="install"] {
+  trigger: "manual";
+  step-1: run cmd=echo "alpha: install";
+}
+
+workflow[name="test"] {
+  trigger: "manual";
+  step-1: run cmd=echo "alpha: test";
+}
+
+workflow[name="lint"] {
+  trigger: "manual";
+  step-1: run cmd=echo "alpha: lint";
+}
+
+workflow[name="build"] {
+  trigger: "manual";
+  step-1: run cmd=echo "alpha: build";
+}
