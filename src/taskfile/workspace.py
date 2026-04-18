@@ -736,27 +736,32 @@ def _analyze_taskfile_structure(project: Project) -> _TaskfileAnalysis:
         return _TaskfileAnalysis(False, False, False)
 
 
-def _build_comparison_result(
+def _compute_missing_items(
     project: Project,
     stats: _PeerStats,
-    doql: _DoqlAnalysis,
-    tf: _TaskfileAnalysis,
-) -> dict:
-    """Build the comparison result dict for a single project."""
-    project_tasks = set(project.taskfile_tasks)
-    project_workflows = set(project.doql_workflows)
-
-    # Compute missing common items (exclude import-makefile-hint if no Makefile)
+    project_tasks: set[str],
+    project_workflows: set[str],
+) -> tuple[set[str], list[str], list[str], list[str], list[str]]:
+    """Compute missing common items and sync issues.
+    Returns: (mkhint_exclude, missing_common_tasks, missing_common_workflows, missing_in_doql, orphan_workflows)
+    """
     has_makefile = (project.path / 'Makefile').exists()
     mkhint_exclude: set[str] = set() if has_makefile else {'import-makefile-hint'}
     missing_common_tasks = sorted((stats.common_tasks - project_tasks) - mkhint_exclude)
     missing_common_workflows = sorted((stats.common_workflows - project_workflows) - mkhint_exclude)
-
-    # Sync issues
     missing_in_doql = sorted(project_tasks - project_workflows - {'import-makefile-hint'})
     orphan_workflows = sorted(project_workflows - project_tasks)
+    return mkhint_exclude, missing_common_tasks, missing_common_workflows, missing_in_doql, orphan_workflows
 
-    # Build issues list
+
+def _build_comparison_issues(
+    project: Project,
+    doql: _DoqlAnalysis,
+    stats: _PeerStats,
+    orphan_workflows: list[str],
+    missing_in_doql: list[str],
+) -> list[str]:
+    """Build the issues list for comparison result."""
     issues: list[str] = []
     if not project.has_taskfile:
         issues.append("No Taskfile.yml")
@@ -774,8 +779,17 @@ def _build_comparison_result(
         issues.append(f"{len(orphan_workflows)} orphan workflow(s)")
     if missing_in_doql:
         issues.append(f"{len(missing_in_doql)} task(s) not mirrored in doql")
+    return issues
 
-    # Build recommendations list
+
+def _build_comparison_recommendations(
+    project: Project,
+    doql: _DoqlAnalysis,
+    tf: _TaskfileAnalysis,
+    missing_common_tasks: list[str],
+    missing_common_workflows: list[str],
+) -> list[str]:
+    """Build the recommendations list for comparison result."""
     recommendations: list[str] = []
     if missing_common_tasks:
         rec = f"Add common tasks: {', '.join(missing_common_tasks[:5])}"
@@ -791,6 +805,25 @@ def _build_comparison_result(
         recommendations.append("Add database { } section for entities")
     if not doql.has_deploy and (tf.has_docker or 'deploy' in project.taskfile_tasks):
         recommendations.append("Add deploy { } section in doql")
+    return recommendations
+
+
+def _build_comparison_result(
+    project: Project,
+    stats: _PeerStats,
+    doql: _DoqlAnalysis,
+    tf: _TaskfileAnalysis,
+) -> dict:
+    """Build the comparison result dict for a single project."""
+    project_tasks = set(project.taskfile_tasks)
+    project_workflows = set(project.doql_workflows)
+
+    _, missing_common_tasks, missing_common_workflows, missing_in_doql, orphan_workflows = _compute_missing_items(
+        project, stats, project_tasks, project_workflows
+    )
+
+    issues = _build_comparison_issues(project, doql, stats, orphan_workflows, missing_in_doql)
+    recommendations = _build_comparison_recommendations(project, doql, tf, missing_common_tasks, missing_common_workflows)
 
     return {
         'path': str(project.path),

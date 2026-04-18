@@ -54,6 +54,26 @@
   functionality now lives in `taskfile.workspace` and `taskfile workspace`
   CLI.
 
+## [0.3.89] - 2026-04-18
+
+### Docs
+- Update README.md
+- Update TODO.md
+- Update docs/README.md
+- Update project/README.md
+
+### Other
+- Update project/analysis.toon.yaml
+- Update project/calls.png
+- Update project/compact_flow.png
+- Update project/duplication.toon.yaml
+- Update project/evolution.toon.yaml
+- Update project/flow.png
+- Update project/index.html
+- Update project/project.toon.yaml
+- Update project/prompt.txt
+- Update project/validation.toon.yaml
+
 ## [0.3.88] - 2026-04-17
 
 ### Docs

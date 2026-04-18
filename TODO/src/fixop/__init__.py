@@ -4,6 +4,6 @@ from __future__ import annotations
 
 from .cli import main
 
-__version__ = "0.3.88"
+__version__ = "0.3.89"
 
 __all__ = ["__version__", "main"]

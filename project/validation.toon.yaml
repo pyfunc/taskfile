@@ -1,19 +1,9 @@
-# vallm batch | 472f | 195✓ 15⚠ 1✗ | 2026-04-18
+# vallm batch | 472f | 195✓ 14⚠ 1✗ | 2026-04-18
 
 SUMMARY:
-  scanned: 472  passed: 195 (41.3%)  warnings: 15  errors: 1  unsupported: 276
+  scanned: 472  passed: 195 (41.3%)  warnings: 14  errors: 1  unsupported: 276
 
-WARNINGS[15]{path,score}:
-  src/taskfile/workspace.py,0.87
-    issues[8]{rule,severity,message,line}:
-      complexity.cyclomatic,warning,filter_projects has cyclomatic complexity 20 (max: 15),176
-      complexity.cyclomatic,warning,analyze_project has cyclomatic complexity 16 (max: 15),498
-      complexity.cyclomatic,warning,compare_projects has cyclomatic complexity 42 (max: 15),575
-      complexity.maintainability,warning,Low maintainability index: 10.3 (threshold: 20),
-      complexity.lizard_cc,warning,filter_projects: CC=20 exceeds limit 15,176
-      complexity.lizard_cc,warning,analyze_project: CC=16 exceeds limit 15,498
-      complexity.lizard_cc,warning,compare_projects: CC=42 exceeds limit 15,575
-      complexity.lizard_length,warning,compare_projects: 135 lines exceeds limit 100,575
+WARNINGS[14]{path,score}:
   analyze_all_projects.py,0.90
     issues[5]{rule,severity,message,line}:
       complexity.cyclomatic,warning,analyze_project has cyclomatic complexity 26 (max: 15),157
@@ -21,21 +11,22 @@ WARNINGS[15]{path,score}:
       complexity.lizard_cc,warning,analyze_project: CC=26 exceeds limit 15,157
       complexity.lizard_length,warning,analyze_project: 124 lines exceeds limit 100,157
       complexity.lizard_cc,warning,main: CC=35 exceeds limit 15,543
-  src/taskfile/cli/workspace_cmd.py,0.96
-    issues[3]{rule,severity,message,line}:
-      complexity.cyclomatic,warning,workspace_list has cyclomatic complexity 16 (max: 15),114
-      complexity.maintainability,warning,Low maintainability index: 17.4 (threshold: 20),
-      complexity.lizard_cc,warning,workspace_list: CC=16 exceeds limit 15,114
+  src/taskfile/workspace.py,0.93
+    issues[5]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,filter_projects has cyclomatic complexity 19 (max: 15),191
+      complexity.cyclomatic,warning,_build_comparison_result has cyclomatic complexity 22 (max: 15),739
+      complexity.maintainability,warning,Low maintainability index: 4.3 (threshold: 20),
+      complexity.lizard_cc,warning,filter_projects: CC=19 exceeds limit 15,191
+      complexity.lizard_cc,warning,_build_comparison_result: CC=22 exceeds limit 15,739
   src/taskfile/addons/terraform.py,0.97
     issues[1]{rule,severity,message,line}:
       complexity.lizard_length,warning,generate_tasks: 120 lines exceeds limit 100,11
-  src/taskfile/scaffold/customize.py,0.97
-    issues[2]{rule,severity,message,line}:
-      complexity.cyclomatic,warning,customise_minimal has cyclomatic complexity 20 (max: 15),209
-      complexity.lizard_cc,warning,customise_minimal: CC=20 exceeds limit 15,209
   src/taskfile/cli/interactive/wizards.py,0.98
     issues[1]{rule,severity,message,line}:
       complexity.maintainability,warning,Low maintainability index: 18.8 (threshold: 20),
+  src/taskfile/cli/workspace_cmd.py,0.98
+    issues[1]{rule,severity,message,line}:
+      complexity.maintainability,warning,Low maintainability index: 16.5 (threshold: 20),
   src/taskfile/runner/core.py,0.98
     issues[1]{rule,severity,message,line}:
       complexity.maintainability,warning,Low maintainability index: 19.0 (threshold: 20),

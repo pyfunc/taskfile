@@ -1,12 +1,12 @@
-# redup/duplication | 9 groups | 137f 26623L | 2026-04-18
+# redup/duplication | 10 groups | 137f 26728L | 2026-04-18
 
 SUMMARY:
   files_scanned: 137
-  total_lines:   26623
-  dup_groups:    9
-  dup_fragments: 24
-  saved_lines:   181
-  scan_ms:       5333
+  total_lines:   26728
+  dup_groups:    10
+  dup_fragments: 26
+  saved_lines:   184
+  scan_ms:       5622
 
 HOTSPOTS[7] (files with most duplication):
   examples/mega-saas/scripts/report.py  dup=64L  groups=1  frags=1  (0.2%)
@@ -17,7 +17,7 @@ HOTSPOTS[7] (files with most duplication):
   src/taskfile/cli/interactive/menu.py  dup=20L  groups=1  frags=1  (0.1%)
   src/taskfile/cli/fleet.py  dup=14L  groups=1  frags=1  (0.1%)
 
-DUPLICATES[9] (ranked by impact):
+DUPLICATES[10] (ranked by impact):
   [862479f3e75e71fe] ! EXAC  generate_report  L=64 N=2 saved=64 sim=1.00
       examples/mega-saas/scripts/report.py:8-71  (generate_report)
       examples/mega-saas-v2/scripts/report.py:8-71  (generate_report)
@@ -31,8 +31,8 @@ DUPLICATES[9] (ranked by impact):
       src/taskfile/cli/version.py:28-37  (version)
       src/taskfile/cli/workspace_cmd.py:82-97  (workspace)
   [f0c6531e3653a933]   STRU  workspace_tasks  L=24 N=2 saved=24 sim=1.00
-      src/taskfile/cli/workspace_cmd.py:172-195  (workspace_tasks)
-      src/taskfile/cli/workspace_cmd.py:204-227  (workspace_workflows)
+      src/taskfile/cli/workspace_cmd.py:186-209  (workspace_tasks)
+      src/taskfile/cli/workspace_cmd.py:218-241  (workspace_workflows)
   [206a4c173320ed3c]   STRU  setup  L=20 N=2 saved=20 sim=1.00
       src/taskfile/cli/interactive/menu.py:18-37  (setup)
       src/taskfile/cli/quadlet.py:9-36  (quadlet)
@@ -51,8 +51,11 @@ DUPLICATES[9] (ranked by impact):
   [9222e864f5a6f6df]   STRU  _validate_task_env_filter  L=3 N=2 saved=3 sim=1.00
       src/taskfile/parser.py:265-267  (_validate_task_env_filter)
       src/taskfile/parser.py:270-272  (_validate_task_platform_filter)
+  [452988d98472778b]   STRU  _matches_task_filter  L=3 N=2 saved=3 sim=1.00
+      src/taskfile/workspace.py:176-178  (_matches_task_filter)
+      src/taskfile/workspace.py:181-183  (_matches_workflow_filter)
 
-REFACTOR[9] (ranked by priority):
+REFACTOR[10] (ranked by priority):
   [1] ◐ extract_module     → examples/utils/generate_report.py
       WHY: 2 occurrences of 64-line block across 2 files — saves 64 lines
       FILES: examples/mega-saas-v2/scripts/report.py, examples/mega-saas/scripts/report.py
@@ -80,6 +83,9 @@ REFACTOR[9] (ranked by priority):
   [9] ○ extract_function   → src/taskfile/utils/_validate_task_env_filter.py
       WHY: 2 occurrences of 3-line block across 1 files — saves 3 lines
       FILES: src/taskfile/parser.py
+  [10] ○ extract_function   → src/taskfile/utils/_matches_task_filter.py
+      WHY: 2 occurrences of 3-line block across 1 files — saves 3 lines
+      FILES: src/taskfile/workspace.py
 
 QUICK_WINS[3] (low risk, high savings — do first):
   [2] extract_function   saved=56L  → src/taskfile/cli/utils/api.py
@@ -89,7 +95,7 @@ QUICK_WINS[3] (low risk, high savings — do first):
   [4] extract_function   saved=20L  → src/taskfile/cli/utils/setup.py
       FILES: menu.py, quadlet.py
 
-EFFORT_ESTIMATE (total ≈ 7.1h):
+EFFORT_ESTIMATE (total ≈ 7.2h):
   hard   generate_report                     saved=64L  ~192min
   hard   api                                 saved=56L  ~112min
   medium workspace_tasks                     saved=24L  ~48min
@@ -99,7 +105,8 @@ EFFORT_ESTIMATE (total ≈ 7.1h):
   easy   check_ssh_connectivity              saved=3L  ~6min
   easy   _import_gitlab_ci                   saved=3L  ~6min
   easy   _validate_task_env_filter           saved=3L  ~6min
+  easy   _matches_task_filter                saved=3L  ~6min
 
 METRICS-TARGET:
-  dup_groups:  9 → 0
-  saved_lines: 181 lines recoverable
+  dup_groups:  10 → 0
+  saved_lines: 184 lines recoverable
