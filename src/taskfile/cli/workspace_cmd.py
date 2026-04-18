@@ -100,6 +100,43 @@ def workspace():
 # ─── workspace list ───────────────────────────────────
 
 
+def _build_projects_table(root: str, show_tasks: bool, show_workflows: bool) -> Table:
+    """Build table structure for workspace list output."""
+    table = Table(title=f"Projects in {root}", box=box.ROUNDED)
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Name", style="green")
+    table.add_column("Path", style="dim")
+    table.add_column("TF", justify="center")
+    table.add_column("doql", justify="center")
+    table.add_column("Docker", justify="center")
+    if show_tasks:
+        table.add_column("Tasks", style="cyan")
+    if show_workflows:
+        table.add_column("Workflows", style="magenta")
+    return table
+
+
+def _format_project_row(
+    project, index: int, show_tasks: bool, show_workflows: bool
+) -> list[str]:
+    """Format a project as a table row."""
+    row = [
+        str(index),
+        project.name,
+        str(project.path),
+        "✓" if project.has_taskfile else "—",
+        "✓" if project.has_doql else "—",
+        "✓" if (project.has_docker_compose or project.has_dockerfile) else "—",
+    ]
+    if show_tasks:
+        tasks_str = ", ".join(project.taskfile_tasks[:5])
+        row.append(tasks_str + ("…" if len(project.taskfile_tasks) > 5 else ""))
+    if show_workflows:
+        wfs_str = ", ".join(project.doql_workflows[:5])
+        row.append(wfs_str + ("…" if len(project.doql_workflows) > 5 else ""))
+    return row
+
+
 @workspace.command(name="list")
 @click.option("--root", "-r", default=".", help="Base path to scan")
 @click.option("--depth", "-d", default=2, type=int, help="Max scan depth (default: 2)")
@@ -132,32 +169,9 @@ def workspace_list(
         console.print("[yellow]No projects match the filters.[/]")
         return
 
-    table = Table(title=f"Projects in {root}", box=box.ROUNDED)
-    table.add_column("#", style="dim", width=4)
-    table.add_column("Name", style="green")
-    table.add_column("Path", style="dim")
-    table.add_column("TF", justify="center")
-    table.add_column("doql", justify="center")
-    table.add_column("Docker", justify="center")
-    if tasks:
-        table.add_column("Tasks", style="cyan")
-    if workflows:
-        table.add_column("Workflows", style="magenta")
-
+    table = _build_projects_table(root, tasks, workflows)
     for i, project in enumerate(projects, 1):
-        row = [
-            str(i),
-            project.name,
-            str(project.path),
-            "✓" if project.has_taskfile else "—",
-            "✓" if project.has_doql else "—",
-            "✓" if (project.has_docker_compose or project.has_dockerfile) else "—",
-        ]
-        if tasks:
-            row.append(", ".join(project.taskfile_tasks[:5]) + ("…" if len(project.taskfile_tasks) > 5 else ""))
-        if workflows:
-            row.append(", ".join(project.doql_workflows[:5]) + ("…" if len(project.doql_workflows) > 5 else ""))
-        table.add_row(*row)
+        table.add_row(*_format_project_row(project, i, tasks, workflows))
 
     console.print(table)
     _print_summary_line(projects, root)
@@ -230,6 +244,36 @@ def workspace_workflows(root, depth):
 # ─── workspace run ────────────────────────────────────
 
 
+def _print_task_result(result: CommandResult, fail_fast: bool) -> bool:
+    """Print result of a single task execution. Returns True if should stop."""
+    if result.success:
+        console.print("[green]  ✓ OK[/]")
+        return False
+
+    console.print(f"[red]  ✗ FAILED (rc={result.returncode})[/]")
+    if result.stderr:
+        tail = result.stderr.strip().splitlines()[-5:]
+        for line in tail:
+            console.print(f"[red]    {line}[/]")
+    if fail_fast:
+        console.print("\n[red]Stopped (--fail-fast)[/]")
+        return True
+    return False
+
+
+def _print_run_summary(results: list[CommandResult]) -> None:
+    """Print summary of task execution results."""
+    ok = sum(1 for r in results if r.success)
+    console.print(f"\n[bold]Summary: [green]{ok}[/]/{len(results)} successful[/]")
+
+    if ok < len(results):
+        console.print("\n[red]Failed projects:[/]")
+        for r in results:
+            if not r.success:
+                console.print(f"  [red]✗[/] {r.project.name} ({r.project.path})")
+        sys.exit(1)
+
+
 @workspace.command(name="run")
 @click.argument("task_name")
 @click.option("--root", "-r", default=".", help="Base path to scan")
@@ -282,28 +326,10 @@ def workspace_run(task_name, root, depth, name, timeout, dry_run, fail_fast, con
         )
         results.append(result)
 
-        if result.success:
-            console.print(f"[green]  ✓ OK[/]")
-        else:
-            console.print(f"[red]  ✗ FAILED (rc={result.returncode})[/]")
-            if result.stderr:
-                tail = result.stderr.strip().splitlines()[-5:]
-                for line in tail:
-                    console.print(f"[red]    {line}[/]")
-            if fail_fast:
-                console.print("\n[red]Stopped (--fail-fast)[/]")
-                break
+        if _print_task_result(result, fail_fast):
+            break
 
-    # Summary
-    ok = sum(1 for r in results if r.success)
-    console.print(f"\n[bold]Summary: [green]{ok}[/]/{len(results)} successful[/]")
-
-    if ok < len(results):
-        console.print("\n[red]Failed projects:[/]")
-        for r in results:
-            if not r.success:
-                console.print(f"  [red]✗[/] {r.project.name} ({r.project.path})")
-        sys.exit(1)
+    _print_run_summary(results)
 
 
 # ─── workspace doctor ─────────────────────────────────

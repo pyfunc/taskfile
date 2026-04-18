@@ -1,6 +1,9 @@
 flowchart TD
     TODO["TODO<br/>3 funcs"]
     TODO__dns["TODO.dns<br/>6 funcs"]
-    src__taskfile["src.taskfile<br/>868 funcs"]
+    analyze_all_projects["analyze_all_projects<br/>14 funcs"]
+    src__taskfile["src.taskfile<br/>893 funcs"]
+    analyze_all_projects ==>|8| src__taskfile
     TODO -->|3| TODO__dns
+    src__taskfile -->|3| analyze_all_projects
     TODO -->|2| src__taskfile

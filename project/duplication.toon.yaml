@@ -1,17 +1,17 @@
-# redup/duplication | 9 groups | 136f 25582L | 2026-04-17
+# redup/duplication | 9 groups | 137f 26623L | 2026-04-18
 
 SUMMARY:
-  files_scanned: 136
-  total_lines:   25582
+  files_scanned: 137
+  total_lines:   26623
   dup_groups:    9
   dup_fragments: 24
   saved_lines:   181
-  scan_ms:       5299
+  scan_ms:       5333
 
 HOTSPOTS[7] (files with most duplication):
-  examples/mega-saas/scripts/report.py  dup=64L  groups=1  frags=1  (0.3%)
-  examples/mega-saas-v2/scripts/report.py  dup=64L  groups=1  frags=1  (0.3%)
-  src/taskfile/cli/workspace_cmd.py  dup=64L  groups=2  frags=3  (0.3%)
+  examples/mega-saas/scripts/report.py  dup=64L  groups=1  frags=1  (0.2%)
+  examples/mega-saas-v2/scripts/report.py  dup=64L  groups=1  frags=1  (0.2%)
+  src/taskfile/cli/workspace_cmd.py  dup=64L  groups=2  frags=3  (0.2%)
   src/taskfile/cli/quadlet.py  dup=28L  groups=1  frags=1  (0.1%)
   src/taskfile/notifications.py  dup=21L  groups=1  frags=2  (0.1%)
   src/taskfile/cli/interactive/menu.py  dup=20L  groups=1  frags=1  (0.1%)
@@ -29,10 +29,10 @@ DUPLICATES[9] (ranked by impact):
       src/taskfile/cli/fleet.py:250-263  (fleet)
       src/taskfile/cli/registry_cmds.py:19-32  (pkg)
       src/taskfile/cli/version.py:28-37  (version)
-      src/taskfile/cli/workspace_cmd.py:81-96  (workspace)
+      src/taskfile/cli/workspace_cmd.py:82-97  (workspace)
   [f0c6531e3653a933]   STRU  workspace_tasks  L=24 N=2 saved=24 sim=1.00
-      src/taskfile/cli/workspace_cmd.py:171-194  (workspace_tasks)
-      src/taskfile/cli/workspace_cmd.py:203-226  (workspace_workflows)
+      src/taskfile/cli/workspace_cmd.py:172-195  (workspace_tasks)
+      src/taskfile/cli/workspace_cmd.py:204-227  (workspace_workflows)
   [206a4c173320ed3c]   STRU  setup  L=20 N=2 saved=20 sim=1.00
       src/taskfile/cli/interactive/menu.py:18-37  (setup)
       src/taskfile/cli/quadlet.py:9-36  (quadlet)

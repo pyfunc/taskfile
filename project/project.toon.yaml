@@ -1,39 +1,43 @@
-# taskfile | 881 func | 109f | 36393L | python | 2026-04-17
+# taskfile | 903 func | 110f | 37553L | python | 2026-04-18
 
 HEALTH:
-  CC̄=4.3  critical=55 (limit:10)  dup=5  cycles=0
+  CC̄=4.4  critical=59 (limit:10)  dup=5  cycles=0
 
 ALERTS[20]:
+  !!! cc_exceeded      compare_projects = 42 (limit:15)
+  !!! cc_exceeded      main = 35 (limit:15)
+  !!! cc_exceeded      analyze_project = 26 (limit:15)
+  !!! high_fan_out     main = 25 (limit:10)
+  !!! high_fan_out     compare_projects = 24 (limit:10)
   !!! high_fan_out     register_run_routes = 23 (limit:10)
   !!! high_fan_out     customise_minimal = 21 (limit:10)
   !!! high_fan_out     prod = 21 (limit:10)
   !!! high_fan_out     bump = 20 (limit:10)
   !!  cc_exceeded      filter_projects = 20 (limit:15)
-  !!  cc_exceeded      customise_minimal = 20 (limit:15)
-  !!  high_fan_out     RegistryClient._install_from_github = 18 (limit:10)
-  !!  high_fan_out     e2e_cmd = 18 (limit:10)
-  !!  high_fan_out     ProjectDiagnostics.run_all_checks = 17 (limit:10)
-  !!  high_fan_out     workspace_analyze = 17 (limit:10)
 
-MODULES[131] (top by size):
+MODULES[132] (top by size):
+  M[src/taskfile/workspace.py] 794L C:3 F:18 CC↑42 D:1 (python)
+  M[src/taskfile/cli/workspace_cmd.py] 792L C:0 F:15 CC↑16 D:0 (python)
   M[src/taskfile/cli/interactive/wizards.py] 696L C:1 F:26 CC↑13 D:0 (python)
-  M[src/taskfile/cli/workspace_cmd.py] 657L C:0 F:13 CC↑16 D:0 (python)
-  M[src/taskfile/workspace.py] 602L C:3 F:17 CC↑20 D:1 (python)
+  M[analyze_all_projects.py] 656L C:0 F:14 CC↑35 D:1 (python)
   M[src/taskfile/runner/commands.py] 575L C:0 F:28 CC↑11 D:1 (python)
   M[src/taskfile/cli/interactive/menu.py] 552L C:0 F:9 CC↑8 D:0 (python)
+  M[src/taskfile/cli/main.py] 525L C:0 F:19 CC↑14 D:3 (python)
   M[src/taskfile/diagnostics/checks.py] 497L C:0 F:17 CC↑10 D:1 (python)
-  M[src/taskfile/deploy_utils.py] 492L C:2 F:18 CC↑6 D:5 (python)
+  M[src/taskfile/deploy_utils.py] 492L C:2 F:18 CC↑6 D:4 (python)
   M[src/taskfile/runner/core.py] 486L C:2 F:34 CC↑8 D:0 (python)
   M[src/taskfile/deploy_recipes.py] 484L C:0 F:17 CC↑5 D:1 (python)
   M[src/taskfile/fleet.py] 483L C:5 F:16 CC↑10 D:0 (python)
-  M[src/taskfile/cli/main.py] 467L C:0 F:14 CC↑14 D:3 (python)
   M[src/taskfile/health.py] 458L C:2 F:10 CC↑11 D:2 (python)
-  M[src/taskfile/importer.py] 452L C:0 F:21 CC↑12 D:4 (python)
+  M[src/taskfile/importer.py] 452L C:0 F:21 CC↑12 D:2 (python)
   M[src/taskfile/cli/setup.py] 448L C:1 F:15 CC↑10 D:0 (python)
-  M[src/taskfile/webui/dashboard.py] 424L C:0 F:1 CC↑1 D:1 (python)
-  LANGS: python:130/shell:1
+  LANGS: python:131/shell:1
 
 HOTSPOTS[10]:
+  ★ main fan=25  // Orchestrates 25 calls
+  ★ compare_projects fan=24  // Compare projects against each other (peer benchmarking).
+
+For each project, comp
   ★ register_run_routes fan=23  // Register task execution endpoint.
   ★ customise_minimal fan=21  // Rewrite the *content* of the minimal template based on *project_root*.
 
@@ -41,17 +45,13 @@ The orig
   ★ prod fan=21  // **Interactive production server setup** — SSH, podman, .env.
 
 All-in-one interac
-  ★ bump fan=20  // Bump version number (patch, minor, or major).
 
-Updates VERSION file and optional
-  ★ RegistryClient._install_from_github fan=18  // Install package from GitHub repository.
-
-REFACTOR[13]:
-  [1] H/H Split god module src/taskfile/workspace.py (602L, 3 classes)
-  [2] H/H Split god module src/taskfile/cli/workspace_cmd.py (657L, 0 classes)
-  [3] H/H Split god module src/taskfile/cli/interactive/wizards.py (696L, 1 classes)
-  [4] H/H Split god module src/taskfile/runner/commands.py (575L, 0 classes)
-  [5] H/H Split god module src/taskfile/cli/interactive/menu.py (552L, 0 classes)
+REFACTOR[15]:
+  [1] H/L Split analyze_project (CC=26 → target CC<10)
+  [2] H/L Split main (CC=35 → target CC<10)
+  [3] H/L Split compare_projects (CC=42 → target CC<10)
+  [4] H/H Split god module src/taskfile/workspace.py (794L, 3 classes)
+  [5] H/H Split god module analyze_all_projects.py (656L, 0 classes)
 
 EVOLUTION:
-  2026-04-17 CC̄=4.3 crit=55 36393L // Automated analysis
+  2026-04-18 CC̄=4.4 crit=59 37553L // Automated analysis

@@ -1,23 +1,34 @@
-# vallm batch | 459f | 190✓ 14⚠ 1✗ | 2026-04-17
+# vallm batch | 472f | 195✓ 15⚠ 1✗ | 2026-04-18
 
 SUMMARY:
-  scanned: 459  passed: 190 (41.4%)  warnings: 14  errors: 1  unsupported: 268
+  scanned: 472  passed: 195 (41.3%)  warnings: 15  errors: 1  unsupported: 276
 
-WARNINGS[14]{path,score}:
-  src/taskfile/workspace.py,0.93
-    issues[5]{rule,severity,message,line}:
+WARNINGS[15]{path,score}:
+  src/taskfile/workspace.py,0.87
+    issues[8]{rule,severity,message,line}:
       complexity.cyclomatic,warning,filter_projects has cyclomatic complexity 20 (max: 15),176
       complexity.cyclomatic,warning,analyze_project has cyclomatic complexity 16 (max: 15),498
-      complexity.maintainability,warning,Low maintainability index: 16.7 (threshold: 20),
+      complexity.cyclomatic,warning,compare_projects has cyclomatic complexity 42 (max: 15),575
+      complexity.maintainability,warning,Low maintainability index: 10.3 (threshold: 20),
       complexity.lizard_cc,warning,filter_projects: CC=20 exceeds limit 15,176
       complexity.lizard_cc,warning,analyze_project: CC=16 exceeds limit 15,498
+      complexity.lizard_cc,warning,compare_projects: CC=42 exceeds limit 15,575
+      complexity.lizard_length,warning,compare_projects: 135 lines exceeds limit 100,575
+  analyze_all_projects.py,0.90
+    issues[5]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,analyze_project has cyclomatic complexity 26 (max: 15),157
+      complexity.cyclomatic,warning,main has cyclomatic complexity 35 (max: 15),543
+      complexity.lizard_cc,warning,analyze_project: CC=26 exceeds limit 15,157
+      complexity.lizard_length,warning,analyze_project: 124 lines exceeds limit 100,157
+      complexity.lizard_cc,warning,main: CC=35 exceeds limit 15,543
+  src/taskfile/cli/workspace_cmd.py,0.96
+    issues[3]{rule,severity,message,line}:
+      complexity.cyclomatic,warning,workspace_list has cyclomatic complexity 16 (max: 15),114
+      complexity.maintainability,warning,Low maintainability index: 17.4 (threshold: 20),
+      complexity.lizard_cc,warning,workspace_list: CC=16 exceeds limit 15,114
   src/taskfile/addons/terraform.py,0.97
     issues[1]{rule,severity,message,line}:
       complexity.lizard_length,warning,generate_tasks: 120 lines exceeds limit 100,11
-  src/taskfile/cli/workspace_cmd.py,0.97
-    issues[2]{rule,severity,message,line}:
-      complexity.cyclomatic,warning,workspace_list has cyclomatic complexity 16 (max: 15),113
-      complexity.lizard_cc,warning,workspace_list: CC=16 exceeds limit 15,113
   src/taskfile/scaffold/customize.py,0.97
     issues[2]{rule,severity,message,line}:
       complexity.cyclomatic,warning,customise_minimal has cyclomatic complexity 20 (max: 15),209
@@ -59,8 +70,8 @@ ERRORS[1]{path,score}:
       python.import.relative.resolvable,error,Relative import 'ssh' not found,18
 
 UNSUPPORTED[5]{bucket,count}:
-  *.md,73
+  *.md,75
   *.txt,1
-  *.yml,87
+  *.yml,90
   *.example,55
-  other,52
+  other,55

@@ -1,45 +1,57 @@
-# code2llm/evolution | 881 func | 109f | 2026-04-17
+# code2llm/evolution | 903 func | 110f | 2026-04-18
 
-NEXT[7] (ranked by impact):
+NEXT[10] (ranked by impact):
   [1] !! SPLIT           src/taskfile/workspace.py
-      WHY: 602L, 3 classes, max CC=20
-      EFFORT: ~4h  IMPACT: 12040
+      WHY: 794L, 3 classes, max CC=42
+      EFFORT: ~4h  IMPACT: 33348
 
   [2] !! SPLIT           src/taskfile/cli/workspace_cmd.py
-      WHY: 657L, 0 classes, max CC=16
-      EFFORT: ~4h  IMPACT: 10512
+      WHY: 792L, 0 classes, max CC=16
+      EFFORT: ~4h  IMPACT: 12672
 
   [3] !! SPLIT           src/taskfile/cli/interactive/wizards.py
       WHY: 696L, 1 classes, max CC=13
       EFFORT: ~4h  IMPACT: 9048
 
-  [4] !  SPLIT-FUNC      customise_minimal  CC=20  fan=21
+  [4] !! SPLIT-FUNC      compare_projects  CC=42  fan=24
+      WHY: CC=42 exceeds 15
+      EFFORT: ~1h  IMPACT: 1008
+
+  [5] !! SPLIT-FUNC      main  CC=35  fan=25
+      WHY: CC=35 exceeds 15
+      EFFORT: ~1h  IMPACT: 875
+
+  [6] !  SPLIT-FUNC      customise_minimal  CC=20  fan=21
       WHY: CC=20 exceeds 15
       EFFORT: ~1h  IMPACT: 420
 
-  [5] !  SPLIT-FUNC      workspace_run  CC=15  fan=14
+  [7] !! SPLIT-FUNC      analyze_project  CC=26  fan=14
+      WHY: CC=26 exceeds 15
+      EFFORT: ~1h  IMPACT: 364
+
+  [8] !  SPLIT-FUNC      workspace_run  CC=15  fan=14
       WHY: CC=15 exceeds 15
       EFFORT: ~1h  IMPACT: 210
 
-  [6] !  SPLIT-FUNC      workspace_list  CC=16  fan=13
+  [9] !  SPLIT-FUNC      workspace_list  CC=16  fan=13
       WHY: CC=16 exceeds 15
       EFFORT: ~1h  IMPACT: 208
 
-  [7] !  SPLIT-FUNC      analyze_project  CC=16  fan=12
+  [10] !  SPLIT-FUNC      analyze_project  CC=16  fan=12
       WHY: CC=16 exceeds 15
       EFFORT: ~1h  IMPACT: 192
 
 
 RISKS[3]:
+  ⚠ Splitting src/taskfile/workspace.py may break 18 import paths
+  ⚠ Splitting src/taskfile/cli/workspace_cmd.py may break 15 import paths
   ⚠ Splitting src/taskfile/cli/interactive/wizards.py may break 26 import paths
-  ⚠ Splitting src/taskfile/cli/workspace_cmd.py may break 13 import paths
-  ⚠ Splitting src/taskfile/workspace.py may break 17 import paths
 
 METRICS-TARGET:
-  CC̄:          4.3 → ≤3.0
-  max-CC:      20 → ≤10
-  god-modules: 5 → 0
-  high-CC(≥15): 5 → ≤2
+  CC̄:          4.4 → ≤3.1
+  max-CC:      42 → ≤20
+  god-modules: 7 → 0
+  high-CC(≥15): 8 → ≤4
   hub-types:   0 → ≤0
 
 PATTERNS (language parser shared logic):
@@ -67,4 +79,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=4.2 → now CC̄=4.3
+  prev CC̄=4.4 → now CC̄=4.4

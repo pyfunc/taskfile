@@ -164,6 +164,47 @@ taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
         click.echo(ctx.get_help())
 
 
+def _resolve_tasks_to_run(
+    opts: dict, task_list: list[str], tag_filter: list[str] | None
+) -> tuple[list[str], TaskfileRunner]:
+    """Resolve final task list after tag filtering and validation."""
+    runner = TaskfileRunner(
+        taskfile_path=opts["taskfile_path"],
+        env_name=opts["env_name"],
+        platform_name=opts["platform_name"],
+        var_overrides=opts["var"],
+        dry_run=opts["dry_run"],
+        verbose=opts["verbose"],
+    )
+    _check_unknown_tasks(task_list, runner.config.tasks)
+
+    if tag_filter:
+        task_list = _filter_tasks_by_tags(runner.config, task_list, tag_filter)
+        if not task_list:
+            console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
+            sys.exit(0)
+    return task_list, runner
+
+
+def _handle_run_with_env_group(opts: dict, task_list: list[str]) -> bool:
+    """Run tasks via environment group strategy."""
+    return _run_env_group(
+        taskfile_path=opts["taskfile_path"],
+        env_group=opts["env_group"],
+        task_names=task_list,
+        platform_name=opts["platform_name"],
+        var_overrides=opts["var"],
+        dry_run=opts["dry_run"],
+        verbose=opts["verbose"],
+    )
+
+
+def _handle_run_normal(opts: dict, task_list: list[str], tag_filter: list[str] | None) -> bool:
+    """Run tasks normally without env group."""
+    final_tasks, runner = _resolve_tasks_to_run(opts, task_list, tag_filter)
+    return runner.run(final_tasks)
+
+
 @main.command()
 @click.argument("tasks", nargs=-1, required=True)
 @click.option("--tags", "run_tags", default=None, help="Run only tasks matching these tags (comma-separated)")
@@ -218,18 +259,35 @@ taskfile run deploy --teach
 """
     opts = ctx.obj
     tag_filter = [t.strip() for t in run_tags.split(",")] if run_tags else None
+    task_list = list(tasks)
 
     try:
-        if explain or teach:
-            _run_explain_mode(opts, list(tasks), tag_filter, teach=teach)
-        else:
-            success = _run_tasks(opts, list(tasks), tag_filter)
-            sys.exit(0 if success else 1)
+        success = _execute_run(opts, task_list, tag_filter, explain, teach)
+        sys.exit(0 if success else 1)
     except (TaskfileNotFoundError, TaskfileParseError) as e:
-        console.print(f"[red]Error:[/] {e}")
-        if isinstance(e, TaskfileNotFoundError):
-            _print_nearby_taskfiles(e.nearby)
-        sys.exit(1)
+        _handle_run_error(e)
+
+
+def _execute_run(
+    opts: dict, task_list: list[str], tag_filter: list[str] | None,
+    explain: bool, teach: bool
+) -> bool:
+    """Execute run command in appropriate mode."""
+    if explain or teach:
+        _run_explain_mode(opts, task_list, tag_filter, teach=teach)
+        return True  # explain mode handles its own exit
+
+    if opts.get("env_group"):
+        return _handle_run_with_env_group(opts, task_list)
+    return _handle_run_normal(opts, task_list, tag_filter)
+
+
+def _handle_run_error(e: Exception) -> None:
+    """Handle errors during run command execution."""
+    console.print(f"[red]Error:[/] {e}")
+    if isinstance(e, TaskfileNotFoundError):
+        _print_nearby_taskfiles(e.nearby)
+    sys.exit(1)
 
 
 def _run_explain_mode(opts: dict, task_list: list[str], tag_filter: list[str] | None, *, teach: bool) -> None:
@@ -261,38 +319,6 @@ def _run_explain_mode(opts: dict, task_list: list[str], tag_filter: list[str] | 
         print_explain_report(report, task_list, resolver.env_name)
 
     sys.exit(1 if report.has_errors else 0)
-
-
-def _run_tasks(opts: dict, task_list: list[str], tag_filter: list[str] | None) -> bool:
-    """Execute tasks normally, via env group or single runner. Returns success."""
-    env_group = opts.get("env_group")
-    if env_group:
-        return _run_env_group(
-            taskfile_path=opts["taskfile_path"],
-            env_group=env_group,
-            task_names=task_list,
-            platform_name=opts["platform_name"],
-            var_overrides=opts["var"],
-            dry_run=opts["dry_run"],
-            verbose=opts["verbose"],
-        )
-
-    runner = TaskfileRunner(
-        taskfile_path=opts["taskfile_path"],
-        env_name=opts["env_name"],
-        platform_name=opts["platform_name"],
-        var_overrides=opts["var"],
-        dry_run=opts["dry_run"],
-        verbose=opts["verbose"],
-    )
-    _check_unknown_tasks(task_list, runner.config.tasks)
-
-    if tag_filter:
-        task_list = _filter_tasks_by_tags(runner.config, task_list, tag_filter)
-        if not task_list:
-            console.print(f"[yellow]No tasks match tags: {', '.join(tag_filter)}[/]")
-            sys.exit(0)
-    return runner.run(task_list)
 
 
 def _filter_tasks_by_tags(config, task_names: list[str], tags: list[str]) -> list[str]:

@@ -206,6 +206,66 @@ def _dockerfile_tasks(name: str) -> dict[str, dict[str, Any]]:
 # ── public API ───────────────────────────────────────────────
 
 
+def _detect_project_info(project_root: Path) -> tuple[dict[str, Any] | None, dict[str, Any] | None, Any, bool, bool]:
+    """Detect project type info: (python, node, compose, has_dockerfile, has_makefile)."""
+    return (
+        _detect_python(project_root),
+        _detect_node(project_root),
+        _detect_compose(project_root),
+        _detect_dockerfile(project_root),
+        _detect_makefile(project_root),
+    )
+
+
+def _detect_project_name(
+    project_root: Path,
+    py: dict[str, Any] | None,
+    node: dict[str, Any] | None,
+) -> str:
+    """Determine project name from detection results or fallback to dirname."""
+    return (py or {}).get("name") or (node or {}).get("name") or project_root.name
+
+
+def _build_task_mapping(
+    py: dict[str, Any] | None,
+    node: dict[str, Any] | None,
+    compose: Any,
+    has_dockerfile: bool,
+    detected_name: str,
+) -> dict[str, dict[str, Any]]:
+    """Build initial tasks dict from detected project info."""
+    tasks: dict[str, dict[str, Any]] = {}
+    if py:
+        tasks.update(_python_tasks(py))
+    if node:
+        for k, v in _node_tasks(node).items():
+            tasks.setdefault(k, v)
+    if compose is not None:
+        for k, v in _compose_tasks(compose).items():
+            tasks.setdefault(k, v)
+    if has_dockerfile and "docker-build" not in tasks:
+        tasks.update(_dockerfile_tasks(detected_name))
+    return tasks
+
+
+def _merge_additional_tasks(
+    tasks: dict[str, dict[str, Any]],
+    project_root: Path,
+    has_makefile: bool,
+) -> dict[str, dict[str, Any]]:
+    """Merge Makefile and DOQL tasks into tasks dict (non-destructive)."""
+    if has_makefile:
+        for mk_name, mk_task in _import_makefile_tasks(project_root / "Makefile").items():
+            tasks.setdefault(mk_name, mk_task)
+
+    doql_spec = project_root / "app.doql.css"
+    if doql_spec.exists():
+        for name, task in _import_doql_workflows(doql_spec).items():
+            tasks.setdefault(name, task)
+
+    return tasks
+
+
 def customise_minimal(content: str, project_root: Path) -> str:
     """Rewrite the *content* of the minimal template based on *project_root*.
 
@@ -217,17 +277,8 @@ def customise_minimal(content: str, project_root: Path) -> str:
     if not data:
         return content
 
-    py = _detect_python(project_root)
-    node = _detect_node(project_root)
-    compose = _detect_compose(project_root)
-    has_dockerfile = _detect_dockerfile(project_root)
-    has_makefile = _detect_makefile(project_root)
-
-    detected_name = (
-        (py or {}).get("name")
-        or (node or {}).get("name")
-        or project_root.name
-    )
+    py, node, compose, has_dockerfile, has_makefile = _detect_project_info(project_root)
+    detected_name = _detect_project_name(project_root, py, node)
 
     # Set name + variables.APP_NAME so referenced ${APP_NAME} resolves.
     data["name"] = detected_name
@@ -235,41 +286,15 @@ def customise_minimal(content: str, project_root: Path) -> str:
     if isinstance(variables, dict):
         variables["APP_NAME"] = detected_name
 
-    tasks: dict[str, dict[str, Any]] = {}
-    if py:
-        tasks.update(_python_tasks(py))
-    if node:
-        # Don't clobber Python tasks with same name unless user has only Node.
-        for k, v in _node_tasks(node).items():
-            tasks.setdefault(k, v)
-    if compose is not None:
-        for k, v in _compose_tasks(compose).items():
-            tasks.setdefault(k, v)
-    if has_dockerfile and "docker-build" not in tasks:
-        tasks.update(_dockerfile_tasks(detected_name))
+    # Build initial tasks from detected project info
+    tasks = _build_task_mapping(py, node, compose, has_dockerfile, detected_name)
 
-    # Fall back to the generic build/test/run/clean stubs when nothing
-    # matched, so the file is still valid.
+    # Fall back to generic stubs when nothing matched
     if not tasks:
         tasks = data.get("tasks", {}) or {}
 
-    # Merge existing Makefile targets into the generated tasks. Detected
-    # language-specific tasks (install/test/…) take precedence — the
-    # Makefile may still define unique targets like ``release`` or
-    # ``docs`` which we want to preserve.
-    if has_makefile:
-        for mk_name, mk_task in _import_makefile_tasks(project_root / "Makefile").items():
-            tasks.setdefault(mk_name, mk_task)
-
-    # Merge workflows from ``app.doql.css`` when present. This closes the
-    # sync loop: if the user ran ``doql adopt`` earlier, every workflow
-    # from the spec survives into the Taskfile without overwriting tasks
-    # that the project-aware detectors already emitted with richer
-    # commands.
-    doql_spec = project_root / "app.doql.css"
-    if doql_spec.exists():
-        for name, task in _import_doql_workflows(doql_spec).items():
-            tasks.setdefault(name, task)
+    # Merge additional tasks from Makefile and DOQL
+    tasks = _merge_additional_tasks(tasks, project_root, has_makefile)
 
     data["tasks"] = tasks
     return _safe_dump(data)
