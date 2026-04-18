@@ -54,6 +54,11 @@
   functionality now lives in `taskfile.workspace` and `taskfile workspace`
   CLI.
 
+## [0.3.90] - 2026-04-18
+
+### Docs
+- Update README.md
+
 ## [0.3.89] - 2026-04-18
 
 ### Docs
