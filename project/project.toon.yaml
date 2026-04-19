@@ -1,44 +1,46 @@
-# taskfile | 920 func | 110f | 37658L | python | 2026-04-18
+# taskfile | 932 func | 110f | 40077L | python | 2026-04-19
 
-HEALTH (POST-REFACTOR):
-  CC̄=3.6  critical=0 (limit:10)  dup=5  cycles=0
+HEALTH:
+  CC̄=4.3  critical=55 (limit:10)  dup=5  cycles=0
 
-ALERTS[10] (REMAINING - no CC exceeded, only fan-out warnings):
-  !!! high_fan_out     main = 25 (limit:10) - CC now 9, orchestration expected
+ALERTS[20]:
   !!! high_fan_out     register_run_routes = 23 (limit:10)
   !!! high_fan_out     prod = 21 (limit:10)
+  !!! high_fan_out     ProjectDiagnostics.run_all_checks = 20 (limit:10)
   !!! high_fan_out     bump = 20 (limit:10)
   !!  high_fan_out     workspace_compare = 19 (limit:10)
   !!  high_fan_out     RegistryClient._install_from_github = 18 (limit:10)
+  !!  high_fan_out     TaskResolver._resolve_variables = 18 (limit:10)
   !!  high_fan_out     e2e_cmd = 18 (limit:10)
-  🟢 cc_exceeded      main = 9 (was 35) - REFACTORED
-  🟢 cc_exceeded      analyze_project = 8 (was 26) - REFACTORED
-  🟢 cc_exceeded      _build_comparison_result = 8 (was 22) - REFACTORED
+  !!  high_fan_out     TaskfileConfig.from_dict = 17 (limit:10)
+  !!  high_fan_out     workspace_analyze = 17 (limit:10)
 
 MODULES[132] (top by size):
-  M[src/taskfile/workspace.py] 880L C:8 F:28 CC↑22 D:1 (python)
-  M[src/taskfile/cli/workspace_cmd.py] 818L C:0 F:19 CC↑11 D:0 (python)
-  M[src/taskfile/cli/interactive/wizards.py] 696L C:1 F:26 CC↑13 D:0 (python)
-  M[analyze_all_projects.py] 656L C:0 F:14 CC↑35 D:1 (python)
-  M[src/taskfile/runner/commands.py] 575L C:0 F:28 CC↑11 D:1 (python)
-  M[src/taskfile/cli/interactive/menu.py] 552L C:0 F:9 CC↑8 D:0 (python)
-  M[src/taskfile/diagnostics/checks.py] 497L C:0 F:17 CC↑10 D:1 (python)
-  M[src/taskfile/cli/main.py] 493L C:0 F:18 CC↑14 D:3 (python)
-  M[src/taskfile/deploy_utils.py] 492L C:2 F:18 CC↑6 D:4 (python)
-  M[src/taskfile/runner/core.py] 486L C:2 F:34 CC↑8 D:0 (python)
-  M[src/taskfile/deploy_recipes.py] 484L C:0 F:17 CC↑5 D:1 (python)
-  M[src/taskfile/fleet.py] 483L C:5 F:16 CC↑10 D:0 (python)
-  M[src/taskfile/health.py] 458L C:2 F:10 CC↑11 D:2 (python)
-  M[src/taskfile/importer.py] 452L C:0 F:21 CC↑12 D:2 (python)
-  M[src/taskfile/cli/setup.py] 448L C:1 F:15 CC↑10 D:0 (python)
+  M[src/taskfile/workspace.py] 923L C:8 F:31 CC↑19 D:1 (python)
+  M[src/taskfile/cli/workspace_cmd.py] 846L C:0 F:19 CC↑11 D:0 (python)
+  M[src/taskfile/cli/interactive/wizards.py] 794L C:1 F:27 CC↑13 D:0 (python)
+  M[src/taskfile/runner/commands.py] 602L C:0 F:28 CC↑11 D:1 (python)
+  M[src/taskfile/cli/interactive/menu.py] 572L C:0 F:9 CC↑8 D:0 (python)
+  M[src/taskfile/diagnostics/checks.py] 531L C:0 F:17 CC↑10 D:1 (python)
+  M[src/taskfile/cli/main.py] 527L C:0 F:18 CC↑14 D:3 (python)
+  M[src/taskfile/deploy_utils.py] 514L C:2 F:18 CC↑6 D:4 (python)
+  M[src/taskfile/deploy_recipes.py] 507L C:0 F:17 CC↑5 D:1 (python)
+  M[src/taskfile/runner/core.py] 499L C:2 F:34 CC↑8 D:0 (python)
+  M[src/taskfile/fleet.py] 490L C:5 F:16 CC↑10 D:0 (python)
+  M[src/taskfile/importer.py] 474L C:0 F:21 CC↑12 D:2 (python)
+  M[src/taskfile/health.py] 468L C:2 F:10 CC↑11 D:2 (python)
+  M[src/taskfile/cli/setup.py] 450L C:1 F:15 CC↑10 D:0 (python)
+  M[src/taskfile/cli/e2e_cmd.py] 437L C:1 F:18 CC↑10 D:0 (python)
   LANGS: python:131/shell:1
 
 HOTSPOTS[10]:
-  ★ main fan=25  // Orchestrates 25 calls
   ★ register_run_routes fan=23  // Register task execution endpoint.
   ★ prod fan=21  // **Interactive production server setup** — SSH, podman, .env.
 
 All-in-one interac
+  ★ ProjectDiagnostics.run_all_checks fan=20  // Run Layers 1-3 checks — single entry point for doctor pipeline.
+
+This replaces t
   ★ bump fan=20  // Bump version number (patch, minor, or major).
 
 Updates VERSION file and optional
@@ -48,12 +50,11 @@ Updates VERSION file and optional
 Identifies:
 
 REFACTOR[13]:
-  [1] H/L Split analyze_project (CC=26 → target CC<10)
-  [2] H/L Split main (CC=35 → target CC<10)
-  [3] H/H Split god module analyze_all_projects.py (656L, 0 classes)
-  [4] H/H Split god module src/taskfile/workspace.py (880L, 8 classes)
-  [5] H/H Split god module src/taskfile/cli/interactive/wizards.py (696L, 1 classes)
+  [1] H/H Split god module src/taskfile/workspace.py (923L, 8 classes)
+  [2] H/H Split god module src/taskfile/cli/main.py (527L, 0 classes)
+  [3] H/H Split god module src/taskfile/cli/interactive/wizards.py (794L, 1 classes)
+  [4] H/H Split god module src/taskfile/cli/workspace_cmd.py (846L, 0 classes)
+  [5] H/H Split god module src/taskfile/runner/commands.py (602L, 0 classes)
 
 EVOLUTION:
-  2026-04-18 CC̄=3.6 crit=0 37658L // 8 high-CC functions refactored, 20+ helpers extracted
-  2026-04-18 Tests: 920 passed, 0 failed // All refactorings verified
+  2026-04-19 CC̄=4.3 crit=55 40077L // Automated analysis

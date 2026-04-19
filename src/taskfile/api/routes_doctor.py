@@ -31,7 +31,9 @@ def register_doctor_routes(app: FastAPI) -> None:
         summary="Run doctor diagnostics (GET — read-only)",
     )
     def doctor_get(
-        verbose: bool = Query(False, description="Run extra checks (task commands, SSH, remote health)"),
+        verbose: bool = Query(
+            False, description="Run extra checks (task commands, SSH, remote health)"
+        ),
         category: str = Query("all", description="Filter: config, env, infra, runtime, or all"),
     ):
         """Run 5-layer diagnostics (read-only, no fixes applied).
@@ -125,7 +127,9 @@ def _build_issue_infos(issues) -> tuple[list[DoctorIssueInfo], dict[str, list[Do
             fix_command=iss.fix_command,
             fix_description=iss.fix_description,
             teach=iss.teach,
-            context={k: v for k, v in iss.context.items() if not k.startswith("_")} if iss.context else None,
+            context={k: v for k, v in iss.context.items() if not k.startswith("_")}
+            if iss.context
+            else None,
         )
         infos.append(info)
         by_category.setdefault(iss.category.value, []).append(info)

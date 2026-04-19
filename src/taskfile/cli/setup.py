@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import clickmd as click
-from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
@@ -63,10 +62,12 @@ def _validate_ssh_key(path: str) -> bool:
 
 def _collect_interactive_setup(ip: str | None) -> SetupConfig:
     """Collect setup configuration through interactive prompts."""
-    console.print(Panel.fit(
-        "[bold green]Taskfile Setup[/]\n[dim]One-command VPS provisioning[/]",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]Taskfile Setup[/]\n[dim]One-command VPS provisioning[/]",
+            border_style="green",
+        )
+    )
 
     # IP address
     if ip is None:
@@ -108,7 +109,7 @@ def _collect_interactive_setup(ip: str | None) -> SetupConfig:
     # Generate env files preview
     console.print("\n[bold]Generated environment files:[/]")
 
-    env_local = f"""# Local development environment
+    env_local = """# Local development environment
 DOMAIN=localhost
 WEB_PORT=3000
 API_PORT=8000
@@ -190,6 +191,7 @@ def _provision_ssh_key(config: SetupConfig, dry_run: bool = False) -> bool:
     try:
         # Use Popen for interactive input instead of run with capture_output
         import subprocess
+
         process = subprocess.Popen(
             cmd,
             shell=True,
@@ -315,7 +317,7 @@ def _deploy_application(config: SetupConfig, dry_run: bool = False) -> bool:
 def _print_summary(config: SetupConfig) -> None:
     """Print setup completion summary."""
     console.print("\n[bold green]✅ Setup complete![/]")
-    console.print(f"\n[bold]Your application:[/]")
+    console.print("\n[bold]Your application:[/]")
     console.print(f"  [dim]VPS IP:[/]     {config.ip}")
     console.print(f"  [dim]Domain:[/]     {config.domain}")
     console.print(f"  [dim]Deploy user:[/] {config.user}")
@@ -326,9 +328,9 @@ def _print_summary(config: SetupConfig) -> None:
     else:
         console.print(f"\n  [green]http://{config.ip}[/] — Application")
 
-    console.print(f"\n[dim]Next steps:[/]")
-    console.print(f"  taskfile logs       — View logs")
-    console.print(f"  taskfile --env prod run status — Check production status")
+    console.print("\n[dim]Next steps:[/]")
+    console.print("  taskfile logs       — View logs")
+    console.print("  taskfile --env prod run status — Check production status")
 
 
 def _parse_ports(ports: str) -> list[int]:
@@ -354,7 +356,7 @@ def _build_config_from_args(
 
     actual_domain = domain or ip
 
-    env_local = f"""# Local development environment
+    env_local = """# Local development environment
 DOMAIN=localhost
 WEB_PORT=3000
 API_PORT=8000

@@ -98,6 +98,7 @@ def _detect_type(path: Path) -> str:
 
 # ─── GitHub Actions ──────────────────────────────────────────────────────
 
+
 def _extract_gh_steps_as_commands(steps: list) -> list[str]:
     """Extract commands from GitHub Actions steps."""
     cmds = []
@@ -123,7 +124,9 @@ def _extract_gh_job_deps(job_data: dict) -> list[str]:
     return [_slugify(n) for n in needs]
 
 
-def _convert_gh_job_to_task(job_name: str, job_data: dict, variables: dict) -> tuple[str, dict[str, Any]]:
+def _convert_gh_job_to_task(
+    job_name: str, job_data: dict, variables: dict
+) -> tuple[str, dict[str, Any]]:
     """Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict)."""
     cmds = _extract_gh_steps_as_commands(job_data.get("steps", []))
     deps = _extract_gh_job_deps(job_data)
@@ -176,9 +179,7 @@ def parse_github_actions(content: str, filename: str = "workflow.yml") -> dict:
         pipeline_stages.append(task_name)
 
     if pipeline_stages:
-        taskfile["pipeline"] = {
-            "stages": [{"name": s, "tasks": [s]} for s in pipeline_stages]
-        }
+        taskfile["pipeline"] = {"stages": [{"name": s, "tasks": [s]} for s in pipeline_stages]}
 
     return taskfile
 
@@ -190,10 +191,21 @@ def _import_github_actions(content: str, filename: str) -> str:
 
 # ─── GitLab CI ──────────────────────────────────────────────────────────
 
-_GL_RESERVED_KEYS = frozenset({
-    "stages", "variables", "image", "before_script", "after_script",
-    "cache", "services", "include", "default", "workflow", "pages",
-})
+_GL_RESERVED_KEYS = frozenset(
+    {
+        "stages",
+        "variables",
+        "image",
+        "before_script",
+        "after_script",
+        "cache",
+        "services",
+        "include",
+        "default",
+        "workflow",
+        "pages",
+    }
+)
 
 
 def _extract_gl_job_commands(job_data: dict, global_before_script: list) -> list[str]:
@@ -209,7 +221,11 @@ def _extract_gl_job_deps(job_data: dict) -> list[str]:
     deps = job_data.get("needs", job_data.get("dependencies", []))
     if isinstance(deps, str):
         deps = [deps]
-    return [_slugify(d) if isinstance(d, str) else _slugify(d.get("job", "")) for d in deps] if deps else []
+    return (
+        [_slugify(d) if isinstance(d, str) else _slugify(d.get("job", "")) for d in deps]
+        if deps
+        else []
+    )
 
 
 def _build_gl_task(
@@ -234,9 +250,7 @@ def _build_gl_task(
     taskfile["tasks"][task_name] = task
 
 
-def _build_gl_pipeline(
-    taskfile: dict, pipeline_stages: dict, stages_order: list
-) -> None:
+def _build_gl_pipeline(taskfile: dict, pipeline_stages: dict, stages_order: list) -> None:
     """Build the pipeline section from collected stages."""
     if not pipeline_stages and not stages_order:
         return
@@ -297,6 +311,7 @@ def _import_gitlab_ci(content: str) -> str:
 
 
 # ─── Makefile ────────────────────────────────────────────────────────────
+
 
 def parse_makefile(content: str) -> dict:
     """Parse Makefile into a Taskfile dict."""
@@ -362,6 +377,7 @@ def _import_makefile(content: str) -> str:
 
 # ─── Shell Script ────────────────────────────────────────────────────────
 
+
 def _import_shell_script(content: str, filename: str) -> str:
     """Convert a shell script to a Taskfile with functions as tasks."""
     taskfile: dict[str, Any] = {
@@ -380,7 +396,11 @@ def _import_shell_script(content: str, filename: str) -> str:
     for match in func_re.finditer(content):
         fn_name = match.group(1)
         fn_body = match.group(2).strip()
-        cmds = [line.strip() for line in fn_body.splitlines() if line.strip() and not line.strip().startswith("#")]
+        cmds = [
+            line.strip()
+            for line in fn_body.splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
         if cmds:
             taskfile["tasks"][_slugify(fn_name)] = {
                 "desc": f"Shell function: {fn_name}",
@@ -404,6 +424,7 @@ def _import_shell_script(content: str, filename: str) -> str:
 
 
 # ─── Dockerfile ──────────────────────────────────────────────────────────
+
 
 def _import_dockerfile(content: str) -> str:
     """Convert Dockerfile build stages to Taskfile tasks."""
@@ -439,6 +460,7 @@ def _import_dockerfile(content: str) -> str:
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
+
 
 def _slugify(name: str) -> str:
     """Convert a name to a valid task name slug."""

@@ -68,6 +68,7 @@ def run_env_group(
 def _group_rolling(members: list[str], run_fn) -> bool:
     """Execute on each member sequentially with a pause between."""
     import time
+
     all_ok = True
     for i, env_name in enumerate(members):
         if not run_fn(env_name):

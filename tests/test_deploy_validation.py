@@ -7,15 +7,11 @@ Covers:
 - resolv.conf auto-generation in quadlet
 """
 
-import pytest
-import textwrap
-from pathlib import Path
-
 from taskfile.diagnostics.checks import (
     _scan_file_for_unresolved,
     check_deploy_artifacts,
 )
-from taskfile.diagnostics.models import IssueCategory, SEVERITY_WARNING
+from taskfile.diagnostics.models import IssueCategory
 from taskfile.models import TaskfileConfig
 from taskfile.deploy_recipes import expand_deploy_recipe
 from taskfile.quadlet import generate_resolv_conf, _RESOLV_CONF_CONTENT
@@ -27,7 +23,6 @@ from taskfile.quadlet import generate_resolv_conf, _RESOLV_CONF_CONTENT
 
 
 class TestScanFileForUnresolved:
-
     def test_detects_dollar_brace_var(self, tmp_path):
         f = tmp_path / "traefik.yml"
         f.write_text("host: ${DOMAIN}\n")
@@ -119,14 +114,15 @@ class TestScanFileForUnresolved:
 
 
 class TestCheckDeployArtifacts:
-
     def _make_config(self, tmp_path) -> TaskfileConfig:
         taskfile = tmp_path / "Taskfile.yml"
         taskfile.write_text("version: 1\ntasks:\n  hello:\n    cmds:\n      - echo hi\n")
-        config = TaskfileConfig.from_dict({
-            "variables": {},
-            "tasks": {"hello": {"cmds": ["echo hi"]}},
-        })
+        config = TaskfileConfig.from_dict(
+            {
+                "variables": {},
+                "tasks": {"hello": {"cmds": ["echo hi"]}},
+            }
+        )
         config.source_path = str(taskfile)
         return config
 
@@ -186,7 +182,6 @@ class TestCheckDeployArtifacts:
 
 
 class TestValidateDeployGate:
-
     def test_validate_deploy_task_generated(self):
         deploy_section = {
             "strategy": "quadlet",
@@ -234,7 +229,6 @@ class TestValidateDeployGate:
 
 
 class TestResolvConfGeneration:
-
     def test_generate_resolv_conf(self, tmp_path):
         path = generate_resolv_conf(tmp_path)
         assert path.exists()

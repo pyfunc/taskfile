@@ -1,15 +1,9 @@
 """Tests for taskfile package."""
 
 import pytest
-import yaml
-from pathlib import Path
 
 from taskfile.models import TaskfileConfig, Task, Environment
-from taskfile.parser import load_taskfile, validate_taskfile, TaskfileNotFoundError
-from taskfile.runner import TaskfileRunner
-from taskfile.scaffold import generate_taskfile
-from taskfile.compose import ComposeFile, load_env_file, resolve_variables
-from taskfile.quadlet import generate_container_unit, compose_to_quadlet, generate_network_unit
+from taskfile.compose import load_env_file, resolve_variables
 
 
 # ─── Model Tests ─────────────────────────────────────
@@ -57,6 +51,7 @@ class TestEnvironment:
         assert prod.quadlet_dir == "deploy/prod"
         assert prod.quadlet_remote_dir == "/etc/containers/systemd"
         assert prod.service_manager == "quadlet"
+
 
 class TestSmartDefaults:
     """Test smart defaults in _parse_environments."""
@@ -251,7 +246,7 @@ class TestAddons:
         assert config.tasks["db-status"].description == "Custom status"
 
     def test_unknown_addon_raises(self):
-        import pytest
+
         data = {
             "addons": ["nonexistent"],
             "tasks": {},
@@ -270,11 +265,15 @@ class TestAddons:
 
     def test_fixop_addon_with_config(self):
         data = {
-            "addons": [{"fixop": {
-                "host": "prod.example.com",
-                "domains": ["example.com", "api.example.com"],
-                "auto_fix": True,
-            }}],
+            "addons": [
+                {
+                    "fixop": {
+                        "host": "prod.example.com",
+                        "domains": ["example.com", "api.example.com"],
+                        "auto_fix": True,
+                    }
+                }
+            ],
             "tasks": {},
         }
         config = TaskfileConfig.from_dict(data)
@@ -524,6 +523,7 @@ class TestTask:
         config = TaskfileConfig.from_dict(data)
         assert config.tasks["pub"].condition == "test -f pyproject.toml"
 
+
 class TestTaskfileConfig:
     def test_from_dict_minimal(self):
         data = {
@@ -580,16 +580,12 @@ class TestTaskfileConfig:
         assert config.tasks["deploy"].env_filter == ["prod"]
         assert config.tasks["deploy"].deps == ["build"]
 
+
 class TestEnvFile:
     def test_load_env_file(self, tmp_path):
         envfile = tmp_path / ".env.test"
         envfile.write_text(
-            "DOMAIN=example.com\n"
-            "TAG=v1.2.3\n"
-            'QUOTED="hello world"\n'
-            "# comment\n"
-            "\n"
-            "EMPTY=\n"
+            'DOMAIN=example.com\nTAG=v1.2.3\nQUOTED="hello world"\n# comment\n\nEMPTY=\n'
         )
         env = load_env_file(envfile)
         assert env["DOMAIN"] == "example.com"
@@ -600,6 +596,7 @@ class TestEnvFile:
     def test_load_missing_env_file(self):
         env = load_env_file("/nonexistent/.env")
         assert env == {}
+
 
 class TestResolveVariables:
     def test_simple_var(self):
@@ -625,11 +622,13 @@ class TestResolveVariables:
         )
         assert result == "Host(`web.localhost`)"
 
+
 class TestPipelineConfig:
     """Test PipelineConfig parsing."""
 
     def test_from_dict_basic(self):
         from taskfile.models import PipelineConfig
+
         data = {
             "stages": [
                 {"name": "test", "tasks": ["lint", "test"]},
@@ -649,6 +648,7 @@ class TestPipelineConfig:
 
     def test_from_dict_shorthand(self):
         from taskfile.models import PipelineConfig
+
         data = {"stages": ["test", "build", "deploy"]}
         p = PipelineConfig.from_dict(data)
         assert len(p.stages) == 3
@@ -657,6 +657,7 @@ class TestPipelineConfig:
 
     def test_from_dict_empty(self):
         from taskfile.models import PipelineConfig
+
         p = PipelineConfig.from_dict({})
         assert p.stages == []
         assert p.python_version == "3.12"
@@ -664,6 +665,7 @@ class TestPipelineConfig:
 
     def test_infer_from_tasks(self):
         from taskfile.models import PipelineConfig, Task
+
         p = PipelineConfig.from_dict({})
         tasks = {
             "lint": Task(name="lint", stage="test"),
@@ -679,6 +681,7 @@ class TestPipelineConfig:
 
     def test_infer_skipped_when_stages_exist(self):
         from taskfile.models import PipelineConfig, Task
+
         data = {"stages": [{"name": "custom", "tasks": ["build"]}]}
         p = PipelineConfig.from_dict(data)
         tasks = {"lint": Task(name="lint", stage="test")}
@@ -689,6 +692,7 @@ class TestPipelineConfig:
 
     def test_taskfile_config_parses_pipeline(self):
         from taskfile.models import TaskfileConfig
+
         data = {
             "name": "myproject",
             "tasks": {
@@ -710,6 +714,7 @@ class TestPipelineConfig:
 
     def test_taskfile_config_infers_pipeline(self):
         from taskfile.models import TaskfileConfig
+
         data = {
             "tasks": {
                 "lint": {"cmds": ["ruff ."], "stage": "test"},
@@ -726,6 +731,7 @@ class TestEnvironmentGroup:
 
     def test_parse_groups(self):
         from taskfile.models import TaskfileConfig
+
         data = {
             "environment_groups": {
                 "kiosks": {
@@ -756,6 +762,7 @@ class TestEnvironmentGroup:
 
     def test_parse_groups_defaults(self):
         from taskfile.models import TaskfileConfig
+
         data = {
             "environment_groups": {
                 "fleet": {"members": ["a", "b"]},
@@ -770,12 +777,14 @@ class TestEnvironmentGroup:
 
     def test_parse_groups_empty(self):
         from taskfile.models import TaskfileConfig
+
         data = {"tasks": {"t": {"cmds": ["echo"]}}}
         config = TaskfileConfig.from_dict(data)
         assert config.environment_groups == {}
 
     def test_canary_count(self):
         from taskfile.models import TaskfileConfig
+
         data = {
             "environment_groups": {
                 "displays": {

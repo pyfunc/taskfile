@@ -1,29 +1,128 @@
-version: "1"
-name: taskfile-demo
-description: Simple taskfile demonstration
+version: "3"
+name: taskfile
+vars:
+  PYTHON: "{{.PWD}}/.venv/bin/python"
+  PIP: "{{.PWD}}/.venv/bin/pip"
+  PYTEST: "{{.PWD}}/.venv/bin/pytest"
+  RUFF: "{{.PWD}}/.venv/bin/ruff"
+  PYQUAL: "{{.PWD}}/.venv/bin/pyqual"
 
 tasks:
-  hello:
-    desc: Print hello message
+  _verify-venv:
+    desc: Verify virtual environment exists
+    internal: true
     cmds:
-      - echo "Hello from taskfile!"
+      - |
+        if [ ! -f "{{.PYTHON}}" ]; then
+          echo "❌ venv not found. Run: task install"
+          exit 1
+        fi
+    silent: true
 
-  build:
-    desc: Build project
+  _verify-deps:
+    desc: Verify dependencies are installed
+    internal: true
+    deps: [_verify-venv]
     cmds:
-      - echo "Building project..."
-      - mkdir -p build
-      - echo "Build complete"
+      - |
+        if ! {{.PYTHON}} -c "import pyqual" 2>/dev/null; then
+          echo "❌ pyqual not installed. Run: task install"
+          exit 1
+        fi
+    silent: true
+
+  _ensure-venv:
+    desc: Ensure virtual environment exists
+    internal: true
+    cmds:
+      - |
+        if [ ! -d "{{.PWD}}/.venv" ]; then
+          echo "Creating virtual environment..."
+          python3 -m venv {{.PWD}}/.venv
+          {{.PIP}} install --upgrade pip
+          {{.PIP}} install -e ".[dev]"
+        fi
+    silent: true
+
+  install:
+    desc: Install dependencies in venv
+    deps: [_ensure-venv]
+    cmds:
+      - "{{.PIP}} install -e .[dev]"
+
 
   test:
-    desc: Run tests
+    desc: Run all tests
+    deps: [_verify-deps]
     cmds:
-      - echo "Running tests..."
-      - echo "All tests passed!"
+      - "{{.PYTEST}} tests/ -v"
 
-  deploy:
-    desc: Deploy application
-    deps: [build]
+  test:fast:
+    desc: Run tests (skip slow)
+    deps: [_verify-deps]
     cmds:
-      - echo "Deploying application..."
-      - echo "Deployment complete"
+      - "{{.PYTEST}} tests/ -v -m 'not slow'"
+
+  lint:
+    desc: Run ruff linter
+    deps: [_verify-deps]
+    cmds:
+      - "{{.RUFF}} check src/ tests/"
+
+  fmt:
+    desc: Run ruff formatter
+    deps: [_verify-deps]
+    cmds:
+      - "{{.RUFF}} format src/ tests/"
+
+  fmt:check:
+    desc: Check formatting
+    deps: [_verify-deps]
+    cmds:
+      - "{{.RUFF}} format --check src/ tests/"
+
+  pyqual:
+    desc: Run pyqual quality analysis
+    deps: [_verify-deps]
+    cmds:
+      - "{{.PYQUAL}} run"
+
+  pyqual:fix:
+    desc: Run pyqual with automatic fixes
+    deps: [_verify-deps]
+    cmds:
+      - "{{.PYQUAL}} run --fix"
+
+  quality:
+    desc: Full quality check (pyqual + lint + test)
+    deps: [_verify-deps]
+    cmds:
+      - task: pyqual
+      - task: fmt:check
+      - task: lint
+      - task: test:fast
+
+  build:
+    desc: Build package
+    deps: [_ensure-venv]
+    cmds:
+      - "{{.PYTHON}} -m build"
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf build/ dist/ *.egg-info .pytest_cache .ruff_cache
+      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+  demo:
+    desc: Simple demo task
+    cmds:
+      - echo "Taskfile is ready! 🚀"
+      - echo "Available commands:"
+      - echo "  task pyqual       - Run pyqual quality analysis"
+      - echo "  task pyqual:fix   - Run pyqual with automatic fixes"
+      - echo "  task quality      - Full quality check (pyqual + lint + test)"
+      - echo "  task test         - Run tests"
+      - echo "  task lint         - Run linter"
+      - echo "  task fmt          - Format code"
+      - echo "  task install      - Install dependencies"

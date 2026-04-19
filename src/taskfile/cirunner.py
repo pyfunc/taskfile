@@ -6,16 +6,14 @@ Runs the same pipeline stages defined in Taskfile.yml, locally.
 
 from __future__ import annotations
 
-import sys
 import time
-from typing import Sequence
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from taskfile.models import PipelineConfig, PipelineStage, TaskfileConfig
+from taskfile.models import PipelineStage, TaskfileConfig
 from taskfile.runner import TaskfileRunner
 
 console = Console()
@@ -123,23 +121,26 @@ class PipelineRunner:
 
                 if stage_success:
                     console.print(
-                        f"\n  [green]✓ Stage '{stage.name}' passed[/] "
-                        f"[dim]({elapsed:.1f}s)[/]"
+                        f"\n  [green]✓ Stage '{stage.name}' passed[/] [dim]({elapsed:.1f}s)[/]"
                     )
                 else:
                     console.print(
-                        f"\n  [red]✗ Stage '{stage.name}' failed[/] "
-                        f"[dim]({elapsed:.1f}s)[/]"
+                        f"\n  [red]✗ Stage '{stage.name}' failed[/] [dim]({elapsed:.1f}s)[/]"
                     )
                     success = False
                     break
 
             except Exception as e:
                 elapsed = time.time() - stage_start
-                self.results.append(StageResult(
-                    name=stage.name, success=False, elapsed=elapsed,
-                    tasks=stage.tasks, error=str(e),
-                ))
+                self.results.append(
+                    StageResult(
+                        name=stage.name,
+                        success=False,
+                        elapsed=elapsed,
+                        tasks=stage.tasks,
+                        error=str(e),
+                    )
+                )
                 console.print(f"\n  [red]✗ Stage '{stage.name}' error: {e}[/]")
                 success = False
                 break
@@ -223,7 +224,9 @@ class PipelineRunner:
 
         console.print(table)
 
-        status_text = "[bold green]PIPELINE PASSED[/]" if success else "[bold red]PIPELINE FAILED[/]"
+        status_text = (
+            "[bold green]PIPELINE PASSED[/]" if success else "[bold red]PIPELINE FAILED[/]"
+        )
         console.print(f"\n{status_text} [dim]({total_elapsed:.1f}s total)[/]")
 
     def list_stages(self) -> None:
@@ -233,15 +236,15 @@ class PipelineRunner:
             console.print("[dim]  Add a 'pipeline' section to Taskfile.yml[/]")
             return
 
-        console.print(f"\n[bold]Pipeline Stages:[/]")
+        console.print("\n[bold]Pipeline Stages:[/]")
         for i, stage in enumerate(self.pipeline.stages):
             tasks = ", ".join(stage.tasks)
             when = f" [yellow]({stage.when})[/]" if stage.when != "auto" else ""
             env = f" [cyan][{stage.env}][/]" if stage.env else ""
             console.print(f"  {i + 1}. [green]{stage.name:15s}[/]{env}{when}  → {tasks}")
 
-        console.print(f"\n[dim]Run all: taskfile ci run[/]")
-        console.print(f"[dim]Run one: taskfile ci run --stage <name>[/]")
+        console.print("\n[dim]Run all: taskfile ci run[/]")
+        console.print("[dim]Run one: taskfile ci run --stage <name>[/]")
 
 
 class StageResult:

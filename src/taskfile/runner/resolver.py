@@ -58,7 +58,9 @@ class TaskResolver:
         global pollution.  Existing os.environ entries take precedence.
         """
         self._dotenv: dict[str, str] = {}
-        taskfile_dir = Path(self.config.source_path).parent if self.config.source_path else Path.cwd()
+        taskfile_dir = (
+            Path(self.config.source_path).parent if self.config.source_path else Path.cwd()
+        )
         for candidate in (".env", ".env.local"):
             env_path = taskfile_dir / candidate
             if env_path.is_file():
@@ -86,9 +88,16 @@ class TaskResolver:
         """Expand ${VAR:-default} in environment string fields using os.environ."""
         ctx = {**self._dotenv, **os.environ}
         for field_name in (
-            "ssh_host", "ssh_user", "ssh_key",
-            "compose_command", "container_runtime", "service_manager",
-            "env_file", "compose_file", "quadlet_dir", "quadlet_remote_dir",
+            "ssh_host",
+            "ssh_user",
+            "ssh_key",
+            "compose_command",
+            "container_runtime",
+            "service_manager",
+            "env_file",
+            "compose_file",
+            "quadlet_dir",
+            "quadlet_remote_dir",
         ):
             value = getattr(env, field_name, None)
             if isinstance(value, str) and ("${" in value or "$" in value):
@@ -115,14 +124,29 @@ class TaskResolver:
         variables.setdefault("COMPOSE", self.env.compose_command)
         if self.platform_name:
             variables.setdefault("PLATFORM", self.platform_name)
+        # Go-task built-ins: PWD, TASKFILE_DIR, USER
+        taskfile_dir = (
+            str(Path(self.config.source_path).parent.resolve())
+            if self.config.source_path
+            else str(Path.cwd().resolve())
+        )
+        variables.setdefault("PWD", taskfile_dir)
+        variables.setdefault("TASKFILE_DIR", taskfile_dir)
+        variables.setdefault("USER", os.environ.get("USER", ""))
 
-        # Resolve ${VAR:-default} / $VAR inside variable values.
+        # Resolve ${VAR:-default} / $VAR / {{VAR}} inside variable values.
         for key in list(variables.keys()):
             value = variables.get(key)
             if not isinstance(value, str):
                 continue
             ctx: dict[str, str] = {**self._dotenv, **os.environ, **variables}
             ctx.pop(key, None)
+            # First expand {{VAR}} (Go-task / Taskfile syntax)
+            for var_key, var_val in ctx.items():
+                if not isinstance(var_val, str):
+                    var_val = str(var_val)
+                value = value.replace(f"{{{{{var_key}}}}}", var_val)
+            # Then expand ${VAR} / $VAR (shell syntax)
             variables[key] = _compose_resolve_variables(value, ctx)
         return variables
 
@@ -136,7 +160,8 @@ class TaskResolver:
         if not isinstance(text, str):
             return text
 
-        result = text
+        # Normalise {{.KEY}} → {{KEY}} (Go-task dot-prefix syntax)
+        result = text.replace("{{.", "{{")
         for key, value in self.variables.items():
             if not isinstance(value, str):
                 value = str(value)

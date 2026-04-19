@@ -40,7 +40,7 @@ def _print_task_body(task) -> None:
     if task.script:
         console.print(f"\n  [bold]Script:[/] {task.script}")
     if task.commands:
-        console.print(f"\n  [bold]Commands:[/]")
+        console.print("\n  [bold]Commands:[/]")
         for cmd in task.commands:
             console.print(f"    → {cmd}")
 

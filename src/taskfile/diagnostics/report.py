@@ -18,8 +18,6 @@ from taskfile.diagnostics.models import (
     IssueCategory,
     FixStrategy,
     DoctorReport,
-    CATEGORY_LABELS,
-    CATEGORY_HINTS,
     SEVERITY_ERROR,
 )
 
@@ -38,11 +36,12 @@ LAYER_NAMES = {
 def print_report(issues: list[Issue], categorized: bool = True, show_teach: bool = False) -> None:
     """Print diagnostic report to console."""
     if not issues:
-        console.print(Panel(
-            "[bold green]✓ All checks passed![/]\n"
-            "Your project is ready to use.",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                "[bold green]✓ All checks passed![/]\nYour project is ready to use.",
+                border_style="green",
+            )
+        )
         return
 
     if categorized:
@@ -70,8 +69,7 @@ def _group_issues_by_layer(issues: list[Issue]) -> dict[str, list[Issue]]:
 def _print_layer_issues(layer_name: str, layer_issues: list[Issue], show_teach: bool) -> None:
     """Print all issues for a single layer with formatting."""
     icon = {"Konfiguracja": "⚙️", "Zależności": "📦", "Runtime": "🔧"}.get(layer_name, "❓")
-    error_count = sum(1 for i in layer_issues if i.severity == SEVERITY_ERROR)
-    style = "red" if error_count else "yellow"
+    sum(1 for i in layer_issues if i.severity == SEVERITY_ERROR)
 
     console.print(f"\n[bold blue]{icon} {layer_name}[/]")
 
@@ -166,8 +164,11 @@ def _print_flat_report(issues: list[Issue]) -> None:
         fix_tag = _fix_tag(iss)
         cat_short = iss.category.value.replace("_", " ")[:12]
         table.add_row(
-            str(iss.layer), cat_short, iss.message,
-            f"{icon} {iss.severity}", fix_tag,
+            str(iss.layer),
+            cat_short,
+            iss.message,
+            f"{icon} {iss.severity}",
+            fix_tag,
         )
 
     console.print(table)
@@ -209,7 +210,9 @@ def format_summary(report: DoctorReport) -> str:
 
 
 def _severity_icon(severity: str) -> str:
-    return {"error": "[red]✗[/]", "warning": "[yellow]⚠[/]", "info": "[blue]ℹ[/]"}.get(severity, "●")
+    return {"error": "[red]✗[/]", "warning": "[yellow]⚠[/]", "info": "[blue]ℹ[/]"}.get(
+        severity, "●"
+    )
 
 
 def _fix_tag(issue: Issue) -> str:

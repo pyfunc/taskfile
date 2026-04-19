@@ -28,6 +28,7 @@ def _load_registry() -> None:
         return
     from taskfile.addons import postgres, monitoring, redis_addon, fixop_addon
     from taskfile.addons import terraform, helm, ansible
+
     _ADDON_REGISTRY["postgres"] = postgres.generate_tasks
     _ADDON_REGISTRY["monitoring"] = monitoring.generate_tasks
     _ADDON_REGISTRY["redis"] = redis_addon.generate_tasks
@@ -63,9 +64,7 @@ def expand_addons(addons_section: list) -> dict[str, dict]:
         generator = _ADDON_REGISTRY.get(addon_name)
         if generator is None:
             available = ", ".join(sorted(_ADDON_REGISTRY.keys()))
-            raise ValueError(
-                f"Unknown addon '{addon_name}'. Available: {available}"
-            )
+            raise ValueError(f"Unknown addon '{addon_name}'. Available: {available}")
 
         generated = generator(addon_config)
         tasks.update(generated)

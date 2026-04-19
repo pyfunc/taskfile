@@ -1,6 +1,5 @@
 """Tests for health check framework."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError, URLError
 
@@ -156,10 +155,11 @@ class TestRunHealthChecks:
 
     def test_run_checks_all_healthy(self):
         """Test running all health checks successfully."""
-        with patch("taskfile.health.check_http_endpoint") as mock_http, \
-             patch("taskfile.health.check_ssh_service") as mock_ssh, \
-             patch("taskfile.health.check_traefik_dashboard") as mock_traefik:
-
+        with (
+            patch("taskfile.health.check_http_endpoint") as mock_http,
+            patch("taskfile.health.check_ssh_service") as mock_ssh,
+            patch("taskfile.health.check_traefik_dashboard") as mock_traefik,
+        ):
             mock_http.return_value = HealthCheckResult(
                 "Landing", "https://example.com", "healthy", 200, 100.0
             )

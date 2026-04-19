@@ -51,8 +51,15 @@ INSTALL_HINTS: dict[str, str] = {
 # ─── Placeholder detection patterns ──────────────────────────────────────
 
 _PLACEHOLDER_WORDS = [
-    "example.com", "your-", "xxx", "changeme",
-    "replace-me", "replace_me", "todo", "placeholder", "0.0.0.0",
+    "example.com",
+    "your-",
+    "xxx",
+    "changeme",
+    "replace-me",
+    "replace_me",
+    "todo",
+    "placeholder",
+    "0.0.0.0",
 ]
 
 
@@ -81,12 +88,14 @@ class ErrorPresenter:
 
         # Build and display diagnosis panel
         diagnosis = self._build_diagnosis(issue, cmd, stderr, env_name, variables)
-        console.print(Panel(
-            diagnosis,
-            title="[yellow bold]Diagnoza[/]",
-            border_style="yellow",
-            padding=(1, 2),
-        ))
+        console.print(
+            Panel(
+                diagnosis,
+                title="[yellow bold]Diagnoza[/]",
+                border_style="yellow",
+                padding=(1, 2),
+            )
+        )
 
     def _build_diagnosis(
         self,
@@ -106,10 +115,16 @@ class ErrorPresenter:
 
         # ── Specific diagnosis per error type ──
 
-        if "could not resolve hostname" in stderr_lower or "name or service not known" in stderr_lower:
+        if (
+            "could not resolve hostname" in stderr_lower
+            or "name or service not known" in stderr_lower
+        ):
             lines.extend(self._diagnose_hostname(stderr, variables))
 
-        elif "command not found" in stderr_lower or issue.category == IssueCategory.DEPENDENCY_MISSING:
+        elif (
+            "command not found" in stderr_lower
+            or issue.category == IssueCategory.DEPENDENCY_MISSING
+        ):
             lines.extend(self._diagnose_command_not_found(stderr, cmd))
 
         elif "permission denied" in stderr_lower:
@@ -146,7 +161,9 @@ class ErrorPresenter:
             if issue.fix_description:
                 lines.append(issue.fix_description)
             else:
-                lines.append(f"Komenda zwróciła kod {issue.context.get('exit_code', '?') if issue.context else '?'}.")
+                lines.append(
+                    f"Komenda zwróciła kod {issue.context.get('exit_code', '?') if issue.context else '?'}."
+                )
                 lines.append("Sprawdź output powyżej.")
 
         # ── Footer ──
@@ -164,20 +181,20 @@ class ErrorPresenter:
         if host:
             var = self._find_variable_for_value(host, variables)
             if var and self._looks_like_placeholder(host):
-                lines.append(f"Zmienna [bold]{var}[/] ma wartość [yellow]\"{host}\"[/]")
+                lines.append(f'Zmienna [bold]{var}[/] ma wartość [yellow]"{host}"[/]')
                 lines.append("— to wygląda na placeholder.")
                 lines.append("")
                 lines.append("[bold]Napraw:[/]")
-                lines.append(f"  1. Ustaw prawdziwy adres:")
+                lines.append("  1. Ustaw prawdziwy adres:")
                 lines.append(f"     [cyan]export {var}=<prawdziwy-adres>[/]")
-                lines.append(f"  2. Lub zapisz w .env:")
+                lines.append("  2. Lub zapisz w .env:")
                 lines.append(f'     [cyan]echo "{var}=<adres>" >> .env[/]')
             else:
                 lines.append(f"Host [yellow]{host}[/] nie został rozwiązany (DNS).")
                 lines.append("")
                 lines.append("[bold]Napraw:[/]")
                 lines.append(f"  1. Sprawdź adres: [cyan]ping {host}[/]")
-                lines.append(f"  2. Sprawdź zmienne w Taskfile.yml i .env")
+                lines.append("  2. Sprawdź zmienne w Taskfile.yml i .env")
         return lines
 
     def _diagnose_command_not_found(self, stderr: str, cmd: str) -> list[str]:
@@ -275,6 +292,6 @@ class ErrorPresenter:
         stripped = cmd.strip()
         for prefix in ("@remote ", "@local ", "@ssh ", "@fn ", "@python "):
             if stripped.startswith(prefix):
-                stripped = stripped[len(prefix):]
+                stripped = stripped[len(prefix) :]
                 break
         return stripped.split()[0] if stripped.split() else "unknown"

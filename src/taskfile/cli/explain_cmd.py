@@ -133,34 +133,34 @@ def _print_explain_problems(report) -> None:
 def explain(ctx, task_name):
     """**Explain what a task will do** — full execution plan without running.
 
-## Shows
+    ## Shows
 
-- **Requirements** — Docker, SSH, Python, etc.
-- **Time estimate** — based on timeout/retries
-- **Step-by-step plan** — deps → commands, with variable expansion
-- **Resolved variables** — what values will be used
-- **Potential problems** — missing files, placeholders, unknown binaries
+    - **Requirements** — Docker, SSH, Python, etc.
+    - **Time estimate** — based on timeout/retries
+    - **Step-by-step plan** — deps → commands, with variable expansion
+    - **Resolved variables** — what values will be used
+    - **Potential problems** — missing files, placeholders, unknown binaries
 
-## Examples
+    ## Examples
 
-```bash
-# Basic explain
-taskfile explain deploy
+    ```bash
+    # Basic explain
+    taskfile explain deploy
 
-# Explain with specific environment
-taskfile --env prod-eu explain deploy-quadlet
+    # Explain with specific environment
+    taskfile --env prod-eu explain deploy-quadlet
 
-# Explain with variable overrides
-taskfile --env prod explain deploy --var TAG=v1.2.3
-```
-"""
+    # Explain with variable overrides
+    taskfile --env prod explain deploy --var TAG=v1.2.3
+    ```
+    """
     opts = ctx.obj
     try:
         config = load_taskfile(opts["taskfile_path"])
         _check_unknown_tasks([task_name], config.tasks)
 
         from taskfile.runner.resolver import TaskResolver
-        from taskfile.runner.explainer import TaskExplainer, ExplainReport
+        from taskfile.runner.explainer import TaskExplainer
 
         resolver = TaskResolver(
             config,
@@ -182,7 +182,7 @@ taskfile --env prod explain deploy --var TAG=v1.2.3
         _check_env_files(config, resolver, task)
 
         if not report.issues:
-            console.print(f"\n  [green]✓ No problems detected — ready to run[/]")
+            console.print("\n  [green]✓ No problems detected — ready to run[/]")
 
         console.print()
         sys.exit(1 if report.has_errors else 0)

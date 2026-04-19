@@ -1,8 +1,8 @@
-# taskfile | 132f 26509L | shell:1,python:131 | 2026-04-18
-# stats: 920 func | 0 cls | 132 mod | CC̄=4.4 | critical:4 | cycles:0
-# alerts[5]: CC main=35; CC analyze_project=26; fan-out main=25; fan-out register_run_routes=23; fan-out prod=21
-# hotspots[5]: main fan=25; register_run_routes fan=23; prod fan=21; bump fan=20; workspace_compare fan=19
-# evolution: CC̄ 4.4→4.4 (flat 0.0)
+# taskfile | 132f 27109L | shell:1,python:131 | 2026-04-19
+# stats: 932 func | 0 cls | 132 mod | CC̄=4.3 | critical:1 | cycles:0
+# alerts[5]: fan-out register_run_routes=23; fan-out prod=21; fan-out ProjectDiagnostics.run_all_checks=20; fan-out bump=20; CC filter_projects=19
+# hotspots[5]: register_run_routes fan=23; prod fan=21; ProjectDiagnostics.run_all_checks fan=20; bump fan=20; workspace_compare fan=19
+# evolution: CC̄ 4.3→4.3 (flat 0.0)
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
 M[132]:
   TODO/__init__.py,131
@@ -10,152 +10,136 @@ M[132]:
   TODO/models.py,103
   TODO/src/fixop/__init__.py,9
   TODO/src/fixop/cli.py,21
-  analyze_all_projects.py,656
   project.sh,24
   src/taskfile/__init__.py,39
   src/taskfile/__main__.py,6
-  src/taskfile/addons/__init__.py,73
+  src/taskfile/addons/__init__.py,72
   src/taskfile/addons/ansible.py,101
   src/taskfile/addons/fixop_addon.py,67
   src/taskfile/addons/helm.py,101
-  src/taskfile/addons/monitoring.py,58
+  src/taskfile/addons/monitoring.py,60
   src/taskfile/addons/postgres.py,80
   src/taskfile/addons/redis_addon.py,61
-  src/taskfile/addons/terraform.py,133
+  src/taskfile/addons/terraform.py,132
   src/taskfile/api/__init__.py,13
   src/taskfile/api/app.py,78
-  src/taskfile/api/models.py,225
-  src/taskfile/api/routes_doctor.py,170
+  src/taskfile/api/models.py,256
+  src/taskfile/api/routes_doctor.py,174
   src/taskfile/api/routes_health.py,44
   src/taskfile/api/routes_helpers.py,111
   src/taskfile/api/routes_metadata.py,148
-  src/taskfile/api/routes_run.py,107
-  src/taskfile/api/routes_taskfile.py,73
-  src/taskfile/api/routes_tasks.py,77
-  src/taskfile/cache.py,231
-  src/taskfile/cigen/__init__.py,58
-  src/taskfile/cigen/base.py,67
-  src/taskfile/cigen/drone.py,63
-  src/taskfile/cigen/gitea.py,51
-  src/taskfile/cigen/github.py,127
-  src/taskfile/cigen/gitlab.py,105
-  src/taskfile/cigen/jenkins.py,54
-  src/taskfile/cigen/makefile.py,53
-  src/taskfile/cirunner.py,262
-  src/taskfile/cli/__init__.py,20
-  src/taskfile/cli/api_cmd.py,119
-  src/taskfile/cli/auth.py,257
-  src/taskfile/cli/cache_cmds.py,73
-  src/taskfile/cli/ci.py,202
-  src/taskfile/cli/click_compat.py,254
-  src/taskfile/cli/completion.py,197
-  src/taskfile/cli/deploy.py,383
-  src/taskfile/cli/diagnostics.py,132
-  src/taskfile/cli/docker_cmds.py,187
-  src/taskfile/cli/e2e_cmd.py,415
+  src/taskfile/api/routes_run.py,111
+  src/taskfile/api/routes_taskfile.py,75
+  src/taskfile/api/routes_tasks.py,79
+  src/taskfile/cache.py,230
+  src/taskfile/cigen/__init__.py,65
+  src/taskfile/cigen/base.py,73
+  src/taskfile/cigen/drone.py,64
+  src/taskfile/cigen/gitea.py,52
+  src/taskfile/cigen/github.py,136
+  src/taskfile/cigen/gitlab.py,108
+  src/taskfile/cigen/jenkins.py,59
+  src/taskfile/cigen/makefile.py,54
+  src/taskfile/cirunner.py,265
+  src/taskfile/cli/__init__.py,4
+  src/taskfile/cli/api_cmd.py,128
+  src/taskfile/cli/auth.py,264
+  src/taskfile/cli/cache_cmds.py,71
+  src/taskfile/cli/ci.py,207
+  src/taskfile/cli/click_compat.py,274
+  src/taskfile/cli/completion.py,194
+  src/taskfile/cli/deploy.py,415
+  src/taskfile/cli/diagnostics.py,139
+  src/taskfile/cli/docker_cmds.py,192
+  src/taskfile/cli/e2e_cmd.py,437
   src/taskfile/cli/explain_cmd.py,208
-  src/taskfile/cli/fleet.py,408
-  src/taskfile/cli/group_strategies.py,124
-  src/taskfile/cli/health.py,70
-  src/taskfile/cli/import_export.py,220
+  src/taskfile/cli/fleet.py,435
+  src/taskfile/cli/group_strategies.py,125
+  src/taskfile/cli/health.py,72
+  src/taskfile/cli/import_export.py,229
   src/taskfile/cli/info_cmd.py,72
   src/taskfile/cli/interactive/__init__.py,8
-  src/taskfile/cli/interactive/menu.py,552
-  src/taskfile/cli/interactive/wizards.py,696
-  src/taskfile/cli/main.py,493
-  src/taskfile/cli/quadlet.py,268
-  src/taskfile/cli/registry_cmds.py,230
-  src/taskfile/cli/release.py,368
-  src/taskfile/cli/setup.py,448
+  src/taskfile/cli/interactive/menu.py,572
+  src/taskfile/cli/interactive/wizards.py,794
+  src/taskfile/cli/main.py,527
+  src/taskfile/cli/quadlet.py,276
+  src/taskfile/cli/registry_cmds.py,233
+  src/taskfile/cli/release.py,388
+  src/taskfile/cli/setup.py,450
   src/taskfile/cli/utils/__init__.py,0
-  src/taskfile/cli/validate_cmd.py,138
-  src/taskfile/cli/version.py,307
-  src/taskfile/cli/workspace_cmd.py,818
-  src/taskfile/compose.py,241
+  src/taskfile/cli/validate_cmd.py,147
+  src/taskfile/cli/version.py,309
+  src/taskfile/cli/workspace_cmd.py,846
+  src/taskfile/compose.py,249
   src/taskfile/converters.py,306
-  src/taskfile/deploy_recipes.py,484
-  src/taskfile/deploy_utils.py,492
-  src/taskfile/diagnostics/__init__.py,320
-  src/taskfile/diagnostics/checks.py,497
-  src/taskfile/diagnostics/checks_deploy.py,171
-  src/taskfile/diagnostics/checks_env.py,185
-  src/taskfile/diagnostics/checks_infra.py,179
-  src/taskfile/diagnostics/checks_placeholders.py,161
-  src/taskfile/diagnostics/checks_ports.py,191
+  src/taskfile/deploy_recipes.py,507
+  src/taskfile/deploy_utils.py,514
+  src/taskfile/diagnostics/__init__.py,379
+  src/taskfile/diagnostics/checks.py,531
+  src/taskfile/diagnostics/checks_deploy.py,179
+  src/taskfile/diagnostics/checks_env.py,198
+  src/taskfile/diagnostics/checks_infra.py,191
+  src/taskfile/diagnostics/checks_placeholders.py,176
+  src/taskfile/diagnostics/checks_ports.py,199
+  src/taskfile/diagnostics/checks_pyqual.py,280
   src/taskfile/diagnostics/checks_registry.py,166
-  src/taskfile/diagnostics/checks_ssh.py,100
-  src/taskfile/diagnostics/checks_tasks.py,77
-  src/taskfile/diagnostics/fixes.py,204
-  src/taskfile/diagnostics/fixop_adapter.py,113
-  src/taskfile/diagnostics/llm_repair.py,203
-  src/taskfile/diagnostics/models.py,147
-  src/taskfile/diagnostics/report.py,221
+  src/taskfile/diagnostics/checks_ssh.py,99
+  src/taskfile/diagnostics/checks_tasks.py,79
+  src/taskfile/diagnostics/fixes.py,205
+  src/taskfile/diagnostics/fixop_adapter.py,114
+  src/taskfile/diagnostics/llm_repair.py,204
+  src/taskfile/diagnostics/models.py,149
+  src/taskfile/diagnostics/report.py,224
   src/taskfile/diagnostics/utils/__init__.py,0
-  src/taskfile/fleet.py,483
-  src/taskfile/graph.py,211
-  src/taskfile/health.py,458
-  src/taskfile/importer.py,452
+  src/taskfile/fleet.py,490
+  src/taskfile/graph.py,210
+  src/taskfile/health.py,468
+  src/taskfile/importer.py,474
   src/taskfile/landing.py,365
   src/taskfile/models/__init__.py,29
-  src/taskfile/models/config.py,366
-  src/taskfile/models/environment.py,107
-  src/taskfile/models/pipeline.py,81
+  src/taskfile/models/config.py,384
+  src/taskfile/models/environment.py,111
+  src/taskfile/models/pipeline.py,86
   src/taskfile/models/task.py,68
-  src/taskfile/notifications.py,109
-  src/taskfile/parser.py,351
-  src/taskfile/provisioner.py,308
-  src/taskfile/quadlet.py,414
+  src/taskfile/notifications.py,102
+  src/taskfile/parser.py,355
+  src/taskfile/provisioner.py,307
+  src/taskfile/quadlet.py,433
   src/taskfile/registry.py,349
-  src/taskfile/runner/__init__.py,14
-  src/taskfile/runner/classifier.py,146
-  src/taskfile/runner/commands.py,575
-  src/taskfile/runner/core.py,486
-  src/taskfile/runner/error_presenter.py,280
-  src/taskfile/runner/explainer.py,415
-  src/taskfile/runner/failure.py,295
-  src/taskfile/runner/functions.py,140
-  src/taskfile/runner/resolver.py,197
-  src/taskfile/runner/ssh.py,81
+  src/taskfile/runner/__init__.py,18
+  src/taskfile/runner/classifier.py,149
+  src/taskfile/runner/commands.py,602
+  src/taskfile/runner/core.py,499
+  src/taskfile/runner/error_presenter.py,297
+  src/taskfile/runner/explainer.py,435
+  src/taskfile/runner/failure.py,319
+  src/taskfile/runner/functions.py,148
+  src/taskfile/runner/resolver.py,222
+  src/taskfile/runner/ssh.py,103
   src/taskfile/runner/utils/__init__.py,0
-  src/taskfile/runner/utils/markdown.py,29
+  src/taskfile/runner/utils/markdown.py,30
   src/taskfile/runner/utils/prefix.py,36
-  src/taskfile/scaffold/__init__.py,33
+  src/taskfile/scaffold/__init__.py,43
   src/taskfile/scaffold/codereview.py,207
-  src/taskfile/scaffold/customize.py,358
-  src/taskfile/scaffold/from_doql.py,221
+  src/taskfile/scaffold/customize.py,365
+  src/taskfile/scaffold/from_doql.py,226
   src/taskfile/scaffold/full.py,181
   src/taskfile/scaffold/minimal.py,40
   src/taskfile/scaffold/multiplatform.py,222
   src/taskfile/scaffold/podman.py,94
   src/taskfile/scaffold/publish.py,280
   src/taskfile/scaffold/web.py,93
-  src/taskfile/ssh.py,151
+  src/taskfile/ssh.py,157
   src/taskfile/utils/__init__.py,0
-  src/taskfile/watch.py,182
+  src/taskfile/watch.py,192
   src/taskfile/webui/__init__.py,9
   src/taskfile/webui/dashboard.py,424
-  src/taskfile/webui/handlers.py,147
+  src/taskfile/webui/handlers.py,160
   src/taskfile/webui/server.py,43
-  src/taskfile/workspace.py,880
+  src/taskfile/workspace.py,923
 D:
-  analyze_all_projects.py:
-    e: parse_taskfile_tasks,parse_taskfile_meta,parse_doql_workflows,parse_doql_meta,analyze_project,discover_projects,fix_broken_deps,fix_broken_help_cmds,add_missing_workflows,_workflow_step,_task_template,add_missing_tasks,add_pipeline_section,main
-    parse_taskfile_tasks(path)
-    parse_taskfile_meta(path)
-    parse_doql_workflows(path)
-    parse_doql_meta(path)
-    analyze_project(project_path;group)
-    discover_projects(root;group)
-    fix_broken_deps(tf_path)
-    fix_broken_help_cmds(tf_path)
-    add_missing_workflows(doql_path;missing)
-    _workflow_step(name)
-    _task_template(name;proj_name)
-    add_missing_tasks(tf_path;missing)
-    add_pipeline_section(tf_path)
-    main()
   src/taskfile/workspace.py:
-    e: Project,CommandResult,FixResult,_TaskfileSimpleAnalysis,_DoqlSimpleAnalysis,_PeerStats,_DoqlAnalysis,_TaskfileAnalysis,_parse_taskfile_tasks,_parse_doql_workflows,_is_project_folder,_analyze_project,discover_projects,_matches_task_filter,_matches_workflow_filter,_matches_docker_filter,filter_projects,run_in_project,run_task_in_projects,parse_taskfile_task_commands,_remove_import_makefile_hint,_fix_doql_workflows,fix_project,_analyze_taskfile_simple,_analyze_doql_simple,_check_sync,analyze_project,_compute_peer_stats,_analyze_doql_structure,_analyze_taskfile_structure,_build_comparison_result,compare_projects,validate_project
+    e: Project,CommandResult,FixResult,_TaskfileSimpleAnalysis,_DoqlSimpleAnalysis,_PeerStats,_DoqlAnalysis,_TaskfileAnalysis,_parse_taskfile_tasks,_parse_doql_workflows,_is_project_folder,_analyze_project,discover_projects,_matches_task_filter,_matches_workflow_filter,_matches_docker_filter,filter_projects,run_in_project,run_task_in_projects,parse_taskfile_task_commands,_remove_import_makefile_hint,_fix_doql_workflows,fix_project,_analyze_taskfile_simple,_analyze_doql_simple,_check_sync,analyze_project,_compute_peer_stats,_analyze_doql_structure,_analyze_taskfile_structure,_compute_missing_items,_build_comparison_issues,_build_comparison_recommendations,_build_comparison_result,compare_projects,validate_project
     Project: has_task_named(1),has_workflow_named(1)  # Representation of a discovered project...
     CommandResult:  # Result of running a command in a project...
     FixResult: summary(0)  # Result of applying fixes to a project...
@@ -186,6 +170,9 @@ D:
     _compute_peer_stats(projects;common_threshold)
     _analyze_doql_structure(project)
     _analyze_taskfile_structure(project)
+    _compute_missing_items(project;stats;project_tasks;project_workflows)
+    _build_comparison_issues(project;doql;stats;orphan_workflows;missing_in_doql)
+    _build_comparison_recommendations(project;doql;tf;missing_common_tasks;missing_common_workflows)
     _build_comparison_result(project;stats;doql;tf)
     compare_projects(projects;common_threshold)
     validate_project(project)
@@ -238,6 +225,15 @@ D:
     customise_minimal(content;project_root)
     _import_doql_workflows(doql_path)
     _import_makefile_tasks(makefile_path)
+  src/taskfile/diagnostics/checks_pyqual.py:
+    e: _run_pyqual_gates,_map_pyqual_severity,_categorize_pyqual_issue,check_pyqual_installed,check_pyqual_quality,fix_with_pyqual,get_pyqual_summary
+    _run_pyqual_gates(project_path)
+    _map_pyqual_severity(pyqual_severity)
+    _categorize_pyqual_issue(pyqual_finding)
+    check_pyqual_installed()
+    check_pyqual_quality(project_path)
+    fix_with_pyqual(project_path)
+    get_pyqual_summary(project_path)
   src/taskfile/diagnostics/llm_repair.py:
     e: is_available,ask_llm_for_fix,classify_runtime_error,_classify_runtime_error_legacy,_extract_missing_binary
     is_available()
@@ -287,7 +283,7 @@ D:
     _run_upload_commands(env;files;dry_run)
     quadlet_upload(ctx;quadlet_dir)
   src/taskfile/cli/interactive/wizards.py:
-    e: _nullcontext,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_doctor_run_checks,_doctor_apply_fixes,_doctor_print_summary,_run_llm_assist,_ssh_run,_check_remote_podman,_check_remote_disk,_check_remote_memory,_check_remote_containers,_resolve_selected_env,_collect_remote_envs,_run_fixop_checks,_diagnose_single_remote_env,_run_remote_diagnostics,_run_examples_check,_apply_init_extras,init
+    e: _nullcontext,_detect_project_type,_suggest_template,_collect_env_config_interactive,_write_env_file,_collect_init_choices,_create_gitignore,doctor,_doctor_run_checks,_doctor_apply_fixes,_doctor_run_quality_check,_doctor_print_summary,_run_llm_assist,_ssh_run,_check_remote_podman,_check_remote_disk,_check_remote_memory,_check_remote_containers,_resolve_selected_env,_collect_remote_envs,_run_fixop_checks,_diagnose_single_remote_env,_run_remote_diagnostics,_run_examples_check,_apply_init_extras,init
     _nullcontext: __enter__(0),__exit__(0)  # Minimal no-op context manager for Python <3.10 compat...
     _detect_project_type()
     _suggest_template(project_type)
@@ -295,9 +291,10 @@ D:
     _write_env_file(config;env_name)
     _collect_init_choices()
     _create_gitignore()
-    doctor(fix;verbose;report;check_examples_flag;llm;category;teach;remote)
+    doctor(fix;verbose;report;check_examples_flag;llm;category;teach;remote;quality_check;quality_fix)
     _doctor_run_checks(diagnostics)
     _doctor_apply_fixes(diagnostics)
+    _doctor_run_quality_check(diagnostics)
     _doctor_print_summary(diagnostics)
     _run_llm_assist(diagnostics)
     _ssh_run(ssh_cmd;remote_cmd;timeout)
@@ -749,13 +746,6 @@ D:
     generate_resolv_conf(output_dir)
     compose_to_quadlet(compose;output_dir;network_name;auto_update;services_filter;env;dns_fix)
     _inject_resolv_volume(container_path)
-  src/taskfile/diagnostics/__init__.py:
-    e: ProjectDiagnostics
-    ProjectDiagnostics: __init__(0),_add_issue(4),_add_issues(1),_load_config(0),check_preflight(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_placeholder_values(0),check_ports(0),check_docker(0),check_registry_access(0),check_ssh_keys(0),check_ssh_connectivity(0),check_dependent_files(0),check_git(0),check_task_commands(0),check_remote_health(0),check_deploy_artifacts(0),check_ufw_forward_policy(0),check_container_dns(0),run_all_checks(0),auto_fix(0),llm_repair(1),print_report(2),print_report_json(0),get_report_dict(0),check_examples(0),generate_env_example(2)  # Facade composing checks + fixes + report — backward compatib...
-  src/taskfile/diagnostics/checks_tasks.py:
-    e: check_task_commands,_extract_binary
-    check_task_commands(config)
-    _extract_binary(cmd)
   src/taskfile/diagnostics/fixes.py:
     e: apply_fixes,apply_single_fix,_fix_copy_env_example,_fix_create_taskfile,_fix_init_git,_fix_rename_port,_fix_missing_variable,_fix_run_command,_mark_fixed,_upsert_env_value
     apply_fixes(issues;interactive)
@@ -768,6 +758,16 @@ D:
     _fix_run_command(issue;interactive)
     _mark_fixed(issue)
     _upsert_env_value(env_path;key;value)
+  src/taskfile/diagnostics/__init__.py:
+    e: ProjectDiagnostics
+    ProjectDiagnostics: __init__(0),_add_issue(4),_add_issues(1),_load_config(0),check_preflight(0),check_taskfile(0),check_env_files(0),validate_taskfile_variables(0),check_placeholder_values(0),check_ports(0),check_docker(0),check_registry_access(0),check_ssh_keys(0),check_ssh_connectivity(0),check_dependent_files(0),check_git(0),check_task_commands(0),check_remote_health(0),check_deploy_artifacts(0),check_ufw_forward_policy(0),check_container_dns(0),run_all_checks(0),auto_fix(0),check_venv(0),check_dependencies(1),check_poetry_lock(0),check_pyqual_installed(0),check_pyqual_quality(0),fix_with_pyqual(0),get_pyqual_summary(0),llm_repair(1),print_report(2),print_report_json(0),get_report_dict(0),check_examples(0),generate_env_example(2)  # Facade composing checks + fixes + report — backward compatib...
+  src/taskfile/diagnostics/checks_tasks.py:
+    e: check_task_commands,_extract_binary
+    check_task_commands(config)
+    _extract_binary(cmd)
+  src/taskfile/runner/resolver.py:
+    e: TaskResolver
+    TaskResolver: __init__(4),from_path(4),_load_dotenv(0),_resolve_environment(0),_resolve_env_fields(1),_resolve_platform(0),_resolve_variables(0),expand_variables(1),get_task(1),available_task_names(0),should_skip_task(2),get_dependency_order(2),env_is_defined(0),platform_is_defined(0)  # Pure-logic task resolver: variable expansion, filtering, dep...
   src/taskfile/models/config.py:
     e: ComposeConfig,TaskfileConfig,_normalize_host_keys,_expand_single_host
     ComposeConfig:  # Compose-based deployment configuration...
@@ -844,6 +844,9 @@ Composes:
     get_environment_names(ctx;param;incomplete)
     get_platform_names(ctx;param;incomplete)
     generate_completion_script(shell)
+  src/taskfile/cigen/gitea.py:
+    e: GiteaActionsTarget
+    GiteaActionsTarget(CITarget): _tag_var(0),generate(0)
   src/taskfile/cli/interactive/menu.py:
     e: setup,hosts,env,prod,watch,graph,serve,clean,push
     setup()
@@ -855,9 +858,6 @@ Composes:
     serve(port;no_browser)
     clean(level;assume_yes)
     push(images;host;user;runtime)
-  src/taskfile/cigen/gitea.py:
-    e: GiteaActionsTarget
-    GiteaActionsTarget(CITarget): _tag_var(0),generate(0)
   src/taskfile/webui/handlers.py:
     e: TaskfileHandler
     TaskfileHandler(BaseHTTPRequestHandler): log_message(1),do_GET(0),do_POST(0),_serve_html(0),_serve_tasks_json(0),_serve_config_json(0),_run_task(1),_send_json(2),_send_404(0),_get_dashboard_html(0)  # HTTP request handler for taskfile web UI...
@@ -936,9 +936,6 @@ Composes:
     get_remote_logs(host;container_name;user;port;runtime;tail)
     get_remote_status(host;container_names;user;port;runtime)
     clean_project(level;project_dir)
-  src/taskfile/runner/resolver.py:
-    e: TaskResolver
-    TaskResolver: __init__(4),from_path(4),_load_dotenv(0),_resolve_environment(0),_resolve_env_fields(1),_resolve_platform(0),_resolve_variables(0),expand_variables(1),get_task(1),available_task_names(0),should_skip_task(2),get_dependency_order(2),env_is_defined(0),platform_is_defined(0)  # Pure-logic task resolver: variable expansion, filtering, dep...
   src/taskfile/models/task.py:
     e: Function,Task,_normalize_commands
     Function:  # Embedded function callable from tasks via @fn prefix...
@@ -1012,7 +1009,15 @@ Composes:
     e: generate_tasks
     generate_tasks(config)
   src/taskfile/runner/ssh.py:
-    e: wrap_ssh,wrap_scp_push,wrap_scp_pull,run_embedded_ssh
+    e: is_local_command,is_remote_command,is_push_command,is_pull_command,strip_local_prefix,strip_remote_prefix,strip_push_prefix,strip_pull_prefix,wrap_ssh,wrap_scp_push,wrap_scp_pull,run_embedded_ssh
+    is_local_command(cmd)
+    is_remote_command(cmd)
+    is_push_command(cmd)
+    is_pull_command(cmd)
+    strip_local_prefix(cmd)
+    strip_remote_prefix(cmd)
+    strip_push_prefix(cmd)
+    strip_pull_prefix(cmd)
     wrap_ssh(cmd;env)
     wrap_scp_push(cmd;env)
     wrap_scp_pull(cmd;env)

@@ -38,11 +38,13 @@ from enum import Enum
 
 # ─── Old 4-category IssueCategory (backward compat) ──────────────
 
+
 class IssueCategory(str, Enum):
     """Old 4-category system — kept for backward compatibility.
 
     New code should use taskfile.diagnostics.models.IssueCategory (5 categories).
     """
+
     CONFIG = "config"
     ENV = "env"
     INFRA = "infra"
@@ -66,11 +68,13 @@ CATEGORY_HINTS = {
 
 # ─── Old DiagnosticIssue (backward compat) ────────────────────────
 
+
 class DiagnosticIssue:
     """Old-style diagnostic issue — kept for backward compatibility.
 
     New code should use taskfile.diagnostics.models.Issue.
     """
+
     __slots__ = ("message", "severity", "auto_fixable", "category")
 
     def __init__(
@@ -96,6 +100,7 @@ class DiagnosticIssue:
 
 # ─── Old validate_before_run (backward compat wrapper) ────────────
 
+
 def validate_before_run(config, env_name=None, task_names=None):
     """Backward-compatible wrapper — returns old DiagnosticIssue list.
 
@@ -106,12 +111,14 @@ def validate_before_run(config, env_name=None, task_names=None):
     old_issues = []
     for iss in new_issues:
         old_cat = _map_new_to_old_category(iss.category.value)
-        old_issues.append(DiagnosticIssue(
-            message=iss.message,
-            severity=iss.severity,
-            auto_fixable=iss.auto_fixable,
-            category=old_cat,
-        ))
+        old_issues.append(
+            DiagnosticIssue(
+                message=iss.message,
+                severity=iss.severity,
+                auto_fixable=iss.auto_fixable,
+                category=old_cat,
+            )
+        )
     return old_issues
 
 

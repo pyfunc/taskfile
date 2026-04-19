@@ -1,15 +1,6 @@
 """Tests for taskfile package."""
 
-import pytest
 import yaml
-from pathlib import Path
-
-from taskfile.models import TaskfileConfig, Task, Environment
-from taskfile.parser import load_taskfile, validate_taskfile, TaskfileNotFoundError
-from taskfile.runner import TaskfileRunner
-from taskfile.scaffold import generate_taskfile
-from taskfile.compose import ComposeFile, load_env_file, resolve_variables
-from taskfile.quadlet import generate_container_unit, compose_to_quadlet, generate_network_unit
 
 
 # ─── Model Tests ─────────────────────────────────────
@@ -23,11 +14,15 @@ class TestCLI:
         from taskfile.cli import main
 
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "name": "test-project",
-            "tasks": {"hello": {"cmds": ["echo hi"], "desc": "Say hello"}},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "test-project",
+                    "tasks": {"hello": {"cmds": ["echo hi"], "desc": "Say hello"}},
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(main, ["-f", str(taskfile), "list"])
@@ -42,10 +37,14 @@ class TestCLI:
         from taskfile.cli import main
 
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {"build": {"cmds": ["echo build"]}},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"build": {"cmds": ["echo build"]}},
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(main, ["-f", str(taskfile), "validate"])
@@ -60,10 +59,14 @@ class TestCLI:
         from taskfile.cli import main
 
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {"hello": {"cmds": ["echo hello"]}},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"hello": {"cmds": ["echo hello"]}},
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(main, ["-f", str(taskfile), "--dry-run", "run", "hello"])
@@ -78,24 +81,26 @@ class TestCLI:
         from taskfile.cli import main
 
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "name": "test",
-            "environments": {
-                "local": {
-                    "container_runtime": "docker",
-                    "compose_command": "docker compose",
-                    "service_manager": "compose",
-                    "env_file": ".env.local",
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "test",
+                    "environments": {
+                        "local": {
+                            "container_runtime": "docker",
+                            "compose_command": "docker compose",
+                            "service_manager": "compose",
+                            "env_file": ".env.local",
+                        }
+                    },
+                    "tasks": {},
                 }
-            },
-            "tasks": {},
-        }))
+            )
+        )
 
         runner = CliRunner()
-        result = runner.invoke(main, [
-            "-f", str(taskfile), "--env", "local", "--dry-run", "deploy"
-        ])
+        result = runner.invoke(main, ["-f", str(taskfile), "--env", "local", "--dry-run", "deploy"])
         if result.exit_code != 0:
             print(result.output)
             print(result.exception)
@@ -109,11 +114,15 @@ class TestCLI:
 
         # Create compose file
         compose = tmp_path / "docker-compose.yml"
-        compose.write_text(yaml.dump({
-            "services": {
-                "app": {"image": "myapp:latest", "ports": ["3000:3000"]},
-            }
-        }))
+        compose.write_text(
+            yaml.dump(
+                {
+                    "services": {
+                        "app": {"image": "myapp:latest", "ports": ["3000:3000"]},
+                    }
+                }
+            )
+        )
 
         # Create env file
         envfile = tmp_path / ".env.prod"
@@ -121,29 +130,31 @@ class TestCLI:
 
         # Create Taskfile
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "name": "test-quadlet",
-            "environments": {
-                "local": {"service_manager": "compose"},
-                "prod": {
-                    "ssh_host": "example.com",
-                    "ssh_user": "deploy",
-                    "container_runtime": "podman",
-                    "service_manager": "quadlet",
-                    "compose_file": str(compose),
-                    "env_file": str(envfile),
-                    "quadlet_dir": str(tmp_path / "quadlet"),
-                    "quadlet_remote_dir": "~/.config/containers/systemd",
-                },
-            },
-            "tasks": {},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "test-quadlet",
+                    "environments": {
+                        "local": {"service_manager": "compose"},
+                        "prod": {
+                            "ssh_host": "example.com",
+                            "ssh_user": "deploy",
+                            "container_runtime": "podman",
+                            "service_manager": "quadlet",
+                            "compose_file": str(compose),
+                            "env_file": str(envfile),
+                            "quadlet_dir": str(tmp_path / "quadlet"),
+                            "quadlet_remote_dir": "~/.config/containers/systemd",
+                        },
+                    },
+                    "tasks": {},
+                }
+            )
+        )
 
         runner = CliRunner()
-        result = runner.invoke(main, [
-            "-f", str(taskfile), "--env", "prod", "--dry-run", "deploy"
-        ])
+        result = runner.invoke(main, ["-f", str(taskfile), "--env", "prod", "--dry-run", "deploy"])
         if result.exit_code != 0:
             print(result.output)
             print(result.exception)

@@ -1,14 +1,8 @@
 """Tests for taskfile package."""
 
-import pytest
 import yaml
-from pathlib import Path
 
-from taskfile.models import TaskfileConfig, Task, Environment
-from taskfile.parser import load_taskfile, validate_taskfile, TaskfileNotFoundError
-from taskfile.runner import TaskfileRunner
-from taskfile.scaffold import generate_taskfile
-from taskfile.compose import ComposeFile, load_env_file, resolve_variables
+from taskfile.compose import ComposeFile
 from taskfile.quadlet import (
     generate_container_unit,
     compose_to_quadlet,
@@ -130,11 +124,7 @@ class TestQuadletGenerator:
                 "traefik.http.routers.app.rule": "Host(`app.codereview.pl`)",
             },
             "restart": "always",
-            "deploy": {
-                "resources": {
-                    "limits": {"memory": "96m", "cpus": "0.5"}
-                }
-            },
+            "deploy": {"resources": {"limits": {"memory": "96m", "cpus": "0.5"}}},
         }
         result = generate_container_unit("app", service)
 
@@ -172,20 +162,24 @@ class TestQuadletGenerator:
 
     def test_compose_to_quadlet(self, tmp_path):
         compose_file = tmp_path / "docker-compose.yml"
-        compose_file.write_text(yaml.dump({
-            "services": {
-                "web": {
-                    "image": "nginx:alpine",
-                    "ports": ["80:80"],
-                    "networks": ["proxy"],
-                },
-                "app": {
-                    "image": "myapp:latest",
-                    "networks": ["proxy"],
-                    "depends_on": ["web"],
-                },
-            }
-        }))
+        compose_file.write_text(
+            yaml.dump(
+                {
+                    "services": {
+                        "web": {
+                            "image": "nginx:alpine",
+                            "ports": ["80:80"],
+                            "networks": ["proxy"],
+                        },
+                        "app": {
+                            "image": "myapp:latest",
+                            "networks": ["proxy"],
+                            "depends_on": ["web"],
+                        },
+                    }
+                }
+            )
+        )
 
         env_file = tmp_path / ".env.prod"
         env_file.write_text("TAG=v1.0\n")
@@ -206,18 +200,20 @@ class TestQuadletGenerator:
 
     def test_compose_to_quadlet_with_filter(self, tmp_path):
         compose_file = tmp_path / "docker-compose.yml"
-        compose_file.write_text(yaml.dump({
-            "services": {
-                "web": {"image": "nginx"},
-                "app": {"image": "myapp"},
-                "db": {"image": "postgres"},
-            }
-        }))
+        compose_file.write_text(
+            yaml.dump(
+                {
+                    "services": {
+                        "web": {"image": "nginx"},
+                        "app": {"image": "myapp"},
+                        "db": {"image": "postgres"},
+                    }
+                }
+            )
+        )
         output_dir = tmp_path / "quadlet"
         compose = ComposeFile(compose_file)
-        generated = compose_to_quadlet(
-            compose, output_dir, services_filter=["app", "web"]
-        )
+        generated = compose_to_quadlet(compose, output_dir, services_filter=["app", "web"])
         filenames = [f.name for f in generated]
         assert "app.container" in filenames
         assert "web.container" in filenames

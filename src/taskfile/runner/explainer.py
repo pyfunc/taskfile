@@ -25,14 +25,22 @@ console = Console()
 
 # Placeholder patterns (reuse from checks)
 _PLACEHOLDER_WORDS = [
-    "example.com", "your-", "xxx", "changeme",
-    "replace-me", "replace_me", "todo", "placeholder", "0.0.0.0",
+    "example.com",
+    "your-",
+    "xxx",
+    "changeme",
+    "replace-me",
+    "replace_me",
+    "todo",
+    "placeholder",
+    "0.0.0.0",
 ]
 
 
 @dataclass
 class StepIssue:
     """A potential problem detected in a step."""
+
     message: str
     severity: str = "warning"  # warning | error
 
@@ -40,6 +48,7 @@ class StepIssue:
 @dataclass
 class ExplainStep:
     """Analysis of a single command in the execution plan."""
+
     task_name: str
     cmd: str
     expanded: str = ""
@@ -53,6 +62,7 @@ class ExplainStep:
 @dataclass
 class ExplainReport:
     """Full pre-run analysis report."""
+
     steps: list[ExplainStep] = field(default_factory=list)
     issues: list[StepIssue] = field(default_factory=list)
 
@@ -89,9 +99,7 @@ class TaskExplainer:
         for task_name in full_order:
             task = self._resolver.get_task(task_name)
             if task is None:
-                report.issues.append(StepIssue(
-                    f"Unknown task: {task_name}", "error"
-                ))
+                report.issues.append(StepIssue(f"Unknown task: {task_name}", "error"))
                 continue
 
             is_dep = task_name not in task_names
@@ -110,9 +118,7 @@ class TaskExplainer:
 
         return report
 
-    def _analyze_command(
-        self, cmd: str, task: Task, task_name: str, is_dep: bool
-    ) -> ExplainStep:
+    def _analyze_command(self, cmd: str, task: Task, task_name: str, is_dep: bool) -> ExplainStep:
         """Analyze a single command WITHOUT executing it."""
         expanded = self._resolver.expand_variables(cmd)
         stripped = cmd.strip()
@@ -142,7 +148,9 @@ class TaskExplainer:
         # @local/@remote filtering
         if is_local_command(expanded) and env.is_remote:
             step.skipped = True
-            step.skip_reason = f"@local pomijany w env '{self._resolver.env_name}' (env jest zdalny)"
+            step.skip_reason = (
+                f"@local pomijany w env '{self._resolver.env_name}' (env jest zdalny)"
+            )
         elif is_remote_command(expanded) and not env.ssh_target:
             step.skipped = True
             step.skip_reason = f"@remote pomijany w env '{self._resolver.env_name}' (brak ssh_host)"
@@ -157,9 +165,7 @@ class TaskExplainer:
 
         return step
 
-    def _analyze_script(
-        self, task: Task, task_name: str, is_dep: bool
-    ) -> ExplainStep:
+    def _analyze_script(self, task: Task, task_name: str, is_dep: bool) -> ExplainStep:
         """Analyze a script: directive."""
         script_path = self._resolver.expand_variables(task.script)
         step = ExplainStep(
@@ -178,13 +184,11 @@ class TaskExplainer:
         )
         resolved = taskfile_dir / script_path
         if not resolved.exists():
-            step.issues.append(StepIssue(
-                f"Script '{script_path}' nie istnieje", "error"
-            ))
+            step.issues.append(StepIssue(f"Script '{script_path}' nie istnieje", "error"))
         elif not resolved.stat().st_mode & 0o100:
-            step.issues.append(StepIssue(
-                f"Script '{script_path}' nie jest wykonywalny (brak +x)", "warning"
-            ))
+            step.issues.append(
+                StepIssue(f"Script '{script_path}' nie jest wykonywalny (brak +x)", "warning")
+            )
 
         return step
 
@@ -195,14 +199,12 @@ class TaskExplainer:
                 # Try to find which variable contains the placeholder
                 for k, v in self._resolver.variables.items():
                     if isinstance(v, str) and word in v.lower():
-                        step.issues.append(StepIssue(
-                            f"{k} = \"{v}\" (placeholder)", "warning"
-                        ))
+                        step.issues.append(StepIssue(f'{k} = "{v}" (placeholder)', "warning"))
                         break
                 else:
-                    step.issues.append(StepIssue(
-                        f"Komenda zawiera placeholder: '{word}'", "warning"
-                    ))
+                    step.issues.append(
+                        StepIssue(f"Komenda zawiera placeholder: '{word}'", "warning")
+                    )
                 break  # one placeholder warning per step is enough
 
     def _check_binary(self, step: ExplainStep, expanded: str, cmd_type: str) -> None:
@@ -213,7 +215,7 @@ class TaskExplainer:
         check = expanded.strip()
         for prefix in ("@remote ", "@local ", "@ssh "):
             if check.startswith(prefix):
-                check = check[len(prefix):]
+                check = check[len(prefix) :]
                 break
         # For remote commands, we can't check binary on local system
         if cmd_type == "remote":
@@ -224,19 +226,29 @@ class TaskExplainer:
             return
         binary = parts[0]
         # Skip shell builtins and variable assignments
-        if "=" in binary or binary in ("if", "for", "while", "case", "echo", "export", "cd", "test", "[", "true", "false"):
+        if "=" in binary or binary in (
+            "if",
+            "for",
+            "while",
+            "case",
+            "echo",
+            "export",
+            "cd",
+            "test",
+            "[",
+            "true",
+            "false",
+        ):
             return
         if not shutil.which(binary):
-            step.issues.append(StepIssue(
-                f"Komenda '{binary}' nie znaleziona w PATH", "warning"
-            ))
+            step.issues.append(StepIssue(f"Komenda '{binary}' nie znaleziona w PATH", "warning"))
 
     def _check_files(self, step: ExplainStep, expanded: str) -> None:
         """Check if referenced local files exist in scp/rsync/cp commands."""
         check = expanded.strip()
         for prefix in ("@remote ", "@local ", "@ssh "):
             if check.startswith(prefix):
-                check = check[len(prefix):]
+                check = check[len(prefix) :]
                 break
         parts = check.split()
         if not parts:
@@ -251,9 +263,7 @@ class TaskExplainer:
             if not p.is_absolute():
                 continue
             if not p.exists():
-                step.issues.append(StepIssue(
-                    f"Plik '{part}' nie istnieje", "warning"
-                ))
+                step.issues.append(StepIssue(f"Plik '{part}' nie istnieje", "warning"))
 
 
 # ─── Rendering ────────────────────────────────────────────────────────────
@@ -261,10 +271,12 @@ class TaskExplainer:
 
 def print_explain_report(report: ExplainReport, task_names: list[str], env_name: str) -> None:
     """Print the --explain report to console."""
-    console.print(Panel(
-        f"[bold]📋 Plan wykonania: {', '.join(task_names)}[/]  (env=[cyan]{env_name}[/])",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold]📋 Plan wykonania: {', '.join(task_names)}[/]  (env=[cyan]{env_name}[/])",
+            border_style="blue",
+        )
+    )
 
     current_task = None
     step_num = 0
@@ -298,7 +310,7 @@ def print_explain_report(report: ExplainReport, task_names: list[str], env_name:
             console.print(f"    {i}. {sev_icon} {issue.message}")
 
     if not report.issues:
-        console.print(f"\n  [green]✓ Brak problemów — gotowe do uruchomienia[/]")
+        console.print("\n  [green]✓ Brak problemów — gotowe do uruchomienia[/]")
 
 
 def _print_teach_deps(task_names: list[str], config: TaskfileConfig) -> None:
@@ -317,8 +329,12 @@ def _print_teach_prefix_info(has_local: bool, has_remote: bool) -> None:
     """Print @local/@remote prefix explanation."""
     if has_local or has_remote:
         console.print("\n  Twój task używa prefiksów @local i @remote:")
-        console.print("  • [bold]@local[/]  — uruchamia się TYLKO gdy env nie ma ssh_host (lokalne środowisko)")
-        console.print("  • [bold]@remote[/] — uruchamia się TYLKO gdy env ma ssh_host (zdalny serwer)")
+        console.print(
+            "  • [bold]@local[/]  — uruchamia się TYLKO gdy env nie ma ssh_host (lokalne środowisko)"
+        )
+        console.print(
+            "  • [bold]@remote[/] — uruchamia się TYLKO gdy env ma ssh_host (zdalny serwer)"
+        )
 
 
 def _print_teach_current_env(report: ExplainReport, env_name: str) -> None:
@@ -349,9 +365,7 @@ def _print_remote_alt_env(
             console.print(f"    [dim]⏭ {step.cmd[:80]} ({skip_reason})[/]")
 
 
-def _print_local_alt_env(
-    local_envs: list[str], env_name: str, report: ExplainReport
-) -> None:
+def _print_local_alt_env(local_envs: list[str], env_name: str, report: ExplainReport) -> None:
     """Print alternative environment steps for local environments."""
     if not local_envs or env_name in local_envs:
         return
@@ -366,7 +380,9 @@ def _print_local_alt_env(
 
 
 def _print_teach_alt_env(
-    report: ExplainReport, env_name: str, config: TaskfileConfig,
+    report: ExplainReport,
+    env_name: str,
+    config: TaskfileConfig,
 ) -> None:
     """Print alternative env behavior for @local/@remote commands."""
     remote_envs = [n for n, e in config.environments.items() if e.is_remote]
@@ -377,14 +393,18 @@ def _print_teach_alt_env(
 
 
 def print_teach_report(
-    report: ExplainReport, task_names: list[str], env_name: str,
+    report: ExplainReport,
+    task_names: list[str],
+    env_name: str,
     config: TaskfileConfig,
 ) -> None:
     """Print the --teach educational report."""
-    console.print(Panel(
-        f"[bold]📖 Task '{', '.join(task_names)}' — co się stanie[/]",
-        border_style="magenta",
-    ))
+    console.print(
+        Panel(
+            f"[bold]📖 Task '{', '.join(task_names)}' — co się stanie[/]",
+            border_style="magenta",
+        )
+    )
 
     _print_teach_deps(task_names, config)
 
@@ -398,7 +418,7 @@ def print_teach_report(
         _print_teach_alt_env(report, env_name, config)
 
     if report.issues:
-        console.print(f"\n  [yellow bold]⚠ Problemy:[/]")
+        console.print("\n  [yellow bold]⚠ Problemy:[/]")
         for i, issue in enumerate(report.issues, 1):
             console.print(f"    {i}. {issue.message}")
 

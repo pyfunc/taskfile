@@ -1,0 +1,62 @@
+# code2llm/evolution | 938 func | 111f | 2026-04-19
+
+NEXT[5] (ranked by impact):
+  [1] !! SPLIT           src/taskfile/workspace.py
+      WHY: 913L, 8 classes, max CC=19
+      EFFORT: ~4h  IMPACT: 17347
+
+  [2] !! SPLIT           src/taskfile/cli/interactive/wizards.py
+      WHY: 725L, 1 classes, max CC=13
+      EFFORT: ~4h  IMPACT: 9425
+
+  [3] !! SPLIT           src/taskfile/cli/workspace_cmd.py
+      WHY: 818L, 0 classes, max CC=11
+      EFFORT: ~4h  IMPACT: 8998
+
+  [4] !! SPLIT-FUNC      main  CC=35  fan=25
+      WHY: CC=35 exceeds 15
+      EFFORT: ~1h  IMPACT: 875
+
+  [5] !! SPLIT-FUNC      analyze_project  CC=26  fan=14
+      WHY: CC=26 exceeds 15
+      EFFORT: ~1h  IMPACT: 364
+
+
+RISKS[3]:
+  ⚠ Splitting src/taskfile/workspace.py may break 31 import paths
+  ⚠ Splitting src/taskfile/cli/workspace_cmd.py may break 19 import paths
+  ⚠ Splitting src/taskfile/cli/interactive/wizards.py may break 27 import paths
+
+METRICS-TARGET:
+  CC̄:          4.3 → ≤3.0
+  max-CC:      35 → ≤17
+  god-modules: 6 → 0
+  high-CC(≥15): 3 → ≤1
+  hub-types:   0 → ≤0
+
+PATTERNS (language parser shared logic):
+  _extract_declarations() in base.py — unified extraction for:
+    - TypeScript: interfaces, types, classes, functions, arrow funcs
+    - PHP: namespaces, traits, classes, functions, includes
+    - Ruby: modules, classes, methods, requires
+    - C++: classes, structs, functions, #includes
+    - C#: classes, interfaces, methods, usings
+    - Java: classes, interfaces, methods, imports
+    - Go: packages, functions, structs
+    - Rust: modules, functions, traits, use statements
+
+  Shared regex patterns per language:
+    - import: language-specific import/require/using patterns
+    - class: class/struct/trait declarations with inheritance
+    - function: function/method signatures with visibility
+    - brace_tracking: for C-family languages ({ })
+    - end_keyword_tracking: for Ruby (module/class/def...end)
+
+  Benefits:
+    - Consistent extraction logic across all languages
+    - Reduced code duplication (~70% reduction in parser LOC)
+    - Easier maintenance: fix once, apply everywhere
+    - Standardized FunctionInfo/ClassInfo models
+
+HISTORY:
+  prev CC̄=4.4 → now CC̄=4.3

@@ -26,6 +26,7 @@ try:
         Severity as FixopSeverity,
         HostContext,
     )
+
     HAS_FIXOP = True
 except ImportError:
     HAS_FIXOP = False

@@ -12,7 +12,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
-from taskfile.diagnostics.models import Issue, IssueCategory, FixStrategy
+from taskfile.diagnostics.models import Issue, FixStrategy
 
 console = Console()
 
@@ -82,6 +82,7 @@ def _fix_create_taskfile(issue: Issue, interactive: bool) -> bool:
         return False
     try:
         from taskfile.scaffold import generate_taskfile
+
         Path("Taskfile.yml").write_text(generate_taskfile("minimal"))
         console.print("[green]✓ Created Taskfile.yml[/]")
         _mark_fixed(issue)

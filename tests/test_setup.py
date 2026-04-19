@@ -1,11 +1,8 @@
 """Tests for setup command."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 from pathlib import Path
-import sys
 
-from click.testing import CliRunner
 
 from taskfile.cli.setup import (
     _validate_ip,
@@ -60,7 +57,9 @@ class TestValidateSshKey:
         """Test that ~ is expanded to home directory."""
         # Mock home directory
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        monkeypatch.setattr(Path, "expanduser", lambda self: tmp_path / self._raw_path.replace("~/", ""))
+        monkeypatch.setattr(
+            Path, "expanduser", lambda self: tmp_path / self._raw_path.replace("~/", "")
+        )
 
         key_file = tmp_path / ".ssh" / "id_rsa"
         key_file.parent.mkdir(parents=True)

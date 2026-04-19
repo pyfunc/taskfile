@@ -10,7 +10,6 @@ Handles installation and configuration of:
 from __future__ import annotations
 
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -41,7 +40,9 @@ class VPSProvisioner:
 
     def __init__(self, config: ProvisionConfig):
         self.config = config
-        self.ssh_opts = f"-i {Path(config.ssh_key).expanduser()} -o StrictHostKeyChecking=accept-new"
+        self.ssh_opts = (
+            f"-i {Path(config.ssh_key).expanduser()} -o StrictHostKeyChecking=accept-new"
+        )
         self.ssh_target = f"root@{config.ip}"
 
     def _ssh(self, cmd: str, timeout: int = 60) -> tuple[int, str, str]:
@@ -132,7 +133,9 @@ class VPSProvisioner:
         # Enable firewall
         exit_code, _, _ = self._ssh("ufw --force enable", timeout=10)
         if exit_code == 0:
-            console.print(f"  [green]✓ Firewall configured (ports: {', '.join(map(str, self.config.ports))})[/]")
+            console.print(
+                f"  [green]✓ Firewall configured (ports: {', '.join(map(str, self.config.ports))})[/]"
+            )
         else:
             console.print("  [yellow]⚠ Firewall enable had issues[/]")
 
@@ -169,7 +172,7 @@ class VPSProvisioner:
             self._ssh(f"mkdir -p {d}", timeout=5)
 
         # Generate Traefik static config
-        traefik_yml = f"""api:
+        traefik_yml = """api:
   dashboard: true
   insecure: false
 
@@ -197,12 +200,6 @@ accessLog:
         self._ssh(f"cat > /etc/traefik/traefik.yml << 'EOF'{escaped_config}EOF", timeout=10)
 
         # Generate Quadlet unit for Traefik
-        is_ip_domain = self.config.domain == self.config.ip
-        acme_tls = "" if is_ip_domain else f"""\
-      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
-      - --certificatesresolvers.letsencrypt.acme.email={self.config.email}
-      - --certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme.json
-"""
 
         quadlet_unit = f"""[Unit]
 Description=Traefik reverse proxy
@@ -230,7 +227,9 @@ WantedBy=multi-user.target default.target
 
         user_systemd_dir = f"/home/{self.config.ssh_user}/.config/containers/systemd"
         escaped_unit = quadlet_unit.replace("'", "'\\''")
-        self._ssh(f"cat > {user_systemd_dir}/traefik.container << 'EOF'{escaped_unit}EOF", timeout=10)
+        self._ssh(
+            f"cat > {user_systemd_dir}/traefik.container << 'EOF'{escaped_unit}EOF", timeout=10
+        )
 
         console.print("  [green]✓ Traefik Quadlet unit created[/]")
         return True
@@ -255,7 +254,7 @@ WantedBy=multi-user.target default.target
             console.print(f"  [green]✓ TLS certificate obtained for {self.config.domain}[/]")
             return True
         elif "Certificate not yet due for renewal" in stderr:
-            console.print(f"  [green]✓ TLS certificate already valid[/]")
+            console.print("  [green]✓ TLS certificate already valid[/]")
             return True
         else:
             console.print(f"  [yellow]⚠ TLS certificate issue: {stderr[:200]}[/]")

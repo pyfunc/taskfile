@@ -32,19 +32,21 @@ def register_task_routes(app: FastAPI) -> None:
                 continue
             if tag and (not t.tags or tag not in t.tags):
                 continue
-            tasks.append(TaskInfo(
-                name=t.name,
-                description=t.description,
-                commands=t.commands,
-                deps=t.deps,
-                env_filter=t.env_filter,
-                platform_filter=t.platform_filter,
-                tags=t.tags,
-                stage=t.stage,
-                retries=t.retries,
-                timeout=t.timeout,
-                has_condition=bool(t.condition),
-            ))
+            tasks.append(
+                TaskInfo(
+                    name=t.name,
+                    description=t.description,
+                    commands=t.commands,
+                    deps=t.deps,
+                    env_filter=t.env_filter,
+                    platform_filter=t.platform_filter,
+                    tags=t.tags,
+                    stage=t.stage,
+                    retries=t.retries,
+                    timeout=t.timeout,
+                    has_condition=bool(t.condition),
+                )
+            )
         return tasks
 
     @app.get(

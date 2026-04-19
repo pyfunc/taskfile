@@ -11,7 +11,10 @@ import time
 from rich.console import Console
 
 from taskfile.models import Task
-from taskfile.diagnostics.fixop_adapter import HAS_FIXOP as _HAS_FIXOP_CLASSIFY, fixop_category_to_tag
+from taskfile.diagnostics.fixop_adapter import (
+    HAS_FIXOP as _HAS_FIXOP_CLASSIFY,
+    fixop_category_to_tag,
+)
 from taskfile.runner.utils.markdown import render_md as _md
 
 try:
@@ -25,15 +28,18 @@ console = Console()
 
 # ─── Source location tracing ─────────────────────────────────────────────────
 
+
 def _find_task_line(source_path: str | None, task_name: str) -> int | None:
     """Find the line number where a task is defined in the YAML source file."""
-    import os, re
+    import os
+    import re
+
     if not source_path or not os.path.isfile(source_path):
         return None
     try:
         with open(source_path) as f:
             for i, line in enumerate(f, 1):
-                if re.match(rf'^\s{{2,4}}{re.escape(task_name)}\s*:', line):
+                if re.match(rf"^\s{{2,4}}{re.escape(task_name)}\s*:", line):
                     return i
     except OSError:
         pass
@@ -43,10 +49,11 @@ def _find_task_line(source_path: str | None, task_name: str) -> int | None:
 def _find_cmd_line(source_path: str | None, task_name: str, cmd: str) -> int | None:
     """Find the line number of a specific command within a task."""
     import os
+
     if not source_path or not os.path.isfile(source_path):
         return None
     try:
-        cmd_stripped = cmd.strip().rstrip('"').lstrip('- ').strip('"').strip("'")
+        cmd_stripped = cmd.strip().rstrip('"').lstrip("- ").strip('"').strip("'")
         needle = cmd_stripped[:40]
         with open(source_path) as f:
             for i, line in enumerate(f, 1):
@@ -60,6 +67,7 @@ def _find_cmd_line(source_path: str | None, task_name: str, cmd: str) -> int | N
 def _source_ref(source_path: str | None, line: int | None) -> str:
     """Format a source file reference like 'Taskfile.yml:37'."""
     import os
+
     if not source_path or not line:
         return ""
     name = os.path.basename(source_path)
@@ -67,6 +75,7 @@ def _source_ref(source_path: str | None, line: int | None) -> str:
 
 
 # ─── Exit code classification ────────────────────────────────────────────────
+
 
 def _classify_exit_code(returncode: int) -> tuple[str, str]:
     """Classify exit code into error category and hint.
@@ -158,20 +167,23 @@ def _get_tip_for_command(cmd: str) -> tuple[str, str] | None:
 # (returncode_or_None, cmd_keywords_or_None, tip_text)
 _FAILURE_TIPS: list[tuple[int | None, tuple[str, ...] | None, str]] = [
     (
-        255, ("ssh", "scp"),
+        255,
+        ("ssh", "scp"),
         "**SSH error (exit 255)?** Common causes:\n"
         "- Host unreachable — check `ssh_host` in Taskfile.yml\n"
         "- Key rejected — check `ssh_key` and `chmod 600`\n"
         "- Run `taskfile fleet status` to diagnose",
     ),
     (
-        126, None,
+        126,
+        None,
         "**Permission denied?** Check:\n"
         "- Script is executable: `chmod +x scripts/*.sh`\n"
         "- Correct path in `script:` field",
     ),
     (
-        127, None,
+        127,
+        None,
         "**Command not found?** Check:\n"
         "- Tool is installed: `which <command>`\n"
         "- PATH includes the tool's directory\n"
@@ -220,9 +232,15 @@ def _get_tip_for_failure(cmd: str, returncode: int, category: str) -> str | None
 
 # ─── Failure handling pipeline ────────────────────────────────────────────────
 
+
 def _handle_failure(
-    returncode: int, task: Task, task_name: str, start: float, label: str,
-    cmd: str = "", source_path: str | None = None,
+    returncode: int,
+    task: Task,
+    task_name: str,
+    start: float,
+    label: str,
+    cmd: str = "",
+    source_path: str | None = None,
     runner=None,
 ) -> bool:
     """Handle a non-zero return code. Returns False if execution should stop."""
@@ -245,8 +263,14 @@ def _handle_failure(
 
 
 def _format_failure_header(
-    task_name: str, label: str, returncode: int, category: str, hint: str,
-    start: float, cmd: str, source_path: str | None,
+    task_name: str,
+    label: str,
+    returncode: int,
+    category: str,
+    hint: str,
+    start: float,
+    cmd: str,
+    source_path: str | None,
 ) -> None:
     """Print failure summary with exit code, duration, and source location."""
     elapsed = time.time() - start
@@ -258,8 +282,7 @@ def _format_failure_header(
         f"### ❌ Task `{task_name}` {label} failed\n\n"
         f"- **Exit code:** {returncode} ({category})\n"
         f"- **Duration:** {elapsed:.1f}s\n"
-        f"- **Hint:** {hint}\n"
-        + (f"- **Location:**{ref_info}\n" if ref_info else "")
+        f"- **Hint:** {hint}\n" + (f"- **Location:**{ref_info}\n" if ref_info else "")
     )
 
     if cmd and source_path:
@@ -272,7 +295,8 @@ def _run_error_presenter(runner, cmd: str, returncode: int, task_name: str) -> N
         return
     try:
         from taskfile.runner.error_presenter import ErrorPresenter
-        stderr = runner._last_stderr if hasattr(runner, '_last_stderr') else ""
+
+        stderr = runner._last_stderr if hasattr(runner, "_last_stderr") else ""
         ErrorPresenter().present(
             cmd=cmd,
             exit_code=returncode,

@@ -13,7 +13,6 @@ from taskfile.diagnostics.models import (
     IssueCategory,
     FixStrategy,
     SEVERITY_ERROR,
-    SEVERITY_WARNING,
 )
 from taskfile.diagnostics.fixop_adapter import HAS_FIXOP as _HAS_FIXOP
 
@@ -27,6 +26,7 @@ def is_available() -> bool:
     """Check if litellm is installed."""
     try:
         import litellm  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -50,11 +50,11 @@ Issue message: {issue.message}
 Context: {json.dumps(issue.context or {}, indent=2, default=str)}
 
 Project info:
-- Name: {ctx.get('name', 'unknown')}
-- Version: {ctx.get('version', '1')}
-- Environments: {ctx.get('environments', [])}
-- Tasks count: {len(ctx.get('tasks', []))}
-- Platform: {ctx.get('platform', 'linux')}
+- Name: {ctx.get("name", "unknown")}
+- Version: {ctx.get("version", "1")}
+- Environments: {ctx.get("environments", [])}
+- Tasks count: {len(ctx.get("tasks", []))}
+- Platform: {ctx.get("platform", "linux")}
 
 Provide a concise fix (max 3 steps). If it's a command, prefix with $.
 If it requires manual action, explain what to do.
@@ -85,6 +85,7 @@ def classify_runtime_error(
     """
     if _HAS_FIXOP:
         from taskfile.diagnostics.fixop_adapter import adapt_issue
+
         fi = _fixop_classify(exit_code, stderr, cmd)
         issue = adapt_issue(fi)
         # Override: unfixable runtime errors escalate to LLM, not MANUAL

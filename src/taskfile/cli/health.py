@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import clickmd as click
 
 from taskfile.cli.main import console, main
-from taskfile.health import health_check_all, print_health_report, run_health_checks
+from taskfile.health import print_health_report, run_health_checks
 from taskfile.parser import TaskfileNotFoundError, TaskfileParseError, load_taskfile
 
 if TYPE_CHECKING:
@@ -47,7 +47,9 @@ def health_cmd(ctx, domain, ssh_host, ssh_user, ssh_key, no_ssh):
                     ssh_host = env.ssh_host
 
         if not check_domain:
-            console.print("[red]Error:[/] No domain specified. Use --domain or set DOMAIN in .env.prod")
+            console.print(
+                "[red]Error:[/] No domain specified. Use --domain or set DOMAIN in .env.prod"
+            )
             sys.exit(1)
 
         # Run health checks

@@ -1,6 +1,5 @@
 """Tests for release and rollback commands."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 import subprocess
@@ -258,8 +257,10 @@ tasks:
     cmds: ["echo build"]
 """)
 
-            with patch("taskfile.cli.release._run_command") as mock_run, \
-                 patch("taskfile.cli.release.health_check_all") as mock_health:
+            with (
+                patch("taskfile.cli.release._run_command") as mock_run,
+                patch("taskfile.cli.release.health_check_all") as mock_health,
+            ):
                 mock_run.return_value = True
                 mock_health.return_value = True
 
@@ -343,10 +344,11 @@ tasks:
             with patch("taskfile.cli.release._get_current_tag") as mock_tag:
                 mock_tag.return_value = "v1.0.0"
 
-                result = runner.invoke(main, [
-                    "release", "--dry-run",
-                    "--skip-desktop", "--skip-landing"
-                ])
+                result = runner.invoke(
+                    main, ["release", "--dry-run", "--skip-desktop", "--skip-landing"]
+                )
 
                 # Check for disabled steps
-                assert "dim" in result.output or "skip" in result.output.lower() or True  # Just verify it runs
+                assert (
+                    "dim" in result.output or "skip" in result.output.lower() or True
+                )  # Just verify it runs

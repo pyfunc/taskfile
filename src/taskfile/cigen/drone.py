@@ -1,7 +1,8 @@
 from __future__ import annotations
-from taskfile.cigen.base import CITarget, register_target, _sanitize_id, _yaml_dump
+from taskfile.cigen.base import CITarget, register_target, _yaml_dump
 
 # ─── Drone CI ─────────────────────────────────────────────
+
 
 @register_target("drone")
 class DroneCITarget(CITarget):

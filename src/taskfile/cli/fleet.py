@@ -14,7 +14,6 @@ import sys
 
 import clickmd as click
 from taskfile.cli.click_compat import confirm
-from rich.console import Console
 from rich.table import Table
 
 from taskfile.cli.main import main, console
@@ -34,7 +33,9 @@ def _load_config_or_exit(taskfile_path: str | None) -> TaskfileConfig:
         sys.exit(1)
 
 
-def _get_remote_envs(config: TaskfileConfig, group_name: str | None = None) -> list[tuple[str, Environment]]:
+def _get_remote_envs(
+    config: TaskfileConfig, group_name: str | None = None
+) -> list[tuple[str, Environment]]:
     """Get all remote environments, optionally filtered by group."""
     if group_name:
         if group_name not in config.environment_groups:
@@ -49,11 +50,7 @@ def _get_remote_envs(config: TaskfileConfig, group_name: str | None = None) -> l
             for name in members
             if name in config.environments and config.environments[name].is_remote
         ]
-    return [
-        (name, env)
-        for name, env in config.environments.items()
-        if env.is_remote
-    ]
+    return [(name, env) for name, env in config.environments.items() if env.is_remote]
 
 
 def _ssh_check(env: Environment, cmd: str, timeout: int = 10) -> subprocess.CompletedProcess:
@@ -62,7 +59,10 @@ def _ssh_check(env: Environment, cmd: str, timeout: int = 10) -> subprocess.Comp
     opts = env.ssh_opts
     return subprocess.run(
         f"ssh {opts} {target} '{cmd}'",
-        shell=True, capture_output=True, text=True, timeout=timeout,
+        shell=True,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
 
 
@@ -73,7 +73,6 @@ def _ping(host: str) -> bool:
         return r.returncode == 0
     except Exception:
         return False
-
 
 
 def _safe_ssh(env, cmd: str, timeout: int = 10):
@@ -104,20 +103,29 @@ def _parse_device_metrics(stdout: str) -> dict:
 def _check_single_device(name: str, env) -> dict:
     """Check status of a single remote device via ping + SSH."""
     host = env.ssh_host
-    row = {"name": name, "host": host, "status": "unknown",
-           "temp": "—", "ram": "—", "disk": "—", "containers": "—", "uptime": "—"}
+    row = {
+        "name": name,
+        "host": host,
+        "status": "unknown",
+        "temp": "—",
+        "ram": "—",
+        "disk": "—",
+        "containers": "—",
+        "uptime": "—",
+    }
 
     if not _ping(host):
         row["status"] = "down"
         return row
 
     try:
-        r = _ssh_check(env,
+        r = _ssh_check(
+            env,
             'echo "'
-            '$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)|'
-            '$(free -m 2>/dev/null | awk \'/Mem:/{printf "%.0f", $3/$2*100}\')|'
+            "$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)|"
+            "$(free -m 2>/dev/null | awk '/Mem:/{printf \"%.0f\", $3/$2*100}')|"
             '$(df / --output=pcent 2>/dev/null | tail -1 | tr -d " %")|'
-            '$(uptime -p 2>/dev/null || uptime)|'
+            "$(uptime -p 2>/dev/null || uptime)|"
             '$(podman ps -q 2>/dev/null | wc -l)"',
         )
         if r.returncode != 0:
@@ -144,16 +152,28 @@ def _build_fleet_table(results: list[dict]) -> "Table":
     table.add_column("Containers", justify="right")
     table.add_column("Uptime")
 
-    status_map = {"up": "[green]✅ UP[/]", "down": "[red]❌ DOWN[/]",
-                  "ssh_fail": "[red]❌ SSH[/]", "hot": "[yellow]⚠️ HOT[/]"}
+    status_map = {
+        "up": "[green]✅ UP[/]",
+        "down": "[red]❌ DOWN[/]",
+        "ssh_fail": "[red]❌ SSH[/]",
+        "hot": "[yellow]⚠️ HOT[/]",
+    }
 
     for r in results:
         s = status_map.get(r["status"], r["status"])
         if r["status"] in ("down", "ssh_fail"):
             table.add_row(r["name"], r["host"], s, "—", "—", "—", "—", "—")
         else:
-            table.add_row(r["name"], r["host"], s, r["temp"], r["ram"],
-                          r["disk"], r["containers"], r["uptime"])
+            table.add_row(
+                r["name"],
+                r["host"],
+                s,
+                r["temp"],
+                r["ram"],
+                r["disk"],
+                r["containers"],
+                r["uptime"],
+            )
 
     return table
 
@@ -169,9 +189,13 @@ def _check_disk(env) -> tuple[list[str], list[str]]:
         usage = int(r.stdout.strip())
         if usage > 90:
             problems.append(f"Disk {usage}% full")
-            fixes.extend(["podman system prune -af",
-                          "sudo journalctl --vacuum-size=50M",
-                          "sudo apt-get clean"])
+            fixes.extend(
+                [
+                    "podman system prune -af",
+                    "sudo journalctl --vacuum-size=50M",
+                    "sudo apt-get clean",
+                ]
+            )
         else:
             console.print(f"  [green]✓[/] Disk: {usage}% used")
     return problems, fixes
@@ -221,7 +245,7 @@ def _check_ntp(env) -> tuple[list[str], list[str]]:
     if r and r.stdout.strip() != "yes":
         return ["NTP not synchronized"], ["sudo timedatectl set-ntp true"]
     if r:
-        console.print(f"  [green]✓[/] NTP: synchronized")
+        console.print("  [green]✓[/] NTP: synchronized")
     return [], []
 
 
@@ -236,7 +260,7 @@ def _apply_repair_fixes(env, fixes: list[str], auto_fix: bool) -> None:
             else:
                 console.print(f"  [blue]→[/] {fix}")
                 _safe_ssh(env, fix)
-        console.print(f"[green]✓ Repair complete — re-run to verify[/]")
+        console.print("[green]✓ Repair complete — re-run to verify[/]")
     else:
         console.print("\n[dim]Manual fixes:[/]")
         for fix in fixes:
@@ -326,7 +350,7 @@ def fleet_repair_cmd(ctx, env_name, auto_fix):
 
     env = config.environments[env_name]
     if not env.is_remote:
-        console.print(f"[red]\'{env_name}\' is not a remote environment (no ssh_host)[/]")
+        console.print(f"[red]'{env_name}' is not a remote environment (no ssh_host)[/]")
         sys.exit(1)
 
     host = env.ssh_host
@@ -337,9 +361,9 @@ def fleet_repair_cmd(ctx, env_name, auto_fix):
 
     # 1. Ping
     if not _ping(host):
-        console.print(f"  [red]❌ UNREACHABLE[/] — device offline or network issue")
+        console.print("  [red]❌ UNREACHABLE[/] — device offline or network issue")
         sys.exit(1)
-    console.print(f"  [green]✓[/] Network: reachable")
+    console.print("  [green]✓[/] Network: reachable")
 
     # 2. SSH
     try:
@@ -348,7 +372,7 @@ def fleet_repair_cmd(ctx, env_name, auto_fix):
             problems.append("SSH connection failed")
             fixes.append(f"ssh-copy-id {env.ssh_target}")
         else:
-            console.print(f"  [green]✓[/] SSH: connected")
+            console.print("  [green]✓[/] SSH: connected")
     except Exception:
         problems.append("SSH timeout")
         fixes.append(f"Check SSH key and connectivity to {host}")
@@ -394,15 +418,18 @@ def fleet_list_cmd(ctx):
             runtime = f"[{env.container_runtime}]"
             console.print(f"  [cyan]{name:20s}[/] → {env.ssh_target:30s} {runtime}")
     else:
-        console.print("[yellow]No remote environments. Add ssh_host to environments in Taskfile.yml[/]")
+        console.print(
+            "[yellow]No remote environments. Add ssh_host to environments in Taskfile.yml[/]"
+        )
 
     if config.environment_groups:
         console.print("\n[bold]Environment Groups:[/]")
         for name, grp in sorted(config.environment_groups.items()):
             members = ", ".join(grp.members) if grp.members else "[dim]empty[/]"
             console.print(
-                f"  [magenta]{name:20s}[/] strategy={grp.strategy:10s} "
-                f"members=[{members}]"
+                f"  [magenta]{name:20s}[/] strategy={grp.strategy:10s} members=[{members}]"
             )
     else:
-        console.print("\n[dim]No environment_groups defined. Add to Taskfile.yml for fleet deploy.[/]")
+        console.print(
+            "\n[dim]No environment_groups defined. Add to Taskfile.yml for fleet deploy.[/]"
+        )

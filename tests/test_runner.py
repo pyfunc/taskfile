@@ -1,15 +1,7 @@
 """Tests for taskfile package."""
 
-import pytest
-import yaml
-from pathlib import Path
-
-from taskfile.models import TaskfileConfig, Task, Environment
-from taskfile.parser import load_taskfile, validate_taskfile, TaskfileNotFoundError
-from taskfile.runner import TaskfileRunner, TaskResolver
-from taskfile.scaffold import generate_taskfile
-from taskfile.compose import ComposeFile, load_env_file, resolve_variables
-from taskfile.quadlet import generate_container_unit, compose_to_quadlet, generate_network_unit
+from taskfile.models import TaskfileConfig
+from taskfile.runner import TaskfileRunner
 
 
 # ─── Model Tests ─────────────────────────────────────
@@ -37,15 +29,19 @@ class TestRunner:
         assert runner.expand_variables("{{APP}}:{{TAG}}") == "test:latest"
 
     def test_run_simple_task(self):
-        runner = self._make_runner({
-            "hello": {"cmds": ["echo hello"]},
-        })
+        runner = self._make_runner(
+            {
+                "hello": {"cmds": ["echo hello"]},
+            }
+        )
         assert runner.run_task("hello") is True
 
     def test_run_unknown_task(self):
-        runner = self._make_runner({
-            "hello": {"cmds": ["echo hello"]},
-        })
+        runner = self._make_runner(
+            {
+                "hello": {"cmds": ["echo hello"]},
+            }
+        )
         assert runner.run_task("nonexistent") is False
 
     def test_env_filter_skips_task(self):
@@ -64,26 +60,32 @@ class TestRunner:
         assert runner.run_task("hello") is True
 
     def test_dependency_chain(self):
-        runner = self._make_runner({
-            "build": {"cmds": ["echo build"]},
-            "test": {"cmds": ["echo test"], "deps": ["build"]},
-            "deploy": {"cmds": ["echo deploy"], "deps": ["test"]},
-        })
+        runner = self._make_runner(
+            {
+                "build": {"cmds": ["echo build"]},
+                "test": {"cmds": ["echo test"], "deps": ["build"]},
+                "deploy": {"cmds": ["echo deploy"], "deps": ["test"]},
+            }
+        )
         assert runner.run_task("deploy") is True
         assert "build" in runner._executed
         assert "test" in runner._executed
         assert "deploy" in runner._executed
 
     def test_failed_command(self):
-        runner = self._make_runner({
-            "fail": {"cmds": ["exit 1"]},
-        })
+        runner = self._make_runner(
+            {
+                "fail": {"cmds": ["exit 1"]},
+            }
+        )
         assert runner.run_task("fail") is False
 
     def test_ignore_errors(self):
-        runner = self._make_runner({
-            "fail": {"cmds": ["exit 1"], "ignore_errors": True},
-        })
+        runner = self._make_runner(
+            {
+                "fail": {"cmds": ["exit 1"], "ignore_errors": True},
+            }
+        )
         assert runner.run_task("fail") is True
 
     def test_init_environment_existing(self):
@@ -187,15 +189,17 @@ class TestRunner:
 
     def test_parallel_deps(self):
         """Test parallel dependency execution."""
-        runner = self._make_runner({
-            "dep1": {"cmds": ["echo dep1"]},
-            "dep2": {"cmds": ["echo dep2"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["dep1", "dep2"],
-                "parallel": True,
-            },
-        })
+        runner = self._make_runner(
+            {
+                "dep1": {"cmds": ["echo dep1"]},
+                "dep2": {"cmds": ["echo dep2"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["dep1", "dep2"],
+                    "parallel": True,
+                },
+            }
+        )
         assert runner.run_task("main") is True
         assert "dep1" in runner._executed
         assert "dep2" in runner._executed
@@ -203,42 +207,50 @@ class TestRunner:
 
     def test_parallel_deps_with_failure(self):
         """Test parallel deps: one fails, task fails."""
-        runner = self._make_runner({
-            "dep-ok": {"cmds": ["echo ok"]},
-            "dep-fail": {"cmds": ["exit 1"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["dep-ok", "dep-fail"],
-                "parallel": True,
-            },
-        })
+        runner = self._make_runner(
+            {
+                "dep-ok": {"cmds": ["echo ok"]},
+                "dep-fail": {"cmds": ["exit 1"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["dep-ok", "dep-fail"],
+                    "parallel": True,
+                },
+            }
+        )
         assert runner.run_task("main") is False
 
     def test_parallel_deps_ignore_errors(self):
         """Test parallel deps with ignore_errors: failure is tolerated."""
-        runner = self._make_runner({
-            "dep-ok": {"cmds": ["echo ok"]},
-            "dep-fail": {"cmds": ["exit 1"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["dep-ok", "dep-fail"],
-                "parallel": True,
-                "ignore_errors": True,
-            },
-        })
+        runner = self._make_runner(
+            {
+                "dep-ok": {"cmds": ["echo ok"]},
+                "dep-fail": {"cmds": ["exit 1"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["dep-ok", "dep-fail"],
+                    "parallel": True,
+                    "ignore_errors": True,
+                },
+            }
+        )
         assert runner.run_task("main") is True
 
     def test_condition_true(self):
         """Test task runs when condition is met."""
-        runner = self._make_runner({
-            "cond": {"cmds": ["echo ok"], "condition": "true"},
-        })
+        runner = self._make_runner(
+            {
+                "cond": {"cmds": ["echo ok"], "condition": "true"},
+            }
+        )
         assert runner.run_task("cond") is True
 
     def test_condition_false(self):
         """Test task is skipped when condition is not met."""
-        runner = self._make_runner({
-            "cond": {"cmds": ["echo should-not-run"], "condition": "false"},
-        })
+        runner = self._make_runner(
+            {
+                "cond": {"cmds": ["echo should-not-run"], "condition": "false"},
+            }
+        )
         assert runner.run_task("cond") is True  # skipped = success
         assert "cond" in runner._executed  # marked as executed (skipped)

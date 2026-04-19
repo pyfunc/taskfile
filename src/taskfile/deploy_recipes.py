@@ -36,7 +36,9 @@ from __future__ import annotations
 from typing import Any
 
 
-def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, str]) -> dict[str, dict]:
+def expand_deploy_recipe(
+    deploy_section: dict[str, Any], variables: dict[str, str]
+) -> dict[str, dict]:
     """Convert a deploy: section into a dict of task definitions.
 
     Returns raw task dicts ready to merge into the tasks: section.
@@ -63,7 +65,9 @@ def expand_deploy_recipe(deploy_section: dict[str, Any], variables: dict[str, st
     tasks.update(_push_tasks(images, registry, tag_var))
     tasks["validate-deploy"] = _validate_task()
     tasks["deploy"] = _deploy_task(strategy, images, registry, tag_var, restart_delay)
-    tasks.update(_health_tasks(images, health_check, health_retries, health_delay, registry, tag_var))
+    tasks.update(
+        _health_tasks(images, health_check, health_retries, health_delay, registry, tag_var)
+    )
     tasks.update(_rollback_tasks(images, registry, tag_var, restart_delay))
     tasks.update(_ops_tasks(strategy, containers, restart_delay, log_lines, backup_paths))
 
@@ -128,10 +132,10 @@ def _validate_task() -> dict:
         "tags": ["ci", "validate"],
         "silent": True,
         "cmds": [
-            '@python from taskfile.diagnostics.checks import check_deploy_artifacts; '
-            'from taskfile.parser import find_taskfile, load_taskfile; '
-            'cfg = load_taskfile(find_taskfile()); '
-            'issues = check_deploy_artifacts(cfg); '
+            "@python from taskfile.diagnostics.checks import check_deploy_artifacts; "
+            "from taskfile.parser import find_taskfile, load_taskfile; "
+            "cfg = load_taskfile(find_taskfile()); "
+            "issues = check_deploy_artifacts(cfg); "
             '[print(f"ERROR: {i.message}") for i in issues if i.severity == "error"]; '
             '[print(f"WARN: {i.message}") for i in issues]; '
             'exit(1) if any(i.severity == "error" for i in issues) else None',
@@ -140,7 +144,11 @@ def _validate_task() -> dict:
 
 
 def _deploy_task(
-    strategy: str, images: dict, registry: str, tag_var: str, restart_delay: int,
+    strategy: str,
+    images: dict,
+    registry: str,
+    tag_var: str,
+    restart_delay: int,
 ) -> dict:
     """Generate the deploy task based on strategy. Dispatches to strategy-specific builders."""
     push_dep = "push-all" if len(images) > 1 else f"push-{list(images)[0]}" if images else None
@@ -158,8 +166,12 @@ def _deploy_task(
 
 
 def _health_tasks(
-    images: dict, health_check: str, health_retries: int, health_delay: int,
-    registry: str, tag_var: str,
+    images: dict,
+    health_check: str,
+    health_retries: int,
+    health_delay: int,
+    registry: str,
+    tag_var: str,
 ) -> dict[str, dict]:
     """Generate health and post-deploy health gate tasks."""
     return {
@@ -184,7 +196,9 @@ def _health_tasks(
     }
 
 
-def _rollback_tasks(images: dict, registry: str, tag_var: str, restart_delay: int) -> dict[str, dict]:
+def _rollback_tasks(
+    images: dict, registry: str, tag_var: str, restart_delay: int
+) -> dict[str, dict]:
     """Generate rollback task if images are defined."""
     if not images:
         return {}
@@ -218,7 +232,10 @@ def _graceful_restart_cmds(svc_name: str, restart_delay: int = 3) -> list[str]:
 
 
 def _post_deploy_health_cmds(
-    images: dict, health_check: str, registry: str, tag_var: str,
+    images: dict,
+    health_check: str,
+    registry: str,
+    tag_var: str,
 ) -> list[str]:
     """Generate post-deploy health verification commands."""
     cmds: list[str] = []
@@ -229,9 +246,7 @@ def _post_deploy_health_cmds(
             f"&& echo '{svc_name}: running' || (echo '{svc_name}: NOT RUNNING' && exit 1)"
         )
     # Check HTTP health endpoint
-    cmds.append(
-        f"curl -sf https://${{DOMAIN}}{health_check} && echo 'Health: OK' || exit 1"
-    )
+    cmds.append(f"curl -sf https://${{DOMAIN}}{health_check} && echo 'Health: OK' || exit 1")
     return cmds
 
 
@@ -251,7 +266,10 @@ def _compose_deploy(deps: list[str]) -> dict:
 
 
 def _quadlet_deploy(
-    deps: list[str], images: dict, registry: str, tag_var: str,
+    deps: list[str],
+    images: dict,
+    registry: str,
+    tag_var: str,
     restart_delay: int = 3,
 ) -> dict:
     """Generate Quadlet-based deploy task with graceful restart."""
@@ -280,7 +298,10 @@ def _quadlet_deploy(
 
 
 def _ssh_push_deploy(
-    deps: list[str], images: dict, registry: str, tag_var: str,
+    deps: list[str],
+    images: dict,
+    registry: str,
+    tag_var: str,
     restart_delay: int = 3,
 ) -> dict:
     """Generate simple SSH pull+graceful restart deploy task."""
@@ -358,7 +379,9 @@ def _compose_ops_tasks(containers: list[str], log_lines: int) -> dict[str, dict]
 
 
 def _systemd_ops_tasks(
-    containers: list[str], restart_delay: int, log_lines: int,
+    containers: list[str],
+    restart_delay: int,
+    log_lines: int,
 ) -> dict[str, dict]:
     """Generate ops tasks for quadlet/ssh-push strategies (systemd + podman)."""
     # status: check each unit + show running containers
@@ -368,7 +391,9 @@ def _systemd_ops_tasks(
             f"@remote systemctl --user is-active --quiet ${{APP_NAME}}-{c} "
             f"&& echo '{c}: ✓ running' || echo '{c}: ✗ stopped'"
         )
-    status_cmds.append("@remote podman ps --format 'table {{{{.Names}}}}\\t{{{{.Status}}}}\\t{{{{.Ports}}}}'")
+    status_cmds.append(
+        "@remote podman ps --format 'table {{{{.Names}}}}\\t{{{{.Status}}}}\\t{{{{.Ports}}}}'"
+    )
 
     # logs: journal + podman logs
     logs_cmds: list[str] = []
@@ -449,9 +474,7 @@ def _fixop_tasks(fixop_cfg: dict, containers: list[str]) -> dict[str, dict]:
         for d in domains:
             doctor_cmds.append(f"fixop check --domain {d}")
     if containers:
-        doctor_cmds.append(
-            f"fixop check --containers {' '.join(containers)}"
-        )
+        doctor_cmds.append(f"fixop check --containers {' '.join(containers)}")
 
     tasks["doctor"] = {
         "desc": "Run infrastructure health checks (fixop)",

@@ -1,8 +1,6 @@
 """Tests for VPS provisioner."""
 
-import pytest
 from unittest.mock import patch, MagicMock
-from pathlib import Path
 
 from taskfile.provisioner import (
     ProvisionConfig,
@@ -203,8 +201,10 @@ class TestVPSProvisionerSteps:
         )
         provisioner = VPSProvisioner(config)
 
-        with patch.object(provisioner, "_check_command") as mock_check, \
-             patch.object(provisioner, "_ssh") as mock_ssh:
+        with (
+            patch.object(provisioner, "_check_command") as mock_check,
+            patch.object(provisioner, "_ssh") as mock_ssh,
+        ):
             mock_check.return_value = True
             mock_ssh.return_value = (0, "podman version 4.0.0", "")
 
@@ -225,8 +225,10 @@ class TestVPSProvisionerSteps:
         )
         provisioner = VPSProvisioner(config)
 
-        with patch.object(provisioner, "_check_command") as mock_check, \
-             patch.object(provisioner, "_ssh") as mock_ssh:
+        with (
+            patch.object(provisioner, "_check_command") as mock_check,
+            patch.object(provisioner, "_ssh") as mock_ssh,
+        ):
             mock_check.return_value = False
             mock_ssh.return_value = (0, "", "")
 
@@ -249,8 +251,10 @@ class TestVPSProvisionerSteps:
         )
         provisioner = VPSProvisioner(config)
 
-        with patch.object(provisioner, "_check_command") as mock_check, \
-             patch.object(provisioner, "_ssh") as mock_ssh:
+        with (
+            patch.object(provisioner, "_check_command") as mock_check,
+            patch.object(provisioner, "_ssh") as mock_ssh,
+        ):
             mock_check.return_value = False  # UFW not installed
             mock_ssh.return_value = (0, "", "")
 

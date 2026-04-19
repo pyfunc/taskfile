@@ -8,8 +8,6 @@ Covers:
 - Configurable restart_delay
 """
 
-import pytest
-
 from taskfile.deploy_recipes import (
     expand_deploy_recipe,
     _graceful_restart_cmds,
@@ -23,7 +21,6 @@ from taskfile.deploy_recipes import (
 
 
 class TestGracefulRestartCmds:
-
     def test_default_delay(self):
         cmds = _graceful_restart_cmds("web")
         assert len(cmds) == 3
@@ -68,10 +65,12 @@ class TestGracefulRestartCmds:
 
 
 class TestPostDeployHealthCmds:
-
     def test_single_service(self):
         cmds = _post_deploy_health_cmds(
-            {"web": "Dockerfile"}, "/health", "ghcr.io/test", "${TAG}",
+            {"web": "Dockerfile"},
+            "/health",
+            "ghcr.io/test",
+            "${TAG}",
         )
         # One is-active check + one curl
         assert len(cmds) == 2
@@ -101,7 +100,6 @@ class TestPostDeployHealthCmds:
 
 
 class TestQuadletGracefulRestart:
-
     def _make_quadlet(self, **overrides):
         section = {
             "strategy": "quadlet",
@@ -154,22 +152,27 @@ class TestQuadletGracefulRestart:
 
 
 class TestSshPushGracefulRestart:
-
     def test_no_hard_restart(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "ssh-push",
-            "images": {"worker": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "ssh-push",
+                "images": {"worker": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         for cmd in tasks["deploy"]["cmds"]:
             assert "restart" not in cmd
 
     def test_has_graceful_pattern(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "ssh-push",
-            "images": {"worker": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "ssh-push",
+                "images": {"worker": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         cmds = tasks["deploy"]["cmds"]
         assert any("stop" in c for c in cmds)
         assert any("start" in c for c in cmds)
@@ -182,22 +185,27 @@ class TestSshPushGracefulRestart:
 
 
 class TestRollbackGracefulRestart:
-
     def test_rollback_no_hard_restart(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"api": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"api": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         for cmd in tasks["rollback"]["cmds"]:
             assert "restart" not in cmd
 
     def test_rollback_has_graceful_pattern(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"api": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"api": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         cmds = tasks["rollback"]["cmds"]
         assert any("stop" in c for c in cmds)
         assert any("start" in c for c in cmds)
@@ -210,52 +218,66 @@ class TestRollbackGracefulRestart:
 
 
 class TestPostDeployHealthGate:
-
     def test_post_deploy_task_generated(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         assert "post-deploy" in tasks
         assert "health" in tasks["post-deploy"]["tags"]
 
     def test_post_deploy_has_retries(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Dockerfile"},
-            "registry": "ghcr.io/test",
-            "health_retries": 10,
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Dockerfile"},
+                "registry": "ghcr.io/test",
+                "health_retries": 10,
+            },
+            {},
+        )
         assert tasks["post-deploy"]["retries"] == 10
 
     def test_post_deploy_checks_services(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"api": "Df.api", "web": "Df.web"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"api": "Df.api", "web": "Df.web"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         cmds = tasks["post-deploy"]["cmds"]
         assert any("api" in c and "is-active" in c for c in cmds)
         assert any("web" in c and "is-active" in c for c in cmds)
         assert any("curl" in c for c in cmds)
 
     def test_post_deploy_uses_custom_health_check(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "health_check": "/api/v1/status",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "health_check": "/api/v1/status",
+            },
+            {},
+        )
         cmds = tasks["post-deploy"]["cmds"]
         assert any("/api/v1/status" in c for c in cmds)
 
     def test_compose_strategy_also_has_post_deploy(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "compose",
-            "images": {"app": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "compose",
+                "images": {"app": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         assert "post-deploy" in tasks
 
 
@@ -376,12 +398,15 @@ class TestOpsTasksBackup:
     """Backup task generation."""
 
     def test_backup_generated_when_paths(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "backup_paths": ["/data/volumes", "/data/config"],
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "backup_paths": ["/data/volumes", "/data/config"],
+            },
+            {},
+        )
         assert "backup" in tasks
         cmds = tasks["backup"]["cmds"]
         assert any("/data/volumes" in c for c in cmds)
@@ -389,20 +414,26 @@ class TestOpsTasksBackup:
         assert any("tar" in c for c in cmds)
 
     def test_backup_not_generated_without_paths(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         assert "backup" not in tasks
 
     def test_backup_tagged(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "backup_paths": ["/data"],
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "backup_paths": ["/data"],
+            },
+            {},
+        )
         assert "backup" in tasks["backup"]["tags"]
         assert "ops" in tasks["backup"]["tags"]
 
@@ -411,20 +442,26 @@ class TestOpsTasksSshPush:
     """SSH-push strategy also gets systemd ops tasks."""
 
     def test_ssh_push_has_ops(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "ssh-push",
-            "images": {"worker": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "ssh-push",
+                "images": {"worker": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         for name in ("status", "logs", "stop", "restart"):
             assert name in tasks, f"Missing ops task: {name}"
 
     def test_ssh_push_uses_systemctl(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "ssh-push",
-            "images": {"worker": "Dockerfile"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "ssh-push",
+                "images": {"worker": "Dockerfile"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         assert any("systemctl" in c for c in tasks["stop"]["cmds"])
 
 
@@ -437,72 +474,93 @@ class TestFixopIntegration:
     """Fixop doctor/drift-check/fix tasks generated from deploy.fixop config."""
 
     def test_no_fixop_by_default(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+            },
+            {},
+        )
         assert "doctor" not in tasks
         assert "drift-check" not in tasks
 
     def test_doctor_generated(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "fixop": {"domains": ["example.com"]},
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "fixop": {"domains": ["example.com"]},
+            },
+            {},
+        )
         assert "doctor" in tasks
         assert "fixop" in tasks["doctor"]["tags"]
         assert any("fixop check" in c for c in tasks["doctor"]["cmds"])
 
     def test_doctor_with_domains(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "fixop": {"domains": ["a.com", "b.com"]},
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "fixop": {"domains": ["a.com", "b.com"]},
+            },
+            {},
+        )
         cmds = tasks["doctor"]["cmds"]
         assert any("a.com" in c for c in cmds)
         assert any("b.com" in c for c in cmds)
 
     def test_doctor_with_containers(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"api": "Df.api", "web": "Df.web"},
-            "registry": "ghcr.io/test",
-            "fixop": {},
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"api": "Df.api", "web": "Df.web"},
+                "registry": "ghcr.io/test",
+                "fixop": {},
+            },
+            {},
+        )
         cmds = tasks["doctor"]["cmds"]
         assert any("--containers" in c and "api" in c and "web" in c for c in cmds)
 
     def test_drift_check_generated(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "fixop": {"readme": "README.md", "source_dir": "sandbox/"},
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "fixop": {"readme": "README.md", "source_dir": "sandbox/"},
+            },
+            {},
+        )
         assert "drift-check" in tasks
         cmds = tasks["drift-check"]["cmds"]
         assert any("check_file_drift" in c for c in cmds)
 
     def test_fix_not_generated_by_default(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "fixop": {},
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "fixop": {},
+            },
+            {},
+        )
         assert "fix" not in tasks
 
     def test_fix_generated_when_auto_fix(self):
-        tasks = expand_deploy_recipe({
-            "strategy": "quadlet",
-            "images": {"web": "Df"},
-            "registry": "ghcr.io/test",
-            "fixop": {"auto_fix": True},
-        }, {})
+        tasks = expand_deploy_recipe(
+            {
+                "strategy": "quadlet",
+                "images": {"web": "Df"},
+                "registry": "ghcr.io/test",
+                "fixop": {"auto_fix": True},
+            },
+            {},
+        )
         assert "fix" in tasks
         assert any("fixop fix --auto" in c for c in tasks["fix"]["cmds"])

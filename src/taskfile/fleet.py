@@ -186,7 +186,9 @@ def save_fleet(config: FleetConfig, path: str | Path | None = None) -> Path:
 # ─── SSH helpers ──────────────────────────────────────
 
 
-def _ssh_cmd(config: FleetConfig, host: str, cmd: str, timeout: int = 10) -> subprocess.CompletedProcess:
+def _ssh_cmd(
+    config: FleetConfig, host: str, cmd: str, timeout: int = 10
+) -> subprocess.CompletedProcess:
     """Run a command on a remote device via SSH."""
     ssh = f"ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=accept-new {config.ssh_user}@{host}"
     return subprocess.run(
@@ -254,12 +256,13 @@ def check_device_status(config: FleetConfig, device: Device) -> DeviceStatus:
 
     try:
         result = _ssh_cmd(
-            config, device.host,
+            config,
+            device.host,
             'echo "'
-            '$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)|'
-            '$(free -m 2>/dev/null | awk \'/Mem:/{printf "%.0f", $3/$2*100}\')|'
-            '$(df / --output=pcent 2>/dev/null | tail -1 | tr -d \" %\")|'
-            '$(uptime -p 2>/dev/null || uptime)|'
+            "$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)|"
+            "$(free -m 2>/dev/null | awk '/Mem:/{printf \"%.0f\", $3/$2*100}')|"
+            '$(df / --output=pcent 2>/dev/null | tail -1 | tr -d " %")|'
+            "$(uptime -p 2>/dev/null || uptime)|"
             '$(podman ps -q 2>/dev/null | wc -l)"',
         )
         if result.returncode != 0:
@@ -313,9 +316,14 @@ def print_fleet_status(statuses: list[DeviceStatus]) -> None:
             table.add_row(s.name, s.host, status_str, "—", "—", "—", "—", "—")
         else:
             table.add_row(
-                s.name, s.host, status_str,
-                f"{s.temp_c:.0f}°C", f"{s.ram_pct}%", f"{s.disk_pct}%",
-                str(s.containers), s.uptime,
+                s.name,
+                s.host,
+                status_str,
+                f"{s.temp_c:.0f}°C",
+                f"{s.ram_pct}%",
+                f"{s.disk_pct}%",
+                str(s.containers),
+                s.uptime,
             )
 
     console.print(table)
@@ -346,7 +354,9 @@ def deploy_to_device(
             return False
 
         # Stop and remove old container
-        _ssh_cmd(config, host, f"podman stop {app_name} 2>/dev/null; podman rm {app_name} 2>/dev/null")
+        _ssh_cmd(
+            config, host, f"podman stop {app_name} 2>/dev/null; podman rm {app_name} 2>/dev/null"
+        )
 
         # Build run command
         ports = " ".join(f"-p {p}" for p in app.ports)
@@ -446,10 +456,7 @@ def _deploy_parallel(
     """Deploy to all devices in parallel."""
     failed: list[str] = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futures = {
-            ex.submit(deploy_to_device, config, dev, app, tag): dev.name
-            for dev in targets
-        }
+        futures = {ex.submit(deploy_to_device, config, dev, app, tag): dev.name for dev in targets}
         for future in as_completed(futures):
             name = futures[future]
             try:

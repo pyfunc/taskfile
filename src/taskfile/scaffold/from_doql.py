@@ -17,6 +17,7 @@ own. The features we read are deliberately minimal:
 Anything else is ignored — it's richer information that has no Taskfile
 counterpart.
 """
+
 from __future__ import annotations
 
 import re
@@ -80,19 +81,23 @@ def _parse_doql_css(text: str) -> dict[str, Any]:
             name_match = _NAME_ATTR_RE.search(selector)
             if name_match:
                 parsed = _extract_workflow_steps(body)
-                workflows.append({
-                    "name": name_match.group(1),
-                    "props": props,
-                    "cmds": parsed["cmds"],
-                    "deps": parsed["deps"],
-                })
+                workflows.append(
+                    {
+                        "name": name_match.group(1),
+                        "props": props,
+                        "cmds": parsed["cmds"],
+                        "deps": parsed["deps"],
+                    }
+                )
         elif tag == "environment":
             name_match = _NAME_ATTR_RE.search(selector)
             if name_match:
-                environments.append({
-                    "name": name_match.group(1),
-                    "props": props,
-                })
+                environments.append(
+                    {
+                        "name": name_match.group(1),
+                        "props": props,
+                    }
+                )
         elif tag == "deploy":
             deploy.update(props)
 

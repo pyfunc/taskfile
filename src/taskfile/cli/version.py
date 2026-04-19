@@ -12,13 +12,10 @@ from taskfile.cli.click_compat import confirm
 from rich.console import Console
 from rich.panel import Panel
 
-from taskfile import __version__
 from taskfile.cli.main import main
 from taskfile.parser import (
     TaskfileNotFoundError,
-    TaskfileParseError,
     find_taskfile,
-    load_taskfile,
 )
 
 console = Console()
@@ -78,13 +75,15 @@ def bump(ctx, part, dry_run, force):
         sys.exit(1)
 
     # Show plan
-    console.print(Panel.fit(
-        f"[bold]Version Bump[/]\n\n"
-        f"[dim]Current:[/] {current}\n"
-        f"[green]New:[/]     {new_version}\n"
-        f"[dim]Part:[/]    {part}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]Version Bump[/]\n\n"
+            f"[dim]Current:[/] {current}\n"
+            f"[green]New:[/]     {new_version}\n"
+            f"[dim]Part:[/]    {part}",
+            border_style="blue",
+        )
+    )
 
     if dry_run:
         console.print("\n[yellow]DRY RUN — No changes made[/]")
@@ -138,11 +137,13 @@ def show(ctx):
         version = _get_version_from_git(project_dir) or "unknown"
         source = "git tag"
 
-    console.print(Panel.fit(
-        f"[bold]{version}[/]\n[dim]Source: {source}[/]",
-        title="Project Version",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]{version}[/]\n[dim]Source: {source}[/]",
+            title="Project Version",
+            border_style="green",
+        )
+    )
 
 
 @version.command()
@@ -176,12 +177,12 @@ def set(ctx, new_version, dry_run, force):
     current = version_file.read_text().strip() if version_file.exists() else "none"
 
     # Show plan
-    console.print(Panel.fit(
-        f"[bold]Set Version[/]\n\n"
-        f"[dim]Current:[/] {current}\n"
-        f"[green]New:[/]     {new_version}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]Set Version[/]\n\n[dim]Current:[/] {current}\n[green]New:[/]     {new_version}",
+            border_style="blue",
+        )
+    )
 
     if dry_run:
         console.print("\n[yellow]DRY RUN — No changes made[/]")
@@ -200,6 +201,7 @@ def set(ctx, new_version, dry_run, force):
 
 
 # Helper functions
+
 
 def _increment_version(version: str, part: str) -> str | None:
     """Increment version number."""
@@ -286,7 +288,7 @@ def _update_taskfile_version(taskfile_path: Path, version: str):
             flags=re.M,
         )
         taskfile_path.write_text(new_content)
-        console.print(f"✓ Updated Taskfile.yml")
+        console.print("✓ Updated Taskfile.yml")
 
 
 def _update_pyproject_version(pyproject_path: Path, version: str):
@@ -296,12 +298,12 @@ def _update_pyproject_version(pyproject_path: Path, version: str):
 
     content = pyproject_path.read_text()
     # Update version = "x.y.z" in [project] section
-    if 'version = ' in content:
+    if "version = " in content:
         new_content = re.sub(
             r'^(version\s*=\s*["\'])([\d.]+)(["\'])',
-            rf'\g<1>{version}\g<3>',
+            rf"\g<1>{version}\g<3>",
             content,
             flags=re.M,
         )
         pyproject_path.write_text(new_content)
-        console.print(f"✓ Updated pyproject.toml")
+        console.print("✓ Updated pyproject.toml")

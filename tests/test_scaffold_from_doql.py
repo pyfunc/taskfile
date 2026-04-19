@@ -4,11 +4,11 @@ The ``doql adopt`` command captures a project's workflows into a CSS-like
 spec. The reverse path \u2014 generating a ``Taskfile.yml`` from that spec \u2014
 lets users switch between the two formats without manual translation.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 from taskfile.models import TaskfileConfig
@@ -28,12 +28,7 @@ def _write_spec(tmp_path: Path, body: str) -> Path:
 
 
 def test_generate_from_minimal_spec(tmp_path: Path) -> None:
-    spec = _write_spec(tmp_path, (
-        'app {\n'
-        '  name: "demo-app";\n'
-        '  version: "1.2.3";\n'
-        '}\n'
-    ))
+    spec = _write_spec(tmp_path, ('app {\n  name: "demo-app";\n  version: "1.2.3";\n}\n'))
     content = generate_from_doql(spec)
     data = yaml.safe_load(content)
     assert data["name"] == "demo-app"
@@ -44,18 +39,21 @@ def test_generate_from_minimal_spec(tmp_path: Path) -> None:
 
 
 def test_workflow_blocks_become_tasks(tmp_path: Path) -> None:
-    spec = _write_spec(tmp_path, (
-        'app { name: "api"; version: "0.1.0"; }\n'
-        'workflow[name="build"] {\n'
-        '  trigger: manual;\n'
-        '  step-1: run cmd=pip install -e .;\n'
-        '  step-2: run cmd=python -m build;\n'
-        '}\n'
-        'workflow[name="test"] {\n'
-        '  trigger: manual;\n'
-        '  step-1: run cmd=pytest -q;\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path,
+        (
+            'app { name: "api"; version: "0.1.0"; }\n'
+            'workflow[name="build"] {\n'
+            "  trigger: manual;\n"
+            "  step-1: run cmd=pip install -e .;\n"
+            "  step-2: run cmd=python -m build;\n"
+            "}\n"
+            'workflow[name="test"] {\n'
+            "  trigger: manual;\n"
+            "  step-1: run cmd=pytest -q;\n"
+            "}\n"
+        ),
+    )
     data = yaml.safe_load(generate_from_doql(spec))
     tasks = data["tasks"]
 
@@ -68,13 +66,16 @@ def test_workflow_steps_are_ordered_by_step_number(tmp_path: Path) -> None:
     """``step-2`` before ``step-1`` in the spec must not corrupt the order
     of emitted commands.
     """
-    spec = _write_spec(tmp_path, (
-        'workflow[name="release"] {\n'
-        '  step-2: run cmd=git push --tags;\n'
-        '  step-1: run cmd=git tag v1.0;\n'
-        '  step-3: run cmd=twine upload dist/*;\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path,
+        (
+            'workflow[name="release"] {\n'
+            "  step-2: run cmd=git push --tags;\n"
+            "  step-1: run cmd=git tag v1.0;\n"
+            "  step-3: run cmd=twine upload dist/*;\n"
+            "}\n"
+        ),
+    )
     data = yaml.safe_load(generate_from_doql(spec))
     assert data["tasks"]["release"]["cmds"] == [
         "git tag v1.0",
@@ -84,17 +85,20 @@ def test_workflow_steps_are_ordered_by_step_number(tmp_path: Path) -> None:
 
 
 def test_environment_blocks_become_environments(tmp_path: Path) -> None:
-    spec = _write_spec(tmp_path, (
-        'app { name: "x"; version: "0.1.0"; }\n'
-        'environment[name="local"] {\n'
-        '  runtime: docker-compose;\n'
-        '  env_file: ".env";\n'
-        '}\n'
-        'environment[name="prod"] {\n'
-        '  runtime: docker-compose;\n'
-        '  env_file: ".env.prod";\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path,
+        (
+            'app { name: "x"; version: "0.1.0"; }\n'
+            'environment[name="local"] {\n'
+            "  runtime: docker-compose;\n"
+            '  env_file: ".env";\n'
+            "}\n"
+            'environment[name="prod"] {\n'
+            "  runtime: docker-compose;\n"
+            '  env_file: ".env.prod";\n'
+            "}\n"
+        ),
+    )
     data = yaml.safe_load(generate_from_doql(spec))
     envs = data["environments"]
     assert set(envs) == {"local", "prod"}
@@ -107,17 +111,20 @@ def test_depend_steps_become_taskfile_deps(tmp_path: Path) -> None:
     must emit ``deps: [X, ...]`` in the generated Taskfile, not shell
     commands that would try to execute ``depend target=X`` literally.
     """
-    spec = _write_spec(tmp_path, (
-        'workflow[name="install"] {\n'
-        '  trigger: "manual";\n'
-        '  step-1: depend target=install-backend;\n'
-        '  step-2: depend target=install-frontend;\n'
-        '}\n'
-        'workflow[name="release"] {\n'
-        '  step-1: depend target=test;\n'
-        '  step-2: run cmd=twine upload dist/*;\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path,
+        (
+            'workflow[name="install"] {\n'
+            '  trigger: "manual";\n'
+            "  step-1: depend target=install-backend;\n"
+            "  step-2: depend target=install-frontend;\n"
+            "}\n"
+            'workflow[name="release"] {\n'
+            "  step-1: depend target=test;\n"
+            "  step-2: run cmd=twine upload dist/*;\n"
+            "}\n"
+        ),
+    )
     data = yaml.safe_load(generate_from_doql(spec))
 
     install = data["tasks"]["install"]
@@ -131,13 +138,16 @@ def test_depend_steps_become_taskfile_deps(tmp_path: Path) -> None:
 
 
 def test_scheduled_workflow_preserves_schedule(tmp_path: Path) -> None:
-    spec = _write_spec(tmp_path, (
-        'workflow[name="backup"] {\n'
-        '  trigger: schedule;\n'
-        '  schedule: "0 2 * * *";\n'
-        '  step-1: run cmd=./scripts/backup.sh;\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path,
+        (
+            'workflow[name="backup"] {\n'
+            "  trigger: schedule;\n"
+            '  schedule: "0 2 * * *";\n'
+            "  step-1: run cmd=./scripts/backup.sh;\n"
+            "}\n"
+        ),
+    )
     data = yaml.safe_load(generate_from_doql(spec))
     backup = data["tasks"]["backup"]
     assert backup["cmds"] == ["./scripts/backup.sh"]
@@ -145,12 +155,9 @@ def test_scheduled_workflow_preserves_schedule(tmp_path: Path) -> None:
 
 
 def test_deploy_target_appears_in_description(tmp_path: Path) -> None:
-    spec = _write_spec(tmp_path, (
-        'app { name: "x"; version: "0.1.0"; }\n'
-        'deploy {\n'
-        '  target: docker-compose;\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path, ('app { name: "x"; version: "0.1.0"; }\ndeploy {\n  target: docker-compose;\n}\n')
+    )
     data = yaml.safe_load(generate_from_doql(spec))
     assert "docker-compose" in data["description"]
 
@@ -160,16 +167,19 @@ def test_deploy_target_appears_in_description(tmp_path: Path) -> None:
 
 def test_output_round_trips_to_taskfile_config(tmp_path: Path) -> None:
     """Generated YAML must be loadable by the real Taskfile parser."""
-    spec = _write_spec(tmp_path, (
-        'app { name: "svc"; version: "2.0.0"; }\n'
-        'workflow[name="up"] {\n'
-        '  step-1: run cmd=docker compose up -d;\n'
-        '}\n'
-        'environment[name="local"] {\n'
-        '  runtime: docker-compose;\n'
-        '  env_file: ".env";\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path,
+        (
+            'app { name: "svc"; version: "2.0.0"; }\n'
+            'workflow[name="up"] {\n'
+            "  step-1: run cmd=docker compose up -d;\n"
+            "}\n"
+            'environment[name="local"] {\n'
+            "  runtime: docker-compose;\n"
+            '  env_file: ".env";\n'
+            "}\n"
+        ),
+    )
     data = yaml.safe_load(generate_from_doql(spec))
     config = TaskfileConfig.from_dict(data)
     assert config.name == "svc"
@@ -182,31 +192,34 @@ def test_handles_adopt_generated_spec_verbatim(tmp_path: Path) -> None:
     churn in the emitter surfaces as a test failure instead of silent data
     loss.
     """
-    spec = _write_spec(tmp_path, (
-        'app {\n'
-        '  name: "semcod";\n'
-        '  version: "0.1.10";\n'
-        '}\n'
-        '\n'
-        'database[name="postgres"] {\n'
-        '  type: "postgresql";\n'
-        '  url: env.DATABASE_URL;\n'
-        '}\n'
-        '\n'
-        'workflow[name="lint"] {\n'
-        '  step-1: run cmd=ruff check .;\n'
-        '}\n'
-        '\n'
-        'deploy {\n'
-        '  target: docker-compose;\n'
-        '  compose_file: docker-compose.yml;\n'
-        '}\n'
-        '\n'
-        'environment[name="local"] {\n'
-        '  runtime: docker-compose;\n'
-        '  env_file: ".env";\n'
-        '}\n'
-    ))
+    spec = _write_spec(
+        tmp_path,
+        (
+            "app {\n"
+            '  name: "semcod";\n'
+            '  version: "0.1.10";\n'
+            "}\n"
+            "\n"
+            'database[name="postgres"] {\n'
+            '  type: "postgresql";\n'
+            "  url: env.DATABASE_URL;\n"
+            "}\n"
+            "\n"
+            'workflow[name="lint"] {\n'
+            "  step-1: run cmd=ruff check .;\n"
+            "}\n"
+            "\n"
+            "deploy {\n"
+            "  target: docker-compose;\n"
+            "  compose_file: docker-compose.yml;\n"
+            "}\n"
+            "\n"
+            'environment[name="local"] {\n'
+            "  runtime: docker-compose;\n"
+            '  env_file: ".env";\n'
+            "}\n"
+        ),
+    )
     data = yaml.safe_load(generate_from_doql(spec))
     assert data["name"] == "semcod"
     assert data["tasks"]["lint"]["cmds"] == ["ruff check ."]

@@ -21,7 +21,6 @@ import time
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import Any
 
 import clickmd as click
 
@@ -130,7 +129,9 @@ def _check_local_tools() -> E2EResult:
     try:
         subprocess.run(
             ["docker", "compose", "version"],
-            capture_output=True, timeout=5, check=True,
+            capture_output=True,
+            timeout=5,
+            check=True,
         )
     except Exception:
         missing.append("docker compose")
@@ -174,9 +175,18 @@ def _get_running_containers_remote(env) -> tuple[set[str] | None, str | None]:
     runtime = env.container_runtime if env.container_runtime != "docker" else "podman"
     try:
         r = subprocess.run(
-            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
-             f"{env.ssh_user}@{env.ssh_host}", f"{runtime} ps --format '{{{{.Names}}}}'"],
-            capture_output=True, text=True, timeout=15,
+            [
+                "ssh",
+                "-o",
+                "ConnectTimeout=5",
+                "-o",
+                "BatchMode=yes",
+                f"{env.ssh_user}@{env.ssh_host}",
+                f"{runtime} ps --format '{{{{.Names}}}}'",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         running = set(r.stdout.strip().split("\n")) if r.stdout.strip() else set()
         return running, None
@@ -189,7 +199,9 @@ def _get_running_containers_local() -> set[str]:
     try:
         r = subprocess.run(
             ["docker", "compose", "ps", "--format", "{{.Name}}"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         return set(r.stdout.strip().split("\n")) if r.stdout.strip() else set()
     except Exception:
@@ -208,8 +220,9 @@ def _match_containers(expected: list[str], running: set[str]) -> E2EResult:
 
     if missing:
         return E2EResult(
-            "Containers running", False,
-            f"missing: {', '.join(missing)} (running: {', '.join(found) or 'none'})"
+            "Containers running",
+            False,
+            f"missing: {', '.join(missing)} (running: {', '.join(found) or 'none'})",
         )
     return E2EResult("Containers running", True, f"{len(found)} service(s) up")
 
@@ -297,7 +310,12 @@ def _run_iac_checks(config, env) -> list[E2EResult]:
 
 
 def _run_service_checks(
-    env, config, is_remote: bool, url: tuple, port_web: int | None, port_landing: int | None,
+    env,
+    config,
+    is_remote: bool,
+    url: tuple,
+    port_web: int | None,
+    port_landing: int | None,
 ) -> list[E2EResult]:
     """Run service checks: containers, HTTP endpoints."""
     results = []
@@ -343,40 +361,44 @@ def _print_e2e_results(results: list[E2EResult]) -> None:
 @main.command(name="e2e")
 @click.option("--check-only", is_flag=True, help="Validate config only, skip HTTP/container checks")
 @click.option("--url", multiple=True, help="Additional HTTP URL(s) to check")
-@click.option("--port-web", type=int, default=None, help="Web app port (default: from .env or 8000)")
-@click.option("--port-landing", type=int, default=None, help="Landing port (default: from .env or 3000)")
+@click.option(
+    "--port-web", type=int, default=None, help="Web app port (default: from .env or 8000)"
+)
+@click.option(
+    "--port-landing", type=int, default=None, help="Landing port (default: from .env or 3000)"
+)
 @click.pass_context
 def e2e_cmd(ctx, check_only, url, port_web, port_landing):
     """**🧪 End-to-end tests** for services and IaC.
 
-Validates infrastructure-as-code and tests running services.
+    Validates infrastructure-as-code and tests running services.
 
-## Test layers
+    ## Test layers
 
-| Layer | What is tested |
-|-------|----------------|
-| IaC | Taskfile.yml, docker-compose.yml, quadlet units, .env |
-| Tools | docker, docker compose, ssh available |
-| SSH | Remote host connectivity (for remote envs) |
-| Remote | Podman installed, disk space (for remote envs) |
-| Services | Containers running, HTTP endpoints responding |
+    | Layer | What is tested |
+    |-------|----------------|
+    | IaC | Taskfile.yml, docker-compose.yml, quadlet units, .env |
+    | Tools | docker, docker compose, ssh available |
+    | SSH | Remote host connectivity (for remote envs) |
+    | Remote | Podman installed, disk space (for remote envs) |
+    | Services | Containers running, HTTP endpoints responding |
 
-## Examples
+    ## Examples
 
-```bash
-# Full e2e test (local)
-taskfile e2e
+    ```bash
+    # Full e2e test (local)
+    taskfile e2e
 
-# Test production environment
-taskfile --env prod e2e
+    # Test production environment
+    taskfile --env prod e2e
 
-# Config validation only (no HTTP)
-taskfile e2e --check-only
+    # Config validation only (no HTTP)
+    taskfile e2e --check-only
 
-# Test custom URL
-taskfile e2e --url http://localhost:8000/health
-```
-"""
+    # Test custom URL
+    taskfile e2e --url http://localhost:8000/health
+    ```
+    """
     opts = ctx.ensure_object(dict)
     results: list[E2EResult] = []
 

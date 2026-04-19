@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import pytest
 import yaml
 from pathlib import Path
@@ -16,88 +15,92 @@ from taskfile.api.app import create_app
 def sample_taskfile(tmp_path) -> Path:
     """Create a sample Taskfile.yml for testing."""
     tf = tmp_path / "Taskfile.yml"
-    tf.write_text(yaml.dump({
-        "version": "1",
-        "name": "test-app",
-        "description": "Test application",
-        "variables": {
-            "APP": "myapp",
-            "TAG": "latest",
-            "REGISTRY": "ghcr.io/test",
-        },
-        "environments": {
-            "local": {
-                "container_runtime": "docker",
-                "compose_command": "docker compose",
-                "env_file": ".env.local",
-            },
-            "prod": {
-                "ssh_host": "prod.example.com",
-                "ssh_user": "deploy",
-                "container_runtime": "podman",
-                "service_manager": "quadlet",
-            },
-        },
-        "environment_groups": {
-            "kiosks": {
-                "members": ["prod"],
-                "strategy": "rolling",
-                "max_parallel": 2,
-            },
-        },
-        "platforms": {
-            "web": {
-                "desc": "Web application",
-                "variables": {"PORT": "8080"},
-                "deploy_cmd": "docker compose up -d",
-            },
-        },
-        "functions": {
-            "notify": {
-                "lang": "python",
-                "code": "print('notified')",
-                "desc": "Send notification",
-            },
-        },
-        "tasks": {
-            "build": {
-                "desc": "Build Docker image",
-                "cmds": ["echo building ${APP}:${TAG}"],
-                "tags": ["ci"],
-                "stage": "build",
-            },
-            "test": {
-                "desc": "Run tests",
-                "cmds": ["echo testing"],
-                "tags": ["ci"],
-                "stage": "test",
-            },
-            "deploy": {
-                "desc": "Deploy to environment",
-                "deps": ["build"],
-                "env": ["local", "prod"],
-                "cmds": [
-                    "@local echo deploying locally",
-                    "@remote echo deploying remotely",
-                ],
-            },
-            "logs": {
-                "desc": "View logs",
-                "env": ["local", "prod"],
-                "platform": ["web"],
-                "cmds": [
-                    "@local echo local logs",
-                    "@remote echo remote logs",
-                ],
-            },
-        },
-        "pipeline": {
-            "stages": [
-                {"name": "test", "tasks": ["test"]},
-                {"name": "build", "tasks": ["build"]},
-            ],
-        },
-    }))
+    tf.write_text(
+        yaml.dump(
+            {
+                "version": "1",
+                "name": "test-app",
+                "description": "Test application",
+                "variables": {
+                    "APP": "myapp",
+                    "TAG": "latest",
+                    "REGISTRY": "ghcr.io/test",
+                },
+                "environments": {
+                    "local": {
+                        "container_runtime": "docker",
+                        "compose_command": "docker compose",
+                        "env_file": ".env.local",
+                    },
+                    "prod": {
+                        "ssh_host": "prod.example.com",
+                        "ssh_user": "deploy",
+                        "container_runtime": "podman",
+                        "service_manager": "quadlet",
+                    },
+                },
+                "environment_groups": {
+                    "kiosks": {
+                        "members": ["prod"],
+                        "strategy": "rolling",
+                        "max_parallel": 2,
+                    },
+                },
+                "platforms": {
+                    "web": {
+                        "desc": "Web application",
+                        "variables": {"PORT": "8080"},
+                        "deploy_cmd": "docker compose up -d",
+                    },
+                },
+                "functions": {
+                    "notify": {
+                        "lang": "python",
+                        "code": "print('notified')",
+                        "desc": "Send notification",
+                    },
+                },
+                "tasks": {
+                    "build": {
+                        "desc": "Build Docker image",
+                        "cmds": ["echo building ${APP}:${TAG}"],
+                        "tags": ["ci"],
+                        "stage": "build",
+                    },
+                    "test": {
+                        "desc": "Run tests",
+                        "cmds": ["echo testing"],
+                        "tags": ["ci"],
+                        "stage": "test",
+                    },
+                    "deploy": {
+                        "desc": "Deploy to environment",
+                        "deps": ["build"],
+                        "env": ["local", "prod"],
+                        "cmds": [
+                            "@local echo deploying locally",
+                            "@remote echo deploying remotely",
+                        ],
+                    },
+                    "logs": {
+                        "desc": "View logs",
+                        "env": ["local", "prod"],
+                        "platform": ["web"],
+                        "cmds": [
+                            "@local echo local logs",
+                            "@remote echo remote logs",
+                        ],
+                    },
+                },
+                "pipeline": {
+                    "stages": [
+                        {"name": "test", "tasks": ["test"]},
+                        {"name": "build", "tasks": ["build"]},
+                    ],
+                },
+            }
+        )
+    )
     return tf
 
 
@@ -216,10 +219,13 @@ class TestTasks:
 
 class TestRunTasks:
     def test_run_dry_run(self, client):
-        r = client.post("/run", json={
-            "tasks": ["build"],
-            "dry_run": True,
-        })
+        r = client.post(
+            "/run",
+            json={
+                "tasks": ["build"],
+                "dry_run": True,
+            },
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["dry_run"] is True
@@ -233,21 +239,27 @@ class TestRunTasks:
         assert "nonexistent" in r.json()["detail"]
 
     def test_run_with_env(self, client):
-        r = client.post("/run", json={
-            "tasks": ["test"],
-            "env": "local",
-            "dry_run": True,
-        })
+        r = client.post(
+            "/run",
+            json={
+                "tasks": ["test"],
+                "env": "local",
+                "dry_run": True,
+            },
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["env"] == "local"
 
     def test_run_with_variables(self, client):
-        r = client.post("/run", json={
-            "tasks": ["build"],
-            "variables": {"TAG": "v2.0"},
-            "dry_run": True,
-        })
+        r = client.post(
+            "/run",
+            json={
+                "tasks": ["build"],
+                "variables": {"TAG": "v2.0"},
+                "dry_run": True,
+            },
+        )
         assert r.status_code == 200
 
     def test_run_empty_tasks(self, client):

@@ -4,27 +4,27 @@
 
 - **Project**: /home/tom/github/pyfunc/taskfile
 - **Primary Language**: python
-- **Languages**: python: 138, shell: 16
+- **Languages**: python: 140, shell: 16
 - **Analysis Mode**: static
-- **Total Functions**: 935
+- **Total Functions**: 946
 - **Total Classes**: 104
-- **Modules**: 154
-- **Entry Points**: 405
+- **Modules**: 156
+- **Entry Points**: 402
 
 ## Architecture by Module
+
+### src.taskfile.diagnostics
+- **Functions**: 36
+- **Classes**: 1
+- **File**: `__init__.py`
 
 ### src.taskfile.runner.core
 - **Functions**: 34
 - **Classes**: 2
 - **File**: `core.py`
 
-### src.taskfile.diagnostics
-- **Functions**: 29
-- **Classes**: 1
-- **File**: `__init__.py`
-
 ### src.taskfile.workspace
-- **Functions**: 28
+- **Functions**: 31
 - **Classes**: 8
 - **File**: `workspace.py`
 
@@ -33,7 +33,7 @@
 - **File**: `commands.py`
 
 ### src.taskfile.cli.interactive.wizards
-- **Functions**: 26
+- **Functions**: 27
 - **Classes**: 1
 - **File**: `wizards.py`
 
@@ -108,9 +108,6 @@
 ## Key Entry Points
 
 Main execution flows into the system:
-
-### analyze_all_projects.main
-- **Calls**: print, all_results.extend, all_results.extend, len, sum, sum, print, print
 
 ### src.taskfile.cli.interactive.menu.prod
 > **Interactive production server setup** — SSH, podman, .env.
@@ -203,6 +200,10 @@ Validates infrastructure-as-code and tests running services.
 | Layer | What is tested |
 - **Calls**: main.command, click.option, click.option, click.option, click.option, ctx.ensure_object, console.print, console.print
 
+### src.taskfile.models.config.TaskfileConfig.from_dict
+> Parse raw YAML dict into TaskfileConfig.
+- **Calls**: cls._apply_environment_defaults, cls._expand_hosts_section, cls._expand_addons_section, cls._expand_deploy_section, cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups
+
 ### src.taskfile.models.config.TaskfileConfig._parse_tasks
 > Parse all task definitions.
 - **Calls**: tasks_section.items, isinstance, task_data.get, task_data.get, isinstance, Task, isinstance, task_data.get
@@ -213,6 +214,10 @@ Validates infrastructure-as-code and tests running services.
 Guides you through obtaining API tokens for each registry
 and saves them to .env (automatically gitignored
 - **Calls**: auth.command, click.option, console.print, Path, enumerate, src.taskfile.cli.auth._ensure_gitignore, console.print, console.print
+
+### src.taskfile.runner.resolver.TaskResolver._resolve_variables
+> Resolve all variables: dotenv → global → env → platform → CLI overrides.
+- **Calls**: self.env.resolve_variables, self._dotenv.items, variables.update, variables.setdefault, variables.setdefault, variables.setdefault, variables.setdefault, variables.setdefault
 
 ### src.taskfile.cli.fleet.fleet_repair_cmd
 > Diagnose and repair a remote device.
@@ -281,10 +286,6 @@ Package names can be:
     - Direct URL: https://example.com/tas
 - **Calls**: pkg.command, click.argument, click.option, click.option, click.option, click.option, RegistryClient, console.print
 
-### src.taskfile.models.config.TaskfileConfig.from_dict
-> Parse raw YAML dict into TaskfileConfig.
-- **Calls**: cls._apply_environment_defaults, cls._expand_hosts_section, cls._expand_addons_section, cls._expand_deploy_section, cls, cls._parse_compose, cls._parse_environments, cls._parse_environment_groups
-
 ### src.taskfile.cli.workspace_cmd.workspace_compare
 > Compare projects across one or many roots with peer-benchmarking.
 
@@ -326,18 +327,13 @@ Delegates all infra checks to fixop, converts results to taskfile Issues.
 
 Key execution flows identified:
 
-### Flow 1: main
-```
-main [analyze_all_projects]
-```
-
-### Flow 2: prod
+### Flow 1: prod
 ```
 prod [src.taskfile.cli.interactive.menu]
   └─ →> load_env_file
 ```
 
-### Flow 3: ci_generate
+### Flow 2: ci_generate
 ```
 ci_generate [src.taskfile.cli.ci]
   └─ →> load_taskfile
@@ -346,7 +342,7 @@ ci_generate [src.taskfile.cli.ci]
           └─> _load_include_file
 ```
 
-### Flow 4: workspace_analyze
+### Flow 3: workspace_analyze
 ```
 workspace_analyze [src.taskfile.cli.workspace_cmd]
   └─> _load_projects
@@ -355,22 +351,22 @@ workspace_analyze [src.taskfile.cli.workspace_cmd]
           └─> _matches_task_filter
 ```
 
-### Flow 5: _build_diagnosis
+### Flow 4: _build_diagnosis
 ```
 _build_diagnosis [src.taskfile.runner.error_presenter.ErrorPresenter]
 ```
 
-### Flow 6: quadlet_generate
+### Flow 5: quadlet_generate
 ```
 quadlet_generate [src.taskfile.cli.quadlet]
 ```
 
-### Flow 7: init
+### Flow 6: init
 ```
 init [src.taskfile.cli.interactive.wizards]
 ```
 
-### Flow 8: register_run_routes
+### Flow 7: register_run_routes
 ```
 register_run_routes [src.taskfile.api.routes_run]
   └─ →> _load_config
@@ -379,18 +375,24 @@ register_run_routes [src.taskfile.api.routes_run]
       └─ →> load_taskfile
 ```
 
-### Flow 9: from_dict
+### Flow 8: from_dict
 ```
 from_dict [src.taskfile.fleet.FleetConfig]
 ```
 
-### Flow 10: workspace_validate
+### Flow 9: workspace_validate
 ```
 workspace_validate [src.taskfile.cli.workspace_cmd]
   └─> _load_projects
       └─ →> discover_projects
       └─ →> filter_projects
           └─> _matches_task_filter
+```
+
+### Flow 10: env
+```
+env [src.taskfile.cli.interactive.menu]
+  └─ →> load_env_file
 ```
 
 ## Key Classes
@@ -407,7 +409,7 @@ Composes:
 > Facade composing checks + fixes + report — backward compatible API.
 
 This replaces the old monolithi
-- **Methods**: 29
+- **Methods**: 36
 - **Key Methods**: src.taskfile.diagnostics.ProjectDiagnostics.__init__, src.taskfile.diagnostics.ProjectDiagnostics._add_issue, src.taskfile.diagnostics.ProjectDiagnostics._add_issues, src.taskfile.diagnostics.ProjectDiagnostics._load_config, src.taskfile.diagnostics.ProjectDiagnostics.check_preflight, src.taskfile.diagnostics.ProjectDiagnostics.check_taskfile, src.taskfile.diagnostics.ProjectDiagnostics.check_env_files, src.taskfile.diagnostics.ProjectDiagnostics.validate_taskfile_variables, src.taskfile.diagnostics.ProjectDiagnostics.check_placeholder_values, src.taskfile.diagnostics.ProjectDiagnostics.check_ports
 
 ### src.taskfile.runner.resolver.TaskResolver
@@ -509,9 +511,6 @@ The pipeline is just an ordered list of st
 
 Key functions that process and transform data:
 
-### src.taskfile.deploy_recipes._validate_task
-> Generate the validate-deploy gate task.
-
 ### src.taskfile.converters.detect_format
 > Detect file format from path.
 
@@ -519,21 +518,8 @@ Reuses the shared filename→type map from ``taskfile.importer`` for
 Ma
 - **Output to**: file_path.name.lower, name.endswith, name.endswith, name.endswith, str
 
-### analyze_all_projects.parse_taskfile_tasks
-> Parse task names from Taskfile.yml (only from tasks: section).
-- **Output to**: path.read_text, content.splitlines, line.rstrip, re.match, tasks.append
-
-### analyze_all_projects.parse_taskfile_meta
-> Parse Taskfile.yml metadata.
-- **Output to**: path.read_text, re.findall, len, content.splitlines, enumerate
-
-### analyze_all_projects.parse_doql_workflows
-> Parse workflow names from app.doql.css.
-- **Output to**: path.read_text, re.findall
-
-### analyze_all_projects.parse_doql_meta
-> Parse app.doql.css metadata.
-- **Output to**: path.read_text, re.findall, len, re.findall, len
+### src.taskfile.deploy_recipes._validate_task
+> Generate the validate-deploy gate task.
 
 ### src.taskfile.importer._convert_gh_job_to_task
 > Convert a single GitHub Actions job to a Taskfile task. Returns (task_name, task_dict).
@@ -616,6 +602,22 @@ Handles formats like:
 > Extract task names from Taskfile.yml content (only from tasks: section).
 - **Output to**: content.split, line.rstrip, re.match, re.match, tasks.append
 
+### src.taskfile.workspace._parse_doql_workflows
+> Extract workflow names from app.doql.css content.
+- **Output to**: re.findall
+
+### src.taskfile.workspace.parse_taskfile_task_commands
+> Extract task name -> list of commands from Taskfile.yml content.
+- **Output to**: re.compile, pattern.finditer, match.group, match.group, re.findall
+
+### src.taskfile.workspace.validate_project
+> Run lightweight validation checks on a project. Returns list of issues.
+- **Output to**: issues.append, issues.append, doql_path.read_text, re.findall, issues.append
+
+### src.taskfile.fleet._parse_status_output
+> Parse pipe-delimited SSH output into DeviceStatus fields.
+- **Output to**: None.split, None.isdigit, None.isdigit, int, None.isdigit
+
 ## Behavioral Patterns
 
 ### recursion__add_deps_to_tree
@@ -697,10 +699,8 @@ Handles formats like:
 
 Functions exposed as public API (no underscore prefix):
 
-- `analyze_all_projects.main` - 72 calls
 - `src.taskfile.cli.interactive.menu.prod` - 55 calls
 - `src.taskfile.cli.ci.ci_generate` - 41 calls
-- `analyze_all_projects.analyze_project` - 40 calls
 - `src.taskfile.cli.workspace_cmd.workspace_analyze` - 39 calls
 - `src.taskfile.cli.quadlet.quadlet_generate` - 35 calls
 - `src.taskfile.cli.interactive.wizards.init` - 35 calls
@@ -710,7 +710,7 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.interactive.menu.env` - 32 calls
 - `src.taskfile.cli.version.bump` - 31 calls
 - `src.taskfile.cli.e2e_cmd.e2e_cmd` - 31 calls
-- `analyze_all_projects.parse_taskfile_meta` - 30 calls
+- `src.taskfile.models.config.TaskfileConfig.from_dict` - 30 calls
 - `src.taskfile.cli.auth.auth_setup` - 30 calls
 - `src.taskfile.cli.fleet.fleet_repair_cmd` - 29 calls
 - `src.taskfile.deploy_recipes.expand_deploy_recipe` - 28 calls
@@ -718,18 +718,17 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.workspace_cmd.workspace_deploy` - 28 calls
 - `src.taskfile.cli.release.rollback` - 28 calls
 - `src.taskfile.api.routes_metadata.register_metadata_routes` - 28 calls
-- `analyze_all_projects.parse_doql_meta` - 27 calls
 - `src.taskfile.cli.import_export.import_cmd` - 27 calls
 - `src.taskfile.cli.import_export.export_cmd` - 27 calls
 - `src.taskfile.cli.workspace_cmd.workspace_doctor` - 27 calls
 - `src.taskfile.cli.registry_cmds.pkg_install` - 26 calls
-- `src.taskfile.models.config.TaskfileConfig.from_dict` - 26 calls
 - `src.taskfile.cli.version.set` - 26 calls
 - `src.taskfile.cli.workspace_cmd.workspace_compare` - 26 calls
 - `src.taskfile.models.pipeline.PipelineConfig.from_dict` - 25 calls
 - `src.taskfile.cli.workspace_cmd.workspace_run` - 25 calls
 - `src.taskfile.cli.main.validate` - 25 calls
 - `src.taskfile.diagnostics.checks_ssh.check_remote_health` - 24 calls
+- `src.taskfile.cli.interactive.wizards.doctor` - 24 calls
 - `src.taskfile.cli.import_export.detect` - 23 calls
 - `src.taskfile.cli.workspace_cmd.workspace_status` - 23 calls
 - `TODO.check_all` - 22 calls
@@ -737,6 +736,9 @@ Functions exposed as public API (no underscore prefix):
 - `src.taskfile.cli.validate_cmd.check_compose_services` - 22 calls
 - `src.taskfile.cli.interactive.menu.push` - 22 calls
 - `src.taskfile.cli.api_cmd.api_serve` - 21 calls
+- `src.taskfile.cli.fleet.fleet_status_cmd` - 21 calls
+- `src.taskfile.importer.parse_makefile` - 20 calls
+- `src.taskfile.diagnostics.ProjectDiagnostics.run_all_checks` - 20 calls
 
 ## System Interactions
 
@@ -744,10 +746,6 @@ How components interact:
 
 ```mermaid
 graph TD
-    main --> print
-    main --> extend
-    main --> len
-    main --> sum
     prod --> command
     prod --> option
     prod --> print
@@ -774,6 +772,10 @@ graph TD
     from_dict --> get
     from_dict --> cls
     from_dict --> items
+    workspace_validate --> command
+    workspace_validate --> option
+    workspace_validate --> _load_projects
+    env --> command
 ```
 
 ## Reverse Engineering Guidelines

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
 from rich.console import Console
 
@@ -33,7 +32,9 @@ def check_env_files_status(config, taskfile_dir) -> bool:
             if p.exists():
                 console.print(f"  [green]✓[/] {env.env_file} [dim](env: {env_name})[/]")
             else:
-                console.print(f"  [red]✗[/] {env.env_file} [dim](env: {env_name})[/] [red]— not found[/]")
+                console.print(
+                    f"  [red]✗[/] {env.env_file} [dim](env: {env_name})[/] [red]— not found[/]"
+                )
                 all_ok = False
     return all_ok
 
@@ -46,7 +47,7 @@ def check_compose_services(taskfile_dir) -> bool:
     if not compose_path.exists():
         return True
 
-    console.print(f"  [green]✓[/] docker-compose.yml")
+    console.print("  [green]✓[/] docker-compose.yml")
     all_ok = True
     try:
         compose_data = yaml.safe_load(compose_path.read_text()) or {}
@@ -60,7 +61,9 @@ def check_compose_services(taskfile_dir) -> bool:
                 if build_path.exists():
                     console.print(f"  [green]✓[/] {build} [dim](service: {svc_name})[/]")
                 else:
-                    console.print(f"  [red]✗[/] {build} [dim](service: {svc_name})[/] [red]— not found[/]")
+                    console.print(
+                        f"  [red]✗[/] {build} [dim](service: {svc_name})[/] [red]— not found[/]"
+                    )
                     all_ok = False
             elif isinstance(build, dict):
                 context = build.get("context", ".")
@@ -69,13 +72,17 @@ def check_compose_services(taskfile_dir) -> bool:
                 if context_path.exists():
                     console.print(f"  [green]✓[/] {context}/ [dim](context for {svc_name})[/]")
                 else:
-                    console.print(f"  [red]✗[/] {context}/ [dim](context for {svc_name})[/] [red]— not found[/]")
+                    console.print(
+                        f"  [red]✗[/] {context}/ [dim](context for {svc_name})[/] [red]— not found[/]"
+                    )
                     all_ok = False
                 df_path = context_path / dockerfile if context != "." else taskfile_dir / dockerfile
                 if df_path.exists():
                     console.print(f"  [green]✓[/] {context}/{dockerfile} [dim]({svc_name})[/]")
                 else:
-                    console.print(f"  [red]✗[/] {context}/{dockerfile} [dim]({svc_name})[/] [red]— not found[/]")
+                    console.print(
+                        f"  [red]✗[/] {context}/{dockerfile} [dim]({svc_name})[/] [red]— not found[/]"
+                    )
                     all_ok = False
     except Exception as e:
         console.print(f"  [yellow]⚠[/] Could not parse docker-compose.yml: {e}")
@@ -107,7 +114,9 @@ def validate_dependent_files(config) -> None:
     if ok_scripts and ok_envs and ok_compose:
         console.print("[green]  All referenced files found.[/]")
     else:
-        console.print("[yellow]  Some files are missing — run 'taskfile doctor --fix' for auto-fix options[/]")
+        console.print(
+            "[yellow]  Some files are missing — run 'taskfile doctor --fix' for auto-fix options[/]"
+        )
 
 
 def print_dependency_tree(config) -> None:

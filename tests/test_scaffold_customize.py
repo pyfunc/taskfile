@@ -7,12 +7,12 @@ initialised project crashed on the first ``taskfile run`` invocation.
 These tests pin the new behaviour: detect the project type and emit working
 tasks instead.
 """
+
 from __future__ import annotations
 
 import textwrap
 from pathlib import Path
 
-import pytest
 import yaml
 
 from taskfile.scaffold import generate_taskfile
@@ -63,14 +63,18 @@ def test_minimal_template_is_valid_yaml_with_tasks() -> None:
 
 
 def test_customise_detects_python_pyproject_with_pytest_and_ruff(tmp_path: Path) -> None:
-    _write(tmp_path, "pyproject.toml", """\
+    _write(
+        tmp_path,
+        "pyproject.toml",
+        """\
         [project]
         name = "demo-pkg"
         version = "0.1.0"
         dependencies = []
         [project.optional-dependencies]
         dev = ["pytest", "ruff"]
-    """)
+    """,
+    )
     (tmp_path / "tests").mkdir()
 
     data = _customise(tmp_path)
@@ -97,7 +101,10 @@ def test_customise_uses_requirements_when_no_pyproject(tmp_path: Path) -> None:
 
 
 def test_customise_detects_node_scripts(tmp_path: Path) -> None:
-    _write(tmp_path, "package.json", """\
+    _write(
+        tmp_path,
+        "package.json",
+        """\
         {
           "name": "demo-web",
           "scripts": {
@@ -106,7 +113,8 @@ def test_customise_detects_node_scripts(tmp_path: Path) -> None:
             "test": "vitest"
           }
         }
-    """)
+    """,
+    )
     data = _customise(tmp_path)
     tasks = data["tasks"]
     assert data["name"] == "demo-web"
@@ -141,14 +149,11 @@ def test_customise_imports_existing_makefile_targets(tmp_path: Path) -> None:
     running ``taskfile init --template minimal`` produces a true superset
     of the existing automation.
     """
-    _write(tmp_path, "Makefile", (
-        "release:\n"
-        "\tgit tag v1.0\n"
-        "\tgit push --tags\n"
-        "\n"
-        "docs:\n"
-        "\tmkdocs build\n"
-    ))
+    _write(
+        tmp_path,
+        "Makefile",
+        ("release:\n\tgit tag v1.0\n\tgit push --tags\n\ndocs:\n\tmkdocs build\n"),
+    )
     _write(tmp_path, "pyproject.toml", '[project]\nname="x"\nversion="0.1.0"\n')
 
     data = _customise(tmp_path)
@@ -169,10 +174,11 @@ def test_customise_prefers_detected_python_tasks_over_makefile_duplicates(tmp_pa
     of shelling back into ``make test``.
     """
     _write(tmp_path, "Makefile", "test:\n\tmake-test-command\n")
-    _write(tmp_path, "pyproject.toml", (
-        '[project]\nname="x"\nversion="0.1.0"\n'
-        '[project.optional-dependencies]\ndev=["pytest"]\n'
-    ))
+    _write(
+        tmp_path,
+        "pyproject.toml",
+        ('[project]\nname="x"\nversion="0.1.0"\n[project.optional-dependencies]\ndev=["pytest"]\n'),
+    )
 
     data = _customise(tmp_path)
     assert "pytest -q" in data["tasks"]["test"]["cmds"]
@@ -193,16 +199,20 @@ def test_customise_merges_workflows_from_app_doql_css(tmp_path: Path) -> None:
     tasks in the Taskfile so the two formats stay in sync.
     """
     _write(tmp_path, "pyproject.toml", '[project]\nname="x"\nversion="0.1.0"\n')
-    _write(tmp_path, "app.doql.css", (
-        'app { name: "x"; version: "0.1.0"; }\n'
-        'workflow[name="deploy"] {\n'
-        '  step-1: run cmd=ansible-playbook deploy.yml;\n'
-        '}\n'
-        'workflow[name="release"] {\n'
-        '  step-1: depend target=test;\n'
-        '  step-2: run cmd=twine upload dist/*;\n'
-        '}\n'
-    ))
+    _write(
+        tmp_path,
+        "app.doql.css",
+        (
+            'app { name: "x"; version: "0.1.0"; }\n'
+            'workflow[name="deploy"] {\n'
+            "  step-1: run cmd=ansible-playbook deploy.yml;\n"
+            "}\n"
+            'workflow[name="release"] {\n'
+            "  step-1: depend target=test;\n"
+            "  step-2: run cmd=twine upload dist/*;\n"
+            "}\n"
+        ),
+    )
 
     data = _customise(tmp_path)
     tasks = data["tasks"]
@@ -220,15 +230,16 @@ def test_customise_doql_does_not_clobber_detected_tasks(tmp_path: Path) -> None:
     ``[from doql]`` stubs so we don't regress e.g. ``pytest -q`` to a
     shell echo.
     """
-    _write(tmp_path, "pyproject.toml", (
-        '[project]\nname="x"\nversion="0.1.0"\n'
-        '[project.optional-dependencies]\ndev=["pytest"]\n'
-    ))
-    _write(tmp_path, "app.doql.css", (
-        'workflow[name="test"] {\n'
-        '  step-1: run cmd=doql-provided-test-cmd;\n'
-        '}\n'
-    ))
+    _write(
+        tmp_path,
+        "pyproject.toml",
+        ('[project]\nname="x"\nversion="0.1.0"\n[project.optional-dependencies]\ndev=["pytest"]\n'),
+    )
+    _write(
+        tmp_path,
+        "app.doql.css",
+        ('workflow[name="test"] {\n  step-1: run cmd=doql-provided-test-cmd;\n}\n'),
+    )
     data = _customise(tmp_path)
     test_cmds = data["tasks"]["test"]["cmds"]
     assert test_cmds == ["pytest -q"], (

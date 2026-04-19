@@ -56,14 +56,21 @@ def api_serve(ctx, host: str, port: int, auto_reload: bool, no_browser: bool):
 
     # Set taskfile path via environment for the app factory
     import os
+
     if taskfile_path:
         os.environ["TASKFILE_API_PATH"] = str(taskfile_path)
 
-    console.print(f"[bold green]🚀 Starting Taskfile API server...[/]")
+    console.print("[bold green]🚀 Starting Taskfile API server...[/]")
     console.print(f"[dim]  Host:     {host}:{port}[/]")
-    console.print(f"[dim]  Docs:     http://{host if host != '0.0.0.0' else 'localhost'}:{port}/docs[/]")
-    console.print(f"[dim]  ReDoc:    http://{host if host != '0.0.0.0' else 'localhost'}:{port}/redoc[/]")
-    console.print(f"[dim]  OpenAPI:  http://{host if host != '0.0.0.0' else 'localhost'}:{port}/openapi.json[/]")
+    console.print(
+        f"[dim]  Docs:     http://{host if host != '0.0.0.0' else 'localhost'}:{port}/docs[/]"
+    )
+    console.print(
+        f"[dim]  ReDoc:    http://{host if host != '0.0.0.0' else 'localhost'}:{port}/redoc[/]"
+    )
+    console.print(
+        f"[dim]  OpenAPI:  http://{host if host != '0.0.0.0' else 'localhost'}:{port}/openapi.json[/]"
+    )
     console.print()
 
     if not no_browser:
@@ -72,6 +79,7 @@ def api_serve(ctx, host: str, port: int, auto_reload: bool, no_browser: bool):
 
         def open_browser():
             import time
+
             time.sleep(1.5)
             webbrowser.open(f"http://localhost:{port}/docs")
 
@@ -113,6 +121,7 @@ def api_openapi(ctx, output_path: str | None):
 
     if output_path:
         from pathlib import Path
+
         Path(output_path).write_text(spec_json + "\n", encoding="utf-8")
         console.print(f"[green]✓ OpenAPI spec saved to {output_path}[/]")
     else:

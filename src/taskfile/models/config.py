@@ -7,7 +7,7 @@ from typing import Any
 
 from taskfile.models.environment import Environment, Platform, EnvironmentGroup
 from taskfile.models.task import Task, Function, _normalize_commands
-from taskfile.models.pipeline import PipelineStage, PipelineConfig
+from taskfile.models.pipeline import PipelineConfig
 
 # ── Hosts shorthand key mappings ──────────────────────────────────
 
@@ -22,10 +22,18 @@ _HOST_KEY_MAP = {
 }
 
 _ENV_FIELDS = {
-    "ssh_host", "ssh_user", "ssh_port", "ssh_key",
-    "container_runtime", "compose_command", "service_manager",
-    "env_file", "compose_file", "quadlet_dir",
-    "quadlet_remote_dir", "variables",
+    "ssh_host",
+    "ssh_user",
+    "ssh_port",
+    "ssh_key",
+    "container_runtime",
+    "compose_command",
+    "service_manager",
+    "env_file",
+    "compose_file",
+    "quadlet_dir",
+    "quadlet_remote_dir",
+    "variables",
 }
 
 
@@ -93,11 +101,18 @@ class TaskfileConfig:
         cls._expand_addons_section(data)
         cls._expand_deploy_section(data)
 
+        # Accept 'vars:' as alias for 'variables:' (Go task syntax)
+        raw_vars = data.get("variables") or data.get("vars") or {}
+        # Normalise {{.KEY}} → {{KEY}} so dot-prefix vars resolve correctly
+        normalised_vars = {
+            k: v.replace("{{.", "{{") if isinstance(v, str) else v for k, v in raw_vars.items()
+        }
+
         config = cls(
             version=str(data.get("version", "1")),
             name=data.get("name", ""),
             description=data.get("description", ""),
-            variables=data.get("variables", {}),
+            variables=normalised_vars,
             default_env=data.get("default_env", "local"),
             default_platform=data.get("default_platform", None),
         )
@@ -147,6 +162,7 @@ class TaskfileConfig:
         if "addons" not in data or not isinstance(data["addons"], list):
             return
         from taskfile.addons import expand_addons
+
         addon_tasks = expand_addons(data.pop("addons"))
         existing_tasks = data.setdefault("tasks", {})
         for task_name, task_data in addon_tasks.items():
@@ -159,9 +175,8 @@ class TaskfileConfig:
         if "deploy" not in data or not isinstance(data["deploy"], dict):
             return
         from taskfile.deploy_recipes import expand_deploy_recipe
-        recipe_tasks = expand_deploy_recipe(
-            data.pop("deploy"), data.get("variables", {})
-        )
+
+        recipe_tasks = expand_deploy_recipe(data.pop("deploy"), data.get("variables", {}))
         existing_tasks = data.setdefault("tasks", {})
         for task_name, task_data in recipe_tasks.items():
             if task_name not in existing_tasks:
@@ -261,7 +276,9 @@ class TaskfileConfig:
                     env_file=env_data.get("env_file", env_file_default),
                     compose_file=env_data.get("compose_file", "docker-compose.yml"),
                     quadlet_dir=env_data.get("quadlet_dir", "deploy/quadlet"),
-                    quadlet_remote_dir=env_data.get("quadlet_remote_dir", "~/.config/containers/systemd"),
+                    quadlet_remote_dir=env_data.get(
+                        "quadlet_remote_dir", "~/.config/containers/systemd"
+                    ),
                 )
         if "local" not in environments:
             environments["local"] = Environment(name="local")
@@ -338,7 +355,9 @@ class TaskfileConfig:
                     platform_filter=task_data.get("platform", None),
                     working_dir=task_data.get("dir", None),
                     silent=task_data.get("silent", False),
-                    ignore_errors=task_data.get("ignore_errors", task_data.get("continue_on_error", False)),
+                    ignore_errors=task_data.get(
+                        "ignore_errors", task_data.get("continue_on_error", False)
+                    ),
                     condition=task_data.get("condition", None),
                     stage=task_data.get("stage", None),
                     parallel=task_data.get("parallel", False),
@@ -350,9 +369,7 @@ class TaskfileConfig:
                 )
             elif isinstance(task_data, list):
                 # Shorthand: task is just a list of commands
-                tasks[task_name] = Task(
-                    name=task_name, commands=_normalize_commands(task_data)
-                )
+                tasks[task_name] = Task(name=task_name, commands=_normalize_commands(task_data))
         return tasks
 
     @staticmethod

@@ -29,7 +29,6 @@ def main():
 ```
 """
 
-import sys
 from typing import Any
 
 # Import clickmd as the base
@@ -38,13 +37,16 @@ import clickmd as click
 
 class Abort(Exception):
     """Exception to signal that the application should exit."""
+
     pass
 
 
 class BadParameter(Exception):
     """Exception raised for bad parameter values."""
-    
-    def __init__(self, message: str, ctx: Any = None, param: Any = None, param_hint: str = None) -> None:
+
+    def __init__(
+        self, message: str, ctx: Any = None, param: Any = None, param_hint: str = None
+    ) -> None:
         super().__init__(message)
         self.ctx = ctx
         self.param = param
@@ -53,15 +55,22 @@ class BadParameter(Exception):
 
 class ClickException(Exception):
     """Base class for click exceptions."""
-    
+
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
 
 
-def confirm(text: str, default: bool = False, abort: bool = False, prompt_suffix: str = ": ", show_default: bool = True, err: bool = False) -> bool:
+def confirm(
+    text: str,
+    default: bool = False,
+    abort: bool = False,
+    prompt_suffix: str = ": ",
+    show_default: bool = True,
+    err: bool = False,
+) -> bool:
     """Prompt for confirmation (yes/no question).
-    
+
     Args:
         text: Question text
         default: Default value if user just presses Enter
@@ -69,7 +78,7 @@ def confirm(text: str, default: bool = False, abort: bool = False, prompt_suffix
         prompt_suffix: Suffix after the question
         show_default: Whether to show the default value
         err: Print to stderr instead of stdout
-        
+
     Returns:
         True if user confirms, False otherwise
     """
@@ -79,7 +88,7 @@ def confirm(text: str, default: bool = False, abort: bool = False, prompt_suffix
         suffix = f"{prompt_suffix}[y/N]"
     else:
         suffix = prompt_suffix
-    
+
     while True:
         click.echo(text + suffix, err=err)
         try:
@@ -87,7 +96,7 @@ def confirm(text: str, default: bool = False, abort: bool = False, prompt_suffix
         except (EOFError, KeyboardInterrupt):
             click.echo("", err=err)
             raise Abort()
-        
+
         if value in ("", "y", "yes", "ye", "y"):
             return True
         elif value in ("n", "no"):
@@ -110,6 +119,7 @@ def _get_user_input(hide_input: bool, err: bool) -> str:
     try:
         if hide_input:
             import getpass
+
             return getpass.getpass("")
         return input()
     except (EOFError, KeyboardInterrupt):
@@ -124,11 +134,11 @@ def _convert_value(value: str, type: Any) -> Any:
     if callable(type):
         return type(value)
     # Handle basic types
-    if type == int:
+    if type is int:
         return int(value)
-    elif type == float:
+    elif type is float:
         return float(value)
-    elif type == bool:
+    elif type is bool:
         return value.lower() in ("true", "1", "yes", "y")
     return value
 
@@ -160,14 +170,27 @@ def _convert_prompt_value(value: Any, value_type: Any) -> Any:
         raise BadParameter(f"Invalid value: {e}")
 
 
-def _confirm_prompt_value(value: Any, confirmation_prompt: bool, hide_input: bool, err: bool) -> None:
+def _confirm_prompt_value(
+    value: Any, confirmation_prompt: bool, hide_input: bool, err: bool
+) -> None:
     if confirmation_prompt and not hide_input:
         _confirm_value(value, err)
 
 
-def prompt(text: str, default: Any = None, type: Any = None, value_proc: Any = None, prompt_suffix: str = ": ", show_default: bool = True, err: bool = False, hide_input: bool = False, confirmation_prompt: bool = False, allow_missing_auto: bool = False) -> Any:
+def prompt(
+    text: str,
+    default: Any = None,
+    type: Any = None,
+    value_proc: Any = None,
+    prompt_suffix: str = ": ",
+    show_default: bool = True,
+    err: bool = False,
+    hide_input: bool = False,
+    confirmation_prompt: bool = False,
+    allow_missing_auto: bool = False,
+) -> Any:
     """Prompt for user input.
-    
+
     Args:
         text: Prompt text
         default: Default value
@@ -179,39 +202,41 @@ def prompt(text: str, default: Any = None, type: Any = None, value_proc: Any = N
         hide_input: Hide user input (for passwords)
         confirmation_prompt: Ask for confirmation
         allow_missing_auto: Allow missing auto values
-        
+
     Returns:
         User input value
     """
     # Build and display prompt
     prompt_text = _get_prompt_text(text, default, prompt_suffix, show_default)
     click.echo(prompt_text, err=err, nl=False)
-    
+
     # Get user input
     value = _get_user_input(hide_input, err)
-    
+
     # Apply default if empty
     value = _apply_prompt_default(value, default)
-    
+
     # Convert type
     value = _convert_prompt_value(value, type)
-    
+
     # Handle confirmation prompt (but not for hidden inputs)
     _confirm_prompt_value(value, confirmation_prompt, hide_input, err)
-    
+
     return value
 
 
-def version_option(version: str = None, prog_name: str = None, message: str = None, help: str = None, **kwargs):
+def version_option(
+    version: str = None, prog_name: str = None, message: str = None, help: str = None, **kwargs
+):
     """Add a --version option to the command.
-    
+
     Args:
         version: Version string
         prog_name: Program name
         message: Version message template
         help: Help text
         **kwargs: Additional arguments
-        
+
     Returns:
         Decorator function
     """
@@ -221,34 +246,29 @@ def version_option(version: str = None, prog_name: str = None, message: str = No
         if prog_name is None:
             prog_name = "program"
         message = f"{prog_name}, version {version}"
-    
+
     if help is None:
         help = "Show the version and exit."
-    
+
     def decorator(f):
         # Add the version option to the function
         f = click.option("--version", is_flag=True, help=help, **kwargs)(f)
-        
+
         # Wrap the function to handle version
         def wrapper(ctx, *args, **kwargs):
             if kwargs.pop("version", None):
                 click.echo(message)
                 ctx.exit()
             return f(ctx, *args, **kwargs)
-        
+
         # Preserve the original function's metadata
         import functools
+
         wrapper = functools.update_wrapper(wrapper, f)
         return wrapper
+
     return decorator
 
 
 # Export all the compatibility functions
-__all__ = [
-    "Abort",
-    "BadParameter", 
-    "ClickException", 
-    "confirm", 
-    "prompt", 
-    "version_option"
-]
+__all__ = ["Abort", "BadParameter", "ClickException", "confirm", "prompt", "version_option"]

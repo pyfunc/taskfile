@@ -3,6 +3,7 @@ from taskfile.cigen.base import CITarget, register_target, _sanitize_id, _yaml_d
 
 # ─── Gitea Actions ────────────────────────────────────────
 
+
 @register_target("gitea")
 class GiteaActionsTarget(CITarget):
     name = "gitea"

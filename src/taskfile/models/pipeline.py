@@ -51,21 +51,26 @@ class PipelineConfig:
         )
         for stage_data in data.get("stages", []):
             if isinstance(stage_data, dict):
-                config.stages.append(PipelineStage(
-                    name=stage_data.get("name", ""),
-                    tasks=stage_data.get("tasks", []),
-                    env=stage_data.get("env"),
-                    when=stage_data.get("when", "auto"),
-                    runner=stage_data.get("runner"),
-                    docker_in_docker=stage_data.get("docker_in_docker", False),
-                    artifacts=stage_data.get("artifacts", []),
-                    cache=stage_data.get("cache", []),
-                ))
+                config.stages.append(
+                    PipelineStage(
+                        name=stage_data.get("name", ""),
+                        tasks=stage_data.get("tasks", []),
+                        env=stage_data.get("env"),
+                        when=stage_data.get("when", "auto"),
+                        runner=stage_data.get("runner"),
+                        docker_in_docker=stage_data.get("docker_in_docker", False),
+                        artifacts=stage_data.get("artifacts", []),
+                        cache=stage_data.get("cache", []),
+                    )
+                )
             elif isinstance(stage_data, str):
                 # Shorthand: stage name = task name
-                config.stages.append(PipelineStage(
-                    name=stage_data, tasks=[stage_data],
-                ))
+                config.stages.append(
+                    PipelineStage(
+                        name=stage_data,
+                        tasks=[stage_data],
+                    )
+                )
         return config
 
     def infer_from_tasks(self, tasks: dict[str, "Task"]) -> None:

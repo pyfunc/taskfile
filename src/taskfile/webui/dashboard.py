@@ -8,7 +8,7 @@ def get_dashboard_html() -> str:
     return _CSS + _BODY + _SCRIPT
 
 
-_CSS = '''<!DOCTYPE html>
+_CSS = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -226,9 +226,9 @@ _CSS = '''<!DOCTYPE html>
             display: none;
         }
     </style>
-</head>'''
+</head>"""
 
-_BODY = '''
+_BODY = """
 <body>
     <div class="header">
         <h1>\U0001f4cb Taskfile Dashboard</h1>
@@ -289,9 +289,9 @@ _BODY = '''
                 <div class="output-panel" id="output-panel"></div>
             </div>
         </div>
-    </div>'''
+    </div>"""
 
-_SCRIPT = '''
+_SCRIPT = """
     <script>
         let allTasks = [];
         let config = {};
@@ -421,4 +421,4 @@ _SCRIPT = '''
     </script>
 </body>
 </html>
-'''
+"""

@@ -13,7 +13,7 @@ def strip_prefix(cmd: str, prefix: str) -> str:
     stripped = cmd.strip()
     prefix_with_space = f"{prefix} "
     if stripped.startswith(prefix_with_space):
-        return stripped[len(prefix_with_space):]
+        return stripped[len(prefix_with_space) :]
     return stripped
 
 
@@ -32,5 +32,5 @@ def strip_any_prefix(cmd: str, prefixes: list[str]) -> str:
     for prefix in prefixes:
         prefix_with_space = f"{prefix} "
         if stripped.startswith(prefix_with_space):
-            return stripped[len(prefix_with_space):]
+            return stripped[len(prefix_with_space) :]
     return stripped

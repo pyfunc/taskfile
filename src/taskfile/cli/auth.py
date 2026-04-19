@@ -6,7 +6,6 @@ and stores them securely in .env (gitignored).
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -130,7 +129,11 @@ def _check_tool(cmd: str) -> bool:
     """Check if a command succeeds (exit 0)."""
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=10,
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         return result.returncode == 0
     except Exception:
@@ -153,7 +156,9 @@ def auth():
 
 
 @auth.command(name="setup")
-@click.option("--registry", default=None, help="Only configure this registry (pypi/npm/docker/github/crates)")
+@click.option(
+    "--registry", default=None, help="Only configure this registry (pypi/npm/docker/github/crates)"
+)
 def auth_setup(registry):
     """Interactive registry authentication setup.
 
@@ -165,11 +170,13 @@ def auth_setup(registry):
         taskfile auth setup
         taskfile auth setup --registry pypi
     """
-    console.print(Panel.fit(
-        "[bold]Registry Authentication Setup[/]\n"
-        "[dim]Tokens will be saved to .env (gitignored)[/]",
-        border_style="blue",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold]Registry Authentication Setup[/]\n"
+            "[dim]Tokens will be saved to .env (gitignored)[/]",
+            border_style="blue",
+        )
+    )
 
     env_path = Path(".env")
     configured: list[str] = []
@@ -203,7 +210,7 @@ def auth_setup(registry):
             console.print(f"  [green]✓ {reg['name']} configured[/]")
         else:
             skipped.append(reg["name"])
-            console.print(f"  [dim]⏭  Skipped[/]")
+            console.print("  [dim]⏭  Skipped[/]")
 
     _ensure_gitignore()
 

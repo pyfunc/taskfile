@@ -20,14 +20,11 @@ Extracted submodules:
 from __future__ import annotations
 
 import os
-import re
 import shutil
-import socket
 import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml
 
 from taskfile.diagnostics.models import (
     Issue,
@@ -80,16 +77,21 @@ def check_preflight() -> list[Issue]:
                 "python3": "Python is the runtime for Taskfile itself. Install it via your package manager or from python.org.",
                 "git": "Git tracks code changes and is used by Taskfile for versioning and deployment tracking. Install it to enable version control features.",
                 "ssh": "SSH is required for remote deployments (@remote commands). Install openssh-client to enable deploying to remote servers.",
-            }.get(binary, f"{binary} is required for this Taskfile. Install it with your package manager.")
-            issues.append(Issue(
-                category=IssueCategory.DEPENDENCY_MISSING,
-                message=f"{binary}: not found in PATH",
-                fix_strategy=FixStrategy.MANUAL,
-                severity=severity,
-                fix_description=f"Install {binary} (e.g. apt install {binary})",
-                teach=teach_text,
-                layer=1,
-            ))
+            }.get(
+                binary,
+                f"{binary} is required for this Taskfile. Install it with your package manager.",
+            )
+            issues.append(
+                Issue(
+                    category=IssueCategory.DEPENDENCY_MISSING,
+                    message=f"{binary}: not found in PATH",
+                    fix_strategy=FixStrategy.MANUAL,
+                    severity=severity,
+                    fix_description=f"Install {binary} (e.g. apt install {binary})",
+                    teach=teach_text,
+                    layer=1,
+                )
+            )
         else:
             teach_optional = {
                 "docker": "Docker is a container runtime. If your Taskfile uses 'docker compose', install Docker or use Podman as alternative.",
@@ -103,15 +105,17 @@ def check_preflight() -> list[Issue]:
                 "ssh-copy-id": "apt install openssh-client",
                 "rsync": "apt install rsync",
             }.get(binary, f"apt install {binary}")
-            issues.append(Issue(
-                category=IssueCategory.DEPENDENCY_MISSING,
-                message=f"{binary}: not found (optional)",
-                fix_strategy=FixStrategy.MANUAL,
-                severity=SEVERITY_INFO,
-                fix_description=f"Install: {install_hint}",
-                teach=teach_optional,
-                layer=1,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.DEPENDENCY_MISSING,
+                    message=f"{binary}: not found (optional)",
+                    fix_strategy=FixStrategy.MANUAL,
+                    severity=SEVERITY_INFO,
+                    fix_description=f"Install: {install_hint}",
+                    teach=teach_optional,
+                    layer=1,
+                )
+            )
     return issues
 
 
@@ -126,27 +130,31 @@ def check_taskfile() -> list[Issue]:
     try:
         path = find_taskfile()
     except TaskfileNotFoundError:
-        issues.append(Issue(
-            category=IssueCategory.CONFIG_ERROR,
-            message="Taskfile.yml not found",
-            fix_strategy=FixStrategy.CONFIRM,
-            severity=SEVERITY_ERROR,
-            fix_command="taskfile init --template minimal",
-            fix_description="Create a Taskfile.yml from template",
-            layer=2,
-        ))
+        issues.append(
+            Issue(
+                category=IssueCategory.CONFIG_ERROR,
+                message="Taskfile.yml not found",
+                fix_strategy=FixStrategy.CONFIRM,
+                severity=SEVERITY_ERROR,
+                fix_command="taskfile init --template minimal",
+                fix_description="Create a Taskfile.yml from template",
+                layer=2,
+            )
+        )
         return issues
     try:
         load_taskfile(path)
     except Exception as e:
-        issues.append(Issue(
-            category=IssueCategory.CONFIG_ERROR,
-            message=f"Taskfile.yml parse error: {e}",
-            fix_strategy=FixStrategy.MANUAL,
-            severity=SEVERITY_ERROR,
-            fix_description="Fix YAML syntax in Taskfile.yml",
-            layer=2,
-        ))
+        issues.append(
+            Issue(
+                category=IssueCategory.CONFIG_ERROR,
+                message=f"Taskfile.yml parse error: {e}",
+                fix_strategy=FixStrategy.MANUAL,
+                severity=SEVERITY_ERROR,
+                fix_description="Fix YAML syntax in Taskfile.yml",
+                layer=2,
+            )
+        )
     return issues
 
 
@@ -166,19 +174,21 @@ def _check_script_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Is
             continue
         script_path = (taskfile_dir / task.script).resolve()
         if not script_path.exists():
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"Task '{task_name}' script not found: {script_path}",
-                fix_strategy=FixStrategy.MANUAL,
-                severity=SEVERITY_ERROR,
-                fix_description=f"Create the script file: {script_path}",
-                teach=(
-                    "The 'script:' directive runs an external script file. "
-                    "If the file doesn't exist, create it or use 'cmds:' "
-                    "with inline commands instead of 'script:'."
-                ),
-                layer=3,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=f"Task '{task_name}' script not found: {script_path}",
+                    fix_strategy=FixStrategy.MANUAL,
+                    severity=SEVERITY_ERROR,
+                    fix_description=f"Create the script file: {script_path}",
+                    teach=(
+                        "The 'script:' directive runs an external script file. "
+                        "If the file doesn't exist, create it or use 'cmds:' "
+                        "with inline commands instead of 'script:'."
+                    ),
+                    layer=3,
+                )
+            )
     return issues
 
 
@@ -191,34 +201,38 @@ def _check_env_files(config: "TaskfileConfig", taskfile_dir: Path) -> list[Issue
             if not env_file_path.exists():
                 example_path = (taskfile_dir / f"{env.env_file}.example").resolve()
                 if example_path.exists():
-                    issues.append(Issue(
-                        category=IssueCategory.CONFIG_ERROR,
-                        message=f"Environment '{env_name}' env_file not found: {env_file_path}",
-                        fix_strategy=FixStrategy.AUTO,
-                        severity=SEVERITY_WARNING,
-                        fix_command=f"cp {example_path} {env_file_path}",
-                        fix_description=f"Copy {example_path} → {env_file_path}",
-                        context={"env_file": str(env_file_path), "example": str(example_path)},
-                        teach=(
-                            "Environment files (.env) contain variables specific to each environment "
-                            "(passwords, addresses, keys). Create one from .env.example as a template."
-                        ),
-                        layer=3,
-                    ))
+                    issues.append(
+                        Issue(
+                            category=IssueCategory.CONFIG_ERROR,
+                            message=f"Environment '{env_name}' env_file not found: {env_file_path}",
+                            fix_strategy=FixStrategy.AUTO,
+                            severity=SEVERITY_WARNING,
+                            fix_command=f"cp {example_path} {env_file_path}",
+                            fix_description=f"Copy {example_path} → {env_file_path}",
+                            context={"env_file": str(env_file_path), "example": str(example_path)},
+                            teach=(
+                                "Environment files (.env) contain variables specific to each environment "
+                                "(passwords, addresses, keys). Create one from .env.example as a template."
+                            ),
+                            layer=3,
+                        )
+                    )
                 else:
-                    issues.append(Issue(
-                        category=IssueCategory.CONFIG_ERROR,
-                        message=f"Environment '{env_name}' env_file not found: {env_file_path}",
-                        fix_strategy=FixStrategy.MANUAL,
-                        severity=SEVERITY_WARNING,
-                        fix_description=f"Create {env_file_path} with required variables",
-                        teach=(
-                            "Environment files (.env) contain variables specific to each environment "
-                            "(passwords, addresses, keys). Each environment in Taskfile can have its own "
-                            ".env file."
-                        ),
-                        layer=3,
-                    ))
+                    issues.append(
+                        Issue(
+                            category=IssueCategory.CONFIG_ERROR,
+                            message=f"Environment '{env_name}' env_file not found: {env_file_path}",
+                            fix_strategy=FixStrategy.MANUAL,
+                            severity=SEVERITY_WARNING,
+                            fix_description=f"Create {env_file_path} with required variables",
+                            teach=(
+                                "Environment files (.env) contain variables specific to each environment "
+                                "(passwords, addresses, keys). Each environment in Taskfile can have its own "
+                                ".env file."
+                            ),
+                            layer=3,
+                        )
+                    )
     return issues
 
 
@@ -226,16 +240,19 @@ def _check_circular_deps(config: "TaskfileConfig") -> list[Issue]:
     """Check for circular dependencies in task definitions."""
     issues: list[Issue] = []
     from taskfile.parser import validate_taskfile
+
     for warning in validate_taskfile(config):
         if "Circular dependency" in warning:
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=warning,
-                fix_strategy=FixStrategy.MANUAL,
-                severity=SEVERITY_ERROR,
-                fix_description="Break the circular dependency in Taskfile.yml",
-                layer=2,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=warning,
+                    fix_strategy=FixStrategy.MANUAL,
+                    severity=SEVERITY_ERROR,
+                    fix_description="Break the circular dependency in Taskfile.yml",
+                    layer=2,
+                )
+            )
     return issues
 
 
@@ -243,9 +260,9 @@ def check_dependent_files(config: "TaskfileConfig") -> list[Issue]:
     """Check that all files referenced in Taskfile (scripts, env_files) exist."""
     taskfile_dir = Path(config.source_path).parent if config.source_path else Path.cwd()
     return (
-        _check_script_files(config, taskfile_dir) +
-        _check_env_files(config, taskfile_dir) +
-        _check_circular_deps(config)
+        _check_script_files(config, taskfile_dir)
+        + _check_env_files(config, taskfile_dir)
+        + _check_circular_deps(config)
     )
 
 
@@ -270,19 +287,21 @@ def check_docker() -> list[Issue]:
     try:
         subprocess.run(["docker", "--version"], capture_output=True, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        issues.append(Issue(
-            category=IssueCategory.DEPENDENCY_MISSING,
-            message="Docker not installed or not running",
-            fix_strategy=FixStrategy.MANUAL,
-            severity=SEVERITY_WARNING,
-            fix_description="Install Docker: https://docs.docker.com/get-docker/",
-            teach=(
-                "Docker is a container runtime used by most Taskfile projects. "
-                "If your Taskfile uses 'docker compose' commands, Docker must be installed. "
-                "Alternatively, use Podman as a drop-in replacement."
-            ),
-            layer=1,
-        ))
+        issues.append(
+            Issue(
+                category=IssueCategory.DEPENDENCY_MISSING,
+                message="Docker not installed or not running",
+                fix_strategy=FixStrategy.MANUAL,
+                severity=SEVERITY_WARNING,
+                fix_description="Install Docker: https://docs.docker.com/get-docker/",
+                teach=(
+                    "Docker is a container runtime used by most Taskfile projects. "
+                    "If your Taskfile uses 'docker compose' commands, Docker must be installed. "
+                    "Alternatively, use Podman as a drop-in replacement."
+                ),
+                layer=1,
+            )
+        )
     return issues
 
 
@@ -294,6 +313,7 @@ def check_ssh_keys() -> list[Issue]:
 def _delegate_check(module: str, func: str, *args) -> list[Issue]:
     """Generic delegation helper for checks that simply import and call another function."""
     import importlib
+
     mod = importlib.import_module(f"taskfile.diagnostics.{module}")
     fn = getattr(mod, func)
     return fn(*args)
@@ -315,19 +335,21 @@ def check_git() -> list[Issue]:
     try:
         subprocess.run(["git", "rev-parse", "--git-dir"], capture_output=True, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        issues.append(Issue(
-            category=IssueCategory.CONFIG_ERROR,
-            message="Not a git repository",
-            fix_strategy=FixStrategy.CONFIRM,
-            severity=SEVERITY_INFO,
-            fix_command="git init",
-            teach=(
-                "Git tracks changes to your code. While not required for Taskfile, "
-                "it's recommended for version control. Run 'git init' to start tracking "
-                "changes, then 'git add' and 'git commit' to save your work."
-            ),
-            layer=3,
-        ))
+        issues.append(
+            Issue(
+                category=IssueCategory.CONFIG_ERROR,
+                message="Not a git repository",
+                fix_strategy=FixStrategy.CONFIRM,
+                severity=SEVERITY_INFO,
+                fix_command="git init",
+                teach=(
+                    "Git tracks changes to your code. While not required for Taskfile, "
+                    "it's recommended for version control. Run 'git init' to start tracking "
+                    "changes, then 'git add' and 'git commit' to save your work."
+                ),
+                layer=3,
+            )
+        )
     return issues
 
 
@@ -349,8 +371,12 @@ def check_examples(examples_dir: Path) -> list[dict]:
             continue
 
         entry: dict = {
-            "name": child.name, "valid": True, "tasks": 0,
-            "envs": 0, "missing_env_files": [], "errors": [],
+            "name": child.name,
+            "valid": True,
+            "tasks": 0,
+            "envs": 0,
+            "missing_env_files": [],
+            "errors": [],
         }
         try:
             cfg = load_taskfile(taskfile_path)
@@ -388,39 +414,45 @@ def _check_tasks_and_deps(
 ) -> list[Issue]:
     """Check that requested tasks and their dependencies exist and scripts are present."""
     issues: list[Issue] = []
-    for tname in (task_names or []):
+    for tname in task_names or []:
         task = config.tasks.get(tname)
         if not task:
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"Unknown task: {tname}",
-                severity=SEVERITY_ERROR,
-                layer=2,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=f"Unknown task: {tname}",
+                    severity=SEVERITY_ERROR,
+                    layer=2,
+                )
+            )
             continue
         if task.script:
             sp = taskfile_dir / task.script
             if not sp.exists():
-                issues.append(Issue(
-                    category=IssueCategory.CONFIG_ERROR,
-                    message=f"Task '{tname}' script not found: {task.script}",
-                    severity=SEVERITY_ERROR,
-                    fix_description=f"Create the script: mkdir -p {Path(task.script).parent} && touch {task.script}",
-                    teach=(
-                        "The 'script:' directive runs an external script file. "
-                        "If the file doesn't exist, create it or use 'cmds:' "
-                        "with inline commands instead of 'script:'."
-                    ),
-                    layer=2,
-                ))
+                issues.append(
+                    Issue(
+                        category=IssueCategory.CONFIG_ERROR,
+                        message=f"Task '{tname}' script not found: {task.script}",
+                        severity=SEVERITY_ERROR,
+                        fix_description=f"Create the script: mkdir -p {Path(task.script).parent} && touch {task.script}",
+                        teach=(
+                            "The 'script:' directive runs an external script file. "
+                            "If the file doesn't exist, create it or use 'cmds:' "
+                            "with inline commands instead of 'script:'."
+                        ),
+                        layer=2,
+                    )
+                )
         for dep in task.deps:
             if dep not in config.tasks:
-                issues.append(Issue(
-                    category=IssueCategory.CONFIG_ERROR,
-                    message=f"Task '{tname}' depends on unknown task '{dep}'",
-                    severity=SEVERITY_ERROR,
-                    layer=2,
-                ))
+                issues.append(
+                    Issue(
+                        category=IssueCategory.CONFIG_ERROR,
+                        message=f"Task '{tname}' depends on unknown task '{dep}'",
+                        severity=SEVERITY_ERROR,
+                        layer=2,
+                    )
+                )
     return issues
 
 
@@ -453,14 +485,16 @@ def _check_ssh_key_for_env(
         if ssh_key:
             key_path = Path(os.path.expanduser(ssh_key))
             if not key_path.exists():
-                issues.append(Issue(
-                    category=IssueCategory.CONFIG_ERROR,
-                    message=f"SSH key not found for '{target_env}': {ssh_key}",
-                    severity=SEVERITY_WARNING,
-                    fix_strategy=FixStrategy.CONFIRM,
-                    fix_command=f"ssh-keygen -t ed25519 -f {ssh_key} -N ''",
-                    layer=3,
-                ))
+                issues.append(
+                    Issue(
+                        category=IssueCategory.CONFIG_ERROR,
+                        message=f"SSH key not found for '{target_env}': {ssh_key}",
+                        severity=SEVERITY_WARNING,
+                        fix_strategy=FixStrategy.CONFIRM,
+                        fix_command=f"ssh-keygen -t ed25519 -f {ssh_key} -N ''",
+                        layer=3,
+                    )
+                )
     return issues
 
 

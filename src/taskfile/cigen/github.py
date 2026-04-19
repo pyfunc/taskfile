@@ -3,6 +3,7 @@ from taskfile.cigen.base import CITarget, register_target, _sanitize_id, _yaml_d
 
 # ─── GitHub Actions ───────────────────────────────────────
 
+
 @register_target("github")
 class GitHubActionsTarget(CITarget):
     name = "github"
@@ -24,38 +25,46 @@ class GitHubActionsTarget(CITarget):
         ]
 
         if stage.env and stage.env != "local":
-            steps.append({
-                "name": "Setup SSH key",
-                "run": (
-                    "mkdir -p ~/.ssh\n"
-                    'echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519\n'
-                    "chmod 600 ~/.ssh/id_ed25519"
-                ),
-            })
+            steps.append(
+                {
+                    "name": "Setup SSH key",
+                    "run": (
+                        "mkdir -p ~/.ssh\n"
+                        'echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519\n'
+                        "chmod 600 ~/.ssh/id_ed25519"
+                    ),
+                }
+            )
 
         if needs_dind:
-            steps.append({
-                "name": "Login to Container Registry",
-                "run": (
-                    'echo "${{ secrets.REGISTRY_TOKEN }}" | '
-                    "docker login ghcr.io -u ${{ github.actor }} --password-stdin"
-                ),
-            })
+            steps.append(
+                {
+                    "name": "Login to Container Registry",
+                    "run": (
+                        'echo "${{ secrets.REGISTRY_TOKEN }}" | '
+                        "docker login ghcr.io -u ${{ github.actor }} --password-stdin"
+                    ),
+                }
+            )
 
-        steps.append({
-            "name": f"Run: {stage.name}",
-            "run": self._stage_tasks_cmd(stage),
-        })
+        steps.append(
+            {
+                "name": f"Run: {stage.name}",
+                "run": self._stage_tasks_cmd(stage),
+            }
+        )
 
         arts = stage.artifacts or p.artifacts
         if arts:
-            steps.append({
-                "uses": "actions/upload-artifact@v4",
-                "with": {
-                    "name": f"{stage.name}-artifacts",
-                    "path": "\n".join(arts),
-                },
-            })
+            steps.append(
+                {
+                    "uses": "actions/upload-artifact@v4",
+                    "with": {
+                        "name": f"{stage.name}-artifacts",
+                        "path": "\n".join(arts),
+                    },
+                }
+            )
 
         return steps
 

@@ -1,8 +1,11 @@
 """CI/CD config generator — generates platform-specific CI/CD files."""
+
 from __future__ import annotations
 from pathlib import Path
 from taskfile.models import TaskfileConfig
-from taskfile.cigen.base import TARGETS, CITarget, console
+from taskfile.cigen.base import TARGETS, console
+
+# ruff: noqa: F403
 from taskfile.cigen.github import *
 from taskfile.cigen.gitlab import *
 from taskfile.cigen.gitea import *
@@ -11,6 +14,10 @@ from taskfile.cigen.jenkins import *
 from taskfile.cigen.makefile import *
 
 # ─── Public API ───────────────────────────────────────────
+
+
+__all__ = ["generate_ci", "generate_all_ci", "list_targets", "preview_ci"]
+
 
 def generate_ci(
     config: TaskfileConfig,

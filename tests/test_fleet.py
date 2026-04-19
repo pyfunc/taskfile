@@ -2,12 +2,10 @@
 
 import pytest
 import yaml
-from pathlib import Path
 
 from taskfile.fleet import (
     FleetConfig,
     FleetApp,
-    Device,
     DeviceGroup,
     DeviceStatus,
     add_device,

@@ -36,6 +36,17 @@ from taskfile.diagnostics.checks import (
     _check_container_dns,
     validate_before_run,
 )
+from taskfile.diagnostics.checks_venv import (
+    check_venv,
+    check_dependencies,
+    check_poetry_lock,
+)
+from taskfile.diagnostics.checks_pyqual import (
+    check_pyqual_installed,
+    check_pyqual_quality,
+    fix_with_pyqual as _fix_with_pyqual_fn,
+    get_pyqual_summary,
+)
 from taskfile.diagnostics.fixes import apply_fixes, apply_single_fix
 from taskfile.diagnostics.report import (
     print_report,
@@ -74,10 +85,11 @@ class ProjectDiagnostics:
         else:
             # Old-style call: (message, severity, auto_fixable, category)
             from taskfile.diagnostics.models import _OLD_TO_NEW
+
             msg = issue_or_message
             sev = severity or "warning"
             fix = auto_fixable if auto_fixable is not None else False
-            cat_value = category.value if hasattr(category, 'value') else str(category or "config")
+            cat_value = category.value if hasattr(category, "value") else str(category or "config")
             new_cat = _OLD_TO_NEW.get(cat_value, IssueCategory.CONFIG_ERROR)
             issue = Issue(
                 category=new_cat,
@@ -86,7 +98,9 @@ class ProjectDiagnostics:
                 fix_strategy=FixStrategy.AUTO if fix else FixStrategy.MANUAL,
             )
         self._issues.append(issue)
-        self.issues.append((issue.message, issue.severity, issue.fix_strategy != FixStrategy.MANUAL))
+        self.issues.append(
+            (issue.message, issue.severity, issue.fix_strategy != FixStrategy.MANUAL)
+        )
 
     def _add_issues(self, issues: list[Issue]) -> None:
         for issue in issues:
@@ -96,6 +110,7 @@ class ProjectDiagnostics:
         if self._config is None:
             try:
                 from taskfile.parser import find_taskfile, load_taskfile
+
                 path = find_taskfile()
                 self._config = load_taskfile(path)
             except Exception:
@@ -198,6 +213,8 @@ class ProjectDiagnostics:
         """
         # Layer 1: Preflight
         self.check_preflight()
+        self.check_venv()
+        self.check_poetry_lock()
         # Layer 2: Validation
         self.check_taskfile()
         # Layer 3: Diagnostics
@@ -210,6 +227,7 @@ class ProjectDiagnostics:
         self.check_registry_access()
         self.check_ssh_keys()
         self.check_git()
+        self.check_dependencies()
         self.check_deploy_artifacts()
         # Layer 3+: expensive checks (verbose or remote)
         if verbose or remote:
@@ -230,6 +248,40 @@ class ProjectDiagnostics:
         self.issues = [(m, s, f) for m, s, f in self.issues if m not in fixed_msgs]
         self._issues = [i for i in self._issues if not (i.context and i.context.get("_fixed"))]
         return fixed_count
+
+    # ─── Layer 1+: Venv / dependency checks ───
+
+    def check_venv(self) -> None:
+        """Check if a virtual environment exists for the project."""
+        self._add_issues(check_venv())
+
+    def check_dependencies(self, groups: list[str] | None = None) -> None:
+        """Check declared pyproject.toml deps are installed in the active venv."""
+        self._add_issues(check_dependencies(groups=groups))
+
+    def check_poetry_lock(self) -> None:
+        """Check poetry.lock is present and in sync with pyproject.toml."""
+        self._add_issues(check_poetry_lock())
+
+    # ─── Layer 4+: Pyqual quality checks ───
+
+    def check_pyqual_installed(self) -> bool:
+        """Check if pyqual is installed. Returns True if available."""
+        issues = check_pyqual_installed()
+        self._add_issues(issues)
+        return len(issues) == 0
+
+    def check_pyqual_quality(self) -> None:
+        """Run pyqual code quality analysis (Layer 3+)."""
+        self._add_issues(check_pyqual_quality())
+
+    def fix_with_pyqual(self) -> tuple[int, list[str]]:
+        """Apply pyqual auto-fixes. Returns (fixed_count, failures)."""
+        return _fix_with_pyqual_fn()
+
+    def get_pyqual_summary(self) -> dict:
+        """Get pyqual analysis summary."""
+        return get_pyqual_summary()
 
     # ─── Layer 5: LLM repair ───
 
@@ -311,6 +363,13 @@ __all__ = [
     "check_examples",
     "check_placeholder_values",
     "check_deploy_artifacts",
+    "check_venv",
+    "check_dependencies",
+    "check_poetry_lock",
+    "check_pyqual_installed",
+    "check_pyqual_quality",
+    "fix_with_pyqual",
+    "get_pyqual_summary",
     "apply_fixes",
     "apply_single_fix",
     "print_report",

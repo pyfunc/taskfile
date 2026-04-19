@@ -5,7 +5,6 @@ example configurations without executing actual deployments.
 """
 
 import pytest
-import os
 import sys
 from pathlib import Path
 from click.testing import CliRunner
@@ -13,7 +12,7 @@ from click.testing import CliRunner
 # Ensure src is on path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from taskfile.parser import load_taskfile, validate_taskfile, TaskfileConfig
+from taskfile.parser import load_taskfile, validate_taskfile
 from taskfile.runner import TaskfileRunner
 from taskfile.cli.main import main
 
@@ -58,8 +57,7 @@ class TestMinimalExample:
         """E2E: Dry-run execution doesn't fail."""
         runner = CliRunner()
         result = runner.invoke(
-            main,
-            ["-f", str(minimal_path / "Taskfile.yml"), "--dry-run", "run", "test"]
+            main, ["-f", str(minimal_path / "Taskfile.yml"), "--dry-run", "run", "test"]
         )
         # Should not crash, may fail due to missing pytest but that's OK
         assert result.exit_code in [0, 1]  # 0 = success, 1 = command failed but taskfile ran
@@ -67,10 +65,7 @@ class TestMinimalExample:
     def test_minimal_list_tasks(self, minimal_path):
         """E2E: List command works with minimal example."""
         runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["-f", str(minimal_path / "Taskfile.yml"), "list"]
-        )
+        result = runner.invoke(main, ["-f", str(minimal_path / "Taskfile.yml"), "list"])
         assert result.exit_code == 0
         assert "test" in result.output
         assert "build" in result.output
@@ -147,10 +142,7 @@ class TestSaasAppExample:
     def test_saas_dry_run_list(self, saas_path):
         """E2E: List tasks in saas-app works."""
         runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["-f", str(saas_path / "Taskfile.yml"), "list"]
-        )
+        result = runner.invoke(main, ["-f", str(saas_path / "Taskfile.yml"), "list"])
         assert result.exit_code == 0
         assert "deploy" in result.output
         assert "staging" in result.output
@@ -213,12 +205,7 @@ class TestMultiplatformExample:
         config = load_taskfile(multi_path / "Taskfile.yml")
 
         # Test with web platform
-        runner = TaskfileRunner(
-            config=config,
-            env_name="local",
-            platform_name="web",
-            dry_run=True
-        )
+        runner = TaskfileRunner(config=config, env_name="local", platform_name="web", dry_run=True)
 
         assert runner.platform_name == "web"
         assert runner.platform is not None
@@ -231,12 +218,16 @@ class TestMultiplatformExample:
         result = runner.invoke(
             main,
             [
-                "-f", str(multi_path / "Taskfile.yml"),
-                "-e", "local",
-                "-p", "web",
+                "-f",
+                str(multi_path / "Taskfile.yml"),
+                "-e",
+                "local",
+                "-p",
+                "web",
                 "--dry-run",
-                "run", "install"
-            ]
+                "run",
+                "install",
+            ],
         )
         assert result.exit_code == 0
         assert "npm ci" in result.output or "(dry run)" in result.output
@@ -340,22 +331,61 @@ class TestExamplesCrossCutting:
 
     ALL_EXAMPLES = [
         # Core examples
-        "ci-generation", "ci-pipeline", "cloud-aws", "codereview.pl",
-        "edge-iot", "fleet-rpi", "fullstack-deploy", "functions-embed",
-        "import-cicd", "include-split", "kubernetes-deploy",
-        "minimal", "monorepo-microservices", "multi-artifact", "multiplatform",
-        "publish-cargo", "publish-docker", "publish-github", "publish-npm",
-        "publish-pypi", "quadlet-podman", "saas-app", "script-extraction",
-        "mega-saas", "mega-saas-v2",
+        "ci-generation",
+        "ci-pipeline",
+        "cloud-aws",
+        "codereview.pl",
+        "edge-iot",
+        "fleet-rpi",
+        "fullstack-deploy",
+        "functions-embed",
+        "import-cicd",
+        "include-split",
+        "kubernetes-deploy",
+        "minimal",
+        "monorepo-microservices",
+        "multi-artifact",
+        "multiplatform",
+        "publish-cargo",
+        "publish-docker",
+        "publish-github",
+        "publish-npm",
+        "publish-pypi",
+        "quadlet-podman",
+        "saas-app",
+        "script-extraction",
+        "mega-saas",
+        "mega-saas-v2",
         # AI tool examples
-        "ai-aider", "ai-claude-code", "ai-codex", "ai-copilot",
-        "ai-cursor", "ai-gemini-cli", "ai-windsurf",
+        "ai-aider",
+        "ai-claude-code",
+        "ai-codex",
+        "ai-copilot",
+        "ai-cursor",
+        "ai-gemini-cli",
+        "ai-windsurf",
         # IaC examples
-        "iac-ansible", "iac-argocd", "iac-bicep", "iac-cdk-aws", "iac-cdktf",
-        "iac-cloudformation", "iac-crossplane", "iac-docker-compose", "iac-fluxcd",
-        "iac-gcp-deployment-manager", "iac-helm", "iac-kustomize", "iac-nixos",
-        "iac-nomad", "iac-opentofu", "iac-packer", "iac-pulumi",
-        "iac-serverless", "iac-terraform", "iac-terragrunt", "iac-vagrant",
+        "iac-ansible",
+        "iac-argocd",
+        "iac-bicep",
+        "iac-cdk-aws",
+        "iac-cdktf",
+        "iac-cloudformation",
+        "iac-crossplane",
+        "iac-docker-compose",
+        "iac-fluxcd",
+        "iac-gcp-deployment-manager",
+        "iac-helm",
+        "iac-kustomize",
+        "iac-nixos",
+        "iac-nomad",
+        "iac-opentofu",
+        "iac-packer",
+        "iac-pulumi",
+        "iac-serverless",
+        "iac-terraform",
+        "iac-terragrunt",
+        "iac-vagrant",
     ]
 
     def test_all_examples_load_successfully(self):
@@ -383,10 +413,7 @@ class TestExamplesCrossCutting:
         """E2E: taskfile list works for all examples."""
         runner = CliRunner()
         for name in self.ALL_EXAMPLES:
-            result = runner.invoke(
-                main,
-                ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "list"]
-            )
+            result = runner.invoke(main, ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "list"])
             assert result.exit_code == 0, f"list failed for {name}: {result.output}"
             assert "Tasks:" in result.output or "tasks" in result.output.lower()
 
@@ -395,8 +422,7 @@ class TestExamplesCrossCutting:
         runner = CliRunner()
         for name in self.ALL_EXAMPLES:
             result = runner.invoke(
-                main,
-                ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "validate"]
+                main, ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "validate"]
             )
             assert result.exit_code == 0, f"validate failed for {name}: {result.output}"
 
@@ -500,19 +526,13 @@ class TestIncludeFeature:
     def test_include_validate(self, include_path):
         """E2E: Included Taskfile validates."""
         runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["-f", str(include_path / "Taskfile.yml"), "validate"]
-        )
+        result = runner.invoke(main, ["-f", str(include_path / "Taskfile.yml"), "validate"])
         assert result.exit_code == 0
 
     def test_include_list_shows_all_tasks(self, include_path):
         """E2E: List shows tasks from all included files."""
         runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["-f", str(include_path / "Taskfile.yml"), "list"]
-        )
+        result = runner.invoke(main, ["-f", str(include_path / "Taskfile.yml"), "list"])
         assert result.exit_code == 0
         assert "build" in result.output
         assert "deploy-prod" in result.output
@@ -537,8 +557,7 @@ class TestIncludeEdgeCases:
         """E2E: Empty include list is fine."""
         taskfile = tmp_path / "Taskfile.yml"
         taskfile.write_text(
-            'version: "1"\nname: test\ninclude: []\n'
-            "tasks:\n  hello:\n    cmds: [echo hi]\n"
+            'version: "1"\nname: test\ninclude: []\ntasks:\n  hello:\n    cmds: [echo hi]\n'
         )
         config = load_taskfile(taskfile)
         assert "hello" in config.tasks
@@ -627,10 +646,14 @@ class TestScriptExtractionExample:
     def test_script_files_exist(self, script_path):
         """E2E: All referenced script files exist."""
         scripts = [
-            "scripts/build.sh", "scripts/deploy.sh",
-            "scripts/health-check.sh", "scripts/ci-pipeline.sh",
-            "scripts/release.py", "scripts/migrate.py",
-            "scripts/report.py", "scripts/provision.py",
+            "scripts/build.sh",
+            "scripts/deploy.sh",
+            "scripts/health-check.sh",
+            "scripts/ci-pipeline.sh",
+            "scripts/release.py",
+            "scripts/migrate.py",
+            "scripts/report.py",
+            "scripts/provision.py",
         ]
         for script in scripts:
             assert (script_path / script).is_file(), f"Missing: {script}"
@@ -642,6 +665,7 @@ class TestSSHEmbedded:
     def test_ssh_module_imports(self):
         """E2E: SSH module imports without error."""
         from taskfile.ssh import has_paramiko, ssh_exec, close_all
+
         # Should not raise, regardless of paramiko availability
         assert callable(has_paramiko)
         assert callable(ssh_exec)
@@ -650,6 +674,7 @@ class TestSSHEmbedded:
     def test_ssh_has_paramiko_returns_bool(self):
         """E2E: has_paramiko returns boolean."""
         from taskfile.ssh import has_paramiko
+
         result = has_paramiko()
         assert isinstance(result, bool)
 
@@ -662,6 +687,7 @@ class TestSSHEmbedded:
     def test_runner_default_embedded_ssh(self):
         """E2E: TaskfileRunner defaults use_embedded_ssh based on paramiko."""
         from taskfile.ssh import has_paramiko
+
         config = load_taskfile(EXAMPLES_DIR / "minimal" / "Taskfile.yml")
         runner = TaskfileRunner(config=config, dry_run=True)
         # Should be True only if paramiko is installed
@@ -670,6 +696,7 @@ class TestSSHEmbedded:
     def test_close_all_safe_when_empty(self):
         """E2E: close_all doesn't crash when no connections."""
         from taskfile.ssh import close_all
+
         close_all()  # Should not raise
 
 
@@ -730,6 +757,7 @@ class TestNewExamplesSpecific:
 # ═══════════════════════════════════════════════════════════════════════
 # Functions Embed Example
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestFunctionsEmbedExample:
     """E2E tests for the functions-embed example."""
@@ -803,8 +831,7 @@ class TestFunctionsEmbedExample:
     def test_cli_list(self):
         runner = CliRunner()
         result = runner.invoke(
-            main,
-            ["-f", str(EXAMPLES_DIR / "functions-embed" / "Taskfile.yml"), "list"]
+            main, ["-f", str(EXAMPLES_DIR / "functions-embed" / "Taskfile.yml"), "list"]
         )
         assert result.exit_code == 0
         assert "deploy" in result.output
@@ -812,8 +839,7 @@ class TestFunctionsEmbedExample:
     def test_cli_validate(self):
         runner = CliRunner()
         result = runner.invoke(
-            main,
-            ["-f", str(EXAMPLES_DIR / "functions-embed" / "Taskfile.yml"), "validate"]
+            main, ["-f", str(EXAMPLES_DIR / "functions-embed" / "Taskfile.yml"), "validate"]
         )
         assert result.exit_code == 0
 
@@ -821,6 +847,7 @@ class TestFunctionsEmbedExample:
 # ═══════════════════════════════════════════════════════════════════════
 # Import CICD Example
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestImportCICDExample:
     """E2E tests for the import-cicd example."""
@@ -848,11 +875,13 @@ class TestImportCICDExample:
 # Importer Module Tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestImporterModule:
     """E2E tests for the taskfile.importer module."""
 
     def test_import_github_actions(self):
         from taskfile.importer import import_file
+
         result = import_file(
             EXAMPLES_DIR / "import-cicd" / "sources" / "ci.yml",
             source_type="github-actions",
@@ -864,6 +893,7 @@ class TestImporterModule:
 
     def test_import_gitlab_ci(self):
         from taskfile.importer import import_file
+
         result = import_file(
             EXAMPLES_DIR / "import-cicd" / "sources" / ".gitlab-ci.yml",
             source_type="gitlab-ci",
@@ -874,6 +904,7 @@ class TestImporterModule:
 
     def test_import_makefile(self):
         from taskfile.importer import import_file
+
         result = import_file(
             EXAMPLES_DIR / "import-cicd" / "sources" / "Makefile",
             source_type="makefile",
@@ -884,6 +915,7 @@ class TestImporterModule:
 
     def test_import_shell_script(self):
         from taskfile.importer import import_file
+
         result = import_file(
             EXAMPLES_DIR / "import-cicd" / "sources" / "deploy.sh",
             source_type="shell",
@@ -895,12 +927,14 @@ class TestImporterModule:
     def test_import_file_not_found(self):
         from taskfile.importer import import_file
         import pytest
+
         with pytest.raises(FileNotFoundError):
             import_file("/nonexistent/file.yml", source_type="github-actions")
 
     def test_import_unknown_type(self):
         from taskfile.importer import import_file
         import pytest
+
         with pytest.raises(ValueError, match="Unknown source type"):
             import_file(
                 EXAMPLES_DIR / "import-cicd" / "sources" / "ci.yml",
@@ -932,6 +966,7 @@ class TestImporterModule:
 # ═══════════════════════════════════════════════════════════════════════
 # Ansible-Inspired Feature Tests (retries, timeout, tags, register)
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestAnsibleInspiredFeatures:
     """E2E tests for Ansible-inspired task attributes."""
@@ -987,6 +1022,7 @@ class TestAnsibleInspiredFeatures:
     def test_tags_string_format(self):
         """Tags should work as comma-separated string too (in from_dict)."""
         from taskfile.models import TaskfileConfig
+
         raw = {
             "tasks": {
                 "test": {
@@ -1013,6 +1049,7 @@ class TestAnsibleInspiredFeatures:
     def test_function_shorthand(self):
         """Function defined as string should default to shell inline code."""
         from taskfile.models import TaskfileConfig
+
         raw = {
             "tasks": {"test": {"cmds": ["echo hi"]}},
             "functions": {"greet": "echo hello"},
@@ -1027,6 +1064,7 @@ class TestAnsibleInspiredFeatures:
 # CLI Import Command Tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestCLIImportCommand:
     """E2E tests for the `taskfile import` CLI command."""
 
@@ -1040,31 +1078,43 @@ class TestCLIImportCommand:
 
     def test_import_github_actions_cli(self):
         import tempfile
+
         runner = CliRunner()
         with tempfile.NamedTemporaryFile(suffix=".yml", delete=False) as f:
             out_path = f.name
-        result = runner.invoke(main, [
-            "import",
-            str(EXAMPLES_DIR / "import-cicd" / "sources" / "ci.yml"),
-            "--type", "github-actions",
-            "-o", out_path,
-            "--force",
-        ])
+        result = runner.invoke(
+            main,
+            [
+                "import",
+                str(EXAMPLES_DIR / "import-cicd" / "sources" / "ci.yml"),
+                "--type",
+                "github-actions",
+                "-o",
+                out_path,
+                "--force",
+            ],
+        )
         assert result.exit_code == 0
         assert "Imported" in result.output
 
     def test_import_makefile_cli(self):
         import tempfile
+
         runner = CliRunner()
         with tempfile.NamedTemporaryFile(suffix=".yml", delete=False) as f:
             out_path = f.name
-        result = runner.invoke(main, [
-            "import",
-            str(EXAMPLES_DIR / "import-cicd" / "sources" / "Makefile"),
-            "--type", "makefile",
-            "-o", out_path,
-            "--force",
-        ])
+        result = runner.invoke(
+            main,
+            [
+                "import",
+                str(EXAMPLES_DIR / "import-cicd" / "sources" / "Makefile"),
+                "--type",
+                "makefile",
+                "-o",
+                out_path,
+                "--force",
+            ],
+        )
         assert result.exit_code == 0
         assert "Imported" in result.output
 
@@ -1072,6 +1122,7 @@ class TestCLIImportCommand:
 # ═══════════════════════════════════════════════════════════════════════
 # CLI Tags Flag Tests
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestCLITagsFlag:
     """E2E tests for --tags flag on the run command."""
@@ -1085,10 +1136,15 @@ class TestCLITagsFlag:
     def test_info_shows_tags(self):
         """The info command should display tags for tasks that have them."""
         runner = CliRunner()
-        result = runner.invoke(main, [
-            "-f", str(EXAMPLES_DIR / "saas-app" / "Taskfile.yml"),
-            "info", "lint",
-        ])
+        result = runner.invoke(
+            main,
+            [
+                "-f",
+                str(EXAMPLES_DIR / "saas-app" / "Taskfile.yml"),
+                "info",
+                "lint",
+            ],
+        )
         assert result.exit_code == 0
         assert "Tags" in result.output
         assert "ci" in result.output
@@ -1096,10 +1152,15 @@ class TestCLITagsFlag:
     def test_info_shows_retries(self):
         """The info command should display retries for tasks that have them."""
         runner = CliRunner()
-        result = runner.invoke(main, [
-            "-f", str(EXAMPLES_DIR / "saas-app" / "Taskfile.yml"),
-            "info", "deploy",
-        ])
+        result = runner.invoke(
+            main,
+            [
+                "-f",
+                str(EXAMPLES_DIR / "saas-app" / "Taskfile.yml"),
+                "info",
+                "deploy",
+            ],
+        )
         assert result.exit_code == 0
         assert "Retries" in result.output
         assert "Timeout" in result.output
@@ -1109,15 +1170,24 @@ class TestCLITagsFlag:
 # IAC Addon Examples Tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestIaCAddonExamples:
     """E2E tests for IaC examples using the addon system for boilerplate reduction."""
 
     def test_ansible_addon_generates_tasks(self):
         """iac-ansible: addon generates all expected task names."""
         config = load_taskfile(EXAMPLES_DIR / "iac-ansible" / "Taskfile.yml")
-        expected = {"ansible-ping", "ansible-provision", "ansible-deploy",
-                    "ansible-rollback", "ansible-check", "ansible-lint",
-                    "ansible-facts", "ansible-inventory", "ansible-vault-edit"}
+        expected = {
+            "ansible-ping",
+            "ansible-provision",
+            "ansible-deploy",
+            "ansible-rollback",
+            "ansible-check",
+            "ansible-lint",
+            "ansible-facts",
+            "ansible-inventory",
+            "ansible-vault-edit",
+        }
         for t in expected:
             assert t in config.tasks, f"iac-ansible missing task: {t}"
 
@@ -1131,9 +1201,18 @@ class TestIaCAddonExamples:
     def test_helm_addon_generates_tasks(self):
         """iac-helm: addon generates all helm-* tasks."""
         config = load_taskfile(EXAMPLES_DIR / "iac-helm" / "Taskfile.yml")
-        expected = {"helm-lint", "helm-template", "helm-upgrade", "helm-rollback",
-                    "helm-status", "helm-install", "helm-uninstall", "helm-test",
-                    "helm-package", "helm-diff"}
+        expected = {
+            "helm-lint",
+            "helm-template",
+            "helm-upgrade",
+            "helm-rollback",
+            "helm-status",
+            "helm-install",
+            "helm-uninstall",
+            "helm-test",
+            "helm-package",
+            "helm-diff",
+        }
         for t in expected:
             assert t in config.tasks, f"iac-helm missing task: {t}"
 
@@ -1177,7 +1256,14 @@ class TestIaCAddonExamples:
     def test_pulumi_has_stacks(self):
         """iac-pulumi: stack-based environments with preview/up/destroy."""
         config = load_taskfile(EXAMPLES_DIR / "iac-pulumi" / "Taskfile.yml")
-        for t in ("preview", "up", "destroy", "stack-output", "refresh", "rollback" if "rollback" in config.tasks else "refresh"):
+        for t in (
+            "preview",
+            "up",
+            "destroy",
+            "stack-output",
+            "refresh",
+            "rollback" if "rollback" in config.tasks else "refresh",
+        ):
             assert t in config.tasks, f"iac-pulumi missing: {t}"
 
     def test_vagrant_has_lifecycle_tasks(self):
@@ -1201,15 +1287,33 @@ class TestIaCAddonExamples:
     def test_all_iac_examples_validate(self):
         """All IaC examples pass taskfile validate."""
         iac_examples = [
-            "iac-ansible", "iac-argocd", "iac-bicep", "iac-cdk-aws", "iac-cdktf",
-            "iac-cloudformation", "iac-crossplane", "iac-docker-compose", "iac-fluxcd",
-            "iac-gcp-deployment-manager", "iac-helm", "iac-kustomize", "iac-nixos",
-            "iac-nomad", "iac-opentofu", "iac-packer", "iac-pulumi",
-            "iac-serverless", "iac-terraform", "iac-terragrunt", "iac-vagrant",
+            "iac-ansible",
+            "iac-argocd",
+            "iac-bicep",
+            "iac-cdk-aws",
+            "iac-cdktf",
+            "iac-cloudformation",
+            "iac-crossplane",
+            "iac-docker-compose",
+            "iac-fluxcd",
+            "iac-gcp-deployment-manager",
+            "iac-helm",
+            "iac-kustomize",
+            "iac-nixos",
+            "iac-nomad",
+            "iac-opentofu",
+            "iac-packer",
+            "iac-pulumi",
+            "iac-serverless",
+            "iac-terraform",
+            "iac-terragrunt",
+            "iac-vagrant",
         ]
         runner = CliRunner()
         for name in iac_examples:
-            result = runner.invoke(main, ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "validate"])
+            result = runner.invoke(
+                main, ["-f", str(EXAMPLES_DIR / name / "Taskfile.yml"), "validate"]
+            )
             assert result.exit_code == 0, f"{name} validate failed: {result.output}"
 
 
@@ -1217,12 +1321,18 @@ class TestIaCAddonExamples:
 # AI Tool Examples Tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestAIToolExamples:
     """E2E tests for AI-assisted development workflow examples."""
 
     AI_EXAMPLES = [
-        "ai-aider", "ai-claude-code", "ai-codex",
-        "ai-copilot", "ai-cursor", "ai-gemini-cli", "ai-windsurf",
+        "ai-aider",
+        "ai-claude-code",
+        "ai-codex",
+        "ai-copilot",
+        "ai-cursor",
+        "ai-gemini-cli",
+        "ai-windsurf",
     ]
 
     def test_all_ai_examples_load(self):
@@ -1238,7 +1348,9 @@ class TestAIToolExamples:
         for name in self.AI_EXAMPLES:
             config = load_taskfile(EXAMPLES_DIR / name / "Taskfile.yml")
             has_ai_var = bool(ai_vars & set(config.variables.keys()))
-            assert has_ai_var, f"{name}: missing MODEL or tool-specific variable, got: {list(config.variables.keys())}"
+            assert has_ai_var, (
+                f"{name}: missing MODEL or tool-specific variable, got: {list(config.variables.keys())}"
+            )
 
     def test_all_ai_examples_have_code_quality_task(self):
         """All AI examples have review, check, lint, or test tasks."""
@@ -1251,8 +1363,9 @@ class TestAIToolExamples:
     def test_aider_has_aider_commands(self):
         """ai-aider: all tasks use aider CLI."""
         config = load_taskfile(EXAMPLES_DIR / "ai-aider" / "Taskfile.yml")
-        aider_tasks = [t for t, task in config.tasks.items()
-                       if any("aider" in cmd for cmd in task.commands)]
+        aider_tasks = [
+            t for t, task in config.tasks.items() if any("aider" in cmd for cmd in task.commands)
+        ]
         assert len(aider_tasks) >= 5, "Expected at least 5 tasks using aider"
 
     def test_aider_has_tdd_workflow(self):

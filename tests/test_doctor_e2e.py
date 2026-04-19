@@ -10,7 +10,6 @@ Covers:
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import pytest
@@ -25,10 +24,8 @@ from taskfile.diagnostics import ProjectDiagnostics
 from taskfile.diagnostics.models import (
     Issue,
     IssueCategory,
-    FixStrategy,
     DoctorReport,
     SEVERITY_ERROR,
-    SEVERITY_WARNING,
     SEVERITY_INFO,
 )
 from taskfile.diagnostics.checks import (
@@ -55,11 +52,15 @@ EXAMPLE_TASKFILE = EXAMPLE_PROJECT / "Taskfile.yml"
 def minimal_taskfile(tmp_path) -> Path:
     """Minimal valid Taskfile."""
     tf = tmp_path / "Taskfile.yml"
-    tf.write_text(yaml.dump({
-        "version": "1",
-        "name": "test-doctor",
-        "tasks": {"hello": {"cmds": ["echo hi"]}},
-    }))
+    tf.write_text(
+        yaml.dump(
+            {
+                "version": "1",
+                "name": "test-doctor",
+                "tasks": {"hello": {"cmds": ["echo hi"]}},
+            }
+        )
+    )
     return tf
 
 
@@ -67,75 +68,83 @@ def minimal_taskfile(tmp_path) -> Path:
 def docker_taskfile(tmp_path) -> Path:
     """Taskfile with Docker Compose services and multiple environments."""
     tf = tmp_path / "Taskfile.yml"
-    tf.write_text(yaml.dump({
-        "version": "1",
-        "name": "docker-test",
-        "variables": {
-            "APP_NAME": "myapp",
-            "TAG": "latest",
-            "COMPOSE": "docker compose",
-        },
-        "environments": {
-            "local": {
-                "container_runtime": "docker",
-                "compose_command": "docker compose",
-            },
-            "staging": {
-                "ssh_host": "staging.example.com",
-                "ssh_user": "deploy",
-                "container_runtime": "podman",
-            },
-            "prod": {
-                "ssh_host": "prod.example.com",
-                "ssh_user": "deploy",
-                "container_runtime": "podman",
-                "service_manager": "quadlet",
-            },
-        },
-        "tasks": {
-            "build": {
-                "desc": "Build Docker images",
-                "cmds": ["${COMPOSE} build"],
-                "tags": ["ci"],
-            },
-            "deploy": {
-                "desc": "Deploy to environment",
-                "deps": ["build"],
-                "env": ["local", "staging", "prod"],
-                "cmds": [
-                    "@local ${COMPOSE} up -d",
-                    "@remote podman pull myapp:${TAG}",
-                ],
-            },
-            "test": {
-                "desc": "Run tests",
-                "cmds": ["echo running tests"],
-            },
-            "status": {
-                "desc": "Show service status",
-                "env": ["local", "prod"],
-                "cmds": [
-                    "@local ${COMPOSE} ps",
-                    "@remote podman ps",
-                ],
-            },
-        },
-    }))
+    tf.write_text(
+        yaml.dump(
+            {
+                "version": "1",
+                "name": "docker-test",
+                "variables": {
+                    "APP_NAME": "myapp",
+                    "TAG": "latest",
+                    "COMPOSE": "docker compose",
+                },
+                "environments": {
+                    "local": {
+                        "container_runtime": "docker",
+                        "compose_command": "docker compose",
+                    },
+                    "staging": {
+                        "ssh_host": "staging.example.com",
+                        "ssh_user": "deploy",
+                        "container_runtime": "podman",
+                    },
+                    "prod": {
+                        "ssh_host": "prod.example.com",
+                        "ssh_user": "deploy",
+                        "container_runtime": "podman",
+                        "service_manager": "quadlet",
+                    },
+                },
+                "tasks": {
+                    "build": {
+                        "desc": "Build Docker images",
+                        "cmds": ["${COMPOSE} build"],
+                        "tags": ["ci"],
+                    },
+                    "deploy": {
+                        "desc": "Deploy to environment",
+                        "deps": ["build"],
+                        "env": ["local", "staging", "prod"],
+                        "cmds": [
+                            "@local ${COMPOSE} up -d",
+                            "@remote podman pull myapp:${TAG}",
+                        ],
+                    },
+                    "test": {
+                        "desc": "Run tests",
+                        "cmds": ["echo running tests"],
+                    },
+                    "status": {
+                        "desc": "Show service status",
+                        "env": ["local", "prod"],
+                        "cmds": [
+                            "@local ${COMPOSE} ps",
+                            "@remote podman ps",
+                        ],
+                    },
+                },
+            }
+        )
+    )
     # Create docker-compose.yml
     compose = tmp_path / "docker-compose.yml"
-    compose.write_text(yaml.dump({
-        "services": {
-            "web": {
-                "image": "nginx:alpine",
-                "ports": ["8080:80"],
-            },
-            "api": {
-                "image": "python:3.12-slim",
-                "ports": ["8000:8000"],
-                "environment": ["VERSION=${TAG:-latest}"],
-            },
-        },
-    }))
+    compose.write_text(
+        yaml.dump(
+            {
+                "services": {
+                    "web": {
+                        "image": "nginx:alpine",
+                        "ports": ["8080:80"],
+                    },
+                    "api": {
+                        "image": "python:3.12-slim",
+                        "ports": ["8000:8000"],
+                        "environment": ["VERSION=${TAG:-latest}"],
+                    },
+                },
+            }
+        )
+    )
     return tf
 
 
@@ -143,37 +152,41 @@ def docker_taskfile(tmp_path) -> Path:
 def broken_taskfile(tmp_path) -> Path:
     """Taskfile with intentional issues for doctor to find."""
     tf = tmp_path / "Taskfile.yml"
-    tf.write_text(yaml.dump({
-        "version": "1",
-        "name": "broken-app",
-        "variables": {
-            "APP": "broken",
-        },
-        "environments": {
-            "local": {},
-            "prod": {
-                "ssh_host": "prod.example.com",
-                "ssh_user": "deploy",
-                "ssh_key": "/nonexistent/key.pem",
-                "env_file": ".env.prod",
-            },
-        },
-        "tasks": {
-            "build": {
-                "desc": "Build",
-                "cmds": ["nonexistent-tool build"],
-            },
-            "deploy": {
-                "desc": "Deploy",
-                "deps": ["build", "missing-task"],
-                "cmds": ["echo deploying"],
-            },
-            "run-script": {
-                "desc": "Run script",
-                "script": "scripts/missing.sh",
-            },
-        },
-    }))
+    tf.write_text(
+        yaml.dump(
+            {
+                "version": "1",
+                "name": "broken-app",
+                "variables": {
+                    "APP": "broken",
+                },
+                "environments": {
+                    "local": {},
+                    "prod": {
+                        "ssh_host": "prod.example.com",
+                        "ssh_user": "deploy",
+                        "ssh_key": "/nonexistent/key.pem",
+                        "env_file": ".env.prod",
+                    },
+                },
+                "tasks": {
+                    "build": {
+                        "desc": "Build",
+                        "cmds": ["nonexistent-tool build"],
+                    },
+                    "deploy": {
+                        "desc": "Deploy",
+                        "deps": ["build", "missing-task"],
+                        "cmds": ["echo deploying"],
+                    },
+                    "run-script": {
+                        "desc": "Run script",
+                        "script": "scripts/missing.sh",
+                    },
+                },
+            }
+        )
+    )
     # Create .env with PORT (should suggest rename to PORT_WEB)
     (tmp_path / ".env").write_text("PORT=8000\nDB_HOST=localhost\n")
     # Create .env.prod.example so auto-fix is possible
@@ -213,6 +226,7 @@ class TestDoctorCLI:
     def test_doctor_basic(self, minimal_taskfile, monkeypatch):
         """taskfile doctor — basic run with valid Taskfile."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(minimal_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor"])
@@ -222,6 +236,7 @@ class TestDoctorCLI:
     def test_doctor_verbose(self, docker_taskfile, monkeypatch):
         """taskfile doctor -v — verbose mode runs extra checks."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(docker_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "-v"])
@@ -231,6 +246,7 @@ class TestDoctorCLI:
     def test_doctor_report_json(self, minimal_taskfile, monkeypatch):
         """taskfile doctor --report — outputs valid JSON."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(minimal_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--report"])
@@ -248,6 +264,7 @@ class TestDoctorCLI:
     def test_doctor_teach(self, docker_taskfile, monkeypatch):
         """taskfile doctor --teach — shows educational explanations."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(docker_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--teach"])
@@ -257,6 +274,7 @@ class TestDoctorCLI:
     def test_doctor_category_filter(self, docker_taskfile, monkeypatch):
         """taskfile doctor --category config — filters issues."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(docker_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--category", "config"])
@@ -265,6 +283,7 @@ class TestDoctorCLI:
     def test_doctor_fix_flag(self, broken_taskfile, monkeypatch):
         """taskfile doctor --fix — attempts auto-fix."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(broken_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--fix"])
@@ -275,6 +294,7 @@ class TestDoctorCLI:
     def test_doctor_broken_project_finds_errors(self, broken_taskfile, monkeypatch):
         """Doctor detects issues in a broken project."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(broken_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor"])
@@ -285,6 +305,7 @@ class TestDoctorCLI:
     def test_doctor_no_taskfile(self, tmp_path, monkeypatch):
         """Doctor handles missing Taskfile.yml gracefully."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(tmp_path)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor"])
@@ -294,6 +315,7 @@ class TestDoctorCLI:
     def test_doctor_remote_flag_exists(self, docker_taskfile, monkeypatch):
         """taskfile doctor --remote — flag is recognized."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(docker_taskfile.parent)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--remote"])
@@ -424,11 +446,14 @@ class TestDoctorAPIPost:
 
     def test_post_doctor_combined_options(self, docker_api_client):
         """POST /doctor with multiple options."""
-        r = docker_api_client.post("/doctor", json={
-            "verbose": True,
-            "fix": False,
-            "category": "all",
-        })
+        r = docker_api_client.post(
+            "/doctor",
+            json={
+                "verbose": True,
+                "fix": False,
+                "category": "all",
+            },
+        )
         assert r.status_code == 200
 
     def test_post_get_consistency(self, docker_api_client):
@@ -482,7 +507,9 @@ class TestDoctorDockerChecks:
         """check_docker detects Docker when installed."""
         issues = check_docker()
         # Docker is available, so no 'docker not found' error
-        docker_missing = [i for i in issues if "docker" in i.message.lower() and "not found" in i.message.lower()]
+        docker_missing = [
+            i for i in issues if "docker" in i.message.lower() and "not found" in i.message.lower()
+        ]
         assert len(docker_missing) == 0
 
     @pytest.mark.skipif(not DOCKER_AVAILABLE, reason="Docker not installed")
@@ -511,19 +538,27 @@ class TestDoctorDockerChecks:
         """Doctor detects port conflicts in docker-compose.yml."""
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "port-test",
-            "tasks": {"up": {"cmds": ["docker compose up"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "port-test",
+                    "tasks": {"up": {"cmds": ["docker compose up"]}},
+                }
+            )
+        )
         # Two services using same host port
         compose = tmp_path / "docker-compose.yml"
-        compose.write_text(yaml.dump({
-            "services": {
-                "web": {"image": "nginx", "ports": ["8080:80"]},
-                "api": {"image": "python:3.12", "ports": ["8080:8000"]},
-            },
-        }))
+        compose.write_text(
+            yaml.dump(
+                {
+                    "services": {
+                        "web": {"image": "nginx", "ports": ["8080:80"]},
+                        "api": {"image": "python:3.12", "ports": ["8080:8000"]},
+                    },
+                }
+            )
+        )
         diag = ProjectDiagnostics()
         diag.check_taskfile()
         diag.check_ports()
@@ -559,15 +594,19 @@ class TestDoctorDockerCompose:
         """Doctor detects missing docker-compose.yml when referenced in tasks."""
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "no-compose",
-            "variables": {"COMPOSE": "docker compose"},
-            "tasks": {
-                "up": {"cmds": ["${COMPOSE} up -d"]},
-                "down": {"cmds": ["${COMPOSE} down"]},
-            },
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "no-compose",
+                    "variables": {"COMPOSE": "docker compose"},
+                    "tasks": {
+                        "up": {"cmds": ["${COMPOSE} up -d"]},
+                        "down": {"cmds": ["${COMPOSE} down"]},
+                    },
+                }
+            )
+        )
         diag = ProjectDiagnostics()
         diag.check_taskfile()
         diag.check_docker()
@@ -657,7 +696,7 @@ class TestDoctorFullPipeline:
         monkeypatch.chdir(docker_taskfile.parent)
         diag = ProjectDiagnostics()
         diag.check_preflight()  # Layer 1
-        diag.check_taskfile()   # Layer 2
+        diag.check_taskfile()  # Layer 2
         diag.check_env_files()  # Layer 3
         for iss in diag._issues:
             assert 1 <= iss.layer <= 5, f"Issue layer out of range: {iss.layer}"
@@ -767,6 +806,7 @@ class TestDoctorExampleProject:
     def test_cli_doctor_example_project(self, monkeypatch):
         """CLI doctor runs on example project without crash."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(EXAMPLE_PROJECT)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor"])
@@ -776,6 +816,7 @@ class TestDoctorExampleProject:
     def test_cli_doctor_verbose_example(self, monkeypatch):
         """CLI doctor -v runs on example project."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(EXAMPLE_PROJECT)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "-v"])
@@ -784,6 +825,7 @@ class TestDoctorExampleProject:
     def test_cli_doctor_report_example(self, monkeypatch):
         """CLI doctor --report outputs JSON for example project."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(EXAMPLE_PROJECT)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--report"])
@@ -792,6 +834,7 @@ class TestDoctorExampleProject:
     def test_cli_doctor_teach_example(self, monkeypatch):
         """CLI doctor --teach on example project."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(EXAMPLE_PROJECT)
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--teach"])
@@ -841,10 +884,7 @@ class TestDoctorExampleProject:
         report = diag.get_report_dict()
         assert isinstance(report["total_issues"], int)
         # Example project with prod env should have SSH issues
-        has_ssh_issues = any(
-            "SSH" in i.message or "ssh" in i.message
-            for i in diag._issues
-        )
+        any("SSH" in i.message or "ssh" in i.message for i in diag._issues)
         # This is expected — placeholder SSH hosts can't connect
 
     def test_example_project_detects_placeholder_hosts(self, monkeypatch):
@@ -905,7 +945,9 @@ class TestDoctorWithDockerContainers:
     def test_docker_check_finds_docker(self):
         """check_docker does not report Docker as missing."""
         issues = check_docker()
-        missing = [i for i in issues if "docker" in i.message.lower() and "not found" in i.message.lower()]
+        missing = [
+            i for i in issues if "docker" in i.message.lower() and "not found" in i.message.lower()
+        ]
         assert len(missing) == 0
 
 
@@ -933,11 +975,17 @@ class TestDoctorReportModel:
 
     def test_report_classify_buckets(self):
         """DoctorReport.classify sorts issues into correct buckets."""
-        report = DoctorReport(issues=[
-            Issue(category=IssueCategory.CONFIG_ERROR, message="config problem", severity="error"),
-            Issue(category=IssueCategory.EXTERNAL_ERROR, message="network down"),
-            Issue(category=IssueCategory.RUNTIME_ERROR, message="fixed!", context={"_fixed": True}),
-        ])
+        report = DoctorReport(
+            issues=[
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR, message="config problem", severity="error"
+                ),
+                Issue(category=IssueCategory.EXTERNAL_ERROR, message="network down"),
+                Issue(
+                    category=IssueCategory.RUNTIME_ERROR, message="fixed!", context={"_fixed": True}
+                ),
+            ]
+        )
         report.classify()
         assert len(report.fixed) == 1
         assert len(report.external) == 1
@@ -1017,14 +1065,18 @@ class TestDoctorEdgeCases:
         """Doctor handles tasks with special characters in names."""
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {
-                "build-all": {"cmds": ["echo build"]},
-                "deploy:prod": {"cmds": ["echo deploy"]},
-                "test_unit": {"cmds": ["echo test"]},
-            },
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {
+                        "build-all": {"cmds": ["echo build"]},
+                        "deploy:prod": {"cmds": ["echo deploy"]},
+                        "test_unit": {"cmds": ["echo test"]},
+                    },
+                }
+            )
+        )
         diag = ProjectDiagnostics()
         diag.check_taskfile()
 
@@ -1034,7 +1086,7 @@ class TestDoctorEdgeCases:
         assert r.status_code == 200
         data = r.json()
         # SSH checks should produce issues for unreachable hosts
-        ssh_issues = [i for i in data["issues"] if "SSH" in i["message"] or "ssh" in i["message"].lower()]
+        [i for i in data["issues"] if "SSH" in i["message"] or "ssh" in i["message"].lower()]
         # May or may not have SSH issues depending on check configuration
 
 
@@ -1107,23 +1159,29 @@ class TestRegressionVarResolution:
         for iss in issues:
             assert "${" not in iss.message, f"Unresolved variable in message: {iss.message}"
             if "host" in (iss.context or {}):
-                assert "${" not in iss.context["host"], f"Unresolved var in context: {iss.context['host']}"
+                assert "${" not in iss.context["host"], (
+                    f"Unresolved var in context: {iss.context['host']}"
+                )
 
     def test_api_doctor_verbose_resolves_ssh_vars(self, tmp_path, monkeypatch):
         """API /doctor verbose resolves SSH host variables in issue messages."""
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "var-test",
-            "environments": {
-                "prod": {
-                    "ssh_host": "${MY_PROD:-prod.example.com}",
-                    "ssh_user": "deploy",
-                },
-            },
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "var-test",
+                    "environments": {
+                        "prod": {
+                            "ssh_host": "${MY_PROD:-prod.example.com}",
+                            "ssh_user": "deploy",
+                        },
+                    },
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         app = create_app(str(tf))
         client = TestClient(app)
         r = client.get("/doctor", params={"verbose": True})
@@ -1140,23 +1198,28 @@ class TestRegressionEnvFlag:
     def test_remote_respects_env_flag(self, tmp_path, monkeypatch):
         """taskfile --env prod doctor --remote only checks 'prod' env."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "multi-env",
-            "environments": {
-                "staging": {
-                    "ssh_host": "staging.example.com",
-                    "ssh_user": "deploy",
-                },
-                "prod": {
-                    "ssh_host": "prod.example.com",
-                    "ssh_user": "deploy",
-                },
-            },
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "multi-env",
+                    "environments": {
+                        "staging": {
+                            "ssh_host": "staging.example.com",
+                            "ssh_user": "deploy",
+                        },
+                        "prod": {
+                            "ssh_host": "prod.example.com",
+                            "ssh_user": "deploy",
+                        },
+                    },
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         runner = CliRunner()
         # Run with --env prod
         result = runner.invoke(main, ["--env", "prod", "doctor", "--remote"])
@@ -1167,10 +1230,7 @@ class TestRegressionEnvFlag:
         remote_section = result.output.split("Remote Server Diagnostics")
         if len(remote_section) > 1:
             # Extract only "Environment: ..." lines from the remote diagnostics block
-            env_lines = [
-                line for line in remote_section[1].splitlines()
-                if "Environment:" in line
-            ]
+            env_lines = [line for line in remote_section[1].splitlines() if "Environment:" in line]
             env_text = "\n".join(env_lines)
             assert "staging" not in env_text, (
                 f"staging should not appear in remote env listing when --env prod: {env_text}"
@@ -1180,23 +1240,28 @@ class TestRegressionEnvFlag:
     def test_remote_no_env_flag_checks_all(self, tmp_path, monkeypatch):
         """taskfile doctor --remote without --env checks all remote envs."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "multi-env",
-            "environments": {
-                "staging": {
-                    "ssh_host": "staging.example.com",
-                    "ssh_user": "deploy",
-                },
-                "prod": {
-                    "ssh_host": "prod.example.com",
-                    "ssh_user": "deploy",
-                },
-            },
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "multi-env",
+                    "environments": {
+                        "staging": {
+                            "ssh_host": "staging.example.com",
+                            "ssh_user": "deploy",
+                        },
+                        "prod": {
+                            "ssh_host": "prod.example.com",
+                            "ssh_user": "deploy",
+                        },
+                    },
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         runner = CliRunner()
         result = runner.invoke(main, ["doctor", "--remote"])
         # Both environments should be checked
@@ -1206,14 +1271,19 @@ class TestRegressionEnvFlag:
     def test_remote_local_env_warns(self, tmp_path, monkeypatch):
         """taskfile --env local doctor --remote warns that env is not remote."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "local-only",
-            "environments": {"local": {}},
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "local-only",
+                    "environments": {"local": {}},
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         runner = CliRunner()
         result = runner.invoke(main, ["--env", "local", "doctor", "--remote"])
         assert "not remote" in result.output
@@ -1226,19 +1296,24 @@ class TestRegressionSSHErrorMessages:
     def test_ssh_failure_shows_exit_code(self, tmp_path, monkeypatch):
         """When SSH output is empty, error should show exit code."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "ssh-test",
-            "environments": {
-                "prod": {
-                    "ssh_host": "192.0.2.1",
-                    "ssh_user": "deploy",
-                },
-            },
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "ssh-test",
+                    "environments": {
+                        "prod": {
+                            "ssh_host": "192.0.2.1",
+                            "ssh_user": "deploy",
+                        },
+                    },
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         runner = CliRunner()
         result = runner.invoke(main, ["--env", "prod", "doctor", "--remote"])
         # Should NOT show "unknown error" or empty string
@@ -1255,19 +1330,24 @@ class TestRegressionSSHErrorMessages:
     def test_ssh_failure_shows_debug_command(self, tmp_path, monkeypatch):
         """SSH failure should show the debug command user can try."""
         from taskfile.cli.interactive.wizards import main
+
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "name": "ssh-test",
-            "environments": {
-                "prod": {
-                    "ssh_host": "192.0.2.1",
-                    "ssh_user": "deploy",
-                },
-            },
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "name": "ssh-test",
+                    "environments": {
+                        "prod": {
+                            "ssh_host": "192.0.2.1",
+                            "ssh_user": "deploy",
+                        },
+                    },
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         runner = CliRunner()
         result = runner.invoke(main, ["--env", "prod", "doctor", "--remote"])
         # Should show the SSH command for debugging
@@ -1282,6 +1362,7 @@ class TestRegressionSSHResult:
     def test_ssh_result_has_output_not_error(self):
         """SSHResult NamedTuple has output field, not error field."""
         from taskfile.deploy_utils import SSHResult
+
         result = SSHResult(success=False, output="connection refused", exit_code=255)
         assert result.output == "connection refused"
         assert not hasattr(result, "error")
@@ -1289,6 +1370,7 @@ class TestRegressionSSHResult:
     def test_ssh_result_empty_output(self):
         """SSHResult with empty output is handled."""
         from taskfile.deploy_utils import SSHResult
+
         result = SSHResult(success=False, output="", exit_code=-1)
         assert result.output == ""
         # Code should use fallback: f"exit code {result.exit_code}"

@@ -4,32 +4,36 @@ import pytest
 import yaml
 from pathlib import Path
 
-from taskfile.models import TaskfileConfig, Task, Environment
-from taskfile.parser import load_taskfile, validate_taskfile, TaskfileNotFoundError
-from taskfile.runner import TaskfileRunner
+from taskfile.models import TaskfileConfig
+from taskfile.parser import load_taskfile
 from taskfile.scaffold import generate_taskfile
-from taskfile.compose import ComposeFile, load_env_file, resolve_variables
-from taskfile.quadlet import generate_container_unit, compose_to_quadlet, generate_network_unit
+from taskfile.compose import ComposeFile
+from taskfile.quadlet import compose_to_quadlet
 
 
 # ─── Model Tests ─────────────────────────────────────
 
 
 class TestScaffold:
-    @pytest.mark.parametrize("template", ["minimal", "web", "podman", "codereview", "full", "publish"])
+    @pytest.mark.parametrize(
+        "template", ["minimal", "web", "podman", "codereview", "full", "publish"]
+    )
     def test_generate_valid_yaml(self, template):
         content = generate_taskfile(template)
         data = yaml.safe_load(content)
         assert isinstance(data, dict)
         assert "tasks" in data
 
-    @pytest.mark.parametrize("template", ["minimal", "web", "podman", "codereview", "full", "publish"])
+    @pytest.mark.parametrize(
+        "template", ["minimal", "web", "podman", "codereview", "full", "publish"]
+    )
     def test_generated_config_parses(self, template):
         content = generate_taskfile(template)
         data = yaml.safe_load(content)
         config = TaskfileConfig.from_dict(data)
         assert len(config.tasks) > 0
         assert len(config.environments) > 0
+
 
 class TestCodereviewExample:
     """Validate the codereview.pl example files parse correctly."""
@@ -50,7 +54,9 @@ class TestCodereviewExample:
         assert len(config.tasks) > 5
 
     @pytest.mark.skipif(
-        not (Path(__file__).parent.parent / "examples" / "codereview.pl" / "docker-compose.yml").exists(),
+        not (
+            Path(__file__).parent.parent / "examples" / "codereview.pl" / "docker-compose.yml"
+        ).exists(),
         reason="codereview.pl example not present",
     )
     def test_compose_parses_with_env_local(self):
@@ -69,7 +75,9 @@ class TestCodereviewExample:
         assert "codereview.localhost" in labels.get("traefik.http.routers.app.rule", "")
 
     @pytest.mark.skipif(
-        not (Path(__file__).parent.parent / "examples" / "codereview.pl" / "docker-compose.yml").exists(),
+        not (
+            Path(__file__).parent.parent / "examples" / "codereview.pl" / "docker-compose.yml"
+        ).exists(),
         reason="codereview.pl example not present",
     )
     def test_compose_parses_with_env_prod(self):
@@ -81,7 +89,9 @@ class TestCodereviewExample:
         assert "codereview.pl" in labels.get("traefik.http.routers.app.rule", "")
 
     @pytest.mark.skipif(
-        not (Path(__file__).parent.parent / "examples" / "codereview.pl" / "docker-compose.yml").exists(),
+        not (
+            Path(__file__).parent.parent / "examples" / "codereview.pl" / "docker-compose.yml"
+        ).exists(),
         reason="codereview.pl example not present",
     )
     def test_quadlet_generation_from_example(self, tmp_path):

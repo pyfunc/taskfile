@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from taskfile.workspace import (
     compare_projects,
@@ -17,12 +16,19 @@ from taskfile.workspace import (
 )
 
 
-def _make_project(tmp_path: Path, name: str, with_taskfile: bool = True, with_doql: bool = True, tasks: list[str] = None, workflows: list[str] = None) -> Path:
+def _make_project(
+    tmp_path: Path,
+    name: str,
+    with_taskfile: bool = True,
+    with_doql: bool = True,
+    tasks: list[str] = None,
+    workflows: list[str] = None,
+) -> Path:
     """Helper: create a fake project directory."""
     proj = tmp_path / name
     proj.mkdir()
     # Add project marker
-    (proj / "pyproject.toml").write_text("[project]\nname = \"test\"\n")
+    (proj / "pyproject.toml").write_text('[project]\nname = "test"\n')
 
     if with_taskfile:
         tasks = tasks or ["install", "test", "build"]
@@ -32,7 +38,7 @@ def _make_project(tmp_path: Path, name: str, with_taskfile: bool = True, with_do
             "tasks:",
         ]
         for t in tasks:
-            lines.extend([f"  {t}:", f"    cmds:", f"    - echo {t}"])
+            lines.extend([f"  {t}:", "    cmds:", f"    - echo {t}"])
         (proj / "Taskfile.yml").write_text("\n".join(lines) + "\n")
 
     if with_doql:
@@ -40,8 +46,8 @@ def _make_project(tmp_path: Path, name: str, with_taskfile: bool = True, with_do
         lines = [f'app {{ name: "{name}"; version: "0.1.0"; }}', ""]
         for wf in workflows:
             lines.append(f'workflow[name="{wf}"] {{')
-            lines.append(f'  step-1: run cmd=echo {wf};')
-            lines.append(f'}}')
+            lines.append(f"  step-1: run cmd=echo {wf};")
+            lines.append("}")
             lines.append("")
         (proj / "app.doql.css").write_text("\n".join(lines))
 
@@ -93,11 +99,11 @@ tasks:
 
 class TestParseDoqlWorkflows:
     def test_parses_workflow_names(self):
-        content = '''
+        content = """
 workflow[name="install"] { step-1: run cmd=x; }
 workflow[name="test"] { step-1: run cmd=y; }
 workflow[name="build"] { step-1: run cmd=z; }
-'''
+"""
         workflows = _parse_doql_workflows(content)
         assert workflows == ["install", "test", "build"]
 
@@ -191,7 +197,7 @@ class TestDiscoverProjects:
     def test_does_not_dive_into_project(self, tmp_path):
         """If a folder is a project, don't look inside for more projects."""
         outer = _make_project(tmp_path, "outer")
-        inner = _make_project(outer, "inner")
+        _make_project(outer, "inner")
 
         projects = discover_projects(tmp_path, max_depth=3)
         names = [p.name for p in projects]
@@ -200,7 +206,8 @@ class TestDiscoverProjects:
 
     def test_extracts_tasks_and_workflows(self, tmp_path):
         _make_project(
-            tmp_path, "alpha",
+            tmp_path,
+            "alpha",
             tasks=["install", "test", "deploy"],
             workflows=["install", "test"],
         )
@@ -258,8 +265,7 @@ class TestValidateProject:
         proj = _make_project(tmp_path, "alpha")
         # Overwrite doql with empty workflow
         (proj / "app.doql.css").write_text(
-            'app { name: "x"; version: "0.1.0"; }\n'
-            'workflow[name="empty"] { trigger: "manual"; }\n'
+            'app { name: "x"; version: "0.1.0"; }\nworkflow[name="empty"] { trigger: "manual"; }\n'
         )
         projects = discover_projects(tmp_path, max_depth=1)
         issues = validate_project(projects[0])
@@ -276,7 +282,7 @@ class TestCompareProjects:
         _make_project(tmp_path, "c", tasks=["t1", "t2", "t3", "t4"])
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects)
-        assert all(r['median_tasks'] == 4 for r in reports)
+        assert all(r["median_tasks"] == 4 for r in reports)
 
     def test_identifies_missing_common_tasks(self, tmp_path):
         # Three projects share install/test, only "outlier" is missing test
@@ -287,44 +293,48 @@ class TestCompareProjects:
 
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects, common_threshold=0.5)
-        outlier = next(r for r in reports if r['name'] == 'outlier')
-        assert 'test' in outlier['missing_common_tasks']
-        assert 'build' in outlier['missing_common_tasks']
-        assert 'install' not in outlier['missing_common_tasks']
+        outlier = next(r for r in reports if r["name"] == "outlier")
+        assert "test" in outlier["missing_common_tasks"]
+        assert "build" in outlier["missing_common_tasks"]
+        assert "install" not in outlier["missing_common_tasks"]
 
     def test_mkhint_excluded_when_no_makefile(self, tmp_path):
         # `import-makefile-hint` is common across projects but the outlier
         # has no Makefile — it must NOT be flagged as missing there.
         for name in ("a", "b", "c"):
             p = _make_project(
-                tmp_path, name,
+                tmp_path,
+                name,
                 tasks=["install", "test", "import-makefile-hint"],
                 workflows=["install", "test", "import-makefile-hint"],
             )
             (p / "Makefile").write_text("all:\n\techo ok\n")
         _make_project(
-            tmp_path, "outlier",
+            tmp_path,
+            "outlier",
             tasks=["install", "test"],
             workflows=["install", "test"],
         )  # no Makefile, no hint task
 
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects, common_threshold=0.5)
-        outlier = next(r for r in reports if r['name'] == 'outlier')
-        assert 'import-makefile-hint' not in outlier['missing_common_tasks']
-        assert 'import-makefile-hint' not in outlier['missing_common_workflows']
+        outlier = next(r for r in reports if r["name"] == "outlier")
+        assert "import-makefile-hint" not in outlier["missing_common_tasks"]
+        assert "import-makefile-hint" not in outlier["missing_common_workflows"]
 
     def test_mkhint_flagged_when_makefile_present(self, tmp_path):
         # Same setup but outlier HAS a Makefile → hint should be flagged.
         for name in ("a", "b", "c"):
             p = _make_project(
-                tmp_path, name,
+                tmp_path,
+                name,
                 tasks=["install", "test", "import-makefile-hint"],
                 workflows=["install", "test", "import-makefile-hint"],
             )
             (p / "Makefile").write_text("all:\n\techo ok\n")
         outlier = _make_project(
-            tmp_path, "outlier",
+            tmp_path,
+            "outlier",
             tasks=["install", "test"],
             workflows=["install", "test"],
         )
@@ -332,29 +342,31 @@ class TestCompareProjects:
 
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects, common_threshold=0.5)
-        outlier_r = next(r for r in reports if r['name'] == 'outlier')
-        assert 'import-makefile-hint' in outlier_r['missing_common_tasks']
+        outlier_r = next(r for r in reports if r["name"] == "outlier")
+        assert "import-makefile-hint" in outlier_r["missing_common_tasks"]
 
     def test_detects_sync_issues(self, tmp_path):
         # Task in Taskfile but no corresponding workflow in doql
         _make_project(
-            tmp_path, "a",
+            tmp_path,
+            "a",
             tasks=["install", "test", "deploy"],
             workflows=["install", "test"],  # deploy missing from doql
         )
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects)
-        assert 'deploy' in reports[0]['tasks_missing_in_doql']
+        assert "deploy" in reports[0]["tasks_missing_in_doql"]
 
     def test_detects_orphan_workflows(self, tmp_path):
         _make_project(
-            tmp_path, "a",
+            tmp_path,
+            "a",
             tasks=["install", "test"],
             workflows=["install", "test", "orphan"],  # orphan has no matching task
         )
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects)
-        assert 'orphan' in reports[0]['orphan_workflows']
+        assert "orphan" in reports[0]["orphan_workflows"]
 
     def test_tasks_vs_median(self, tmp_path):
         _make_project(tmp_path, "a", tasks=["t1", "t2", "t3"])
@@ -362,23 +374,29 @@ class TestCompareProjects:
 
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects)
-        a_report = next(r for r in reports if r['name'] == 'a')
-        b_report = next(r for r in reports if r['name'] == 'b')
+        a_report = next(r for r in reports if r["name"] == "a")
+        b_report = next(r for r in reports if r["name"] == "b")
         # a has fewer tasks than median, b has more
-        assert a_report['tasks_vs_median'] < 0
-        assert b_report['tasks_vs_median'] > 0
+        assert a_report["tasks_vs_median"] < 0
+        assert b_report["tasks_vs_median"] > 0
 
     def test_has_expected_columns(self, tmp_path):
         _make_project(tmp_path, "a")
         projects = discover_projects(tmp_path, max_depth=1)
         reports = compare_projects(projects)
         required_keys = {
-            'path', 'name',
-            'taskfile_tasks', 'doql_workflows',
-            'median_tasks', 'median_workflows',
-            'missing_common_tasks', 'missing_common_workflows',
-            'empty_workflows', 'orphan_workflows',
-            'tasks_missing_in_doql',
-            'issues', 'recommendations',
+            "path",
+            "name",
+            "taskfile_tasks",
+            "doql_workflows",
+            "median_tasks",
+            "median_workflows",
+            "missing_common_tasks",
+            "missing_common_workflows",
+            "empty_workflows",
+            "orphan_workflows",
+            "tasks_missing_in_doql",
+            "issues",
+            "recommendations",
         }
         assert required_keys <= set(reports[0].keys())

@@ -67,6 +67,7 @@ def _build_unit_section(service_name: str, service: ServiceConfig) -> list[str]:
         lines.extend([f"After={dep}.service", f"Requires={dep}.service"])
     return lines
 
+
 def _build_container_env(service: ServiceConfig, lines: list[str]) -> None:
     env = service.get("environment", {})
     if isinstance(env, list):
@@ -82,7 +83,10 @@ def _build_container_env(service: ServiceConfig, lines: list[str]) -> None:
     for ef in env_files:
         lines.append(f"EnvironmentFile={ef}")
 
-def _build_container_ports(service: ServiceConfig, lines: list[str], env: dict[str, str] | None = None) -> None:
+
+def _build_container_ports(
+    service: ServiceConfig, lines: list[str], env: dict[str, str] | None = None
+) -> None:
     """Build PublishPort lines, resolving env vars in port mappings.
 
     Args:
@@ -116,6 +120,7 @@ def _resolve_env_in_port(port_str: str, env: dict[str, str]) -> str:
     pattern = r"\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)(?::-(?P<default>[^}]*))?\}"
     return re.sub(pattern, replace_var, port_str)
 
+
 def _build_container_volumes(service: ServiceConfig, lines: list[str]) -> None:
     for vol in service.get("volumes", []):
         if isinstance(vol, str):
@@ -135,6 +140,7 @@ def _build_container_volumes(service: ServiceConfig, lines: list[str]) -> None:
             ro = ":ro" if vol.get("read_only") else ""
             lines.append(f"Volume={src}:{tgt}{ro}")
 
+
 def _build_container_networks(service: ServiceConfig, network_name: str, lines: list[str]) -> None:
     networks = service.get("networks", [])
     if isinstance(networks, list):
@@ -152,6 +158,7 @@ def _build_container_networks(service: ServiceConfig, network_name: str, lines: 
     else:
         lines.append(f"Network={network_name}.network")
 
+
 def _build_container_labels(service: ServiceConfig, lines: list[str]) -> None:
     labels = service.get("labels", {})
     if isinstance(labels, list):
@@ -160,6 +167,7 @@ def _build_container_labels(service: ServiceConfig, lines: list[str]) -> None:
     elif isinstance(labels, dict):
         for key, value in labels.items():
             lines.append(f"Label={key}={value}")
+
 
 def _build_container_podman_args(service: ServiceConfig, lines: list[str]) -> None:
     deploy = service.get("deploy", {})
@@ -172,6 +180,7 @@ def _build_container_podman_args(service: ServiceConfig, lines: list[str]) -> No
         podman_args.append(f"--cpus={cpus}")
     if podman_args:
         lines.append(f"PodmanArgs={' '.join(podman_args)}")
+
 
 def _build_container_section(
     service_name: str,
@@ -197,6 +206,7 @@ def _build_container_section(
 
     return lines
 
+
 def _build_service_section(service: ServiceConfig) -> list[str]:
     lines = ["\\n[Service]"]
     restart = service.get("restart", "always")
@@ -205,8 +215,10 @@ def _build_service_section(service: ServiceConfig) -> list[str]:
     lines.extend([f"Restart={restart}", "TimeoutStartSec=300"])
     return lines
 
+
 def _build_install_section() -> list[str]:
     return ["\\n[Install]", "WantedBy=multi-user.target default.target"]
+
 
 def generate_container_unit(
     service_name: str,
@@ -228,7 +240,9 @@ def generate_container_unit(
         String content of the .container file
     """
     lines_unit = _build_unit_section(service_name, service)
-    lines_container = _build_container_section(service_name, service, network_name, auto_update, env)
+    lines_container = _build_container_section(
+        service_name, service, network_name, auto_update, env
+    )
     lines_service = _build_service_section(service)
     lines_install = _build_install_section()
 
@@ -376,7 +390,12 @@ def compose_to_quadlet(
     generated: list[Path] = []
     generated.append(_generate_network_file(outdir, network_name))
     container_paths, named_volumes = _generate_container_files(
-        outdir, compose, network_name, auto_update, services_filter, env,
+        outdir,
+        compose,
+        network_name,
+        auto_update,
+        services_filter,
+        env,
     )
     generated.extend(container_paths)
     generated.extend(_generate_volume_files(outdir, named_volumes))

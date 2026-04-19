@@ -39,6 +39,7 @@ def check_ufw_forward_policy() -> list[Issue]:
     """
     if HAS_FIXOP:
         from taskfile.diagnostics.fixop_adapter import adapt_issues
+
         return adapt_issues(_fixop_check_ufw())
 
     issues: list[Issue] = []
@@ -50,7 +51,10 @@ def check_ufw_forward_policy() -> list[Issue]:
     # Check if ufw is active
     try:
         result = subprocess.run(
-            ["ufw", "status"], capture_output=True, text=True, timeout=5,
+            ["ufw", "status"],
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if "inactive" in result.stdout.lower():
             return issues
@@ -69,23 +73,25 @@ def check_ufw_forward_policy() -> list[Issue]:
             if stripped.startswith("DEFAULT_FORWARD_POLICY") and "=" in stripped:
                 policy = stripped.split("=", 1)[1].strip().strip('"').strip("'")
                 if policy.upper() == "DROP":
-                    issues.append(Issue(
-                        category=IssueCategory.EXTERNAL_ERROR,
-                        message="UFW DEFAULT_FORWARD_POLICY=DROP — containers cannot reach the internet",
-                        severity=SEVERITY_WARNING,
-                        fix_strategy=FixStrategy.MANUAL,
-                        fix_description=(
-                            'Set DEFAULT_FORWARD_POLICY="ACCEPT" in /etc/default/ufw, '
-                            "then run: sudo ufw reload"
-                        ),
-                        teach=(
-                            "UFW's default FORWARD policy blocks traffic between container "
-                            "networks and the host. Podman and Docker containers need FORWARD=ACCEPT "
-                            "to pull images, resolve DNS, and communicate across networks. "
-                            "This is the most common cause of 'podman pull' timeouts on fresh VPS setups."
-                        ),
-                        layer=3,
-                    ))
+                    issues.append(
+                        Issue(
+                            category=IssueCategory.EXTERNAL_ERROR,
+                            message="UFW DEFAULT_FORWARD_POLICY=DROP — containers cannot reach the internet",
+                            severity=SEVERITY_WARNING,
+                            fix_strategy=FixStrategy.MANUAL,
+                            fix_description=(
+                                'Set DEFAULT_FORWARD_POLICY="ACCEPT" in /etc/default/ufw, '
+                                "then run: sudo ufw reload"
+                            ),
+                            teach=(
+                                "UFW's default FORWARD policy blocks traffic between container "
+                                "networks and the host. Podman and Docker containers need FORWARD=ACCEPT "
+                                "to pull images, resolve DNS, and communicate across networks. "
+                                "This is the most common cause of 'podman pull' timeouts on fresh VPS setups."
+                            ),
+                            layer=3,
+                        )
+                    )
                 break
     except OSError:
         pass
@@ -102,6 +108,7 @@ def check_container_dns() -> list[Issue]:
     """
     if HAS_FIXOP:
         from taskfile.diagnostics.fixop_adapter import adapt_issues
+
         return adapt_issues(_fixop_check_container_dns())
 
     issues: list[Issue] = []
@@ -124,6 +131,7 @@ def check_container_dns() -> list[Issue]:
     # If the bridge DNS exists, verify it can resolve an external domain
     try:
         import struct
+
         # Build a minimal DNS query for "dns.google" (type A)
         query = (
             b"\xaa\xbb"  # Transaction ID
@@ -145,35 +153,39 @@ def check_container_dns() -> list[Issue]:
             flags = struct.unpack("!H", data[2:4])[0]
             rcode = flags & 0x0F
             if rcode != 0:
-                issues.append(Issue(
-                    category=IssueCategory.EXTERNAL_ERROR,
-                    message="Podman bridge DNS (10.88.0.1) cannot resolve external domains",
-                    severity=SEVERITY_WARNING,
-                    fix_strategy=FixStrategy.MANUAL,
-                    fix_description=(
-                        "Mount a custom resolv.conf with public DNS servers into containers. "
-                        "Run: taskfile quadlet generate (auto-generates resolv.conf with 8.8.8.8/1.1.1.1)"
-                    ),
-                    teach=(
-                        "Podman's default bridge network uses 10.88.0.1 as DNS resolver. "
-                        "If this resolver can't reach upstream DNS (e.g., due to UFW or network config), "
-                        "containers fail to pull images or reach external services. "
-                        "The fix is to mount a resolv.conf with public DNS servers (8.8.8.8, 1.1.1.1) "
-                        "into each container via Volume=./resolv.conf:/etc/resolv.conf:ro."
-                    ),
-                    layer=3,
-                ))
+                issues.append(
+                    Issue(
+                        category=IssueCategory.EXTERNAL_ERROR,
+                        message="Podman bridge DNS (10.88.0.1) cannot resolve external domains",
+                        severity=SEVERITY_WARNING,
+                        fix_strategy=FixStrategy.MANUAL,
+                        fix_description=(
+                            "Mount a custom resolv.conf with public DNS servers into containers. "
+                            "Run: taskfile quadlet generate (auto-generates resolv.conf with 8.8.8.8/1.1.1.1)"
+                        ),
+                        teach=(
+                            "Podman's default bridge network uses 10.88.0.1 as DNS resolver. "
+                            "If this resolver can't reach upstream DNS (e.g., due to UFW or network config), "
+                            "containers fail to pull images or reach external services. "
+                            "The fix is to mount a resolv.conf with public DNS servers (8.8.8.8, 1.1.1.1) "
+                            "into each container via Volume=./resolv.conf:/etc/resolv.conf:ro."
+                        ),
+                        layer=3,
+                    )
+                )
     except (OSError, socket.timeout):
-        issues.append(Issue(
-            category=IssueCategory.EXTERNAL_ERROR,
-            message="Podman bridge DNS (10.88.0.1) not responding — container DNS may be broken",
-            severity=SEVERITY_INFO,
-            fix_strategy=FixStrategy.MANUAL,
-            fix_description=(
-                "Ensure Podman network is initialized (podman network ls) and "
-                "mount a custom resolv.conf for reliable DNS"
-            ),
-            layer=3,
-        ))
+        issues.append(
+            Issue(
+                category=IssueCategory.EXTERNAL_ERROR,
+                message="Podman bridge DNS (10.88.0.1) not responding — container DNS may be broken",
+                severity=SEVERITY_INFO,
+                fix_strategy=FixStrategy.MANUAL,
+                fix_description=(
+                    "Ensure Podman network is initialized (podman network ls) and "
+                    "mount a custom resolv.conf for reliable DNS"
+                ),
+                layer=3,
+            )
+        )
 
     return issues

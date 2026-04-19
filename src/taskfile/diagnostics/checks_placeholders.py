@@ -23,14 +23,14 @@ if TYPE_CHECKING:
 
 
 PLACEHOLDER_PATTERNS = [
-    re.compile(r'your-.*\.example\.com', re.I),
-    re.compile(r'\.example\.com$', re.I),
-    re.compile(r'xxx+', re.I),
-    re.compile(r'changeme', re.I),
-    re.compile(r'replace[_-]me', re.I),
-    re.compile(r'\bTODO\b'),
-    re.compile(r'^0\.0\.0\.0$'),
-    re.compile(r'^placeholder', re.I),
+    re.compile(r"your-.*\.example\.com", re.I),
+    re.compile(r"\.example\.com$", re.I),
+    re.compile(r"xxx+", re.I),
+    re.compile(r"changeme", re.I),
+    re.compile(r"replace[_-]me", re.I),
+    re.compile(r"\bTODO\b"),
+    re.compile(r"^0\.0\.0\.0$"),
+    re.compile(r"^placeholder", re.I),
 ]
 
 
@@ -47,7 +47,8 @@ def _load_env_file_vars(env_file_path: Path) -> set[str]:
 
 
 def _extract_fields_to_check(
-    env_obj, resolved: dict[str, str],
+    env_obj,
+    resolved: dict[str, str],
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Build fields dict and fallback_var_map from resolved vars + SSH attributes.
 
@@ -60,7 +61,7 @@ def _extract_fields_to_check(
         raw = getattr(env_obj, attr, None)
         if not raw or not isinstance(raw, str):
             continue
-        m = re.match(r'\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]+)\}', raw)
+        m = re.match(r"\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]+)\}", raw)
         if m:
             fallback_key = f"_{attr}_default"
             fields[fallback_key] = m.group(2)
@@ -76,7 +77,9 @@ def _is_placeholder(val: str) -> bool:
 
 
 def _should_skip_placeholder(
-    key: str, fallback_var_map: dict[str, str], env_file_vars: set[str],
+    key: str,
+    fallback_var_map: dict[str, str],
+    env_file_vars: set[str],
 ) -> bool:
     """Return True if the placeholder should be skipped (overridden by env_file)."""
     if key in fallback_var_map:
@@ -85,7 +88,10 @@ def _should_skip_placeholder(
 
 
 def _check_env_placeholders(
-    env_name: str, env_obj, config: "TaskfileConfig", taskfile_dir: Path,
+    env_name: str,
+    env_obj,
+    config: "TaskfileConfig",
+    taskfile_dir: Path,
 ) -> list[Issue]:
     """Check a single environment for placeholder values."""
     issues: list[Issue] = []
@@ -107,24 +113,28 @@ def _check_env_placeholders(
         env_file_hint = ""
         if env_obj.env_file:
             env_file_hint = f" or edit {(taskfile_dir / env_obj.env_file).resolve()}"
-        issues.append(Issue(
-            category=IssueCategory.CONFIG_ERROR,
-            message=f"'{real_key}' in env '{env_name}' looks like a placeholder: \"{val}\"",
-            fix_strategy=FixStrategy.MANUAL,
-            severity=SEVERITY_WARNING,
-            fix_description=f"Set real value: export {real_key}=...{env_file_hint}",
-            teach=(
-                f"Variables with values like 'example.com' or 'your-*' are placeholders "
-                f"— replace them with real data before deploying."
-            ),
-            layer=2,
-        ))
+        issues.append(
+            Issue(
+                category=IssueCategory.CONFIG_ERROR,
+                message=f"'{real_key}' in env '{env_name}' looks like a placeholder: \"{val}\"",
+                fix_strategy=FixStrategy.MANUAL,
+                severity=SEVERITY_WARNING,
+                fix_description=f"Set real value: export {real_key}=...{env_file_hint}",
+                teach=(
+                    "Variables with values like 'example.com' or 'your-*' are placeholders "
+                    "— replace them with real data before deploying."
+                ),
+                layer=2,
+            )
+        )
     return issues
 
 
 def check_placeholder_values(config: "TaskfileConfig") -> list[Issue]:
     """Detect variables with placeholder values (example.com, changeme, etc.)."""
-    taskfile_dir = Path(config.source_path).parent.resolve() if config.source_path else Path.cwd().resolve()
+    taskfile_dir = (
+        Path(config.source_path).parent.resolve() if config.source_path else Path.cwd().resolve()
+    )
     issues: list[Issue] = []
     for env_name, env_obj in (config.environments or {}).items():
         issues.extend(_check_env_placeholders(env_name, env_obj, config, taskfile_dir))
@@ -145,17 +155,22 @@ def _check_env_file_for_target(
         if not env_path.exists():
             example = (taskfile_dir / f"{env_obj.env_file}.example").resolve()
             hint = f" (copy from {example})" if example.exists() else ""
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"Missing env file for '{target_env}': {env_path}{hint}",
-                fix_strategy=FixStrategy.AUTO if example.exists() else FixStrategy.MANUAL,
-                severity=SEVERITY_ERROR,
-                context={"env_file": str(env_path), "example": str(example) if example.exists() else None},
-                teach=(
-                    "Environment files (.env) contain variables specific to each environment "
-                    "(passwords, addresses, keys). Each environment in Taskfile can have its own "
-                    ".env file. Create one from .env.example as a template."
-                ),
-                layer=2,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=f"Missing env file for '{target_env}': {env_path}{hint}",
+                    fix_strategy=FixStrategy.AUTO if example.exists() else FixStrategy.MANUAL,
+                    severity=SEVERITY_ERROR,
+                    context={
+                        "env_file": str(env_path),
+                        "example": str(example) if example.exists() else None,
+                    },
+                    teach=(
+                        "Environment files (.env) contain variables specific to each environment "
+                        "(passwords, addresses, keys). Each environment in Taskfile can have its own "
+                        ".env file. Create one from .env.example as a template."
+                    ),
+                    layer=2,
+                )
+            )
     return issues

@@ -15,7 +15,13 @@ from rich.text import Text
 from taskfile.models import Environment, Platform, Task, TaskfileConfig
 from taskfile.parser import load_taskfile, validate_taskfile
 from taskfile.ssh import has_paramiko, close_all as ssh_close_all
-from taskfile.runner.commands import run_command, execute_commands, _md, _find_task_line, _source_ref
+from taskfile.runner.commands import (
+    run_command,
+    execute_commands,
+    _md,
+    _find_task_line,
+    _source_ref,
+)
 from taskfile.runner.ssh import is_remote_command, strip_remote_prefix, wrap_ssh, run_embedded_ssh
 from taskfile.runner.functions import run_function, run_inline_python
 from taskfile.runner.resolver import TaskResolver
@@ -142,6 +148,7 @@ class TaskfileRunner:
     def _execute_script(self, task: Task, task_name: str) -> int:
         """Execute an external script file referenced by task.script."""
         from taskfile.runner.commands import execute_script
+
         return execute_script(self, task, task_name)
 
     def _execute_commands(self, task: Task, task_name: str, start: float) -> bool:
@@ -155,9 +162,7 @@ class TaskfileRunner:
         if not task.condition:
             return True
         expanded = self.expand_variables(task.condition)
-        result = subprocess.run(
-            expanded, shell=True, capture_output=True, text=True
-        )
+        result = subprocess.run(expanded, shell=True, capture_output=True, text=True)
         return result.returncode == 0
 
     def _get_task_or_fail(self, task_name: str) -> Task | None:
@@ -225,7 +230,9 @@ class TaskfileRunner:
 
         if failed:
             if task.ignore_errors:
-                console.print(f"  [yellow]⚠ {len(failed)} dep(s) failed (ignored): {', '.join(failed)}[/]")
+                console.print(
+                    f"  [yellow]⚠ {len(failed)} dep(s) failed (ignored): {', '.join(failed)}[/]"
+                )
                 return True
             console.print(f"[red]✗ Dependencies failed for '{task_name}': {', '.join(failed)}[/]")
             return False
@@ -341,13 +348,15 @@ class TaskfileRunner:
 
     def _print_run_header(self, task_names: list[str]) -> None:
         """Print run context header with config, env, platform info."""
-        source_name = os.path.basename(self.config.source_path) if self.config.source_path else "Taskfile.yml"
+        source_name = (
+            os.path.basename(self.config.source_path) if self.config.source_path else "Taskfile.yml"
+        )
         _md(
             f"## 🚀 Running: {', '.join(f'`{t}`' for t in task_names)}\n\n"
             f"- **Config:** `{source_name}`\n"
             f"- **Environment:** `{self.env_name}`"
             + (f"\n- **Platform:** `{self.platform_name}`" if self.platform_name else "")
-            + (f"\n- **Mode:** dry-run" if self.dry_run else "")
+            + ("\n- **Mode:** dry-run" if self.dry_run else "")
         )
 
     def _validate_pre_run(self, task_names: list[str]) -> bool:
@@ -358,6 +367,7 @@ class TaskfileRunner:
 
         from taskfile.diagnostics.checks import validate_before_run
         from taskfile.diagnostics.models import CATEGORY_HINTS
+
         pre_issues = validate_before_run(self.config, self.env_name, task_names)
         has_errors = False
         for iss in pre_issues:
@@ -392,7 +402,9 @@ class TaskfileRunner:
             if self.use_embedded_ssh:
                 ssh_close_all()
 
-    def _print_run_summary(self, task_names: list[str], success: bool, total_duration: float) -> None:
+    def _print_run_summary(
+        self, task_names: list[str], success: bool, total_duration: float
+    ) -> None:
         """Print run result summary and send notification for long tasks."""
         from taskfile.notifications import notify_task_complete
 
@@ -425,10 +437,12 @@ class TaskfileRunner:
     def _list_header(self) -> None:
         """Print project name and description panel."""
         if self.config.name:
-            console.print(Panel(
-                f"[bold]{self.config.name}[/]\n{self.config.description or ''}",
-                border_style="blue",
-            ))
+            console.print(
+                Panel(
+                    f"[bold]{self.config.name}[/]\n{self.config.description or ''}",
+                    border_style="blue",
+                )
+            )
 
     def _list_tasks_section(self) -> None:
         """Print task list with filters and dependencies."""
@@ -448,7 +462,7 @@ class TaskfileRunner:
 
     def _list_environments_section(self) -> None:
         """Print environment list with connection info."""
-        console.print(f"\n[bold]Environments:[/]")
+        console.print("\n[bold]Environments:[/]")
         for name, env in sorted(self.config.environments.items()):
             default = " [yellow](default)[/]" if name == self.config.default_env else ""
             remote = f" → {env.ssh_target}" if env.ssh_target else " (local)"
@@ -459,19 +473,18 @@ class TaskfileRunner:
         """Print environment groups if any are defined."""
         if not self.config.environment_groups:
             return
-        console.print(f"\n[bold]Environment Groups:[/]")
+        console.print("\n[bold]Environment Groups:[/]")
         for name, grp in sorted(self.config.environment_groups.items()):
             members = ", ".join(grp.members) if grp.members else "empty"
             console.print(
-                f"  [yellow]{name:20s}[/] strategy={grp.strategy:10s} "
-                f"members=[{members}]"
+                f"  [yellow]{name:20s}[/] strategy={grp.strategy:10s} members=[{members}]"
             )
 
     def _list_platforms_section(self) -> None:
         """Print platform list if any are defined."""
         if not self.config.platforms:
             return
-        console.print(f"\n[bold]Platforms:[/]")
+        console.print("\n[bold]Platforms:[/]")
         for name, plat in sorted(self.config.platforms.items()):
             default = " [yellow](default)[/]" if name == self.config.default_platform else ""
             desc = f"  [dim]{plat.description}[/]" if plat.description else ""
@@ -481,6 +494,6 @@ class TaskfileRunner:
         """Print global variables."""
         if not self.config.variables:
             return
-        console.print(f"\n[bold]Variables:[/]")
+        console.print("\n[bold]Variables:[/]")
         for key, val in sorted(self.config.variables.items()):
             console.print(f"  [dim]{key}[/] = {val}")

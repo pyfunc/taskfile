@@ -14,19 +14,26 @@ from rich.console import Console
 
 from taskfile.models import Task
 from taskfile.runner.ssh import (
-    is_remote_command, is_local_command, strip_local_prefix, strip_remote_prefix,
-    wrap_ssh, run_embedded_ssh,
-    is_push_command, is_pull_command, strip_push_prefix, strip_pull_prefix,
-    wrap_scp_push, wrap_scp_pull,
+    is_remote_command,
+    is_local_command,
+    strip_local_prefix,
+    strip_remote_prefix,
+    wrap_ssh,
+    run_embedded_ssh,
+    is_push_command,
+    is_pull_command,
+    strip_push_prefix,
+    strip_pull_prefix,
+    wrap_scp_push,
+    wrap_scp_pull,
 )
 from taskfile.runner.functions import run_function, run_inline_python
-from taskfile.runner.classifier import classify_command, CommandType, should_expand_globs, has_glob_pattern
-from taskfile.runner.utils.markdown import render_md as _md, _HAS_CLICKMD, render_codeblock
+from taskfile.runner.classifier import (
+    should_expand_globs,
+    has_glob_pattern,
+)
+from taskfile.runner.utils.markdown import render_md as _md, render_codeblock
 
-try:
-    from clickmd import MarkdownRenderer
-except ImportError:
-    pass
 
 console = Console()
 
@@ -37,6 +44,7 @@ from taskfile.runner.failure import _find_task_line, _find_cmd_line, _source_ref
 
 
 # ─── Step-by-step rendering ──────────────────────────────────────────────────
+
 
 def _render_step_header(
     runner, task_name: str, cmd: str, step: int, total: int, task: Task
@@ -73,7 +81,7 @@ def _render_step_header(
 
 # ─── Pre-run file validation ─────────────────────────────────────────────────
 
-_FILE_TRANSFER_CMDS = re.compile(r'^(scp|rsync|cp)\b')
+_FILE_TRANSFER_CMDS = re.compile(r"^(scp|rsync|cp)\b")
 
 
 def _strip_cmd_prefix(cmd: str) -> str:
@@ -81,18 +89,18 @@ def _strip_cmd_prefix(cmd: str) -> str:
     stripped = cmd.strip()
     for prefix in ("@remote ", "@local ", "@ssh "):
         if stripped.startswith(prefix):
-            return stripped[len(prefix):]
+            return stripped[len(prefix) :]
     return stripped
 
 
 def _is_flag_or_special(part: str) -> bool:
     """Return True if part is a flag, remote path (host:path), or stdin marker."""
-    return part.startswith('-') or ':' in part or part == '-'
+    return part.startswith("-") or ":" in part or part == "-"
 
 
 def _has_variable(part: str) -> bool:
     """Return True if part contains an unexpanded variable."""
-    return '$' in part
+    return "$" in part
 
 
 def _check_glob_pattern(part: str, base: Path) -> str | None:
@@ -101,8 +109,7 @@ def _check_glob_pattern(part: str, base: Path) -> str | None:
     matches = glob.glob(part, root_dir=str(base)) if not path.is_absolute() else glob.glob(part)
     if not matches:
         return (
-            f"**No files match** `{part}` — generate them first "
-            f"(e.g. `taskfile quadlet generate`)"
+            f"**No files match** `{part}` — generate them first (e.g. `taskfile quadlet generate`)"
         )
     return None
 
@@ -128,7 +135,7 @@ def _check_file_arg(part: str, base: Path) -> str | None:
     path = Path(part)
     resolved = path if path.is_absolute() else base / part
 
-    if '*' in part or '?' in part:
+    if "*" in part or "?" in part:
         return _check_glob_pattern(part, base)
     return _check_literal_path(part, resolved)
 
@@ -173,18 +180,29 @@ def _validate_all_commands(runner, task: Task, task_name: str) -> list[str]:
 
 from taskfile.runner.failure import (  # noqa: E402
     _get_tip_for_command,
-    _get_tip_for_failure,
-    _TIPS,
 )
 
 
 # Shell operators that must NOT be quoted during glob expansion
-_SHELL_OPS = frozenset({
-    '&&', '||', ';', '|', '>', '>>', '<', '<<', '2>', '2>>', '&>', '&',
-})
+_SHELL_OPS = frozenset(
+    {
+        "&&",
+        "||",
+        ";",
+        "|",
+        ">",
+        ">>",
+        "<",
+        "<<",
+        "2>",
+        "2>>",
+        "&>",
+        "&",
+    }
+)
 
 # Redirect patterns: 2>/dev/null, 2>&1, &>/dev/null, >/dev/null, etc.
-_REDIRECT_RE = re.compile(r'^[0-9]*[<>]+.*')
+_REDIRECT_RE = re.compile(r"^[0-9]*[<>]+.*")
 
 
 def _safe_glob_expand(token: str, cwd: str | Path | None = None) -> list[str]:
@@ -197,10 +215,10 @@ def _safe_glob_expand(token: str, cwd: str | Path | None = None) -> list[str]:
     Returns:
         List of expanded paths (quoted), or [token] if no glob or no matches
     """
-    if not ('*' in token or '?' in token or '[' in token):
+    if not ("*" in token or "?" in token or "[" in token):
         return [shlex.quote(token)]
 
-    if cwd and not token.startswith('/'):
+    if cwd and not token.startswith("/"):
         matches = glob.glob(token, root_dir=cwd)
     else:
         matches = glob.glob(token)
@@ -240,16 +258,16 @@ def _expand_globs_in_command(cmd: str, cwd: str | Path | None = None) -> str:
         elif _REDIRECT_RE.match(part):
             expanded_parts.append(part)
         # Skip variables and options
-        elif part.startswith('$') or part.startswith('-'):
+        elif part.startswith("$") or part.startswith("-"):
             expanded_parts.append(shlex.quote(part))
         # Preserve @-prefixes (@remote, @local, @push, etc.)
-        elif part.startswith('@'):
+        elif part.startswith("@"):
             expanded_parts.append(part)
         else:
             expanded_parts.extend(_safe_glob_expand(part, cwd))
 
     # Reconstruct command — operators already unquoted, paths quoted
-    return ' '.join(expanded_parts)
+    return " ".join(expanded_parts)
 
 
 def _skip_msg(runner, prefix: str, reason: str, task: Task) -> int:
@@ -274,8 +292,9 @@ def _handle_remote(runner, expanded: str, task: Task) -> int:
         return run_embedded_ssh(runner, expanded, task)
     remote_cmd = strip_remote_prefix(expanded)
     display = f"{runner.env.ssh_target} '{remote_cmd}'"
-    return _run_local(runner, wrap_ssh(expanded, runner.env), task,
-                      remote=True, display_cmd=display)
+    return _run_local(
+        runner, wrap_ssh(expanded, runner.env), task, remote=True, display_cmd=display
+    )
 
 
 def _handle_push(runner, expanded: str, task: Task) -> int:
@@ -363,8 +382,9 @@ def _run_subprocess(runner, cmd_str: str, task: Task, label: str = "Command") ->
         return 130
 
 
-def _run_local(runner, actual_cmd: str, task: Task, remote: bool = False,
-               display_cmd: str | None = None) -> int:
+def _run_local(
+    runner, actual_cmd: str, task: Task, remote: bool = False, display_cmd: str | None = None
+) -> int:
     """Execute a command locally (or a wrapped SSH command). Handles dry-run, capture, timeout."""
     if not task.silent:
         prefix = "[magenta]→ SSH[/]" if remote else "[blue]→[/]"
@@ -420,9 +440,7 @@ def execute_script(runner, task: Task, task_name: str) -> int:
     resolved = Path(script_path)
     if not resolved.is_absolute():
         taskfile_dir = (
-            Path(runner.config.source_path).parent
-            if runner.config.source_path
-            else Path.cwd()
+            Path(runner.config.source_path).parent if runner.config.source_path else Path.cwd()
         )
         candidate = taskfile_dir / resolved
         if candidate.exists():
@@ -434,9 +452,7 @@ def execute_script(runner, task: Task, task_name: str) -> int:
         console.print(f"  [red]✗ Script not found: {resolved.resolve()}[/]")
         # Hint: show nearby scripts
         search_dir = (
-            Path(runner.config.source_path).parent
-            if runner.config.source_path
-            else Path.cwd()
+            Path(runner.config.source_path).parent if runner.config.source_path else Path.cwd()
         )
         nearby = sorted(search_dir.rglob("*.sh"))[:5]
         if nearby:
@@ -454,8 +470,7 @@ def _run_with_retries(fn, task: Task) -> int:
     if returncode != 0 and task.retries > 0:
         for attempt in range(1, task.retries + 1):
             console.print(
-                f"  [yellow]↻ Retry {attempt}/{task.retries} "
-                f"(waiting {task.retry_delay}s)[/]"
+                f"  [yellow]↻ Retry {attempt}/{task.retries} (waiting {task.retry_delay}s)[/]"
             )
             time.sleep(task.retry_delay)
             returncode = fn()
@@ -467,17 +482,17 @@ def _run_with_retries(fn, task: Task) -> int:
 # ─── Failure handling (delegated to failure.py) ──────────────────────────────
 
 from taskfile.runner.failure import (  # noqa: E402
-    _classify_exit_code,
     _handle_failure,
-    _format_failure_header,
-    _run_error_presenter,
-    _format_next_steps,
 )
 
 
 def _execute_script_step(
-    runner, task: Task, task_name: str, start: float,
-    step: int, total_steps: int,
+    runner,
+    task: Task,
+    task_name: str,
+    start: float,
+    step: int,
+    total_steps: int,
 ) -> bool:
     """Execute the script: step of a task. Returns False on failure."""
     source_path = runner.config.source_path
@@ -488,14 +503,26 @@ def _execute_script_step(
         if runner.verbose:
             _md(f"```yaml\n# task: {task_name}\nscript: {task.script}\n```")
     rc = _run_with_retries(lambda: execute_script(runner, task, task_name), task)
-    return _handle_failure(rc, task, task_name, start, "script",
-                           cmd=f"script: {task.script}", source_path=source_path,
-                           runner=runner)
+    return _handle_failure(
+        rc,
+        task,
+        task_name,
+        start,
+        "script",
+        cmd=f"script: {task.script}",
+        source_path=source_path,
+        runner=runner,
+    )
 
 
 def _execute_cmd_step(
-    runner, task: Task, task_name: str, cmd: str, start: float,
-    step: int, total_steps: int,
+    runner,
+    task: Task,
+    task_name: str,
+    cmd: str,
+    start: float,
+    step: int,
+    total_steps: int,
 ) -> bool:
     """Execute a single command step with pre-validation. Returns False on failure."""
     source_path = runner.config.source_path
@@ -517,9 +544,9 @@ def _execute_cmd_step(
             return False
 
     rc = _run_with_retries(lambda cmd=cmd: run_command(runner, cmd, task), task)
-    return _handle_failure(rc, task, task_name, start, "command",
-                           cmd=cmd, source_path=source_path,
-                           runner=runner)
+    return _handle_failure(
+        rc, task, task_name, start, "command", cmd=expanded, source_path=source_path, runner=runner
+    )
 
 
 def _pre_validate_files(runner, task: Task, task_name: str) -> None:

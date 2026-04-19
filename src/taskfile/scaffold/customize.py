@@ -14,6 +14,7 @@ Public API:
     customise_minimal(content: str, project_root: Path) -> str
         Returns a rewritten YAML string.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -22,6 +23,7 @@ from typing import Any
 
 def _safe_load(text: str) -> dict[str, Any]:
     import yaml
+
     data = yaml.safe_load(text) or {}
     if not isinstance(data, dict):
         return {}
@@ -30,6 +32,7 @@ def _safe_load(text: str) -> dict[str, Any]:
 
 def _safe_dump(data: dict[str, Any]) -> str:
     import yaml
+
     return yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
 
 
@@ -88,6 +91,7 @@ def _detect_node(root: Path) -> dict[str, Any] | None:
     if not pkg.exists():
         return None
     import json
+
     try:
         data = json.loads(pkg.read_text())
     except (OSError, json.JSONDecodeError):
@@ -122,8 +126,10 @@ def _python_tasks(info: dict[str, Any]) -> dict[str, dict[str, Any]]:
     tasks: dict[str, dict[str, Any]] = {}
 
     install_cmd = (
-        "pip install -e .[dev]" if info["has_pyproject"]
-        else "pip install -r requirements.txt" if info["has_requirements"]
+        "pip install -e .[dev]"
+        if info["has_pyproject"]
+        else "pip install -r requirements.txt"
+        if info["has_requirements"]
         else "pip install -e ."
     )
     tasks["install"] = {
@@ -206,7 +212,9 @@ def _dockerfile_tasks(name: str) -> dict[str, dict[str, Any]]:
 # ── public API ───────────────────────────────────────────────
 
 
-def _detect_project_info(project_root: Path) -> tuple[dict[str, Any] | None, dict[str, Any] | None, Any, bool, bool]:
+def _detect_project_info(
+    project_root: Path,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, Any, bool, bool]:
     """Detect project type info: (python, node, compose, has_dockerfile, has_makefile)."""
     return (
         _detect_python(project_root),
@@ -320,8 +328,7 @@ def _import_doql_workflows(doql_path: Path) -> dict[str, dict[str, Any]]:
     if not isinstance(raw_tasks, dict):
         return {}
     return {
-        name: task for name, task in raw_tasks.items()
-        if isinstance(task, dict) and name != "noop"
+        name: task for name, task in raw_tasks.items() if isinstance(task, dict) and name != "noop"
     }
 
 

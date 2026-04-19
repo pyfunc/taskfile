@@ -4,6 +4,7 @@ from __future__ import annotations
 
 try:
     from clickmd import MarkdownRenderer
+
     _HAS_CLICKMD = True
 except ImportError:
     _HAS_CLICKMD = False

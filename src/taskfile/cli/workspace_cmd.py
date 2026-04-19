@@ -24,7 +24,6 @@ from taskfile.workspace import (
     filter_projects,
     fix_project,
     run_in_project,
-    run_task_in_projects,
     validate_project,
 )
 
@@ -116,9 +115,7 @@ def _build_projects_table(root: str, show_tasks: bool, show_workflows: bool) -> 
     return table
 
 
-def _format_project_row(
-    project, index: int, show_tasks: bool, show_workflows: bool
-) -> list[str]:
+def _format_project_row(project, index: int, show_tasks: bool, show_workflows: bool) -> list[str]:
     """Format a project as a table row."""
     row = [
         str(index),
@@ -149,9 +146,16 @@ def _format_project_row(
 @click.option("--tasks", is_flag=True, help="Show tasks column")
 @click.option("--workflows", is_flag=True, help="Show workflows column")
 def workspace_list(
-    root, depth, has_task, has_workflow,
-    taskfile_only, doql_only, docker_only, name,
-    tasks, workflows,
+    root,
+    depth,
+    has_task,
+    has_workflow,
+    taskfile_only,
+    doql_only,
+    docker_only,
+    name,
+    tasks,
+    workflows,
 ):
     """List all projects matching filters."""
     projects = _load_projects(
@@ -188,6 +192,7 @@ def workspace_tasks(root, depth):
     projects = _load_projects(root=root, depth=depth)
 
     from collections import Counter
+
     counter: Counter[str] = Counter()
     for p in projects:
         for task in p.taskfile_tasks:
@@ -220,6 +225,7 @@ def workspace_workflows(root, depth):
     projects = _load_projects(root=root, depth=depth)
 
     from collections import Counter
+
     counter: Counter[str] = Counter()
     for p in projects:
         for wf in p.doql_workflows:
@@ -314,13 +320,11 @@ def workspace_run(task_name, root, depth, name, timeout, dry_run, fail_fast, con
 
     results: list[CommandResult] = []
     for i, project in enumerate(projects, 1):
-        console.print(
-            f"\n[bold cyan]━━━ [{i}/{len(projects)}] {project.name} ━━━[/]"
-        )
+        console.print(f"\n[bold cyan]━━━ [{i}/{len(projects)}] {project.name} ━━━[/]")
         console.print(f"[dim]  {project.path}[/]")
         result = run_in_project(
             project,
-            ['taskfile', task_name],
+            ["taskfile", task_name],
             timeout=timeout,
             capture=not (fail_fast and len(projects) == 1),
         )
@@ -359,7 +363,7 @@ def workspace_doctor(root, depth, timeout, verbose):
     for i, project in enumerate(projects, 1):
         result = run_in_project(
             project,
-            ['taskfile', 'doctor'],
+            ["taskfile", "doctor"],
             timeout=timeout,
         )
         if result.success:
@@ -370,12 +374,13 @@ def workspace_doctor(root, depth, timeout, verbose):
             # Extract summary line from output
             out = result.stdout + result.stderr
             issue_lines = [
-                ln.strip() for ln in out.splitlines()
-                if any(k in ln.lower() for k in ['error', 'issue', 'warning'])
+                ln.strip()
+                for ln in out.splitlines()
+                if any(k in ln.lower() for k in ["error", "issue", "warning"])
             ][:3]
-            issues = '; '.join(issue_lines) or f'rc={result.returncode}'
+            issues = "; ".join(issue_lines) or f"rc={result.returncode}"
             if len(issues) > 60:
-                issues = issues[:57] + '...'
+                issues = issues[:57] + "..."
 
         table.add_row(str(i), project.name, status, issues)
 
@@ -414,9 +419,9 @@ def workspace_validate(root, depth, strict):
     for i, project in enumerate(projects, 1):
         issues = validate_project(project)
         total_issues += len(issues)
-        issues_str = '; '.join(issues) if issues else "[green]—[/]"
+        issues_str = "; ".join(issues) if issues else "[green]—[/]"
         if len(issues_str) > 60:
-            issues_str = issues_str[:57] + '...'
+            issues_str = issues_str[:57] + "..."
         try:
             rel = project.path.relative_to(root_path)
             name_display = str(rel)
@@ -431,9 +436,7 @@ def workspace_validate(root, depth, strict):
         )
 
     console.print(table)
-    console.print(
-        f"\n[bold]Total: {total_issues} issue(s) across {len(projects)} project(s)[/]"
-    )
+    console.print(f"\n[bold]Total: {total_issues} issue(s) across {len(projects)} project(s)[/]")
 
     if strict and total_issues > 0:
         sys.exit(1)
@@ -509,7 +512,7 @@ def workspace_deploy(root, depth, name, timeout, dry_run):
     if dry_run:
         console.print("\n[yellow]DRY RUN:[/]\n")
         for p in projects:
-            if p.has_task_named('up'):
+            if p.has_task_named("up"):
                 console.print(f"  cd {p.path} && taskfile up")
             else:
                 console.print(f"  cd {p.path} && docker compose up -d")
@@ -519,14 +522,14 @@ def workspace_deploy(root, depth, name, timeout, dry_run):
     for i, project in enumerate(projects, 1):
         console.print(f"\n[bold cyan]━━━ [{i}/{len(projects)}] {project.name} ━━━[/]")
 
-        if project.has_task_named('up'):
-            cmd = ['taskfile', 'up']
+        if project.has_task_named("up"):
+            cmd = ["taskfile", "up"]
         else:
-            cmd = ['docker', 'compose', 'up', '-d']
+            cmd = ["docker", "compose", "up", "-d"]
 
         result = run_in_project(project, cmd, timeout=timeout)
         if result.success:
-            console.print(f"[green]  ✓ Deployed[/]")
+            console.print("[green]  ✓ Deployed[/]")
             success += 1
         else:
             console.print(f"[red]  ✗ Failed (rc={result.returncode})[/]")
@@ -535,9 +538,7 @@ def workspace_deploy(root, depth, name, timeout, dry_run):
                 for line in tail:
                     console.print(f"[red]    {line}[/]")
 
-    console.print(
-        f"\n[bold]Deployed: [green]{success}[/]/{len(projects)}[/]"
-    )
+    console.print(f"\n[bold]Deployed: [green]{success}[/]/{len(projects)}[/]")
 
     if success < len(projects):
         sys.exit(1)
@@ -589,14 +590,10 @@ def workspace_fix(root, depth, name, dry_run):
         if result.changed:
             console.print(f"[green]{project.name}[/]: {result.summary()}")
             if result.removed_workflow_names:
-                console.print(
-                    f"[dim]    orphans: {result.removed_workflow_names}[/]"
-                )
+                console.print(f"[dim]    orphans: {result.removed_workflow_names}[/]")
             changed += 1
 
-    console.print(
-        f"\n[bold]Fixed {changed}/{len(projects)} project(s)[/]"
-    )
+    console.print(f"\n[bold]Fixed {changed}/{len(projects)} project(s)[/]")
 
 
 # ─── workspace analyze ────────────────────────────────
@@ -628,19 +625,25 @@ def workspace_analyze(root, depth, output):
 
     if output:
         fieldnames = [
-            'path', 'name',
-            'taskfile_tasks', 'taskfile_has_pipeline', 'taskfile_has_docker',
-            'taskfile_has_environments',
-            'doql_workflows', 'doql_has_deploy', 'has_git',
-            'issues', 'recommendations',
+            "path",
+            "name",
+            "taskfile_tasks",
+            "taskfile_has_pipeline",
+            "taskfile_has_docker",
+            "taskfile_has_environments",
+            "doql_workflows",
+            "doql_has_deploy",
+            "has_git",
+            "issues",
+            "recommendations",
         ]
-        with open(output, 'w', newline='', encoding='utf-8') as f:
+        with open(output, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for a in analyses:
                 row = dict(a)
-                row['issues'] = ' | '.join(row['issues'])
-                row['recommendations'] = ' | '.join(row['recommendations'])
+                row["issues"] = " | ".join(row["issues"])
+                row["recommendations"] = " | ".join(row["recommendations"])
                 writer.writerow(row)
         console.print(f"[green]Wrote CSV:[/] {output}  ({len(analyses)} rows)")
         return
@@ -658,20 +661,20 @@ def workspace_analyze(root, depth, output):
     total_issues = 0
     total_recs = 0
     for i, a in enumerate(analyses, 1):
-        total_issues += len(a['issues'])
-        total_recs += len(a['recommendations'])
-        issues_str = '; '.join(a['issues']) if a['issues'] else '—'
-        recs_str = '; '.join(a['recommendations']) if a['recommendations'] else '—'
+        total_issues += len(a["issues"])
+        total_recs += len(a["recommendations"])
+        issues_str = "; ".join(a["issues"]) if a["issues"] else "—"
+        recs_str = "; ".join(a["recommendations"]) if a["recommendations"] else "—"
         if len(issues_str) > 40:
-            issues_str = issues_str[:37] + '...'
+            issues_str = issues_str[:37] + "..."
         if len(recs_str) > 50:
-            recs_str = recs_str[:47] + '...'
+            recs_str = recs_str[:47] + "..."
         table.add_row(
             str(i),
-            a['name'],
-            str(a['taskfile_tasks']),
-            str(a['doql_workflows']),
-            '✓' if a['taskfile_has_pipeline'] else '—',
+            a["name"],
+            str(a["taskfile_tasks"]),
+            str(a["doql_workflows"]),
+            "✓" if a["taskfile_has_pipeline"] else "—",
             issues_str,
             recs_str,
         )
@@ -688,13 +691,17 @@ def workspace_analyze(root, depth, output):
 
 
 @workspace.command(name="compare")
-@click.option("--root", "-r", multiple=True, required=True,
-              help="Base path(s) to scan (repeat for multiple)")
+@click.option(
+    "--root", "-r", multiple=True, required=True, help="Base path(s) to scan (repeat for multiple)"
+)
 @click.option("--depth", "-d", default=2, type=int, help="Max scan depth")
-@click.option("--output", "-o", default=None,
-              help="Write CSV to file (recommended for full data)")
-@click.option("--threshold", default=0.5, type=float,
-              help="Fraction of peers required for a task/workflow to be 'common' (0.0-1.0)")
+@click.option("--output", "-o", default=None, help="Write CSV to file (recommended for full data)")
+@click.option(
+    "--threshold",
+    default=0.5,
+    type=float,
+    help="Fraction of peers required for a task/workflow to be 'common' (0.0-1.0)",
+)
 def workspace_compare(root, depth, output, threshold):
     """Compare projects across one or many roots with peer-benchmarking.
 
@@ -732,29 +739,46 @@ def workspace_compare(root, depth, output, threshold):
     if output:
         # Flatten list columns
         fieldnames = [
-            'path', 'name',
-            'taskfile_tasks', 'taskfile_has_pipeline', 'taskfile_has_docker',
-            'taskfile_has_environments',
-            'doql_workflows', 'doql_entities', 'doql_databases', 'doql_interfaces',
-            'doql_has_app', 'doql_has_deploy',
-            'median_tasks', 'median_workflows',
-            'tasks_vs_median', 'workflows_vs_median',
-            'empty_workflows', 'orphan_workflows',
-            'tasks_missing_in_doql', 'missing_common_tasks', 'missing_common_workflows',
-            'issues', 'recommendations', 'has_git',
+            "path",
+            "name",
+            "taskfile_tasks",
+            "taskfile_has_pipeline",
+            "taskfile_has_docker",
+            "taskfile_has_environments",
+            "doql_workflows",
+            "doql_entities",
+            "doql_databases",
+            "doql_interfaces",
+            "doql_has_app",
+            "doql_has_deploy",
+            "median_tasks",
+            "median_workflows",
+            "tasks_vs_median",
+            "workflows_vs_median",
+            "empty_workflows",
+            "orphan_workflows",
+            "tasks_missing_in_doql",
+            "missing_common_tasks",
+            "missing_common_workflows",
+            "issues",
+            "recommendations",
+            "has_git",
         ]
-        with open(output, 'w', newline='', encoding='utf-8') as f:
+        with open(output, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for r in reports:
                 row = dict(r)
                 for key in (
-                    'empty_workflows', 'orphan_workflows',
-                    'tasks_missing_in_doql',
-                    'missing_common_tasks', 'missing_common_workflows',
-                    'issues', 'recommendations',
+                    "empty_workflows",
+                    "orphan_workflows",
+                    "tasks_missing_in_doql",
+                    "missing_common_tasks",
+                    "missing_common_workflows",
+                    "issues",
+                    "recommendations",
                 ):
-                    row[key] = ' | '.join(row[key])
+                    row[key] = " | ".join(row[key])
                 writer.writerow(row)
         console.print(
             f"[green]Wrote CSV:[/] {output}  ({len(reports)} rows, {len(fieldnames)} columns)"
@@ -771,8 +795,8 @@ def _print_compare_summary(reports: list[dict]) -> None:
     if not reports:
         return
 
-    med_tasks = reports[0]['median_tasks']
-    med_wfs = reports[0]['median_workflows']
+    med_tasks = reports[0]["median_tasks"]
+    med_wfs = reports[0]["median_workflows"]
 
     table = Table(
         title=f"Comparison — {len(reports)} projects (median tasks={med_tasks}, workflows={med_wfs})",
@@ -790,23 +814,27 @@ def _print_compare_summary(reports: list[dict]) -> None:
     total_issues = 0
     total_recs = 0
     for i, r in enumerate(reports, 1):
-        total_issues += len(r['issues'])
-        total_recs += len(r['recommendations'])
-        issues_str = '; '.join(r['issues']) if r['issues'] else '—'
-        rec_str = r['recommendations'][0] if r['recommendations'] else '—'
+        total_issues += len(r["issues"])
+        total_recs += len(r["recommendations"])
+        issues_str = "; ".join(r["issues"]) if r["issues"] else "—"
+        rec_str = r["recommendations"][0] if r["recommendations"] else "—"
         if len(issues_str) > 36:
-            issues_str = issues_str[:33] + '...'
+            issues_str = issues_str[:33] + "..."
         if len(rec_str) > 48:
-            rec_str = rec_str[:45] + '...'
-        dt = r['tasks_vs_median']
-        dw = r['workflows_vs_median']
+            rec_str = rec_str[:45] + "..."
+        dt = r["tasks_vs_median"]
+        dw = r["workflows_vs_median"]
         dt_str = f"+{dt}" if dt > 0 else str(dt)
         dw_str = f"+{dw}" if dw > 0 else str(dw)
         table.add_row(
-            str(i), r['name'],
-            str(r['taskfile_tasks']), dt_str,
-            str(r['doql_workflows']), dw_str,
-            issues_str, rec_str,
+            str(i),
+            r["name"],
+            str(r["taskfile_tasks"]),
+            dt_str,
+            str(r["doql_workflows"]),
+            dw_str,
+            issues_str,
+            rec_str,
         )
 
     console.print(table)

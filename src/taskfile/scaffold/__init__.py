@@ -10,8 +10,17 @@ from pathlib import Path
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 _TEMPLATE_NAMES = [
-    "minimal", "web", "podman", "full", "codereview", "multiplatform", "publish",
-    "kubernetes", "terraform", "iot", "saas",
+    "minimal",
+    "web",
+    "podman",
+    "full",
+    "codereview",
+    "multiplatform",
+    "publish",
+    "kubernetes",
+    "terraform",
+    "iot",
+    "saas",
 ]
 
 
@@ -22,6 +31,7 @@ def _load_template(name: str) -> str:
         return yml_path.read_text(encoding="utf-8")
     # Fallback to Python module (backward compat)
     import importlib
+
     mod = importlib.import_module(f"taskfile.scaffold.{name}")
     return mod.TEMPLATE
 

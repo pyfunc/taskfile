@@ -107,7 +107,7 @@ def find_taskfile(start_dir: str | Path | None = None) -> Path:
     raise TaskfileNotFoundError(
         f"No Taskfile found. Searched for: {', '.join(TASKFILE_NAMES)}\n"
         f"Run 'taskfile init' to create one.",
-        nearby=scan_nearby_taskfiles(start_dir)
+        nearby=scan_nearby_taskfiles(start_dir),
     )
 
 
@@ -256,20 +256,22 @@ def _validate_task_filter(
     if items:
         for item in items:
             if item not in valid_items:
-                warnings.append(
-                    f"Task '{task_name}' references unknown {filter_name} '{item}'"
-                )
+                warnings.append(f"Task '{task_name}' references unknown {filter_name} '{item}'")
     return warnings
 
 
 def _validate_task_env_filter(config: TaskfileConfig, task_name: str, task) -> list[str]:
     """Check that all environment references in filters exist."""
-    return _validate_task_filter(config, task_name, task, "env_filter", "environments", "environment")
+    return _validate_task_filter(
+        config, task_name, task, "env_filter", "environments", "environment"
+    )
 
 
 def _validate_task_platform_filter(config: TaskfileConfig, task_name: str, task) -> list[str]:
     """Check that all platform references in filters exist."""
-    return _validate_task_filter(config, task_name, task, "platform_filter", "platforms", "platform")
+    return _validate_task_filter(
+        config, task_name, task, "platform_filter", "platforms", "platform"
+    )
 
 
 def _validate_task_script_files(config: TaskfileConfig, task_name: str, task) -> list[str]:
@@ -283,7 +285,9 @@ def _validate_task_script_files(config: TaskfileConfig, task_name: str, task) ->
     else:
         resolved = taskfile_dir / script_path
     if not resolved.exists():
-        return [f"Task '{task_name}' references missing script: {task.script} (looked in {taskfile_dir})"]
+        return [
+            f"Task '{task_name}' references missing script: {task.script} (looked in {taskfile_dir})"
+        ]
     return []
 
 

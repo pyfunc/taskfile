@@ -1,7 +1,8 @@
 from __future__ import annotations
-from taskfile.cigen.base import CITarget, register_target, _sanitize_id, _yaml_dump
+from taskfile.cigen.base import CITarget, register_target
 
 # ─── Jenkins ──────────────────────────────────────────────
+
 
 @register_target("jenkins")
 class JenkinsTarget(CITarget):
@@ -21,7 +22,7 @@ class JenkinsTarget(CITarget):
             f"    agent {{ docker {{ image 'python:{p.python_version}-slim' }} }}",
             "",
             "    environment {",
-            f"        TAG = \"${{GIT_COMMIT.take(8)}}\"",
+            '        TAG = "${GIT_COMMIT.take(8)}"',
             "    }",
             "",
             "    stages {",
@@ -30,25 +31,29 @@ class JenkinsTarget(CITarget):
         for stage in p.stages:
             env_flag = self._stage_env_flag(stage)
             tasks = " ".join(stage.tasks)
-            lines.extend([
-                f"        stage('{stage.name}') {{",
-                "            steps {",
-                f"                sh '{p.install_cmd}'",
-                f"                sh 'taskfile {env_flag} run {tasks} --var TAG=${{TAG}}'",
-                "            }",
-                "        }",
-            ])
+            lines.extend(
+                [
+                    f"        stage('{stage.name}') {{",
+                    "            steps {",
+                    f"                sh '{p.install_cmd}'",
+                    f"                sh 'taskfile {env_flag} run {tasks} --var TAG=${{TAG}}'",
+                    "            }",
+                    "        }",
+                ]
+            )
 
-        lines.extend([
-            "    }",
-            "",
-            "    post {",
-            "        failure {",
-            "            echo 'Pipeline failed!'",
-            "        }",
-            "    }",
-            "}",
-            "",
-        ])
+        lines.extend(
+            [
+                "    }",
+                "",
+                "    post {",
+                "        failure {",
+                "            echo 'Pipeline failed!'",
+                "        }",
+                "    }",
+                "}",
+                "",
+            ]
+        )
 
         return "\n".join(lines)

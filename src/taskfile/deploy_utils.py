@@ -74,7 +74,7 @@ def remove_env_var(key: str, env_file: str | Path = ".env") -> None:
     if not env_path.exists():
         return
     lines = env_path.read_text().splitlines()
-    lines = [l for l in lines if not l.strip().startswith(f"{key}=")]
+    lines = [line for line in lines if not line.strip().startswith(f"{key}=")]
     env_path.write_text("\n".join(lines) + "\n")
 
 
@@ -83,6 +83,7 @@ def remove_env_var(key: str, env_file: str | Path = ".env") -> None:
 
 class SSHResult(NamedTuple):
     """Result of an SSH operation."""
+
     success: bool
     output: str
     exit_code: int
@@ -100,10 +101,14 @@ def test_ssh_connection(
         result = subprocess.run(
             [
                 "ssh",
-                "-o", f"ConnectTimeout={timeout}",
-                "-o", "BatchMode=yes",
-                "-o", "StrictHostKeyChecking=accept-new",
-                "-p", str(port),
+                "-o",
+                f"ConnectTimeout={timeout}",
+                "-o",
+                "BatchMode=yes",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "-p",
+                str(port),
                 target,
                 "echo ok",
             ],
@@ -135,10 +140,14 @@ def ssh_exec(
         result = subprocess.run(
             [
                 "ssh",
-                "-o", f"ConnectTimeout={min(timeout, 10)}",
-                "-o", "BatchMode=yes",
-                "-o", "StrictHostKeyChecking=accept-new",
-                "-p", str(port),
+                "-o",
+                f"ConnectTimeout={min(timeout, 10)}",
+                "-o",
+                "BatchMode=yes",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "-p",
+                str(port),
                 target,
                 command,
             ],
@@ -174,10 +183,15 @@ def setup_ssh_key(
         console.print(f"  Generating SSH key ({key_type})...")
         subprocess.run(
             [
-                "ssh-keygen", "-t", key_type,
-                "-C", f"deploy@{os.uname().nodename}",
-                "-f", str(key_path),
-                "-N", "",
+                "ssh-keygen",
+                "-t",
+                key_type,
+                "-C",
+                f"deploy@{os.uname().nodename}",
+                "-f",
+                str(key_path),
+                "-N",
+                "",
             ],
             capture_output=True,
         )
@@ -207,6 +221,7 @@ def setup_ssh_key(
 
 class RemoteInfo(NamedTuple):
     """Information about the remote host."""
+
     podman_installed: bool
     podman_version: str
     disk_available: str
@@ -247,10 +262,11 @@ def list_remote_images(
     result = ssh_exec(
         host,
         "podman images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true",
-        user, port,
+        user,
+        port,
     )
     if result.success and result.output:
-        return [l.strip() for l in result.output.splitlines() if l.strip()]
+        return [line.strip() for line in result.output.splitlines() if line.strip()]
     return []
 
 
@@ -280,10 +296,11 @@ def install_remote_podman(
 
     Returns True if podman is available after installation.
     """
-    result = ssh_exec(
+    ssh_exec(
         host,
         "apt-get update -qq && apt-get install -y -qq podman 2>&1 | tail -3",
-        user, port,
+        user,
+        port,
         timeout=120,
     )
     # Verify installation
@@ -309,13 +326,12 @@ def transfer_image_via_ssh(
     """
     target = f"{user}@{host}"
     ssh_opts = [
-        "-o", "StrictHostKeyChecking=accept-new",
-        "-p", str(port),
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        "-p",
+        str(port),
     ]
-    cmd = (
-        f"docker save {image} | "
-        f"ssh {' '.join(ssh_opts)} {target} '{remote_runtime} load'"
-    )
+    cmd = f"docker save {image} | ssh {' '.join(ssh_opts)} {target} '{remote_runtime} load'"
 
     console.print(f"  📦 Transferring {image} → {host}...")
 
@@ -335,7 +351,7 @@ def transfer_image_via_ssh(
             console.print(f"  [red]✗[/] Transfer failed: {result.stdout}")
             return False
     except subprocess.TimeoutExpired:
-        console.print(f"  [red]✗[/] Transfer timeout (>10min)")
+        console.print("  [red]✗[/] Transfer timeout (>10min)")
         return False
     except Exception as e:
         console.print(f"  [red]✗[/] Transfer error: {e}")
@@ -385,10 +401,7 @@ def deploy_container_remote(
 
     Returns True on success.
     """
-    cmd = (
-        f"{runtime} run -d --name {container_name} --replace "
-        f"-p {port_mapping} {image}"
-    )
+    cmd = f"{runtime} run -d --name {container_name} --replace -p {port_mapping} {image}"
     result = ssh_exec(host, cmd, user, port, timeout=60)
     return result.success
 
@@ -418,7 +431,8 @@ def get_remote_logs(
     result = ssh_exec(
         host,
         f"{runtime} logs --tail {tail} {container_name} 2>&1",
-        user, port,
+        user,
+        port,
         timeout=30,
     )
     return result.output if result.success else f"(failed to get logs: {result.output})"
@@ -436,7 +450,8 @@ def get_remote_status(
     result = ssh_exec(
         host,
         f"{runtime} ps {filters} --format 'table {{{{.Names}}}}\\t{{{{.Status}}}}\\t{{{{.Ports}}}}'",
-        user, port,
+        user,
+        port,
     )
     return result.output if result.success else f"(failed to get status: {result.output})"
 
@@ -464,9 +479,16 @@ def clean_project(
         1: ["apps"],
         2: ["apps", ".venv"],
         3: [
-            "apps", ".venv", "scripts", "prompts",
-            "docker-compose.yml", "project.yml", ".env",
-            ".gitignore", ".port-state.json", "Taskfile.yml",
+            "apps",
+            ".venv",
+            "scripts",
+            "prompts",
+            "docker-compose.yml",
+            "project.yml",
+            ".env",
+            ".gitignore",
+            ".port-state.json",
+            "Taskfile.yml",
         ],
     }
 

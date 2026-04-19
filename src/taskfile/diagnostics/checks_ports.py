@@ -24,6 +24,7 @@ try:
         who_uses_port as _fixop_who_uses,
         is_container_process as _fixop_is_container,
     )
+
     _HAS_FIXOP = True
 except ImportError:
     _HAS_FIXOP = False
@@ -65,7 +66,7 @@ def _check_service_ports(svc_name: str, svc: dict, ctx: dict) -> list[Issue]:
     if not isinstance(svc, dict):
         return []
     issues: list[Issue] = []
-    for port_entry in (svc.get("ports") or []):
+    for port_entry in svc.get("ports") or []:
         if not isinstance(port_entry, str):
             continue
         conflict = _resolve_port_conflict(svc_name, port_entry, ctx)
@@ -74,13 +75,15 @@ def _check_service_ports(svc_name: str, svc: dict, ctx: dict) -> list[Issue]:
     return issues
 
 
-def _build_port_conflict_issue(svc_name: str, key: str, resolved_port: int, suggested: int) -> Issue:
+def _build_port_conflict_issue(
+    svc_name: str, key: str, resolved_port: int, suggested: int
+) -> Issue:
     """Build an Issue for a single port conflict."""
     pid, process = _who_uses_port(resolved_port)
     return Issue(
         category=IssueCategory.RUNTIME_ERROR,
         message=f"Port {resolved_port} for service '{svc_name}' is in use"
-                + (f" by '{process}' (pid {pid})" if process else ""),
+        + (f" by '{process}' (pid {pid})" if process else ""),
         fix_strategy=FixStrategy.CONFIRM,
         severity=SEVERITY_WARNING,
         fix_command=f"docker stop {process}" if process and _is_docker_process(process) else None,
@@ -104,6 +107,7 @@ def _resolve_port_conflict(
         return None
 
     from taskfile.compose import resolve_variables
+
     expanded = resolve_variables(str(host_port), ctx)
     try:
         resolved = int(expanded)
@@ -168,13 +172,17 @@ def _who_uses_port(port: int) -> tuple[int | None, str | None]:
     try:
         result = subprocess.run(
             ["lsof", "-i", f":{port}", "-t"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
             pid = int(result.stdout.strip().split("\n")[0])
             ps = subprocess.run(
                 ["ps", "-p", str(pid), "-o", "comm="],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             name = ps.stdout.strip() if ps.returncode == 0 else None
             return pid, name

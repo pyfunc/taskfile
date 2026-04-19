@@ -71,25 +71,29 @@ def register_run_routes(app: FastAPI) -> None:
                     ]
                     error_text = stderr_capture.getvalue().strip() or None
 
-                    task_results.append(TaskRunResult(
-                        task=task_name,
-                        status=TaskStatus.success if success else TaskStatus.failed,
-                        duration_ms=duration_ms,
-                        output=output_lines,
-                        error=error_text if not success else None,
-                    ))
+                    task_results.append(
+                        TaskRunResult(
+                            task=task_name,
+                            status=TaskStatus.success if success else TaskStatus.failed,
+                            duration_ms=duration_ms,
+                            output=output_lines,
+                            error=error_text if not success else None,
+                        )
+                    )
 
                     if not success:
                         break
 
                 except Exception as exc:
                     duration_ms = int((time.time() - task_start) * 1000)
-                    task_results.append(TaskRunResult(
-                        task=task_name,
-                        status=TaskStatus.failed,
-                        duration_ms=duration_ms,
-                        error=str(exc),
-                    ))
+                    task_results.append(
+                        TaskRunResult(
+                            task=task_name,
+                            status=TaskStatus.failed,
+                            duration_ms=duration_ms,
+                            error=str(exc),
+                        )
+                    )
                     break
 
         except Exception as exc:

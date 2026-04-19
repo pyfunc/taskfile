@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -18,23 +17,23 @@ from taskfile.parser import TaskfileNotFoundError, TaskfileParseError
 def setup():
     """**🛠️ Setup project** — hosts, env, dependencies.
 
-## Commands
+    ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `hosts` | Configure deployment hosts (staging/prod) |
-| `env` | Configure environment variables (.env) |
+    | Command | Description |
+    |---------|-------------|
+    | `hosts` | Configure deployment hosts (staging/prod) |
+    | `env` | Configure environment variables (.env) |
 
-## Examples
+    ## Examples
 
-```bash
-# Configure deployment hosts
-taskfile setup hosts
+    ```bash
+    # Configure deployment hosts
+    taskfile setup hosts
 
-# Configure environment variables
-taskfile setup env
-```
-"""
+    # Configure environment variables
+    taskfile setup env
+    ```
+    """
 
 
 @setup.command()
@@ -42,21 +41,23 @@ taskfile setup env
 def hosts(env_file):
     """**Configure deployment hosts** (staging/prod) interactively.
 
-Native interactive prompts for server addresses and SSH users.
-No shell scripts required — works out of the box.
+    Native interactive prompts for server addresses and SSH users.
+    No shell scripts required — works out of the box.
 
-## Example
+    ## Example
 
-```bash
-taskfile setup hosts
-```
-"""
+    ```bash
+    taskfile setup hosts
+    ```
+    """
     from taskfile.deploy_utils import load_env_file, update_env_var
 
-    console.print(Panel.fit(
-        "[bold green]🌐 Deployment Hosts Configuration[/]",
-        border_style="green",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]🌐 Deployment Hosts Configuration[/]",
+            border_style="green",
+        )
+    )
 
     # Load current values
     env_path = Path(env_file)
@@ -92,21 +93,23 @@ taskfile setup hosts
 def env(env_file):
     """**Configure environment variables** (.env) interactively.
 
-Native interactive prompts for ports, project name, and version.
-No shell scripts required.
+    Native interactive prompts for ports, project name, and version.
+    No shell scripts required.
 
-## Example
+    ## Example
 
-```bash
-taskfile setup env
-```
-"""
+    ```bash
+    taskfile setup env
+    ```
+    """
     from taskfile.deploy_utils import load_env_file, update_env_var
 
-    console.print(Panel.fit(
-        "[bold green]🔐 Environment Configuration[/]",
-        border_style="green",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]🔐 Environment Configuration[/]",
+            border_style="green",
+        )
+    )
 
     env_path = Path(env_file)
     if not env_path.exists():
@@ -115,16 +118,20 @@ taskfile setup env
 
     # Ports
     console.print("\n[bold]🌐 Ports:[/]")
-    port_web = str(IntPrompt.ask(
-        "  Web app port",
-        default=int(current.get("PORT_WEB", "8000")),
-    ))
+    port_web = str(
+        IntPrompt.ask(
+            "  Web app port",
+            default=int(current.get("PORT_WEB", "8000")),
+        )
+    )
     update_env_var("PORT_WEB", port_web, env_path)
 
-    port_landing = str(IntPrompt.ask(
-        "  Landing page port",
-        default=int(current.get("PORT_LANDING", "3000")),
-    ))
+    port_landing = str(
+        IntPrompt.ask(
+            "  Landing page port",
+            default=int(current.get("PORT_LANDING", "3000")),
+        )
+    )
     update_env_var("PORT_LANDING", port_landing, env_path)
 
     # Project name
@@ -152,18 +159,18 @@ taskfile setup env
 def prod(env_file):
     """**Interactive production server setup** — SSH, podman, .env.
 
-All-in-one interactive production setup:
-1. Configure server hostname and SSH user
-2. Test/setup SSH key authentication
-3. Check/install podman on remote
-4. Save configuration to .env
+    All-in-one interactive production setup:
+    1. Configure server hostname and SSH user
+    2. Test/setup SSH key authentication
+    3. Check/install podman on remote
+    4. Save configuration to .env
 
-## Example
+    ## Example
 
-```bash
-taskfile setup prod
-```
-"""
+    ```bash
+    taskfile setup prod
+    ```
+    """
     from taskfile.deploy_utils import (
         load_env_file,
         update_env_var,
@@ -174,10 +181,12 @@ taskfile setup prod
         check_remote_disk,
     )
 
-    console.print(Panel.fit(
-        "[bold green]🔧 Production Server Setup[/]",
-        border_style="green",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]🔧 Production Server Setup[/]",
+            border_style="green",
+        )
+    )
 
     env_path = Path(env_file)
     if not env_path.exists():
@@ -198,15 +207,19 @@ taskfile setup prod
         default=current.get("DEPLOY_USER", "root"),
     )
 
-    port_web = str(IntPrompt.ask(
-        "  Web app port",
-        default=int(current.get("PORT_WEB", "8000")),
-    ))
+    port_web = str(
+        IntPrompt.ask(
+            "  Web app port",
+            default=int(current.get("PORT_WEB", "8000")),
+        )
+    )
 
-    port_landing = str(IntPrompt.ask(
-        "  Landing page port",
-        default=int(current.get("PORT_LANDING", "3000")),
-    ))
+    port_landing = str(
+        IntPrompt.ask(
+            "  Landing page port",
+            default=int(current.get("PORT_LANDING", "3000")),
+        )
+    )
 
     # ─── Test SSH ───
     console.print(f"\n  🔍 Testing SSH to {deploy_user}@{prod_host}...")
@@ -267,42 +280,42 @@ taskfile setup prod
 def watch(ctx, tasks, path, debounce):
     """**👁️ Watch files** and run tasks on changes.
 
-Automatically detects file changes and re-runs specified tasks.
-Useful for development workflows like auto-rebuilding on code changes.
+    Automatically detects file changes and re-runs specified tasks.
+    Useful for development workflows like auto-rebuilding on code changes.
 
-## Options
+    ## Options
 
-| Option | Description |
-|--------|-------------|
-| `-p, --path` | Path(s) to watch |
-| `-d, --debounce` | Debounce time in ms (default: 300) |
+    | Option | Description |
+    |--------|-------------|
+    | `-p, --path` | Path(s) to watch |
+    | `-d, --debounce` | Debounce time in ms (default: 300) |
 
-## Examples
+    ## Examples
 
-```bash
-# Watch current dir, run 'build' on changes
-taskfile watch build
+    ```bash
+    # Watch current dir, run 'build' on changes
+    taskfile watch build
 
-# Run multiple tasks on change
-taskfile watch build test
+    # Run multiple tasks on change
+    taskfile watch build test
 
-# Watch only 'src' directory
-taskfile watch -p src build
+    # Watch only 'src' directory
+    taskfile watch -p src build
 
-# Watch multiple paths
-taskfile watch -p src -p tests test
+    # Watch multiple paths
+    taskfile watch -p src -p tests test
 
-# 500ms debounce
-taskfile watch -d 500 build
-```
-"""
+    # 500ms debounce
+    taskfile watch -d 500 build
+    ```
+    """
     from taskfile.watch import watch_tasks
     from taskfile.runner import TaskfileRunner
 
     opts = ctx.obj
-    
+
     watch_paths = list(path) if path else None
-    
+
     try:
         runner = TaskfileRunner(
             taskfile_path=opts["taskfile_path"],
@@ -312,7 +325,7 @@ taskfile watch -d 500 build
             dry_run=opts["dry_run"],
             verbose=opts["verbose"],
         )
-        
+
         watch_tasks(
             task_names=list(tasks),
             watch_paths=watch_paths,
@@ -322,6 +335,7 @@ taskfile watch -d 500 build
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         from taskfile.cli.main import _print_nearby_taskfiles
+
         if isinstance(e, TaskfileNotFoundError):
             _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
@@ -335,46 +349,47 @@ taskfile watch -d 500 build
 def graph(ctx, task_name, dot, output):
     """**🕸️ Show task dependency graph**.
 
-Visualizes task dependencies as a tree or exports to Graphviz DOT format.
-Helps understand the relationships between tasks.
+    Visualizes task dependencies as a tree or exports to Graphviz DOT format.
+    Helps understand the relationships between tasks.
 
-## Options
+    ## Options
 
-| Option | Description |
-|--------|-------------|
-| `-d, --dot` | Export to DOT format |
-| `-o, --output` | Output file for DOT export |
+    | Option | Description |
+    |--------|-------------|
+    | `-d, --dot` | Export to DOT format |
+    | `-o, --output` | Output file for DOT export |
 
-## Examples
+    ## Examples
 
-```bash
-# Show all task dependencies
-taskfile graph
+    ```bash
+    # Show all task dependencies
+    taskfile graph
 
-# Show dependencies for 'build' task only
-taskfile graph build
+    # Show dependencies for 'build' task only
+    taskfile graph build
 
-# Export to DOT format
-taskfile graph --dot
+    # Export to DOT format
+    taskfile graph --dot
 
-# Save to file
-taskfile graph --dot -o tasks.dot
-```
-"""
-    from taskfile.graph import print_task_tree, print_dependency_list, export_to_dot
+    # Save to file
+    taskfile graph --dot -o tasks.dot
+    ```
+    """
+    from taskfile.graph import print_task_tree, export_to_dot
     from taskfile.parser import load_taskfile
 
     opts = ctx.obj
-    
+
     try:
         config = load_taskfile(opts["taskfile_path"])
-        
+
         if dot:
             # Export to DOT format
             from pathlib import Path
+
             output_path = Path(output) if output else None
             dot_content = export_to_dot(config, output_path)
-            
+
             if output:
                 console.print(f"[green]✓ Exported to {output}[/]")
                 console.print("[dim]Generate image with: dot -Tpng -o graph.png[/]")
@@ -386,10 +401,11 @@ taskfile graph --dot -o tasks.dot
         else:
             # Show all tasks
             print_task_tree(config)
-            
+
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
         from taskfile.cli.main import _print_nearby_taskfiles
+
         if isinstance(e, TaskfileNotFoundError):
             _print_nearby_taskfiles(e.nearby)
         sys.exit(1)
@@ -401,34 +417,34 @@ taskfile graph --dot -o tasks.dot
 def serve(port, no_browser):
     """**🌐 Start web dashboard** for managing tasks.
 
-Opens a web UI in your browser for visual task management.
-You can view, search, and run tasks from the browser.
+    Opens a web UI in your browser for visual task management.
+    You can view, search, and run tasks from the browser.
 
-## Options
+    ## Options
 
-| Option | Description |
-|--------|-------------|
-| `-p, --port` | Port to run server on (default: 8080) |
-| `--no-browser` | Don't auto-open browser |
+    | Option | Description |
+    |--------|-------------|
+    | `-p, --port` | Port to run server on (default: 8080) |
+    | `--no-browser` | Don't auto-open browser |
 
-## Examples
+    ## Examples
 
-```bash
-# Start on default port 8080
-taskfile serve
+    ```bash
+    # Start on default port 8080
+    taskfile serve
 
-# Use custom port
-taskfile serve -p 3000
+    # Use custom port
+    taskfile serve -p 3000
 
-# Don't auto-open browser
-taskfile serve --no-browser
-```
-"""
+    # Don't auto-open browser
+    taskfile serve --no-browser
+    ```
+    """
     from taskfile.webui import serve_dashboard
-    
-    console.print(f"[bold green]🌐 Starting Taskfile Web UI...[/]")
+
+    console.print("[bold green]🌐 Starting Taskfile Web UI...[/]")
     console.print(f"[dim]Port: {port}[/]")
-    
+
     try:
         serve_dashboard(port=port, open_browser=not no_browser)
     except Exception as e:
@@ -437,35 +453,39 @@ taskfile serve --no-browser
 
 
 @main.command()
-@click.option("--level", type=click.Choice(["1", "2", "3"]), default=None,
-              help="Clean level: 1=apps, 2=apps+venv, 3=full reset")
+@click.option(
+    "--level",
+    type=click.Choice(["1", "2", "3"]),
+    default=None,
+    help="Clean level: 1=apps, 2=apps+venv, 3=full reset",
+)
 @click.option("--yes", "assume_yes", is_flag=True, help="Skip confirmation")
 def clean(level, assume_yes):
     """**🧹 Clean project artifacts**.
 
-Remove generated files and build artifacts.
+    Remove generated files and build artifacts.
 
-## Clean levels
+    ## Clean levels
 
-| Level | What is removed |
-|-------|-----------------|
-| 1 | Generated apps/ only |
-| 2 | apps/ + .venv/ |
-| 3 | Full reset (everything except README.md) |
+    | Level | What is removed |
+    |-------|-----------------|
+    | 1 | Generated apps/ only |
+    | 2 | apps/ + .venv/ |
+    | 3 | Full reset (everything except README.md) |
 
-## Examples
+    ## Examples
 
-```bash
-# Interactive choice
-taskfile clean
+    ```bash
+    # Interactive choice
+    taskfile clean
 
-# Direct level selection
-taskfile clean --level 1
+    # Direct level selection
+    taskfile clean --level 1
 
-# No confirmation
-taskfile clean --level 2 --yes
-```
-"""
+    # No confirmation
+    taskfile clean --level 2 --yes
+    ```
+    """
     from taskfile.deploy_utils import clean_project
 
     if level is None:
@@ -500,22 +520,22 @@ taskfile clean --level 2 --yes
 def push(images, host, user, runtime):
     """**📦 Push Docker images to remote server** via SSH.
 
-Transfer locally-built Docker images to a remote server using
-`docker save | ssh podman load`. No registry needed.
+    Transfer locally-built Docker images to a remote server using
+    `docker save | ssh podman load`. No registry needed.
 
-## Examples
+    ## Examples
 
-```bash
-# Push specific images
-taskfile push myapp-web:latest myapp-landing:latest
+    ```bash
+    # Push specific images
+    taskfile push myapp-web:latest myapp-landing:latest
 
-# Push to specific host
-taskfile push --host prod.example.com myapp:latest
+    # Push to specific host
+    taskfile push --host prod.example.com myapp:latest
 
-# Push with custom runtime
-taskfile push --runtime docker myapp:latest
-```
-"""
+    # Push with custom runtime
+    taskfile push --runtime docker myapp:latest
+    ```
+    """
     from taskfile.deploy_utils import (
         load_env_file,
         transfer_images_via_ssh,
@@ -548,5 +568,5 @@ taskfile push --runtime docker myapp:latest
     if success:
         console.print(f"\n[green]✅ All images transferred to {target_host}[/]")
     else:
-        console.print(f"\n[red]✗ Some transfers failed[/]")
+        console.print("\n[red]✗ Some transfers failed[/]")
         sys.exit(1)

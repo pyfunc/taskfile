@@ -4,6 +4,7 @@ import clickmd as click
 from taskfile.parser import load_taskfile, TaskfileNotFoundError, TaskfileParseError
 from taskfile.cli.main import main, console
 
+
 @main.group()
 def ci():
     """Generate CI/CD configs and run pipelines locally.
@@ -18,7 +19,9 @@ def ci():
 
 @ci.command(name="generate")
 @click.option(
-    "--target", "targets", multiple=True,
+    "--target",
+    "targets",
+    multiple=True,
     help="CI platform: github, gitlab, gitea, drone, jenkins, makefile (repeatable)",
 )
 @click.option("--all", "gen_all", is_flag=True, help="Generate for all platforms")
@@ -43,7 +46,7 @@ def ci_generate(ctx, targets, gen_all, output_dir):
         jenkins  → Jenkinsfile
         makefile → Makefile
     """
-    from taskfile.cigen import generate_ci, generate_all_ci, list_targets, TARGETS
+    from taskfile.cigen import generate_ci, generate_all_ci, list_targets
 
     opts = ctx.obj or {}
     try:
@@ -67,7 +70,7 @@ def ci_generate(ctx, targets, gen_all, output_dir):
             console.print("[dim]        when: manual[/]")
             sys.exit(1)
 
-        console.print(f"[bold]Generating CI/CD configs from Taskfile.yml[/]")
+        console.print("[bold]Generating CI/CD configs from Taskfile.yml[/]")
         stages_info = " → ".join(s.name for s in config.pipeline.stages)
         console.print(f"  Pipeline: {stages_info}\n")
 
@@ -88,7 +91,9 @@ def ci_generate(ctx, targets, gen_all, output_dir):
             sys.exit(0)
 
         console.print(f"\n[green]✓ Generated {len(generated)} CI/CD config(s)[/]")
-        console.print("[dim]  All configs call 'taskfile' — your pipeline logic stays in Taskfile.yml[/]")
+        console.print(
+            "[dim]  All configs call 'taskfile' — your pipeline logic stays in Taskfile.yml[/]"
+        )
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")

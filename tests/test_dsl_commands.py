@@ -19,19 +19,18 @@ Tests all command types and combinations:
 - YAML command normalization (dict-as-cmd edge case)
 """
 
-import os
 import textwrap
-import pytest
 import yaml
-from pathlib import Path
 
 from taskfile.models import TaskfileConfig, Task, Environment
 from taskfile.parser import load_taskfile
 from taskfile.runner import TaskfileRunner
-from taskfile.runner.commands import _expand_globs_in_command, run_command, execute_commands
+from taskfile.runner.commands import _expand_globs_in_command
 from taskfile.runner.ssh import (
-    is_local_command, is_remote_command,
-    strip_local_prefix, strip_remote_prefix,
+    is_local_command,
+    is_remote_command,
+    strip_local_prefix,
+    strip_remote_prefix,
     wrap_ssh,
 )
 
@@ -39,6 +38,7 @@ from taskfile.runner.ssh import (
 # ═══════════════════════════════════════════════════════════════════════
 # Helpers
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def _make_runner(tasks_data: dict, env_name="local", **kwargs):
     """Create a TaskfileRunner from minimal task dict."""
@@ -80,6 +80,7 @@ def _make_runner_with_functions(tasks_data: dict, functions_data: dict, **kwargs
 # 1. Basic Command Execution
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestBasicCommands:
     """Test basic command execution (echo, exit codes, multiple commands)."""
 
@@ -88,9 +89,11 @@ class TestBasicCommands:
         assert runner.run_task("hello") is True
 
     def test_multiple_commands(self):
-        runner = _make_runner({
-            "multi": {"cmds": ["echo first", "echo second", "echo third"]},
-        })
+        runner = _make_runner(
+            {
+                "multi": {"cmds": ["echo first", "echo second", "echo third"]},
+            }
+        )
         assert runner.run_task("multi") is True
 
     def test_exit_0_success(self):
@@ -107,9 +110,11 @@ class TestBasicCommands:
 
     def test_second_command_fails(self):
         """First command succeeds, second fails → task fails."""
-        runner = _make_runner({
-            "partial": {"cmds": ["echo ok", "exit 1", "echo never"]},
-        })
+        runner = _make_runner(
+            {
+                "partial": {"cmds": ["echo ok", "exit 1", "echo never"]},
+            }
+        )
         assert runner.run_task("partial") is False
 
     def test_empty_commands(self):
@@ -118,15 +123,19 @@ class TestBasicCommands:
         assert runner.run_task("noop") is True
 
     def test_command_with_pipe(self):
-        runner = _make_runner({
-            "pipe": {"cmds": ["echo hello | cat"]},
-        })
+        runner = _make_runner(
+            {
+                "pipe": {"cmds": ["echo hello | cat"]},
+            }
+        )
         assert runner.run_task("pipe") is True
 
     def test_command_with_subshell(self):
-        runner = _make_runner({
-            "sub": {"cmds": ["echo $(date +%Y)"]},
-        })
+        runner = _make_runner(
+            {
+                "sub": {"cmds": ["echo $(date +%Y)"]},
+            }
+        )
         assert runner.run_task("sub") is True
 
     def test_unknown_task(self):
@@ -137,6 +146,7 @@ class TestBasicCommands:
 # ═══════════════════════════════════════════════════════════════════════
 # 2. Variable Expansion
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestVariableExpansion:
     """Test ${VAR} and {{VAR}} expansion in commands."""
@@ -161,9 +171,11 @@ class TestVariableExpansion:
         assert "UNDEFINED_VAR" in result
 
     def test_variable_in_command_execution(self):
-        runner = _make_runner({
-            "show": {"cmds": ["echo ${APP}:${TAG}"]},
-        })
+        runner = _make_runner(
+            {
+                "show": {"cmds": ["echo ${APP}:${TAG}"]},
+            }
+        )
         assert runner.run_task("show") is True
 
     def test_env_overrides_global(self):
@@ -205,6 +217,7 @@ class TestVariableExpansion:
 # 3. @local / @remote Prefix Routing
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestLocalRemoteRouting:
     """Test @local/@remote command routing based on environment."""
 
@@ -229,50 +242,70 @@ class TestLocalRemoteRouting:
 
     def test_local_cmd_runs_on_local_env(self):
         """@local commands run when env is local (no SSH)."""
-        runner = _make_runner({
-            "t": {"cmds": ["@local echo local-only"]},
-        }, env_name="local")
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["@local echo local-only"]},
+            },
+            env_name="local",
+        )
         assert runner.run_task("t") is True
 
     def test_local_cmd_skipped_on_remote_env(self):
         """@local commands are skipped when env has SSH (remote)."""
-        runner = _make_runner({
-            "t": {"cmds": ["@local echo should-skip"]},
-        }, env_name="prod", dry_run=True)
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["@local echo should-skip"]},
+            },
+            env_name="prod",
+            dry_run=True,
+        )
         assert runner.run_task("t") is True
 
     def test_remote_cmd_skipped_on_local_env(self):
         """@remote commands are skipped when env is local."""
-        runner = _make_runner({
-            "t": {"cmds": ["@remote echo should-skip"]},
-        }, env_name="local")
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["@remote echo should-skip"]},
+            },
+            env_name="local",
+        )
         assert runner.run_task("t") is True
 
     def test_remote_cmd_dryrun_on_prod(self):
         """@remote commands execute (dry-run) when env has SSH."""
-        runner = _make_runner({
-            "t": {"cmds": ["@remote echo hello-prod"]},
-        }, env_name="prod", dry_run=True)
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["@remote echo hello-prod"]},
+            },
+            env_name="prod",
+            dry_run=True,
+        )
         assert runner.run_task("t") is True
 
     def test_mixed_local_remote_commands(self):
         """Task with both @local and @remote commands."""
-        runner = _make_runner({
-            "deploy": {
-                "cmds": [
-                    "@local echo building...",
-                    "@local echo build-step-2",
-                    "@remote systemctl restart app",
-                ],
+        runner = _make_runner(
+            {
+                "deploy": {
+                    "cmds": [
+                        "@local echo building...",
+                        "@local echo build-step-2",
+                        "@remote systemctl restart app",
+                    ],
+                },
             },
-        }, env_name="local")
+            env_name="local",
+        )
         # On local: @local runs, @remote skips
         assert runner.run_task("deploy") is True
 
     def test_wrap_ssh_basic(self):
         """SSH wrapping produces correct command."""
         env = Environment(
-            name="prod", ssh_host="example.com", ssh_user="deploy", ssh_port=22,
+            name="prod",
+            ssh_host="example.com",
+            ssh_user="deploy",
+            ssh_port=22,
         )
         result = wrap_ssh("@remote echo hello", env)
         assert "ssh" in result
@@ -281,14 +314,19 @@ class TestLocalRemoteRouting:
 
     def test_wrap_ssh_custom_port(self):
         env = Environment(
-            name="prod", ssh_host="example.com", ssh_user="root", ssh_port=2222,
+            name="prod",
+            ssh_host="example.com",
+            ssh_user="root",
+            ssh_port=2222,
         )
         result = wrap_ssh("@remote ls", env)
         assert "-p 2222" in result
 
     def test_wrap_ssh_with_key(self):
         env = Environment(
-            name="prod", ssh_host="example.com", ssh_user="deploy",
+            name="prod",
+            ssh_host="example.com",
+            ssh_user="deploy",
             ssh_key="~/.ssh/deploy_key",
         )
         result = wrap_ssh("@remote ls", env)
@@ -305,6 +343,7 @@ class TestLocalRemoteRouting:
 # ═══════════════════════════════════════════════════════════════════════
 # 4. Glob Expansion
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestGlobExpansion:
     """Test local glob expansion in commands."""
@@ -421,6 +460,7 @@ class TestGlobExpansion:
 # 5. @fn / @python Execution
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestFunctionExecution:
     """Test @fn and @python command prefixes."""
 
@@ -462,16 +502,20 @@ class TestFunctionExecution:
         assert runner.run_task("t") is True
 
     def test_python_prefix_with_import(self):
-        runner = _make_runner({
-            "t": {"cmds": ["@python import sys; print(sys.version_info.major)"]},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["@python import sys; print(sys.version_info.major)"]},
+            }
+        )
         assert runner.run_task("t") is True
 
     def test_python_prefix_failure(self):
         """@python with syntax error fails."""
-        runner = _make_runner({
-            "t": {"cmds": ["@python this is not valid python!!!"]},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["@python this is not valid python!!!"]},
+            }
+        )
         assert runner.run_task("t") is False
 
     def test_fn_dry_run(self):
@@ -500,6 +544,7 @@ class TestFunctionExecution:
 # 6. script: External Script Execution
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestScriptExecution:
     """Test script: field for external script files."""
 
@@ -511,10 +556,14 @@ class TestScriptExecution:
         script.chmod(0o755)
 
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {"hello": {"script": "scripts/hello.sh"}},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"hello": {"script": "scripts/hello.sh"}},
+                }
+            )
+        )
         config = load_taskfile(taskfile)
         runner = TaskfileRunner(config=config)
         assert runner.run_task("hello") is True
@@ -522,10 +571,14 @@ class TestScriptExecution:
     def test_script_not_found(self, tmp_path):
         """script: with missing file fails gracefully."""
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {"hello": {"script": "scripts/nonexistent.sh"}},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"hello": {"script": "scripts/nonexistent.sh"}},
+                }
+            )
+        )
         config = load_taskfile(taskfile)
         runner = TaskfileRunner(config=config)
         assert runner.run_task("hello") is False
@@ -537,10 +590,14 @@ class TestScriptExecution:
         script.chmod(0o755)
 
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {"fail": {"script": "fail.sh"}},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"fail": {"script": "fail.sh"}},
+                }
+            )
+        )
         config = load_taskfile(taskfile)
         runner = TaskfileRunner(config=config)
         assert runner.run_task("fail") is False
@@ -552,13 +609,19 @@ class TestScriptExecution:
         script.chmod(0o755)
 
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {"both": {
-                "script": "setup.sh",
-                "cmds": ["echo inline done"],
-            }},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {
+                        "both": {
+                            "script": "setup.sh",
+                            "cmds": ["echo inline done"],
+                        }
+                    },
+                }
+            )
+        )
         config = load_taskfile(taskfile)
         runner = TaskfileRunner(config=config)
         assert runner.run_task("both") is True
@@ -566,10 +629,14 @@ class TestScriptExecution:
     def test_script_dry_run(self, tmp_path):
         """script: in dry-run mode doesn't execute."""
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(yaml.dump({
-            "version": "1",
-            "tasks": {"hello": {"script": "nonexistent.sh"}},
-        }))
+        taskfile.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"hello": {"script": "nonexistent.sh"}},
+                }
+            )
+        )
         config = load_taskfile(taskfile)
         runner = TaskfileRunner(config=config, dry_run=True)
         assert runner.run_task("hello") is True
@@ -579,25 +646,30 @@ class TestScriptExecution:
 # 7. Dependencies
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestDependencies:
     """Test task dependency chains (deps:)."""
 
     def test_single_dependency(self):
-        runner = _make_runner({
-            "build": {"cmds": ["echo build"]},
-            "deploy": {"cmds": ["echo deploy"], "deps": ["build"]},
-        })
+        runner = _make_runner(
+            {
+                "build": {"cmds": ["echo build"]},
+                "deploy": {"cmds": ["echo deploy"], "deps": ["build"]},
+            }
+        )
         assert runner.run_task("deploy") is True
         assert "build" in runner._executed
         assert "deploy" in runner._executed
 
     def test_chain_dependency(self):
-        runner = _make_runner({
-            "lint": {"cmds": ["echo lint"]},
-            "test": {"cmds": ["echo test"], "deps": ["lint"]},
-            "build": {"cmds": ["echo build"], "deps": ["test"]},
-            "deploy": {"cmds": ["echo deploy"], "deps": ["build"]},
-        })
+        runner = _make_runner(
+            {
+                "lint": {"cmds": ["echo lint"]},
+                "test": {"cmds": ["echo test"], "deps": ["lint"]},
+                "build": {"cmds": ["echo build"], "deps": ["test"]},
+                "deploy": {"cmds": ["echo deploy"], "deps": ["build"]},
+            }
+        )
         assert runner.run_task("deploy") is True
         assert "lint" in runner._executed
         assert "test" in runner._executed
@@ -605,70 +677,82 @@ class TestDependencies:
         assert "deploy" in runner._executed
 
     def test_failed_dependency_stops_task(self):
-        runner = _make_runner({
-            "fail-dep": {"cmds": ["exit 1"]},
-            "main": {"cmds": ["echo should-not-run"], "deps": ["fail-dep"]},
-        })
+        runner = _make_runner(
+            {
+                "fail-dep": {"cmds": ["exit 1"]},
+                "main": {"cmds": ["echo should-not-run"], "deps": ["fail-dep"]},
+            }
+        )
         assert runner.run_task("main") is False
 
     def test_multiple_deps(self):
-        runner = _make_runner({
-            "dep1": {"cmds": ["echo dep1"]},
-            "dep2": {"cmds": ["echo dep2"]},
-            "main": {"cmds": ["echo main"], "deps": ["dep1", "dep2"]},
-        })
+        runner = _make_runner(
+            {
+                "dep1": {"cmds": ["echo dep1"]},
+                "dep2": {"cmds": ["echo dep2"]},
+                "main": {"cmds": ["echo main"], "deps": ["dep1", "dep2"]},
+            }
+        )
         assert runner.run_task("main") is True
         assert "dep1" in runner._executed
         assert "dep2" in runner._executed
 
     def test_dep_runs_only_once(self):
         """Dependencies are not re-executed if already done."""
-        runner = _make_runner({
-            "shared": {"cmds": ["echo shared"]},
-            "a": {"cmds": ["echo a"], "deps": ["shared"]},
-            "b": {"cmds": ["echo b"], "deps": ["shared"]},
-            "main": {"cmds": ["echo main"], "deps": ["a", "b"]},
-        })
+        runner = _make_runner(
+            {
+                "shared": {"cmds": ["echo shared"]},
+                "a": {"cmds": ["echo a"], "deps": ["shared"]},
+                "b": {"cmds": ["echo b"], "deps": ["shared"]},
+                "main": {"cmds": ["echo main"], "deps": ["a", "b"]},
+            }
+        )
         assert runner.run_task("main") is True
         assert "shared" in runner._executed
 
     def test_parallel_deps(self):
-        runner = _make_runner({
-            "dep1": {"cmds": ["echo dep1"]},
-            "dep2": {"cmds": ["echo dep2"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["dep1", "dep2"],
-                "parallel": True,
-            },
-        })
+        runner = _make_runner(
+            {
+                "dep1": {"cmds": ["echo dep1"]},
+                "dep2": {"cmds": ["echo dep2"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["dep1", "dep2"],
+                    "parallel": True,
+                },
+            }
+        )
         assert runner.run_task("main") is True
         assert "dep1" in runner._executed
         assert "dep2" in runner._executed
 
     def test_parallel_deps_failure(self):
-        runner = _make_runner({
-            "ok": {"cmds": ["echo ok"]},
-            "fail": {"cmds": ["exit 1"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["ok", "fail"],
-                "parallel": True,
-            },
-        })
+        runner = _make_runner(
+            {
+                "ok": {"cmds": ["echo ok"]},
+                "fail": {"cmds": ["exit 1"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["ok", "fail"],
+                    "parallel": True,
+                },
+            }
+        )
         assert runner.run_task("main") is False
 
     def test_parallel_deps_ignore_errors(self):
-        runner = _make_runner({
-            "ok": {"cmds": ["echo ok"]},
-            "fail": {"cmds": ["exit 1"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["ok", "fail"],
-                "parallel": True,
-                "ignore_errors": True,
-            },
-        })
+        runner = _make_runner(
+            {
+                "ok": {"cmds": ["echo ok"]},
+                "fail": {"cmds": ["exit 1"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["ok", "fail"],
+                    "parallel": True,
+                    "ignore_errors": True,
+                },
+            }
+        )
         assert runner.run_task("main") is True
 
 
@@ -676,41 +760,52 @@ class TestDependencies:
 # 8. Conditions
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestConditions:
     """Test condition: field (skip task if condition fails)."""
 
     def test_condition_true_runs_task(self):
-        runner = _make_runner({
-            "t": {"cmds": ["echo ok"], "condition": "true"},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo ok"], "condition": "true"},
+            }
+        )
         assert runner.run_task("t") is True
 
     def test_condition_false_skips_task(self):
-        runner = _make_runner({
-            "t": {"cmds": ["echo should-not-run"], "condition": "false"},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo should-not-run"], "condition": "false"},
+            }
+        )
         # Skipped = success (True)
         assert runner.run_task("t") is True
         assert "t" in runner._executed  # marked as executed (skipped)
 
     def test_condition_command_check(self):
         """condition: uses shell command exit code."""
-        runner = _make_runner({
-            "t": {"cmds": ["echo exists"], "condition": "test -d /tmp"},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo exists"], "condition": "test -d /tmp"},
+            }
+        )
         assert runner.run_task("t") is True
 
     def test_condition_with_variable(self):
         """condition: supports variable expansion."""
-        runner = _make_runner({
-            "t": {"cmds": ["echo ok"], "condition": "test ${APP} = testapp"},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo ok"], "condition": "test ${APP} = testapp"},
+            }
+        )
         assert runner.run_task("t") is True
 
     def test_condition_failure_command(self):
-        runner = _make_runner({
-            "t": {"cmds": ["echo ok"], "condition": "test -f /nonexistent/file"},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo ok"], "condition": "test -f /nonexistent/file"},
+            }
+        )
         assert runner.run_task("t") is True  # skipped = success
 
 
@@ -718,42 +813,59 @@ class TestConditions:
 # 9. Environment Filters
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestEnvironmentFilters:
     """Test env: filter on tasks."""
 
     def test_env_filter_match(self):
         """Task runs when current env matches filter."""
-        runner = _make_runner({
-            "deploy": {"cmds": ["echo deploy"], "env": ["prod"]},
-        }, env_name="prod", dry_run=True)
+        runner = _make_runner(
+            {
+                "deploy": {"cmds": ["echo deploy"], "env": ["prod"]},
+            },
+            env_name="prod",
+            dry_run=True,
+        )
         assert runner.run_task("deploy") is True
 
     def test_env_filter_no_match(self):
         """Task is skipped when current env doesn't match filter."""
-        runner = _make_runner({
-            "deploy": {"cmds": ["echo deploy"], "env": ["prod"]},
-        }, env_name="local")
+        runner = _make_runner(
+            {
+                "deploy": {"cmds": ["echo deploy"], "env": ["prod"]},
+            },
+            env_name="local",
+        )
         # Skipped = success
         assert runner.run_task("deploy") is True
 
     def test_env_filter_multiple(self):
         """Task runs if any env in filter matches."""
-        runner = _make_runner({
-            "deploy": {"cmds": ["echo deploy"], "env": ["staging", "prod"]},
-        }, env_name="staging", dry_run=True)
+        runner = _make_runner(
+            {
+                "deploy": {"cmds": ["echo deploy"], "env": ["staging", "prod"]},
+            },
+            env_name="staging",
+            dry_run=True,
+        )
         assert runner.run_task("deploy") is True
 
     def test_no_env_filter_runs_everywhere(self):
         """Task without env filter runs on any environment."""
-        runner = _make_runner({
-            "t": {"cmds": ["echo universal"]},
-        }, env_name="prod", dry_run=True)
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo universal"]},
+            },
+            env_name="prod",
+            dry_run=True,
+        )
         assert runner.run_task("t") is True
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # 10. Platform Filters
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestPlatformFilters:
     """Test platform: filter on tasks."""
@@ -789,13 +901,16 @@ class TestPlatformFilters:
 # 11. Error Handling
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestErrorHandling:
     """Test ignore_errors, retries, timeout."""
 
     def test_ignore_errors(self):
-        runner = _make_runner({
-            "t": {"cmds": ["exit 1"], "ignore_errors": True},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["exit 1"], "ignore_errors": True},
+            }
+        )
         assert runner.run_task("t") is True
 
     def test_ignore_errors_alias(self):
@@ -811,28 +926,36 @@ class TestErrorHandling:
 
     def test_retries_on_failure(self):
         """Task with retries retries the failing command."""
-        runner = _make_runner({
-            "t": {"cmds": ["exit 1"], "retries": 2, "retry_delay": 0},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["exit 1"], "retries": 2, "retry_delay": 0},
+            }
+        )
         # Still fails after retries
         assert runner.run_task("t") is False
 
     def test_retries_zero_no_retry(self):
-        runner = _make_runner({
-            "t": {"cmds": ["exit 1"], "retries": 0},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["exit 1"], "retries": 0},
+            }
+        )
         assert runner.run_task("t") is False
 
     def test_timeout_field_parsed(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo ok"], "timeout": 60}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo ok"], "timeout": 60}},
+            }
+        )
         assert data.tasks["t"].timeout == 60
 
     def test_timeout_zero_means_no_timeout(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo ok"]}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo ok"]}},
+            }
+        )
         assert data.tasks["t"].timeout == 0
 
 
@@ -840,26 +963,33 @@ class TestErrorHandling:
 # 12. register: (Capture stdout)
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRegister:
     """Test register: captures command stdout into a variable."""
 
     def test_register_parsed(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo v1.0.0"], "register": "VERSION"}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo v1.0.0"], "register": "VERSION"}},
+            }
+        )
         assert data.tasks["t"].register == "VERSION"
 
     def test_register_captures_output(self):
-        runner = _make_runner({
-            "capture": {"cmds": ["echo captured-value"], "register": "RESULT"},
-        })
+        runner = _make_runner(
+            {
+                "capture": {"cmds": ["echo captured-value"], "register": "RESULT"},
+            }
+        )
         assert runner.run_task("capture") is True
         assert runner.variables.get("RESULT") == "captured-value"
 
     def test_register_trims_whitespace(self):
-        runner = _make_runner({
-            "t": {"cmds": ["echo '  hello  '"], "register": "OUT"},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo '  hello  '"], "register": "OUT"},
+            }
+        )
         runner.run_task("t")
         assert runner.variables.get("OUT") is not None
         # register strips trailing whitespace
@@ -870,28 +1000,35 @@ class TestRegister:
 # 13. tags: (Selective execution)
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestTags:
     """Test tags: field on tasks."""
 
     def test_tags_parsed_list(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo"], "tags": ["ci", "deploy"]}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo"], "tags": ["ci", "deploy"]}},
+            }
+        )
         assert data.tasks["t"].tags == ["ci", "deploy"]
 
     def test_tags_parsed_string(self):
         """Tags as comma-separated string."""
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo"], "tags": "ci, deploy, release"}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo"], "tags": "ci, deploy, release"}},
+            }
+        )
         assert "ci" in data.tasks["t"].tags
         assert "deploy" in data.tasks["t"].tags
         assert "release" in data.tasks["t"].tags
 
     def test_tags_empty_default(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo"]}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo"]}},
+            }
+        )
         assert data.tasks["t"].tags == []
 
 
@@ -899,13 +1036,16 @@ class TestTags:
 # 14. working_dir (dir:)
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestWorkingDir:
     """Test dir: field changes working directory."""
 
     def test_working_dir_parsed(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["ls"], "dir": "/tmp"}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["ls"], "dir": "/tmp"}},
+            }
+        )
         assert data.tasks["t"].working_dir == "/tmp"
 
     def test_working_dir_execution(self, tmp_path):
@@ -914,9 +1054,11 @@ class TestWorkingDir:
         sub.mkdir()
         (sub / "marker.txt").write_text("found")
 
-        runner = _make_runner({
-            "t": {"cmds": ["test -f marker.txt"], "dir": str(sub)},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["test -f marker.txt"], "dir": str(sub)},
+            }
+        )
         assert runner.run_task("t") is True
 
 
@@ -924,19 +1066,24 @@ class TestWorkingDir:
 # 15. silent mode
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestSilentMode:
     """Test silent: suppresses output."""
 
     def test_silent_parsed(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo secret"], "silent": True}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo secret"], "silent": True}},
+            }
+        )
         assert data.tasks["t"].silent is True
 
     def test_silent_task_runs(self):
-        runner = _make_runner({
-            "t": {"cmds": ["echo secret"], "silent": True},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo secret"], "silent": True},
+            }
+        )
         assert runner.run_task("t") is True
 
 
@@ -944,31 +1091,38 @@ class TestSilentMode:
 # 16. YAML Command Normalization
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestCommandNormalization:
     """Test _normalize_commands handles YAML edge cases."""
 
     def test_string_commands(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo hello", "echo world"]}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo hello", "echo world"]}},
+            }
+        )
         assert data.tasks["t"].commands == ["echo hello", "echo world"]
 
     def test_dict_commands_reconstructed(self):
         """YAML can misparse 'echo key: value' as dict — should be reconstructed."""
         from taskfile.models import _normalize_commands
+
         cmds = _normalize_commands([{"echo key": "value"}])
         assert cmds == ["echo key: value"]
 
     def test_shorthand_task_list(self):
         """Task defined as just a list of commands."""
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": ["echo one", "echo two"]},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": ["echo one", "echo two"]},
+            }
+        )
         assert data.tasks["t"].commands == ["echo one", "echo two"]
 
     def test_numeric_command_coerced(self):
         """Non-string commands are coerced to string."""
         from taskfile.models import _normalize_commands
+
         cmds = _normalize_commands([42, True, "echo ok"])
         assert "42" in cmds
         assert "True" in cmds
@@ -979,6 +1133,7 @@ class TestCommandNormalization:
 # 17. Dry-run Mode
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestDryRun:
     """Test dry-run mode doesn't execute commands."""
 
@@ -988,16 +1143,23 @@ class TestDryRun:
         assert runner.run_task("t") is True
 
     def test_dry_run_with_deps(self):
-        runner = _make_runner({
-            "dep": {"cmds": ["echo dep"]},
-            "main": {"cmds": ["echo main"], "deps": ["dep"]},
-        }, dry_run=True)
+        runner = _make_runner(
+            {
+                "dep": {"cmds": ["echo dep"]},
+                "main": {"cmds": ["echo main"], "deps": ["dep"]},
+            },
+            dry_run=True,
+        )
         assert runner.run_task("main") is True
 
     def test_dry_run_remote(self):
-        runner = _make_runner({
-            "t": {"cmds": ["@remote systemctl restart app"]},
-        }, env_name="prod", dry_run=True)
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["@remote systemctl restart app"]},
+            },
+            env_name="prod",
+            dry_run=True,
+        )
         assert runner.run_task("t") is True
 
 
@@ -1005,34 +1167,41 @@ class TestDryRun:
 # 18. Complex Real-World Scenarios
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRealWorldScenarios:
     """E2E tests simulating real deployment workflows."""
 
     def test_build_deploy_workflow(self):
         """Full build → deploy chain with env routing."""
-        runner = _make_runner({
-            "build": {
-                "cmds": ["echo building ${APP}:${TAG}"],
+        runner = _make_runner(
+            {
+                "build": {
+                    "cmds": ["echo building ${APP}:${TAG}"],
+                },
+                "deploy": {
+                    "cmds": [
+                        "@local echo deploying locally",
+                        "@remote echo deploying remotely",
+                    ],
+                    "deps": ["build"],
+                },
             },
-            "deploy": {
-                "cmds": [
-                    "@local echo deploying locally",
-                    "@remote echo deploying remotely",
-                ],
-                "deps": ["build"],
-            },
-        }, env_name="local")
+            env_name="local",
+        )
         assert runner.run_task("deploy") is True
         assert "build" in runner._executed
 
     def test_multi_env_task_structure(self):
         """Tasks with environment filters for different stages."""
-        runner = _make_runner({
-            "dev": {"cmds": ["echo dev"], "env": ["local"]},
-            "deploy-staging": {"cmds": ["echo staging"], "env": ["staging"]},
-            "deploy-prod": {"cmds": ["echo prod"], "env": ["prod"]},
-            "build": {"cmds": ["echo build"]},
-        }, env_name="local")
+        runner = _make_runner(
+            {
+                "dev": {"cmds": ["echo dev"], "env": ["local"]},
+                "deploy-staging": {"cmds": ["echo staging"], "env": ["staging"]},
+                "deploy-prod": {"cmds": ["echo prod"], "env": ["prod"]},
+                "build": {"cmds": ["echo build"]},
+            },
+            env_name="local",
+        )
         # dev runs on local
         assert runner.run_task("dev") is True
         # staging task skipped on local
@@ -1042,7 +1211,8 @@ class TestRealWorldScenarios:
     def test_taskfile_from_yaml(self, tmp_path):
         """Parse a real Taskfile.yml and run dry-run."""
         taskfile = tmp_path / "Taskfile.yml"
-        taskfile.write_text(textwrap.dedent("""\
+        taskfile.write_text(
+            textwrap.dedent("""\
             version: "1"
             name: test-project
             variables:
@@ -1076,44 +1246,51 @@ class TestRealWorldScenarios:
                 cmds:
                   - "@local echo deploying locally"
                   - "@remote echo deploying remotely"
-        """))
+        """)
+        )
         config = load_taskfile(taskfile)
         runner = TaskfileRunner(config=config, dry_run=True)
         assert runner.run_task("deploy") is True
 
     def test_condition_with_deps(self):
         """Condition on task with dependencies."""
-        runner = _make_runner({
-            "dep": {"cmds": ["echo dep"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["dep"],
-                "condition": "true",
-            },
-        })
+        runner = _make_runner(
+            {
+                "dep": {"cmds": ["echo dep"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["dep"],
+                    "condition": "true",
+                },
+            }
+        )
         assert runner.run_task("main") is True
         assert "dep" in runner._executed
 
     def test_condition_false_skips_deps_too(self):
         """When condition is false, task (and its deps) are skipped."""
-        runner = _make_runner({
-            "dep": {"cmds": ["echo dep"]},
-            "main": {
-                "cmds": ["echo main"],
-                "deps": ["dep"],
-                "condition": "false",
-            },
-        })
+        runner = _make_runner(
+            {
+                "dep": {"cmds": ["echo dep"]},
+                "main": {
+                    "cmds": ["echo main"],
+                    "deps": ["dep"],
+                    "condition": "false",
+                },
+            }
+        )
         assert runner.run_task("main") is True
         # main was skipped due to condition
         assert "main" in runner._executed
 
     def test_register_used_in_next_command(self):
         """Register captures output that could be used later."""
-        runner = _make_runner({
-            "version": {"cmds": ["echo 2.0.1"], "register": "VER"},
-            "tag": {"cmds": ["echo tagging ${VER}"], "deps": ["version"]},
-        })
+        runner = _make_runner(
+            {
+                "version": {"cmds": ["echo 2.0.1"], "register": "VER"},
+                "tag": {"cmds": ["echo tagging ${VER}"], "deps": ["version"]},
+            }
+        )
         assert runner.run_task("tag") is True
         assert runner.variables.get("VER") == "2.0.1"
 
@@ -1143,6 +1320,7 @@ class TestRealWorldScenarios:
 # 19. Edge Cases
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestEdgeCases:
     """Edge cases and regression tests."""
 
@@ -1155,22 +1333,28 @@ class TestEdgeCases:
         assert runner.run_task("deploy.prod") is True
 
     def test_empty_variables(self):
-        data = TaskfileConfig.from_dict({
-            "variables": {},
-            "tasks": {"t": {"cmds": ["echo ok"]}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "variables": {},
+                "tasks": {"t": {"cmds": ["echo ok"]}},
+            }
+        )
         assert len(data.variables) == 0
 
     def test_no_environments_creates_local(self):
-        data = TaskfileConfig.from_dict({
-            "tasks": {"t": {"cmds": ["echo ok"]}},
-        })
+        data = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"cmds": ["echo ok"]}},
+            }
+        )
         assert "local" in data.environments
 
     def test_command_with_special_chars(self):
-        runner = _make_runner({
-            "t": {"cmds": ["echo 'hello & world | test > /dev/null 2>&1'"]},
-        })
+        runner = _make_runner(
+            {
+                "t": {"cmds": ["echo 'hello & world | test > /dev/null 2>&1'"]},
+            }
+        )
         assert runner.run_task("t") is True
 
     def test_very_long_command(self):
@@ -1180,12 +1364,16 @@ class TestEdgeCases:
 
     def test_desc_aliases(self):
         """Both 'desc' and 'description' work."""
-        data1 = TaskfileConfig.from_dict({
-            "tasks": {"t": {"desc": "short form", "cmds": ["echo"]}},
-        })
-        data2 = TaskfileConfig.from_dict({
-            "tasks": {"t": {"description": "long form", "cmds": ["echo"]}},
-        })
+        data1 = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"desc": "short form", "cmds": ["echo"]}},
+            }
+        )
+        data2 = TaskfileConfig.from_dict(
+            {
+                "tasks": {"t": {"description": "long form", "cmds": ["echo"]}},
+            }
+        )
         assert data1.tasks["t"].description == "short form"
         assert data2.tasks["t"].description == "long form"
 

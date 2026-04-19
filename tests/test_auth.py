@@ -1,8 +1,5 @@
 """Tests for auth CLI helpers."""
 
-import pytest
-from pathlib import Path
-
 from taskfile.cli.auth import _read_env_file, _write_env_var, _ensure_gitignore, REGISTRIES
 
 

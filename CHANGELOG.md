@@ -54,6 +54,47 @@
   functionality now lives in `taskfile.workspace` and `taskfile workspace`
   CLI.
 
+## [0.3.91] - 2026-04-19
+
+### Docs
+- Update README.md
+- Update TODO.md
+- Update TODO/SUMD.md
+- Update docs/README.md
+- Update examples/workspace/projects/alpha/SUMD.md
+- Update examples/workspace/projects/beta/SUMD.md
+- Update examples/workspace/projects/gamma/SUMD.md
+- Update project/README.md
+- Update project/TODO_examples/context.md
+- Update project/context.md
+- ... and 2 more files
+
+### Test
+- Update tests/test_api.py
+- Update tests/test_auth.py
+- Update tests/test_cigen.py
+- Update tests/test_classifier.py
+- Update tests/test_cli.py
+- Update tests/test_compose.py
+- Update tests/test_deploy_validation.py
+- Update tests/test_diagnostics.py
+- Update tests/test_docker_e2e.py
+- Update tests/test_doctor_decomposition.py
+- ... and 22 more files
+
+### Other
+- Update .pyqual/llx_history.jsonl
+- Update Taskfile.yml
+- Update analyze_all_projects.py
+- Update examples/mega-saas-v2/scripts/report.py
+- Update examples/mega-saas/scripts/report.py
+- Update examples/utils/__init__.py
+- Update examples/utils/generate_report.py
+- Update project/TODO_examples/analysis.toon.yaml
+- Update project/TODO_examples/evolution.toon.yaml
+- Update project/analysis.toon.yaml
+- ... and 19 more files
+
 ## [0.3.90] - 2026-04-18
 
 ### Docs

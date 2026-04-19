@@ -1,7 +1,8 @@
 from __future__ import annotations
-from taskfile.cigen.base import CITarget, register_target, _sanitize_id, _yaml_dump
+from taskfile.cigen.base import CITarget, register_target
 
 # ─── Makefile (compatibility wrapper) ─────────────────────
+
 
 @register_target("makefile")
 class MakefileTarget(CITarget):
@@ -19,8 +20,8 @@ class MakefileTarget(CITarget):
             "",
             ".PHONY: help",
             "help: ## Show available targets",
-            '\t@grep -E \'^[a-zA-Z_-]+:.*?## .*$$\' $(MAKEFILE_LIST) | '
-            "sort | awk 'BEGIN {FS = \":.*?## \"}; {printf \"  \\033[36m%-20s\\033[0m %s\\n\", $$1, $$2}'",
+            "\t@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | "
+            'sort | awk \'BEGIN {FS = ":.*?## "}; {printf "  \\033[36m%-20s\\033[0m %s\\n", $$1, $$2}\'',
             "",
         ]
 
@@ -46,7 +47,7 @@ class MakefileTarget(CITarget):
 
             # Full pipeline
             stage_targets = " ".join(f"stage-{s.name}" for s in self.pipeline.stages)
-            lines.append(f".PHONY: pipeline")
+            lines.append(".PHONY: pipeline")
             lines.append(f"pipeline: {stage_targets} ## Run full pipeline")
             lines.append("")
 

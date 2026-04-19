@@ -1,8 +1,5 @@
 """Tests for landing page generator."""
 
-import pytest
-from pathlib import Path
-
 from taskfile.landing import (
     generate_landing_page,
     build_landing_page,

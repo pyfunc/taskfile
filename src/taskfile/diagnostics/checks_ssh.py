@@ -13,7 +13,6 @@ from taskfile.diagnostics.models import Issue
 from taskfile.diagnostics.fixop_adapter import (
     HAS_FIXOP as _HAS_FIXOP,
     adapt_issue as _to_taskfile_issue,
-    adapt_issues,
     make_host_ctx as _make_host_ctx,
 )
 

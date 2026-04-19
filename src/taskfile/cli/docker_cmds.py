@@ -49,7 +49,9 @@ class DockerContainer:
     ports: str
 
 
-_PORT_TOKEN_RE = re.compile(r"(?P<host>(?:\d{1,3}\.){3}\d{1,3}|\[::\]|\*|0\.0\.0\.0|::):(?P<port>\d+)->")
+_PORT_TOKEN_RE = re.compile(
+    r"(?P<host>(?:\d{1,3}\.){3}\d{1,3}|\[::\]|\*|0\.0\.0\.0|::):(?P<port>\d+)->"
+)
 
 
 def _docker_ps() -> list[DockerContainer]:
@@ -170,7 +172,10 @@ def docker_stop_all_cmd(assume_yes: bool):
 def docker_compose_down_cmd(compose_dir: Path, assume_yes: bool):
     """Run `docker compose down` in the given directory (default: current)."""
     compose_dir = compose_dir.resolve()
-    if not (compose_dir / "docker-compose.yml").exists() and not (compose_dir / "compose.yml").exists():
+    if (
+        not (compose_dir / "docker-compose.yml").exists()
+        and not (compose_dir / "compose.yml").exists()
+    ):
         console.print(f"[yellow]⚠[/] No compose file found in {compose_dir}")
 
     if not assume_yes:

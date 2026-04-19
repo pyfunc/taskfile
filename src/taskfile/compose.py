@@ -6,7 +6,6 @@ from .env files, enabling the same compose file to work across environments.
 
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +17,7 @@ import yaml
 @dataclass
 class PortMapping:
     """Represents a port mapping from docker-compose."""
+
     host_port: int
     container_port: int
     service_name: str
@@ -171,13 +171,15 @@ class ComposeFile:
         return {}
 
     @classmethod
-    def from_yaml(cls, compose_path: str | Path, env_file: str | Path | None = None) -> "ComposeFile":
+    def from_yaml(
+        cls, compose_path: str | Path, env_file: str | Path | None = None
+    ) -> "ComposeFile":
         """Create a ComposeFile instance from a YAML file path."""
         return cls(compose_path, env_file=env_file)
 
     def get_all_ports(self) -> list[PortMapping]:
         """Extract all port mappings from all services.
-        
+
         Returns a list of PortMapping objects with host_port, container_port, and service_name.
         """
         ports = []
@@ -185,21 +187,23 @@ class ComposeFile:
             service_ports = service.get("ports", [])
             if not service_ports:
                 continue
-            
+
             for port_mapping in service_ports:
                 parsed = self._parse_port_mapping(port_mapping)
                 if parsed:
-                    ports.append(PortMapping(
-                        host_port=parsed["host_port"],
-                        container_port=parsed["container_port"],
-                        service_name=service_name,
-                        host_ip=parsed.get("host_ip"),
-                    ))
+                    ports.append(
+                        PortMapping(
+                            host_port=parsed["host_port"],
+                            container_port=parsed["container_port"],
+                            service_name=service_name,
+                            host_ip=parsed.get("host_ip"),
+                        )
+                    )
         return ports
 
     def _parse_port_mapping(self, port_mapping: str | dict) -> dict | None:
         """Parse a port mapping string or dict.
-        
+
         Handles formats like:
         - "8080:80" (host:container)
         - "127.0.0.1:8080:80" (ip:host:container)
@@ -212,13 +216,13 @@ class ComposeFile:
                 "container_port": int(port_mapping.get("target", 0)),
                 "host_ip": port_mapping.get("host_ip"),
             }
-        
+
         if not isinstance(port_mapping, str):
             return None
-        
+
         # Parse short form: [ip:]host:container[/protocol]
         parts = port_mapping.split(":")
-        
+
         try:
             if len(parts) == 2:
                 # host:container
@@ -230,10 +234,14 @@ class ComposeFile:
                 host_ip = parts[0]
                 host_port = int(parts[1])
                 container_port = int(parts[2].split("/")[0])
-                return {"host_port": host_port, "container_port": container_port, "host_ip": host_ip}
+                return {
+                    "host_port": host_port,
+                    "container_port": container_port,
+                    "host_ip": host_ip,
+                }
         except (ValueError, IndexError):
             pass
-        
+
         return None
 
     def service_names(self) -> list[str]:

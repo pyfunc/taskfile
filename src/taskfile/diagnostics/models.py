@@ -8,19 +8,21 @@ from enum import Enum
 
 class IssueCategory(str, Enum):
     """Classification of diagnostic issues — helps users identify root cause."""
-    TASKFILE_BUG = "taskfile_bug"        # bug in taskfile itself (parser crash)
-    CONFIG_ERROR = "config_error"        # user misconfiguration (.env, keys, YAML)
-    DEPENDENCY_MISSING = "dep_missing"   # missing tool (docker, ssh, podman)
-    RUNTIME_ERROR = "runtime_error"      # app crashes, port busy, command fails
-    EXTERNAL_ERROR = "external_error"    # network down, VPS offline, registry down
+
+    TASKFILE_BUG = "taskfile_bug"  # bug in taskfile itself (parser crash)
+    CONFIG_ERROR = "config_error"  # user misconfiguration (.env, keys, YAML)
+    DEPENDENCY_MISSING = "dep_missing"  # missing tool (docker, ssh, podman)
+    RUNTIME_ERROR = "runtime_error"  # app crashes, port busy, command fails
+    EXTERNAL_ERROR = "external_error"  # network down, VPS offline, registry down
 
 
 class FixStrategy(str, Enum):
     """How an issue can be resolved."""
-    AUTO = "auto"           # fix without asking
-    CONFIRM = "confirm"     # ask user before fixing
-    MANUAL = "manual"       # print instructions, user must act
-    LLM = "llm"             # escalate to AI for suggestion
+
+    AUTO = "auto"  # fix without asking
+    CONFIRM = "confirm"  # ask user before fixing
+    MANUAL = "manual"  # print instructions, user must act
+    LLM = "llm"  # escalate to AI for suggestion
 
 
 # Severity levels

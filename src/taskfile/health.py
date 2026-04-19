@@ -26,6 +26,7 @@ try:
         check_http_endpoint as _fixop_check_http,
         check_ssh_service as _fixop_check_ssh,
     )
+
     _HAS_FIXOP_HEALTH = True
 except ImportError:
     _HAS_FIXOP_HEALTH = False
@@ -108,16 +109,17 @@ def check_http_endpoint(
         HealthCheckResult with status details
     """
     if _HAS_FIXOP_HEALTH:
-        return _from_fixop_result(
-            _fixop_check_http(name, url, expected_status, timeout, retries)
-        )
+        return _from_fixop_result(_fixop_check_http(name, url, expected_status, timeout, retries))
 
     return _check_http_endpoint_legacy(name, url, expected_status, timeout, retries)
 
 
 def _check_http_endpoint_legacy(
-    name: str, url: str, expected_status: int = 200,
-    timeout: int = 10, retries: int = 1,
+    name: str,
+    url: str,
+    expected_status: int = 200,
+    timeout: int = 10,
+    retries: int = 1,
 ) -> HealthCheckResult:
     """Legacy HTTP check — used when fixop is not available."""
     start = time.time()
@@ -126,7 +128,7 @@ def _check_http_endpoint_legacy(
         try:
             req = Request(url, method="GET", headers={"User-Agent": "Taskfile-Health-Check/1.0"})
             response = urlopen(req, timeout=timeout)
-            elapsed = (time.time() - start) * 1000
+            (time.time() - start) * 1000
 
             status_code = response.getcode()
             if status_code == expected_status:
@@ -138,7 +140,9 @@ def _check_http_endpoint_legacy(
                     response_time_ms=(time.time() - start) * 1000,
                 )
             if attempt == retries - 1:
-                return _unhealthy_result(name, url, start, f"Unexpected status: {status_code}", status_code)
+                return _unhealthy_result(
+                    name, url, start, f"Unexpected status: {status_code}", status_code
+                )
             time.sleep(1)
 
         except HTTPError as e:
@@ -189,16 +193,18 @@ def check_ssh_service(
         HealthCheckResult with status details
     """
     if _HAS_FIXOP_HEALTH:
-        return _from_fixop_result(
-            _fixop_check_ssh(name, host, user, ssh_key, port, timeout)
-        )
+        return _from_fixop_result(_fixop_check_ssh(name, host, user, ssh_key, port, timeout))
 
     return _check_ssh_service_legacy(name, host, user, ssh_key, port, timeout)
 
 
 def _check_ssh_service_legacy(
-    name: str, host: str, user: str,
-    ssh_key: str | None = None, port: int = 22, timeout: int = 10,
+    name: str,
+    host: str,
+    user: str,
+    ssh_key: str | None = None,
+    port: int = 22,
+    timeout: int = 10,
 ) -> HealthCheckResult:
     """Legacy SSH check — used when fixop is not available."""
     start = time.time()
@@ -392,7 +398,9 @@ def print_health_report(report: HealthReport) -> None:
         "unhealthy": "red",
     }.get(report.overall, "white")
 
-    console.print(f"\n[bold]Health Status: [{status_color}]{report.overall.upper()}[/{status_color}][/]")
+    console.print(
+        f"\n[bold]Health Status: [{status_color}]{report.overall.upper()}[/{status_color}][/]"
+    )
     console.print(f"[dim]{report.healthy_count}/{len(report.checks)} checks passed[/]")
 
     # Table of checks
@@ -411,7 +419,9 @@ def print_health_report(report: HealthReport) -> None:
         }.get(check.status, "white")
 
         status_icon = "✓" if check.status == "healthy" else "✗"
-        response = f"{check.status_code}" if check.status_code else f"{check.response_time_ms:.0f}ms"
+        response = (
+            f"{check.status_code}" if check.status_code else f"{check.response_time_ms:.0f}ms"
+        )
 
         table.add_row(
             check.name,

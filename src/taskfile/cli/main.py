@@ -19,11 +19,9 @@ from taskfile import __version__
 from taskfile.parser import (
     TaskfileNotFoundError,
     TaskfileParseError,
-    find_taskfile,
     load_taskfile,
 )
 from taskfile.runner import TaskfileRunner
-from taskfile.scaffold import generate_taskfile
 from taskfile.cli.group_strategies import run_env_group as _run_env_group
 
 console = Console()
@@ -61,29 +59,31 @@ def _print_nearby_taskfiles(nearby: list[tuple[Path, int]]) -> None:
     """Print information about nearby Taskfiles and how to use them."""
     if not nearby:
         return
-    
+
     console.print("\n[bold yellow]📍 Found Taskfiles in nearby directories:[/]")
     for path, level in sorted(nearby, key=lambda x: (abs(x[1]), str(x[0]))):
         rel, hint = _format_nearby_path(path, level)
         console.print(f"   {rel} {hint}")
-    
+
     console.print("\n[dim]To use:[/]")
     console.print(f"  {_nearby_cd_hint(nearby[0][0], nearby[0][1])}")
 
 
-def _suggest_similar_tasks(unknown: str, available: list[str], max_suggestions: int = 3) -> list[str]:
+def _suggest_similar_tasks(
+    unknown: str, available: list[str], max_suggestions: int = 3
+) -> list[str]:
     """Suggest similar task names based on string similarity."""
     from difflib import get_close_matches
-    
+
     # Get close matches using difflib
     matches = get_close_matches(unknown, available, n=max_suggestions, cutoff=0.4)
-    
+
     # Also check for partial matches
     partial_matches = [t for t in available if unknown in t or t in unknown]
-    
+
     # Combine and deduplicate
     all_matches = matches + [p for p in partial_matches if p not in matches]
-    
+
     return all_matches[:max_suggestions]
 
 
@@ -119,8 +119,12 @@ def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
 @click_std.version_option(__version__, prog_name="taskfile")
 @click.option("-f", "--file", "taskfile_path", default=None, help="Path to Taskfile.yml")
 @click.option("-e", "--env", "env_name", default=None, help="Target environment")
-@click.option("-G", "--env-group", "env_group", default=None, help="Target environment group (fleet)")
-@click.option("-p", "--platform", "platform_name", default=None, help="Target platform (e.g. desktop, web)")
+@click.option(
+    "-G", "--env-group", "env_group", default=None, help="Target environment group (fleet)"
+)
+@click.option(
+    "-p", "--platform", "platform_name", default=None, help="Target platform (e.g. desktop, web)"
+)
 @click.option("--var", multiple=True, callback=parse_var, help="Override variable: --var KEY=VALUE")
 @click.option("--dry-run", is_flag=True, help="Show commands without executing")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
@@ -128,27 +132,27 @@ def parse_var(ctx, param, value: tuple[str, ...]) -> dict[str, str]:
 def main(ctx, taskfile_path, env_name, env_group, platform_name, var, dry_run, verbose):
     """**taskfile** — Universal task runner with multi-environment deploy.
 
-## Quick Start
+    ## Quick Start
 
-| Command | Description |
-|---------|-------------|
-| `taskfile run <task>` | Run a task |
-| `taskfile list` | List available tasks |
-| `taskfile init` | Create a new Taskfile.yml |
+    | Command | Description |
+    |---------|-------------|
+    | `taskfile run <task>` | Run a task |
+    | `taskfile list` | List available tasks |
+    | `taskfile init` | Create a new Taskfile.yml |
 
-## Examples
+    ## Examples
 
-**Run tasks:**
-```bash
-taskfile run build deploy
-taskfile run deploy --env prod --var TAG=v1.0
-```
+    **Run tasks:**
+    ```bash
+    taskfile run build deploy
+    taskfile run deploy --env prod --var TAG=v1.0
+    ```
 
-**Fleet deploy:**
-```bash
-taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
-```
-"""
+    **Fleet deploy:**
+    ```bash
+    taskfile -G kiosks run deploy-kiosk --var TAG=v1.0
+    ```
+    """
     ctx.ensure_object(dict)
     ctx.obj["taskfile_path"] = taskfile_path
     ctx.obj["env_name"] = env_name
@@ -207,56 +211,62 @@ def _handle_run_normal(opts: dict, task_list: list[str], tag_filter: list[str] |
 
 @main.command()
 @click.argument("tasks", nargs=-1, required=True)
-@click.option("--tags", "run_tags", default=None, help="Run only tasks matching these tags (comma-separated)")
-@click.option("--explain", is_flag=True, help="Show execution plan without running (what will happen)")
-@click.option("--teach", is_flag=True, help="Educational mode — explain what each step does and why")
+@click.option(
+    "--tags", "run_tags", default=None, help="Run only tasks matching these tags (comma-separated)"
+)
+@click.option(
+    "--explain", is_flag=True, help="Show execution plan without running (what will happen)"
+)
+@click.option(
+    "--teach", is_flag=True, help="Educational mode — explain what each step does and why"
+)
 @click.pass_context
 def run(ctx, tasks, run_tags, explain, teach):
     """**Run one or more tasks** defined in Taskfile.yml.
 
-## Usage
+    ## Usage
 
-```bash
-taskfile run <task> [<task> ...]
-```
+    ```bash
+    taskfile run <task> [<task> ...]
+    ```
 
-## Options
+    ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--tags` | Filter tasks by tags (comma-separated) |
-| `-e, --env` | Target environment |
-| `-p, --platform` | Target platform |
-| `--var KEY=VALUE` | Override variables |
-| `--dry-run` | Preview without executing |
-| `--explain` | Show execution plan without running |
-| `--teach` | Educational mode — explain each step |
+    | Option | Description |
+    |--------|-------------|
+    | `--tags` | Filter tasks by tags (comma-separated) |
+    | `-e, --env` | Target environment |
+    | `-p, --platform` | Target platform |
+    | `--var KEY=VALUE` | Override variables |
+    | `--dry-run` | Preview without executing |
+    | `--explain` | Show execution plan without running |
+    | `--teach` | Educational mode — explain each step |
 
-## Examples
+    ## Examples
 
-```bash
-# Run single task
-taskfile run build
+    ```bash
+    # Run single task
+    taskfile run build
 
-# Run multiple tasks
-taskfile run build deploy
+    # Run multiple tasks
+    taskfile run build deploy
 
-# Run with environment
-taskfile run deploy --env prod
+    # Run with environment
+    taskfile run deploy --env prod
 
-# Run with variable override
-taskfile run release --var TAG=v1.2.3
+    # Run with variable override
+    taskfile run release --var TAG=v1.2.3
 
-# Run with tags filter
-taskfile run --tags ci build test
+    # Run with tags filter
+    taskfile run --tags ci build test
 
-# Preview execution plan
-taskfile run deploy --env prod --explain
+    # Preview execution plan
+    taskfile run deploy --env prod --explain
 
-# Educational mode
-taskfile run deploy --teach
-```
-"""
+    # Educational mode
+    taskfile run deploy --teach
+    ```
+    """
     opts = ctx.obj
     tag_filter = [t.strip() for t in run_tags.split(",")] if run_tags else None
     task_list = list(tasks)
@@ -269,8 +279,7 @@ taskfile run deploy --teach
 
 
 def _execute_run(
-    opts: dict, task_list: list[str], tag_filter: list[str] | None,
-    explain: bool, teach: bool
+    opts: dict, task_list: list[str], tag_filter: list[str] | None, explain: bool, teach: bool
 ) -> bool:
     """Execute run command in appropriate mode."""
     if explain or teach:
@@ -290,12 +299,17 @@ def _handle_run_error(e: Exception) -> None:
     sys.exit(1)
 
 
-def _run_explain_mode(opts: dict, task_list: list[str], tag_filter: list[str] | None, *, teach: bool) -> None:
+def _run_explain_mode(
+    opts: dict, task_list: list[str], tag_filter: list[str] | None, *, teach: bool
+) -> None:
     """Handle --explain / --teach mode: analyze execution plan without running."""
     from taskfile.runner.resolver import TaskResolver
     from taskfile.runner.explainer import (
-        TaskExplainer, print_explain_report, print_teach_report,
+        TaskExplainer,
+        print_explain_report,
+        print_teach_report,
     )
+
     config = load_taskfile(opts["taskfile_path"])
     resolver = TaskResolver(
         config,
@@ -339,27 +353,29 @@ def _filter_tasks_by_tags(config, task_names: list[str], tags: list[str]) -> lis
 def list_tasks(ctx):
     """**List available tasks and environments** from Taskfile.yml.
 
-## Output
+    ## Output
 
-Shows:
-- **Tasks** with descriptions and dependencies
-- **Environments** (local, staging, prod, etc.)
-- **Variables** defined in the Taskfile
+    Shows:
+    - **Tasks** with descriptions and dependencies
+    - **Environments** (local, staging, prod, etc.)
+    - **Variables** defined in the Taskfile
 
-## Examples
+    ## Examples
 
-```bash
-# List all tasks
-taskfile list
+    ```bash
+    # List all tasks
+    taskfile list
 
-# List with specific environment
-taskfile --env prod list
-```
-"""
+    # List with specific environment
+    taskfile --env prod list
+    ```
+    """
     opts = ctx.obj
     try:
         config = load_taskfile(opts["taskfile_path"])
-        runner = TaskfileRunner(config=config, env_name=opts["env_name"], platform_name=opts["platform_name"])
+        runner = TaskfileRunner(
+            config=config, env_name=opts["env_name"], platform_name=opts["platform_name"]
+        )
         runner.list_tasks()
     except (TaskfileNotFoundError, TaskfileParseError) as e:
         console.print(f"[red]Error:[/] {e}")
@@ -369,43 +385,46 @@ taskfile --env prod list
 
 
 @main.command()
-@click.option("--files", "check_files", is_flag=True, help="Check all dependent files (scripts, env, compose)")
+@click.option(
+    "--files", "check_files", is_flag=True, help="Check all dependent files (scripts, env, compose)"
+)
 @click.option("--deps", "show_deps", is_flag=True, help="Show dependency tree for all tasks")
 @click.pass_context
 def validate(ctx, check_files, show_deps):
     """**Validate the Taskfile** without running anything.
 
-## Checks Performed
+    ## Checks Performed
 
-- Task definitions are valid
-- Dependencies exist
-- Script files are accessible
-- Environment configurations
+    - Task definitions are valid
+    - Dependencies exist
+    - Script files are accessible
+    - Environment configurations
 
-## Options
+    ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--files` | Check all dependent files exist |
-| `--deps` | Show dependency tree |
+    | Option | Description |
+    |--------|-------------|
+    | `--files` | Check all dependent files exist |
+    | `--deps` | Show dependency tree |
 
-## Examples
+    ## Examples
 
-```bash
-# Basic validation
-taskfile validate
+    ```bash
+    # Basic validation
+    taskfile validate
 
-# Check all files
-taskfile validate --files
+    # Check all files
+    taskfile validate --files
 
-# Show dependency tree
-taskfile validate --deps
-```
-"""
+    # Show dependency tree
+    taskfile validate --deps
+    ```
+    """
     opts = ctx.obj
     try:
         config = load_taskfile(opts["taskfile_path"])
         from taskfile.parser import validate_taskfile
+
         warnings = validate_taskfile(config)
         if warnings:
             for w in warnings:
@@ -429,11 +448,13 @@ taskfile validate --deps
         # --files: detailed file checks
         if check_files:
             from taskfile.cli.validate_cmd import validate_dependent_files
+
             validate_dependent_files(config)
 
         # --deps: show dependency tree
         if show_deps:
             from taskfile.cli.validate_cmd import print_dependency_tree
+
             print_dependency_tree(config)
 
     except (TaskfileNotFoundError, TaskfileParseError) as e:
@@ -445,8 +466,20 @@ taskfile validate --deps
 
 @main.command(name="import")
 @click.argument("source", type=click.Path(exists=True))
-@click.option("--type", "source_type", type=click.Choice(["github-actions", "gitlab-ci", "makefile", "shell", "dockerfile"]), default=None, help="Source file type (auto-detected if omitted)")
-@click.option("-o", "--output", "output_path", default="Taskfile.yml", help="Output path (default: Taskfile.yml)")
+@click.option(
+    "--type",
+    "source_type",
+    type=click.Choice(["github-actions", "gitlab-ci", "makefile", "shell", "dockerfile"]),
+    default=None,
+    help="Source file type (auto-detected if omitted)",
+)
+@click.option(
+    "-o",
+    "--output",
+    "output_path",
+    default="Taskfile.yml",
+    help="Output path (default: Taskfile.yml)",
+)
 @click.option("--force", is_flag=True, help="Overwrite existing output file")
 def import_cmd(source, source_type, output_path, force):
     """Import CI/CD config, Makefile, or script INTO Taskfile.yml.
@@ -477,7 +510,9 @@ def import_cmd(source, source_type, output_path, force):
         result = import_file(source, source_type)
         outpath.write_text(result, encoding="utf-8")
         console.print(f"[green]✓ Imported {source} → {outpath}[/]")
-        console.print("[dim]  Review and customize the generated Taskfile, then run: taskfile list[/]")
+        console.print(
+            "[dim]  Review and customize the generated Taskfile, then run: taskfile list[/]"
+        )
     except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]Error:[/] {e}")
         sys.exit(1)
@@ -490,4 +525,3 @@ import taskfile.cli.explain_cmd  # noqa: E402, F401 — registers 'explain' comm
 
 if __name__ == "__main__":
     main()
-

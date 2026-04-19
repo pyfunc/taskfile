@@ -9,6 +9,10 @@ from taskfile.runner.resolver import TaskResolver
 from taskfile.runner.classifier import CommandType, classify_command, should_expand_globs
 
 __all__ = [
-    "TaskfileRunner", "TaskRunError", "TaskResolver",
-    "CommandType", "classify_command", "should_expand_globs",
+    "TaskfileRunner",
+    "TaskRunError",
+    "TaskResolver",
+    "CommandType",
+    "classify_command",
+    "should_expand_globs",
 ]

@@ -7,9 +7,7 @@ Covers:
 - ProjectDiagnostics facade integration
 """
 
-import pytest
 from unittest.mock import patch, MagicMock
-from pathlib import Path
 
 from taskfile.diagnostics import ProjectDiagnostics
 from taskfile.diagnostics.checks import (
@@ -29,23 +27,25 @@ class TestRunAllChecks:
 
     def test_run_all_checks_calls_core_checks(self):
         diag = ProjectDiagnostics()
-        with patch.object(diag, 'check_preflight') as m1, \
-             patch.object(diag, 'check_taskfile') as m2, \
-             patch.object(diag, 'check_env_files') as m3, \
-             patch.object(diag, 'check_git') as m4, \
-             patch.object(diag, 'check_deploy_artifacts') as m5, \
-             patch.object(diag, 'check_docker') as m6, \
-             patch.object(diag, 'check_ports') as m7, \
-             patch.object(diag, 'validate_taskfile_variables') as m8, \
-             patch.object(diag, 'check_placeholder_values') as m9, \
-             patch.object(diag, 'check_dependent_files') as m10, \
-             patch.object(diag, 'check_registry_access') as m11, \
-             patch.object(diag, 'check_ssh_keys') as m12, \
-             patch.object(diag, 'check_task_commands') as m13, \
-             patch.object(diag, 'check_ssh_connectivity') as m14, \
-             patch.object(diag, 'check_remote_health') as m15, \
-             patch.object(diag, 'check_ufw_forward_policy') as m16, \
-             patch.object(diag, 'check_container_dns') as m17:
+        with (
+            patch.object(diag, "check_preflight") as m1,
+            patch.object(diag, "check_taskfile") as m2,
+            patch.object(diag, "check_env_files") as m3,
+            patch.object(diag, "check_git") as m4,
+            patch.object(diag, "check_deploy_artifacts") as m5,
+            patch.object(diag, "check_docker") as m6,
+            patch.object(diag, "check_ports") as m7,
+            patch.object(diag, "validate_taskfile_variables"),
+            patch.object(diag, "check_placeholder_values"),
+            patch.object(diag, "check_dependent_files"),
+            patch.object(diag, "check_registry_access"),
+            patch.object(diag, "check_ssh_keys"),
+            patch.object(diag, "check_task_commands") as m13,
+            patch.object(diag, "check_ssh_connectivity") as m14,
+            patch.object(diag, "check_remote_health") as m15,
+            patch.object(diag, "check_ufw_forward_policy") as m16,
+            patch.object(diag, "check_container_dns") as m17,
+        ):
             diag.run_all_checks(verbose=False, remote=False)
 
             # Core checks always called
@@ -66,23 +66,25 @@ class TestRunAllChecks:
 
     def test_run_all_checks_verbose_adds_expensive_checks(self):
         diag = ProjectDiagnostics()
-        with patch.object(diag, 'check_preflight'), \
-             patch.object(diag, 'check_taskfile'), \
-             patch.object(diag, 'check_env_files'), \
-             patch.object(diag, 'check_git'), \
-             patch.object(diag, 'check_deploy_artifacts'), \
-             patch.object(diag, 'check_docker'), \
-             patch.object(diag, 'check_ports'), \
-             patch.object(diag, 'validate_taskfile_variables'), \
-             patch.object(diag, 'check_placeholder_values'), \
-             patch.object(diag, 'check_dependent_files'), \
-             patch.object(diag, 'check_registry_access'), \
-             patch.object(diag, 'check_ssh_keys'), \
-             patch.object(diag, 'check_task_commands') as m_task, \
-             patch.object(diag, 'check_ssh_connectivity') as m_ssh, \
-             patch.object(diag, 'check_remote_health') as m_health, \
-             patch.object(diag, 'check_ufw_forward_policy') as m_ufw, \
-             patch.object(diag, 'check_container_dns') as m_dns:
+        with (
+            patch.object(diag, "check_preflight"),
+            patch.object(diag, "check_taskfile"),
+            patch.object(diag, "check_env_files"),
+            patch.object(diag, "check_git"),
+            patch.object(diag, "check_deploy_artifacts"),
+            patch.object(diag, "check_docker"),
+            patch.object(diag, "check_ports"),
+            patch.object(diag, "validate_taskfile_variables"),
+            patch.object(diag, "check_placeholder_values"),
+            patch.object(diag, "check_dependent_files"),
+            patch.object(diag, "check_registry_access"),
+            patch.object(diag, "check_ssh_keys"),
+            patch.object(diag, "check_task_commands") as m_task,
+            patch.object(diag, "check_ssh_connectivity") as m_ssh,
+            patch.object(diag, "check_remote_health") as m_health,
+            patch.object(diag, "check_ufw_forward_policy") as m_ufw,
+            patch.object(diag, "check_container_dns") as m_dns,
+        ):
             diag.run_all_checks(verbose=True)
 
             m_task.assert_called_once()
@@ -93,23 +95,25 @@ class TestRunAllChecks:
 
     def test_run_all_checks_remote_adds_infra_checks(self):
         diag = ProjectDiagnostics()
-        with patch.object(diag, 'check_preflight'), \
-             patch.object(diag, 'check_taskfile'), \
-             patch.object(diag, 'check_env_files'), \
-             patch.object(diag, 'check_git'), \
-             patch.object(diag, 'check_deploy_artifacts'), \
-             patch.object(diag, 'check_docker'), \
-             patch.object(diag, 'check_ports'), \
-             patch.object(diag, 'validate_taskfile_variables'), \
-             patch.object(diag, 'check_placeholder_values'), \
-             patch.object(diag, 'check_dependent_files'), \
-             patch.object(diag, 'check_registry_access'), \
-             patch.object(diag, 'check_ssh_keys'), \
-             patch.object(diag, 'check_task_commands') as m_task, \
-             patch.object(diag, 'check_ssh_connectivity') as m_ssh, \
-             patch.object(diag, 'check_remote_health') as m_health, \
-             patch.object(diag, 'check_ufw_forward_policy') as m_ufw, \
-             patch.object(diag, 'check_container_dns') as m_dns:
+        with (
+            patch.object(diag, "check_preflight"),
+            patch.object(diag, "check_taskfile"),
+            patch.object(diag, "check_env_files"),
+            patch.object(diag, "check_git"),
+            patch.object(diag, "check_deploy_artifacts"),
+            patch.object(diag, "check_docker"),
+            patch.object(diag, "check_ports"),
+            patch.object(diag, "validate_taskfile_variables"),
+            patch.object(diag, "check_placeholder_values"),
+            patch.object(diag, "check_dependent_files"),
+            patch.object(diag, "check_registry_access"),
+            patch.object(diag, "check_ssh_keys"),
+            patch.object(diag, "check_task_commands") as m_task,
+            patch.object(diag, "check_ssh_connectivity") as m_ssh,
+            patch.object(diag, "check_remote_health") as m_health,
+            patch.object(diag, "check_ufw_forward_policy") as m_ufw,
+            patch.object(diag, "check_container_dns") as m_dns,
+        ):
             diag.run_all_checks(remote=True)
 
             m_task.assert_called_once()
@@ -125,7 +129,6 @@ class TestRunAllChecks:
 
 
 class TestCheckUfwForwardPolicy:
-
     @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
     @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value=None)
     def test_no_ufw_returns_empty(self, mock_which):
@@ -178,7 +181,6 @@ class TestCheckUfwForwardPolicy:
 
 
 class TestCheckContainerDns:
-
     @patch("taskfile.diagnostics.checks_infra.HAS_FIXOP", False)
     @patch("taskfile.diagnostics.checks_infra.shutil.which", return_value=None)
     def test_no_podman_returns_empty(self, mock_which):

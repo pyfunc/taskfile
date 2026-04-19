@@ -29,7 +29,7 @@ taskfile completion fish | source
 
 ### Why clickmd?
 
-Uses `clickmd` for CLI framework compatibility. Note: Uses `click.shell_completion` 
+Uses `clickmd` for CLI framework compatibility. Note: Uses `click.shell_completion`
 from the underlying click library for completion items.
 
 ### Dependencies
@@ -40,14 +40,11 @@ from the underlying click library for completion items.
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-import clickmd as click
 from click.shell_completion import CompletionItem
 
-from taskfile.parser import find_taskfile, load_taskfile, TaskfileNotFoundError
+from taskfile.parser import load_taskfile, TaskfileNotFoundError
 
 if TYPE_CHECKING:
     pass
@@ -56,7 +53,7 @@ if TYPE_CHECKING:
 def get_task_names(ctx, param, incomplete: str) -> list[CompletionItem]:
     """Shell completion for task names."""
     try:
-        taskfile_path = ctx.params.get('taskfile_path')
+        taskfile_path = ctx.params.get("taskfile_path")
         if taskfile_path:
             config = load_taskfile(taskfile_path)
         else:
@@ -64,7 +61,7 @@ def get_task_names(ctx, param, incomplete: str) -> list[CompletionItem]:
                 config = load_taskfile()
             except TaskfileNotFoundError:
                 return []
-        
+
         # Filter tasks that match incomplete
         tasks = []
         for name in config.tasks.keys():
@@ -74,7 +71,7 @@ def get_task_names(ctx, param, incomplete: str) -> list[CompletionItem]:
                 if len(desc) > 50:
                     desc = desc[:47] + "..."
                 tasks.append(CompletionItem(name, help=desc))
-        
+
         return tasks
     except Exception:
         return []
@@ -83,7 +80,7 @@ def get_task_names(ctx, param, incomplete: str) -> list[CompletionItem]:
 def get_environment_names(ctx, param, incomplete: str) -> list[CompletionItem]:
     """Shell completion for environment names."""
     try:
-        taskfile_path = ctx.params.get('taskfile_path')
+        taskfile_path = ctx.params.get("taskfile_path")
         if taskfile_path:
             config = load_taskfile(taskfile_path)
         else:
@@ -91,7 +88,7 @@ def get_environment_names(ctx, param, incomplete: str) -> list[CompletionItem]:
                 config = load_taskfile()
             except TaskfileNotFoundError:
                 return []
-        
+
         envs = []
         for name in config.environments.keys():
             if name.startswith(incomplete):
@@ -100,7 +97,7 @@ def get_environment_names(ctx, param, incomplete: str) -> list[CompletionItem]:
                 if env.ssh_host:
                     desc += f" → {env.ssh_host}"
                 envs.append(CompletionItem(name, help=desc))
-        
+
         return envs
     except Exception:
         return []
@@ -109,7 +106,7 @@ def get_environment_names(ctx, param, incomplete: str) -> list[CompletionItem]:
 def get_platform_names(ctx, param, incomplete: str) -> list[CompletionItem]:
     """Shell completion for platform names."""
     try:
-        taskfile_path = ctx.params.get('taskfile_path')
+        taskfile_path = ctx.params.get("taskfile_path")
         if taskfile_path:
             config = load_taskfile(taskfile_path)
         else:
@@ -117,14 +114,14 @@ def get_platform_names(ctx, param, incomplete: str) -> list[CompletionItem]:
                 config = load_taskfile()
             except TaskfileNotFoundError:
                 return []
-        
+
         platforms = []
         for name in config.platforms.keys():
             if name.startswith(incomplete):
                 plat = config.platforms[name]
                 desc = f"{len(plat.envs)} environments"
                 platforms.append(CompletionItem(name, help=desc))
-        
+
         return platforms
     except Exception:
         return []
@@ -132,11 +129,11 @@ def get_platform_names(ctx, param, incomplete: str) -> list[CompletionItem]:
 
 def generate_completion_script(shell: str) -> str:
     """Generate shell completion script for taskfile.
-    
+
     Supported shells: bash, zsh, fish
     """
     if shell == "bash":
-        return '''
+        return """
 _taskfile_completion() {
     local IFS=$'\n'
     local response
@@ -156,10 +153,10 @@ _taskfile_completion() {
 }
 
 complete -F _taskfile_completion -o bashdefault -o default taskfile
-'''.strip()
+""".strip()
 
     elif shell == "zsh":
-        return '''
+        return """
 #compdef taskfile
 
 _taskfile_completion() {
@@ -177,10 +174,10 @@ _taskfile_completion() {
 }
 
 compdef _taskfile_completion taskfile
-'''.strip()
+""".strip()
 
     elif shell == "fish":
-        return '''
+        return """
 complete -c taskfile -f
 
 function __taskfile_complete
@@ -191,7 +188,7 @@ function __taskfile_complete
 end
 
 complete -c taskfile -a '(__taskfile_complete)'
-'''.strip()
+""".strip()
 
     else:
         raise ValueError(f"Unsupported shell: {shell}")

@@ -23,6 +23,7 @@ from enum import Enum
 
 class CommandType(str, Enum):
     """Classification of a command string for routing to the correct pipeline."""
+
     SHELL_CONSTRUCT = "shell_construct"
     FN_CALL = "fn_call"
     PYTHON_INLINE = "python_inline"
@@ -37,9 +38,13 @@ class CommandType(str, Enum):
 # Shell construct keywords that start compound statements.
 # These must NOT be passed through shlex.split as it mangles semicolons/structure.
 _SHELL_CONSTRUCT_PREFIXES = (
-    "for ", "for(",
-    "while ", "while(",
-    "if ", "if[", "if(",
+    "for ",
+    "for(",
+    "while ",
+    "while(",
+    "if ",
+    "if[",
+    "if(",
     "case ",
     "until ",
     "select ",
@@ -50,30 +55,28 @@ _SHELL_CONSTRUCT_PREFIXES = (
 # Patterns indicating shell constructs even mid-command
 # e.g., "VAR=x; for f in *.txt; do ..." or "cd dir && for ..."
 _SHELL_CONSTRUCT_RE = re.compile(
-    r'(?:^|[;&|]\s*)'           # start of string or after ; & |
-    r'(?:for|while|if|case|until|select)\s',
+    r"(?:^|[;&|]\s*)"  # start of string or after ; & |
+    r"(?:for|while|if|case|until|select)\s",
     re.MULTILINE,
 )
 
 # Subshell / brace group patterns: $(...), (...), { ...; }
-_SUBSHELL_RE = re.compile(r'(?:\$\(|^\(|;\s*\{)')
+_SUBSHELL_RE = re.compile(r"(?:\$\(|^\(|;\s*\{)")
 
 # Commands with inline semicolons that aren't just command separators
 # but part of shell syntax (for...do...done, if...then...fi)
-_SHELL_KEYWORDS_RE = re.compile(
-    r'\b(?:do|done|then|else|elif|fi|esac|in)\b'
-)
+_SHELL_KEYWORDS_RE = re.compile(r"\b(?:do|done|then|else|elif|fi|esac|in)\b")
 
 
 # Dispatch table for @-prefixed commands — O(n) scan but tiny n.
 _PREFIX_DISPATCH: tuple[tuple[str, CommandType], ...] = (
-    ("@fn ",      CommandType.FN_CALL),
-    ("@python ",  CommandType.PYTHON_INLINE),
-    ("@remote ",  CommandType.REMOTE_CMD),
-    ("@ssh ",     CommandType.REMOTE_CMD),
-    ("@local ",   CommandType.LOCAL_CMD),
-    ("@push ",    CommandType.PUSH_CMD),
-    ("@pull ",    CommandType.PULL_CMD),
+    ("@fn ", CommandType.FN_CALL),
+    ("@python ", CommandType.PYTHON_INLINE),
+    ("@remote ", CommandType.REMOTE_CMD),
+    ("@ssh ", CommandType.REMOTE_CMD),
+    ("@local ", CommandType.LOCAL_CMD),
+    ("@push ", CommandType.PUSH_CMD),
+    ("@pull ", CommandType.PULL_CMD),
 )
 
 
@@ -91,7 +94,7 @@ def classify_command(cmd: str) -> CommandType:
     """
     stripped = cmd.strip()
 
-    if '\n' in stripped:
+    if "\n" in stripped:
         return CommandType.MULTILINE
 
     for prefix, ctype in _PREFIX_DISPATCH:
@@ -114,7 +117,7 @@ def _is_shell_construct(stripped: str) -> bool:
         return True
     if _SUBSHELL_RE.search(stripped):
         return True
-    if ';' in stripped and _SHELL_KEYWORDS_RE.search(stripped):
+    if ";" in stripped and _SHELL_KEYWORDS_RE.search(stripped):
         return True
     return False
 
@@ -143,4 +146,4 @@ def has_glob_pattern(cmd: str) -> bool:
     Returns:
         True if the command contains *, ?, or [ characters
     """
-    return bool('*' in cmd or '?' in cmd or '[' in cmd)
+    return bool("*" in cmd or "?" in cmd or "[" in cmd)

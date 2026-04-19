@@ -1,4 +1,5 @@
 """Base definitions for CI/CD generators."""
+
 from __future__ import annotations
 from pathlib import Path
 import yaml
@@ -9,11 +10,14 @@ console = Console()
 
 TARGETS: dict[str, type["CITarget"]] = {}
 
+
 def register_target(name: str):
     def decorator(cls):
         TARGETS[name] = cls
         return cls
+
     return decorator
+
 
 class CITarget:
     """Base class for CI/CD target generators."""
@@ -54,9 +58,11 @@ class CITarget:
         tag = self._tag_var()
         return f"taskfile {env_flag} {tasks} --var TAG={tag}".strip()
 
+
 def _sanitize_id(name: str) -> str:
     """Make a name safe for use as YAML key / job ID."""
     return name.replace(" ", "-").replace("/", "-").lower()
+
 
 def _yaml_dump(data: dict) -> str:
     """Dump dict to YAML with a generation header."""

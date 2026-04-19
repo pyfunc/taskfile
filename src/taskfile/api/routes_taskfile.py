@@ -67,7 +67,9 @@ def register_taskfile_routes(app: FastAPI) -> None:
     )
     def get_schema():
         """Return the JSON Schema for Taskfile.yml format."""
-        schema_path = Path(__file__).parent.parent.parent.parent / "docs" / "schema" / "taskfile.schema.json"
+        schema_path = (
+            Path(__file__).parent.parent.parent.parent / "docs" / "schema" / "taskfile.schema.json"
+        )
         if not schema_path.is_file():
             raise HTTPException(status_code=404, detail="Schema file not found")
         return json.loads(schema_path.read_text())

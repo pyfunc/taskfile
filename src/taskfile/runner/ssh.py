@@ -10,17 +10,39 @@ from taskfile.runner.utils.prefix import has_prefix, strip_prefix, has_any_prefi
 
 console = Console()
 
+
 # Prefix detection helpers
-is_local_command = lambda cmd: has_prefix(cmd, "@local")
-is_remote_command = lambda cmd: has_any_prefix(cmd, ["@remote", "@ssh"])
-is_push_command = lambda cmd: has_prefix(cmd, "@push")
-is_pull_command = lambda cmd: has_prefix(cmd, "@pull")
+def is_local_command(cmd):
+    return has_prefix(cmd, "@local")
+
+
+def is_remote_command(cmd):
+    return has_any_prefix(cmd, ["@remote", "@ssh"])
+
+
+def is_push_command(cmd):
+    return has_prefix(cmd, "@push")
+
+
+def is_pull_command(cmd):
+    return has_prefix(cmd, "@pull")
+
 
 # Prefix stripping helpers
-strip_local_prefix = lambda cmd: strip_prefix(cmd, "@local")
-strip_remote_prefix = lambda cmd: strip_any_prefix(cmd, ["@remote", "@ssh"])
-strip_push_prefix = lambda cmd: strip_prefix(cmd, "@push")
-strip_pull_prefix = lambda cmd: strip_prefix(cmd, "@pull")
+def strip_local_prefix(cmd):
+    return strip_prefix(cmd, "@local")
+
+
+def strip_remote_prefix(cmd):
+    return strip_any_prefix(cmd, ["@remote", "@ssh"])
+
+
+def strip_push_prefix(cmd):
+    return strip_prefix(cmd, "@push")
+
+
+def strip_pull_prefix(cmd):
+    return strip_prefix(cmd, "@pull")
 
 
 def wrap_ssh(cmd: str, env) -> str:

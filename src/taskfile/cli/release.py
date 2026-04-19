@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 
 import clickmd as click
 from taskfile.cli.click_compat import confirm
-from rich.console import Console
 from rich.panel import Panel
 
 from taskfile.cli.main import console, main
@@ -133,17 +132,19 @@ def _resolve_domain(config, domain_override: str | None = None) -> tuple[str, st
 
 def _show_release_plan(app_name, current_tag, domain, skip_desktop, skip_landing, skip_health):
     """Display the release plan panel."""
-    console.print(Panel.fit(
-        f"[bold green]Release Plan: {app_name} {current_tag}[/]\n"
-        f"[dim]Domain:[/] {domain}\n"
-        f"[dim]Steps:[/]\n"
-        f"  {'[dim]' if skip_desktop else '[green]'}1.{'[/]'} Build desktop\n"
-        f"  {'[dim]' if False else '[green]'}2.{'[/]'} Deploy web (SaaS)\n"
-        f"  {'[dim]' if skip_desktop else '[green]'}3.{'[/]'} Upload releases\n"
-        f"  {'[dim]' if skip_landing else '[green]'}4.{'[/]'} Deploy landing\n"
-        f"  {'[dim]' if skip_health else '[green]'}5.{'[/]'} Health check",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold green]Release Plan: {app_name} {current_tag}[/]\n"
+            f"[dim]Domain:[/] {domain}\n"
+            f"[dim]Steps:[/]\n"
+            f"  {'[dim]' if skip_desktop else '[green]'}1.{'[/]'} Build desktop\n"
+            f"  {'[dim]' if False else '[green]'}2.{'[/]'} Deploy web (SaaS)\n"
+            f"  {'[dim]' if skip_desktop else '[green]'}3.{'[/]'} Upload releases\n"
+            f"  {'[dim]' if skip_landing else '[green]'}4.{'[/]'} Deploy landing\n"
+            f"  {'[dim]' if skip_health else '[green]'}5.{'[/]'} Health check",
+            border_style="green",
+        )
+    )
 
 
 def _confirm_release(dry_run, force):
@@ -229,21 +230,25 @@ def _step_health_check(domain, ssh_host):
 def _print_release_summary(success, current_tag, domain):
     """Print final release success/failure panel and exit."""
     if success:
-        console.print(Panel.fit(
-            f"[bold green]✅ Release {current_tag} complete![/]\n\n"
-            f"[dim]Web app:[/]    https://app.{domain}\n"
-            f"[dim]Landing:[/]    https://{domain}\n"
-            f"[dim]Downloads:[/]  https://{domain}/releases/{current_tag}/",
-            border_style="green"
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold green]✅ Release {current_tag} complete![/]\n\n"
+                f"[dim]Web app:[/]    https://app.{domain}\n"
+                f"[dim]Landing:[/]    https://{domain}\n"
+                f"[dim]Downloads:[/]  https://{domain}/releases/{current_tag}/",
+                border_style="green",
+            )
+        )
         sys.exit(0)
     else:
-        console.print(Panel.fit(
-            f"[bold red]⚠️ Release {current_tag} completed with errors[/]\n\n"
-            f"Check the output above for details.\n"
-            f"You may need to run individual steps manually.",
-            border_style="red"
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold red]⚠️ Release {current_tag} completed with errors[/]\n\n"
+                f"Check the output above for details.\n"
+                f"You may need to run individual steps manually.",
+                border_style="red",
+            )
+        )
         sys.exit(1)
 
 
@@ -289,7 +294,9 @@ def release(ctx, tag_version, skip_desktop, skip_landing, skip_health, dry_run, 
         success = _step_upload_releases(current_tag, dry_run_flag, dry_run) and success
 
     if not skip_landing:
-        success = _step_deploy_landing(app_name, current_tag, domain, dry_run_flag, dry_run) and success
+        success = (
+            _step_deploy_landing(app_name, current_tag, domain, dry_run_flag, dry_run) and success
+        )
 
     if not skip_health and not dry_run:
         success = _step_health_check(domain, ssh_host) and success
@@ -327,12 +334,14 @@ def rollback(ctx, target_tag, domain, dry_run):
 
     check_domain, ssh_host = _resolve_domain(config, domain)
 
-    console.print(Panel.fit(
-        f"[bold yellow]⚠️ Rollback to {rollback_tag}[/]\n"
-        f"[dim]Domain:[/] {check_domain}\n"
-        f"[dim]This will:[/] Deploy previous version of web app",
-        border_style="yellow"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold yellow]⚠️ Rollback to {rollback_tag}[/]\n"
+            f"[dim]Domain:[/] {check_domain}\n"
+            f"[dim]This will:[/] Deploy previous version of web app",
+            border_style="yellow",
+        )
+    )
 
     if dry_run:
         console.print("\n[yellow]DRY RUN — No changes will be made[/]")
@@ -345,7 +354,16 @@ def rollback(ctx, target_tag, domain, dry_run):
 
     # Deploy with previous tag
     success = _run_command(
-        ["taskfile", "--env", "prod", "--platform", "web", "deploy", "--var", f"TAG={rollback_tag}"],
+        [
+            "taskfile",
+            "--env",
+            "prod",
+            "--platform",
+            "web",
+            "deploy",
+            "--var",
+            f"TAG={rollback_tag}",
+        ],
         f"Rolling back to {rollback_tag}",
     )
 
@@ -361,7 +379,9 @@ def rollback(ctx, target_tag, domain, dry_run):
             console.print(f"\n[bold green]✅ Rolled back to {rollback_tag}[/]")
             sys.exit(0)
         else:
-            console.print(f"\n[bold yellow]⚠️ Rolled back to {rollback_tag} but health check failed[/]")
+            console.print(
+                f"\n[bold yellow]⚠️ Rolled back to {rollback_tag} but health check failed[/]"
+            )
             sys.exit(1)
     else:
         console.print(f"\n[bold red]✗ Rollback to {rollback_tag} failed[/]")

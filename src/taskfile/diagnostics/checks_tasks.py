@@ -39,19 +39,21 @@ def check_task_commands(config: "TaskfileConfig") -> list[Issue]:
             resolved_cmd = _compose_resolve_variables(cmd, var_ctx)
             binary = _extract_binary(resolved_cmd)
             if binary and not shutil.which(binary) and not binary.startswith("@"):
-                issues.append(Issue(
-                    category=IssueCategory.DEPENDENCY_MISSING,
-                    message=f"Task '{task_name}': command '{binary}' not found",
-                    fix_strategy=FixStrategy.LLM,
-                    severity=SEVERITY_WARNING,
-                    context={"binary": binary, "task": task_name, "cmd": cmd},
-                    teach=(
-                        f"The command '{binary}' is used in your Taskfile but not "
-                        "installed on your system. Each tool in 'cmds:' must be available. "
-                        "Install missing tools with your package manager (apt, brew, etc.)."
-                    ),
-                    layer=3,
-                ))
+                issues.append(
+                    Issue(
+                        category=IssueCategory.DEPENDENCY_MISSING,
+                        message=f"Task '{task_name}': command '{binary}' not found",
+                        fix_strategy=FixStrategy.LLM,
+                        severity=SEVERITY_WARNING,
+                        context={"binary": binary, "task": task_name, "cmd": cmd},
+                        teach=(
+                            f"The command '{binary}' is used in your Taskfile but not "
+                            "installed on your system. Each tool in 'cmds:' must be available. "
+                            "Install missing tools with your package manager (apt, brew, etc.)."
+                        ),
+                        layer=3,
+                    )
+                )
     return issues
 
 

@@ -20,6 +20,7 @@ from rich.console import Console
 
 try:
     from clickmd import MarkdownRenderer
+
     _HAS_CLICKMD = True
 except ImportError:
     _HAS_CLICKMD = False
@@ -34,6 +35,7 @@ console = Console()
 _HAS_PARAMIKO = False
 try:
     import paramiko  # type: ignore[import-untyped]
+
     _HAS_PARAMIKO = True
 except ImportError:
     paramiko = None  # type: ignore[assignment]
@@ -102,6 +104,7 @@ def close_all() -> None:
 
 # ─── Execute commands ─────────────────────────────────
 
+
 def ssh_exec(env: Environment, command: str, timeout: int = 300) -> int:
     """Execute a command on remote host via embedded SSH (paramiko).
 
@@ -139,8 +142,11 @@ def _ssh_exec_subprocess(env: Environment, command: str) -> int:
     escaped = command.replace("'", "'\\''")
     full_cmd = f"ssh {opts} {target} '{escaped}'"
     result = subprocess.run(
-        full_cmd, shell=True, text=True,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        full_cmd,
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
     output = (result.stdout or "").rstrip()
     if output:

@@ -1,7 +1,7 @@
 """Tests for TaskResolver — pure logic (no IO) for task resolution and variable expansion."""
 
 import pytest
-from taskfile.models import TaskfileConfig, Task, Environment
+from taskfile.models import TaskfileConfig
 from taskfile.runner.resolver import TaskResolver
 
 
@@ -114,11 +114,13 @@ class TestTaskResolver:
         assert resolver.get_task("deploy") is None
 
     def test_available_task_names(self):
-        resolver = self._make_resolver({
-            "build": {"cmds": ["make"]},
-            "test": {"cmds": ["pytest"]},
-            "deploy": {"cmds": ["deploy"]},
-        })
+        resolver = self._make_resolver(
+            {
+                "build": {"cmds": ["make"]},
+                "test": {"cmds": ["pytest"]},
+                "deploy": {"cmds": ["deploy"]},
+            }
+        )
         assert resolver.available_task_names() == ["build", "deploy", "test"]
 
     # ─── Task filtering ───
@@ -165,19 +167,23 @@ class TestTaskResolver:
     # ─── Dependency ordering ───
 
     def test_dependency_order_simple(self):
-        resolver = self._make_resolver({
-            "build": {"cmds": ["make"]},
-            "test": {"cmds": ["pytest"], "deps": ["build"]},
-        })
+        resolver = self._make_resolver(
+            {
+                "build": {"cmds": ["make"]},
+                "test": {"cmds": ["pytest"], "deps": ["build"]},
+            }
+        )
         order = resolver.get_dependency_order("test")
         assert order == ["build", "test"]
 
     def test_dependency_order_chain(self):
-        resolver = self._make_resolver({
-            "build": {"cmds": ["make"]},
-            "test": {"cmds": ["pytest"], "deps": ["build"]},
-            "deploy": {"cmds": ["deploy"], "deps": ["test"]},
-        })
+        resolver = self._make_resolver(
+            {
+                "build": {"cmds": ["make"]},
+                "test": {"cmds": ["pytest"], "deps": ["build"]},
+                "deploy": {"cmds": ["deploy"], "deps": ["test"]},
+            }
+        )
         order = resolver.get_dependency_order("deploy")
         assert order == ["build", "test", "deploy"]
 
@@ -187,10 +193,12 @@ class TestTaskResolver:
         assert order == ["build"]
 
     def test_circular_dependency_detected(self):
-        resolver = self._make_resolver({
-            "a": {"cmds": ["echo"], "deps": ["b"]},
-            "b": {"cmds": ["echo"], "deps": ["a"]},
-        })
+        resolver = self._make_resolver(
+            {
+                "a": {"cmds": ["echo"], "deps": ["b"]},
+                "b": {"cmds": ["echo"], "deps": ["a"]},
+            }
+        )
         with pytest.raises(ValueError, match="Circular dependency"):
             resolver.get_dependency_order("a")
 
@@ -210,7 +218,9 @@ class TestTaskResolver:
         }
         config = TaskfileConfig.from_dict(data)
         resolver = TaskResolver(
-            config, env_name="test", platform_name="web",
+            config,
+            env_name="test",
+            platform_name="web",
             var_overrides={"TAG": "cli"},
         )
         assert resolver.variables["TAG"] == "cli"

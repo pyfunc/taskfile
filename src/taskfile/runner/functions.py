@@ -72,7 +72,11 @@ def _exec_function_python(fn, fn_args: str, env: dict, task: Task) -> int:
     """Execute a Python function (inline code or file)."""
     py = _python_cmd()
     if fn.file:
-        entry = f" -c \"import runpy; runpy.run_path('{fn.file}')\"" if not fn.function else f" {fn.file}"
+        entry = (
+            f" -c \"import runpy; runpy.run_path('{fn.file}')\""
+            if not fn.function
+            else f" {fn.file}"
+        )
         if fn.function:
             actual_cmd = f"{py} -c \"import importlib.util, sys; spec=importlib.util.spec_from_file_location('m','{fn.file}'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); m.{fn.function}({repr(fn_args)})\""
         else:
@@ -80,6 +84,7 @@ def _exec_function_python(fn, fn_args: str, env: dict, task: Task) -> int:
     elif fn.code:
         # Write inline code to temp and execute
         import tempfile
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
             tmp.write(fn.code)
             tmp_path = tmp.name
@@ -90,7 +95,7 @@ def _exec_function_python(fn, fn_args: str, env: dict, task: Task) -> int:
         result = subprocess.run(actual_cmd, shell=True, env=env, cwd=task.working_dir, text=True)
         return result.returncode
     finally:
-        if fn.code and 'tmp_path' in locals():
+        if fn.code and "tmp_path" in locals():
             try:
                 os.unlink(tmp_path)
             except OSError:
@@ -135,6 +140,9 @@ def run_inline_python(runner, cmd: str, task: Task) -> int:
     py = _python_cmd()
     result = subprocess.run(
         f"{py} -c {repr(code)}",
-        shell=True, env=env, cwd=task.working_dir, text=True,
+        shell=True,
+        env=env,
+        cwd=task.working_dir,
+        text=True,
     )
     return result.returncode

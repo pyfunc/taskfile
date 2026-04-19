@@ -1,8 +1,6 @@
 """Tests for diagnostics — new 5-layer package + backward-compat shim."""
 
-import pytest
 import yaml
-from pathlib import Path
 
 # ─── New package imports ──────────────────────────────
 from taskfile.diagnostics.models import (
@@ -18,13 +16,11 @@ from taskfile.diagnostics.checks import (
     check_taskfile as new_check_taskfile,
     check_env_files as new_check_env_files,
     check_git as new_check_git,
-    check_docker as new_check_docker,
     check_dependent_files as new_check_dependent_files,
     check_examples as new_check_examples,
     check_preflight as new_check_preflight,
 )
 from taskfile.diagnostics.llm_repair import classify_runtime_error
-from taskfile.diagnostics import ProjectDiagnostics as NewProjectDiagnostics
 
 # ─── Old backward-compat imports ──────────────────────
 from taskfile.cli.diagnostics import (
@@ -35,7 +31,7 @@ from taskfile.cli.diagnostics import (
     CATEGORY_LABELS,
     CATEGORY_HINTS,
 )
-from taskfile.runner.commands import _classify_exit_code
+from taskfile.runner.failure import _classify_exit_code
 from taskfile.models import TaskfileConfig
 
 
@@ -114,12 +110,13 @@ class TestDoctorReport:
         assert report.error_count == 0
 
     def test_classify(self):
-        report = DoctorReport(issues=[
-            Issue(category=NewCategory.CONFIG_ERROR, message="a", severity="error"),
-            Issue(category=NewCategory.EXTERNAL_ERROR, message="b"),
-            Issue(category=NewCategory.RUNTIME_ERROR, message="c",
-                  context={"_fixed": True}),
-        ])
+        report = DoctorReport(
+            issues=[
+                Issue(category=NewCategory.CONFIG_ERROR, message="a", severity="error"),
+                Issue(category=NewCategory.EXTERNAL_ERROR, message="b"),
+                Issue(category=NewCategory.RUNTIME_ERROR, message="c", context={"_fixed": True}),
+            ]
+        )
         report.classify()
         assert len(report.fixed) == 1
         assert len(report.external) == 1
@@ -138,9 +135,14 @@ class TestNewChecks:
 
     def test_check_taskfile_valid(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        (tmp_path / "Taskfile.yml").write_text(yaml.dump({
-            "version": "1", "tasks": {"hello": {"cmds": ["echo hi"]}},
-        }))
+        (tmp_path / "Taskfile.yml").write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"hello": {"cmds": ["echo hi"]}},
+                }
+            )
+        )
         issues = new_check_taskfile()
         assert len(issues) == 0
 
@@ -162,9 +164,14 @@ class TestNewChecks:
     def test_check_dependent_files_missing_script(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1", "tasks": {"build": {"script": "scripts/build.sh"}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"build": {"script": "scripts/build.sh"}},
+                }
+            )
+        )
         config = TaskfileConfig.from_dict(yaml.safe_load(tf.read_text()))
         config.source_path = str(tf)
         issues = new_check_dependent_files(config)
@@ -175,11 +182,15 @@ class TestNewChecks:
     def test_check_dependent_files_env_fixable(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         tf = tmp_path / "Taskfile.yml"
-        tf.write_text(yaml.dump({
-            "version": "1",
-            "environments": {"prod": {"env_file": ".env.prod"}},
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        tf.write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "environments": {"prod": {"env_file": ".env.prod"}},
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         (tmp_path / ".env.prod.example").write_text("DOMAIN=example.com\n")
         config = TaskfileConfig.from_dict(yaml.safe_load(tf.read_text()))
         config.source_path = str(tf)
@@ -191,9 +202,14 @@ class TestNewChecks:
     def test_check_examples_valid(self, tmp_path):
         ex = tmp_path / "examples" / "minimal"
         ex.mkdir(parents=True)
-        (ex / "Taskfile.yml").write_text(yaml.dump({
-            "version": "1", "tasks": {"hello": {"cmds": ["echo hi"]}},
-        }))
+        (ex / "Taskfile.yml").write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"hello": {"cmds": ["echo hi"]}},
+                }
+            )
+        )
         results = new_check_examples(tmp_path / "examples")
         assert len(results) == 1
         assert results[0]["valid"] is True
@@ -201,11 +217,15 @@ class TestNewChecks:
     def test_check_examples_missing_env(self, tmp_path):
         ex = tmp_path / "examples" / "myapp"
         ex.mkdir(parents=True)
-        (ex / "Taskfile.yml").write_text(yaml.dump({
-            "version": "1",
-            "environments": {"prod": {"env_file": ".env.prod"}},
-            "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        (ex / "Taskfile.yml").write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "environments": {"prod": {"env_file": ".env.prod"}},
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         results = new_check_examples(tmp_path / "examples")
         assert results[0]["missing_env_files"] == [".env.prod"]
 
@@ -226,37 +246,55 @@ class TestNewValidateBeforeRun:
         return config
 
     def test_clean_project(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1", "tasks": {"hello": {"cmds": ["echo hi"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "tasks": {"hello": {"cmds": ["echo hi"]}},
+            },
+        )
         issues = new_validate_before_run(config, "local", ["hello"])
         assert len(issues) == 0
 
     def test_unknown_task(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1", "tasks": {"hello": {"cmds": ["echo hi"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "tasks": {"hello": {"cmds": ["echo hi"]}},
+            },
+        )
         issues = new_validate_before_run(config, "local", ["nonexistent"])
         assert len(issues) == 1
         assert issues[0].category == NewCategory.CONFIG_ERROR
         assert "Unknown task" in issues[0].message
 
     def test_missing_env_file(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1",
-            "environments": {"prod": {"env_file": ".env.prod"}},
-            "tasks": {"deploy": {"cmds": ["echo"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "environments": {"prod": {"env_file": ".env.prod"}},
+                "tasks": {"deploy": {"cmds": ["echo"]}},
+            },
+        )
         issues = new_validate_before_run(config, "prod", ["deploy"])
-        env_issues = [i for i in issues if i.category == NewCategory.CONFIG_ERROR and "env file" in i.message.lower()]
+        env_issues = [
+            i
+            for i in issues
+            if i.category == NewCategory.CONFIG_ERROR and "env file" in i.message.lower()
+        ]
         assert len(env_issues) == 1
 
     def test_missing_env_file_with_example(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1",
-            "environments": {"prod": {"env_file": ".env.prod"}},
-            "tasks": {"deploy": {"cmds": ["echo"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "environments": {"prod": {"env_file": ".env.prod"}},
+                "tasks": {"deploy": {"cmds": ["echo"]}},
+            },
+        )
         (tmp_path / ".env.prod.example").write_text("DOMAIN=example.com\n")
         issues = new_validate_before_run(config, "prod", ["deploy"])
         env_issues = [i for i in issues if "env file" in i.message.lower()]
@@ -265,26 +303,36 @@ class TestNewValidateBeforeRun:
         assert ".env.prod.example" in env_issues[0].message
 
     def test_missing_script(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1", "tasks": {"build": {"script": "scripts/build.sh"}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "tasks": {"build": {"script": "scripts/build.sh"}},
+            },
+        )
         issues = new_validate_before_run(config, "local", ["build"])
         assert any("script not found" in i.message for i in issues)
 
     def test_broken_dep(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1",
-            "tasks": {"deploy": {"cmds": ["echo"], "deps": ["build"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "tasks": {"deploy": {"cmds": ["echo"], "deps": ["build"]}},
+            },
+        )
         issues = new_validate_before_run(config, "local", ["deploy"])
         assert any("depends on unknown" in i.message for i in issues)
 
     def test_missing_ssh_key(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1",
-            "environments": {"prod": {"ssh_host": "ex.com", "ssh_key": "/nonexistent/k"}},
-            "tasks": {"t": {"cmds": ["echo"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "environments": {"prod": {"ssh_host": "ex.com", "ssh_key": "/nonexistent/k"}},
+                "tasks": {"t": {"cmds": ["echo"]}},
+            },
+        )
         issues = new_validate_before_run(config, "prod", ["t"])
         assert any("SSH key not found" in i.message for i in issues)
 
@@ -406,18 +454,28 @@ class TestProjectDiagnosticsBackwardCompat:
 
     def test_check_taskfile_valid(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        (tmp_path / "Taskfile.yml").write_text(yaml.dump({
-            "version": "1", "tasks": {"hello": {"cmds": ["echo hi"]}},
-        }))
+        (tmp_path / "Taskfile.yml").write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"hello": {"cmds": ["echo hi"]}},
+                }
+            )
+        )
         diag = ProjectDiagnostics()
         assert diag.check_taskfile() is True
 
     def test_check_examples(self, tmp_path):
         ex = tmp_path / "examples" / "minimal"
         ex.mkdir(parents=True)
-        (ex / "Taskfile.yml").write_text(yaml.dump({
-            "version": "1", "tasks": {"t": {"cmds": ["echo"]}},
-        }))
+        (ex / "Taskfile.yml").write_text(
+            yaml.dump(
+                {
+                    "version": "1",
+                    "tasks": {"t": {"cmds": ["echo"]}},
+                }
+            )
+        )
         results = ProjectDiagnostics.check_examples(tmp_path / "examples")
         assert len(results) == 1
         assert results[0]["valid"] is True
@@ -434,37 +492,51 @@ class TestOldValidateBeforeRun:
         return config
 
     def test_clean(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1", "tasks": {"hello": {"cmds": ["echo hi"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "tasks": {"hello": {"cmds": ["echo hi"]}},
+            },
+        )
         issues = validate_before_run(config, "local", ["hello"])
         assert len(issues) == 0
 
     def test_unknown_task_returns_old_category(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1", "tasks": {"hello": {"cmds": ["echo hi"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "tasks": {"hello": {"cmds": ["echo hi"]}},
+            },
+        )
         issues = validate_before_run(config, "local", ["nonexistent"])
         assert len(issues) == 1
         assert issues[0].category == OldCategory.CONFIG
         assert "Unknown task" in issues[0].message
 
     def test_missing_env_file(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1",
-            "environments": {"prod": {"env_file": ".env.prod"}},
-            "tasks": {"t": {"cmds": ["echo"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "environments": {"prod": {"env_file": ".env.prod"}},
+                "tasks": {"t": {"cmds": ["echo"]}},
+            },
+        )
         issues = validate_before_run(config, "prod", ["t"])
         env_issues = [i for i in issues if "env file" in i.message.lower()]
         assert len(env_issues) == 1
 
     def test_missing_ssh_key(self, tmp_path):
-        config = self._make_config(tmp_path, {
-            "version": "1",
-            "environments": {"prod": {"ssh_host": "ex.com", "ssh_key": "/bad/k"}},
-            "tasks": {"t": {"cmds": ["echo"]}},
-        })
+        config = self._make_config(
+            tmp_path,
+            {
+                "version": "1",
+                "environments": {"prod": {"ssh_host": "ex.com", "ssh_key": "/bad/k"}},
+                "tasks": {"t": {"cmds": ["echo"]}},
+            },
+        )
         issues = validate_before_run(config, "prod", ["t"])
         ssh = [i for i in issues if "SSH" in i.message]
         assert len(ssh) == 1

@@ -11,9 +11,7 @@ from taskfile.diagnostics.models import (
     Issue,
     IssueCategory,
     FixStrategy,
-    SEVERITY_ERROR,
     SEVERITY_WARNING,
-    SEVERITY_INFO,
 )
 
 if TYPE_CHECKING:
@@ -70,9 +68,16 @@ def _resolve_env_fields(env, taskfile_dir: Path | None = None) -> None:
     ctx.update(os.environ)
 
     for field_name in (
-        "ssh_host", "ssh_user", "ssh_key",
-        "compose_command", "container_runtime", "service_manager",
-        "env_file", "compose_file", "quadlet_dir", "quadlet_remote_dir",
+        "ssh_host",
+        "ssh_user",
+        "ssh_key",
+        "compose_command",
+        "container_runtime",
+        "service_manager",
+        "env_file",
+        "compose_file",
+        "quadlet_dir",
+        "quadlet_remote_dir",
     ):
         value = getattr(env, field_name, None)
         if isinstance(value, str) and ("${" in value or "$" in value):
@@ -90,26 +95,30 @@ def check_env_files() -> list[Issue]:
 
         # Check for empty API keys
         if "OPENROUTER_API_KEY=" in content and "OPENROUTER_API_KEY=\n" in content:
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"{env_path}: OPENROUTER_API_KEY is empty",
-                fix_strategy=FixStrategy.MANUAL,
-                severity=SEVERITY_WARNING,
-                fix_description=f"Get key from https://openrouter.ai/settings/keys and set in {env_path}",
-                layer=3,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=f"{env_path}: OPENROUTER_API_KEY is empty",
+                    fix_strategy=FixStrategy.MANUAL,
+                    severity=SEVERITY_WARNING,
+                    fix_description=f"Get key from https://openrouter.ai/settings/keys and set in {env_path}",
+                    layer=3,
+                )
+            )
 
         # Check for incorrect PORT variable names
         for line in content.splitlines():
             if line.startswith("PORT=") and not line.startswith("PORT_"):
-                issues.append(Issue(
-                    category=IssueCategory.CONFIG_ERROR,
-                    message=f"{env_path}: Use PORT_WEB or PORT_LANDING instead of PORT",
-                    fix_strategy=FixStrategy.AUTO,
-                    severity=SEVERITY_WARNING,
-                    fix_description=f"Rename PORT= to PORT_WEB= in {env_path}",
-                    layer=3,
-                ))
+                issues.append(
+                    Issue(
+                        category=IssueCategory.CONFIG_ERROR,
+                        message=f"{env_path}: Use PORT_WEB or PORT_LANDING instead of PORT",
+                        fix_strategy=FixStrategy.AUTO,
+                        severity=SEVERITY_WARNING,
+                        fix_description=f"Rename PORT= to PORT_WEB= in {env_path}",
+                        layer=3,
+                    )
+                )
                 break
     return issues
 
@@ -120,14 +129,14 @@ def _collect_required_vars(config: "TaskfileConfig") -> set[str]:
     # From global variables
     for var_value in (config.variables or {}).values():
         if isinstance(var_value, str):
-            refs = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}', var_value)
+            refs = re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}", var_value)
             required_vars.update(refs)
     # From SSH config in environments
     for env_name, env_obj in (config.environments or {}).items():
         for field_name in ("ssh_host", "ssh_user", "ssh_key"):
             value = getattr(env_obj, field_name, None) or ""
             if isinstance(value, str) and value.startswith("${"):
-                m = re.match(r'\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)', value)
+                m = re.match(r"\$\{(?P<var>[A-Za-z_][A-Za-z0-9_]*)", value)
                 if m:
                     required_vars.add(m.group("var"))
     return required_vars
@@ -146,31 +155,35 @@ def _check_env_file_vars(env_file: str, required_vars: set[str]) -> list[Issue]:
             env_vars.add(line.split("=", 1)[0].strip())
     for var in required_vars:
         if var not in env_vars:
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"{env_path}: Missing required variable {var}",
-                fix_strategy=FixStrategy.CONFIRM,
-                severity=SEVERITY_WARNING,
-                fix_description=f"Set {var} in {env_path}",
-                teach=(
-                    f"Variable {var} is referenced in Taskfile but not defined in {env_path}. "
-                    "Add it to the env file with a real value."
-                ),
-                layer=3,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=f"{env_path}: Missing required variable {var}",
+                    fix_strategy=FixStrategy.CONFIRM,
+                    severity=SEVERITY_WARNING,
+                    fix_description=f"Set {var} in {env_path}",
+                    teach=(
+                        f"Variable {var} is referenced in Taskfile but not defined in {env_path}. "
+                        "Add it to the env file with a real value."
+                    ),
+                    layer=3,
+                )
+            )
         elif f"{var}=\n" in env_content or f"{var}=\r\n" in env_content:
-            issues.append(Issue(
-                category=IssueCategory.CONFIG_ERROR,
-                message=f"{env_path}: {var} is empty",
-                fix_strategy=FixStrategy.CONFIRM,
-                severity=SEVERITY_WARNING,
-                fix_description=f"Set value for {var} in {env_path}",
-                teach=(
-                    f"Variable {var} exists in {env_path} but has no value. "
-                    "Set it to a real value before running the task."
-                ),
-                layer=3,
-            ))
+            issues.append(
+                Issue(
+                    category=IssueCategory.CONFIG_ERROR,
+                    message=f"{env_path}: {var} is empty",
+                    fix_strategy=FixStrategy.CONFIRM,
+                    severity=SEVERITY_WARNING,
+                    fix_description=f"Set value for {var} in {env_path}",
+                    teach=(
+                        f"Variable {var} exists in {env_path} but has no value. "
+                        "Set it to a real value before running the task."
+                    ),
+                    layer=3,
+                )
+            )
     return issues
 
 

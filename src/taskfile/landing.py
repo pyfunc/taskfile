@@ -357,7 +357,7 @@ def create_landing_compose_service(
     if traefik_enabled:
         service["labels"] = {
             "traefik.enable": "true",
-            f"traefik.http.routers.landing.rule": f"Host(`{domain}`)",
+            "traefik.http.routers.landing.rule": f"Host(`{domain}`)",
             "traefik.http.routers.landing.tls": "${TLS_ENABLED:-false}",
             "traefik.http.services.landing.loadbalancer.server.port": "80",
         }

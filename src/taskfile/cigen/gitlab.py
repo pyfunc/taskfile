@@ -3,6 +3,7 @@ from taskfile.cigen.base import CITarget, register_target, _sanitize_id, _yaml_d
 
 # ─── GitLab CI ────────────────────────────────────────────
 
+
 @register_target("gitlab")
 class GitLabCITarget(CITarget):
     name = "gitlab"
@@ -73,11 +74,13 @@ class GitLabCITarget(CITarget):
             return
 
         before = job.get("before_script", [])
-        before.extend([
-            'mkdir -p ~/.ssh',
-            'echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519',
-            'chmod 600 ~/.ssh/id_ed25519',
-        ])
+        before.extend(
+            [
+                "mkdir -p ~/.ssh",
+                'echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519',
+                "chmod 600 ~/.ssh/id_ed25519",
+            ]
+        )
         job["before_script"] = before
 
     def _apply_artifacts(self, job: dict, stage, p) -> None:

@@ -19,7 +19,6 @@ def generate_tasks(config: dict) -> dict[str, dict]:
 
     plan_var_flags = " ".join(f"-var='{v}=${{{v}}}'" for v in extra_vars)
     plan_flags = f"-out=tfplan {plan_var_flags}".strip()
-    apply_flags = "-input=false -auto-approve"
 
     return {
         "tf-init": {
@@ -28,9 +27,9 @@ def generate_tasks(config: dict) -> dict[str, dict]:
             "dir": tf_dir,
             "cmds": [
                 f"terraform init"
-                f" -backend-config=\"bucket={state_bucket}\""
-                f" -backend-config=\"key={project}/{workspace_var}/terraform.tfstate\""
-                f" -backend-config=\"region={region_var}\"",
+                f' -backend-config="bucket={state_bucket}"'
+                f' -backend-config="key={project}/{workspace_var}/terraform.tfstate"'
+                f' -backend-config="region={region_var}"',
             ],
         },
         "tf-workspace": {
